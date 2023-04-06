@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List, Tuple, Union
 import networkx as nx
 import numpy as np
 
@@ -7,6 +7,7 @@ from saga.utils.tools import get_insert_loc
 
 from ..base import Scheduler, Task
 from ..utils.random_variable import RandomVariable
+import pprint
 
 
 def stoch_heft_rank_sort(network: nx.Graph, 
@@ -31,7 +32,7 @@ def stoch_heft_rank_sort(network: nx.Graph,
         max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
             ( 
                 rank.get(succ, 0) + 
-                np.mean([commtimes[src, dst][task_name] for src, dst in network.edges])
+                np.mean([commtimes[src, dst][task_name, succ] for src, dst in network.edges])
             )
             for succ in task_graph.successors(task_name)
         )
@@ -45,7 +46,7 @@ class StochHeftScheduler(Scheduler):
 
     @staticmethod
     def get_runtimes(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, Dict[Hashable, float]], Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]]:
-        """Get the runtimes of all tasks on all nodes.
+        """Get the expected runtimes of all tasks on all nodes.
 
         Args:
             network (nx.Graph): The network graph.
@@ -60,21 +61,22 @@ class StochHeftScheduler(Scheduler):
         for node in network.nodes:
             runtimes[node] = {}
             speed: RandomVariable = network.nodes[node]["weight"]
-            exp_speed = speed.mean()
             for task in task_graph.nodes:
                 cost: RandomVariable = task_graph.nodes[task]["weight"]
-                exp_cost = cost.mean()
-                runtimes[node][task] = exp_cost / exp_speed
+                runtimes[node][task] = (cost / speed).mean()
+                logging.info(f"Task {task} on node {node} has expected runtime {runtimes[node][task]}")
 
         commtimes = {}
         for src, dst in network.edges:
             commtimes[src, dst] = {}
+            commtimes[dst, src] = {}
             speed: RandomVariable = network.edges[src, dst]["weight"]
-            exp_speed = speed.mean()
             for src_task, dst_task in task_graph.edges:
                 cost = task_graph.edges[src_task, dst_task]["weight"]
-                exp_cost = cost.mean()
-                commtimes[src, dst][src_task, dst_task] = exp_cost / exp_speed
+                commtimes[src, dst][src_task, dst_task] = (cost / speed).mean()
+                commtimes[dst, src][src_task, dst_task] = commtimes[src, dst][src_task, dst_task]
+
+                logging.info(f"Task {src_task} on node {src} to task {dst_task} on node {dst} has expected communication time {commtimes[src, dst][src_task, dst_task]}")
 
         return runtimes, commtimes
 
@@ -99,32 +101,53 @@ class StochHeftScheduler(Scheduler):
         task_eft_rvs: Dict[str, RandomVariable] = {}
         task_name: str
         for task_name in stoch_heft_rank_sort(network, task_graph, runtimes, commtimes):
-            task_size = task_graph.nodes[task_name]["weight"] 
+            task_size: RandomVariable = task_graph.nodes[task_name]["weight"] 
 
             candidate_tasks: List[Tuple[int, Task]] = []
             for node in network.nodes: # Find the best node to run the task
-                node_speed = network.nodes[node]["weight"] 
+                node_speed: RandomVariable = network.nodes[node]["weight"] 
                 exp_max_arrival_time = 0
+                max_arrival_time: Union[float, RandomVariable] = 0.0
                 if task_graph.in_degree(task_name) > 0:
-                    max_arrival_time = RandomVariable.max(
-                        *[
-                            # TODO: this isn't right we should use join dist X/Y not E[X]/E[Y]
-                            task_eft_rvs[parent] + # commtimes[task_schedule[parent].node, node][parent, task_name]
-                            (task_graph.edges[parent, task_name]["weight"] / network.edges[task_schedule[parent].node, node]["weight"])
-                            for parent in task_graph.predecessors(task_name)
-                        ]
-                    )
+                    arrival_times = [
+                        task_eft_rvs[parent] + # EFT of parent
+                        (task_graph.edges[parent, task_name]["weight"] / 
+                            network.edges[task_schedule[parent].node, node]["weight"])
+                        for parent in task_graph.predecessors(task_name)
+                    ]
+                    logging.debug(f"Arrival times: {pprint.pformat([t.mean() for t in arrival_times])} for task {task_name} on node {node}")
+                    max_arrival_time = RandomVariable.max(*arrival_times)
                     exp_max_arrival_time = max_arrival_time.mean()
+                    parent_finish_times = [(task_eft_rvs[parent].mean(), task_schedule[parent].end) for parent in task_graph.predecessors(task_name)]
+                    parent_comm_times = [
+                        (
+                            (f"{parent} -> {task_name} from {task_schedule[parent].node} to {node}"),
+                            (task_graph.edges[parent, task_name]["weight"] / network.edges[task_schedule[parent].node, node]["weight"]).mean() 
+                        )
+                        for parent in task_graph.predecessors(task_name)
+                    ]
+                    logging.debug(f"Parent finish times: {pprint.pformat(parent_finish_times)} for task {task_name} on node {node}")
+                    logging.debug(f"Parent communication times: {pprint.pformat(parent_comm_times)} for task {task_name} on node {node}")
+                    logging.debug(f"Task {task_name} on node {node} has expected max arrival time of parent data {exp_max_arrival_time}")
 
-                _idx, exp_start_time = get_insert_loc(comp_schedule[node], exp_max_arrival_time, task_size / node_speed)
-                exp_end_time = exp_start_time + runtimes[node][task_name]
-                candidate_task = Task(node, task_name, exp_start_time, exp_end_time)
-                candidate_tasks.append((_idx, candidate_task))
+                _idx, start_time = get_insert_loc(comp_schedule[node], exp_max_arrival_time, runtimes[node][task_name])
+                exp_end_time = start_time + runtimes[node][task_name]
+                candidate_task = Task(node, task_name, start_time, exp_end_time)
 
-            idx, new_task = min(candidate_tasks, key=lambda x: x[1].exp_end_time)
+                exp_delay = start_time - exp_max_arrival_time
+                logging.debug(f"Task {task_name} on node {node} has expected delay {exp_delay}")
+                # EFT of the task
+                eft_rv = (task_size / node_speed) + (max_arrival_time + exp_delay)
+
+                candidate_tasks.append((_idx, candidate_task, eft_rv))
+
+            idx, new_task, eft_rv = min(candidate_tasks, key=lambda x: x[1].end)
+
+            logging.debug(f"Check {eft_rv.mean()} ~= {new_task.end} for task {new_task.name} on node {new_task.node}")
 
             comp_schedule[new_task.node].insert(idx, new_task)
             task_schedule[new_task.name] = new_task
+            task_eft_rvs[new_task.name] = eft_rv
 
         return comp_schedule
         

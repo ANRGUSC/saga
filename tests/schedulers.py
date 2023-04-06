@@ -13,9 +13,11 @@ from saga.common.cpop import CPOPScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
 from saga.stochastic.sheft import SheftScheduler
+from saga.stochastic.stoch_heft import StochHeftScheduler
+from saga.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+from saga.utils.random_variable import RandomVariable
 from saga.utils.tools import validate_simple_schedule
-from tempfile import TemporaryDirectory
 
 from uuid import uuid4
 
@@ -133,7 +135,7 @@ def test_common_chain_dag():
         Test(
             f"chain_{scheduler.__class__.__name__}",
             scheduler, network.copy(),
-            task_graph.copy(), thisdir / "output"
+            task_graph.copy(), thisdir / "output" / "schedulers"
         )
         for scheduler in common_schedulers
     ]
@@ -157,7 +159,7 @@ def test_common_diamond_dag():
         Test(
             f"diamond_{scheduler.__class__.__name__}",
             scheduler, network.copy(), 
-            task_graph.copy(), thisdir / "output"
+            task_graph.copy(), thisdir / "output" / "schedulers"
         )
         for scheduler in common_schedulers
     ]
@@ -181,7 +183,7 @@ def test_common_fork_dag():
         Test(
             f"fork_{scheduler.__class__.__name__}",
             scheduler, network.copy(),
-            task_graph.copy(), thisdir / "output"
+            task_graph.copy(), thisdir / "output" / "schedulers"
         )
         for scheduler in common_schedulers
     ]
@@ -206,11 +208,18 @@ def test_diamond_sheft():
         task_graph.edges[edge]["weight"] = norm(0, 1)
 
     network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = norm(0, 1)
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = norm(1e9, 1e-9)
+        else:
+            network.edges[edge]["weight"] = norm(0, 1)
     scheduler = SheftScheduler()
     test = Test(
         f"diamond_{scheduler.__class__.__name__}",
         scheduler, network.copy(),
-        task_graph.copy(), thisdir / "output",
+        task_graph.copy(), thisdir / "output" / "schedulers",
         simplify_instance=lambda network, task_graph: SheftScheduler.reweight_instance(network, task_graph)
     )
     test.run()
@@ -227,11 +236,18 @@ def test_fork_sheft():
         task_graph.edges[edge]["weight"] = norm(0, 1)
 
     network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = norm(0, 1)
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = norm(1e9, 1e-9)
+        else:
+            network.edges[edge]["weight"] = norm(0, 1)
     scheduler = SheftScheduler()
     test = Test(
         f"fork_{scheduler.__class__.__name__}",
         scheduler, network.copy(),
-        task_graph.copy(), thisdir / "output",
+        task_graph.copy(), thisdir / "output" / "schedulers",
         simplify_instance=lambda network, task_graph: SheftScheduler.reweight_instance(network, task_graph)
     )
     test.run()
@@ -240,10 +256,122 @@ def test_sheft():
     test_diamond_sheft()
     test_fork_sheft()
 
+def test_chain_stoch_heft():
+    task_graph = nx.DiGraph()
+    task_graph.add_nodes_from(["A", "B", "C", "D", "E"])
+    task_graph.add_edges_from([("A", "B"), ("B", "C"), ("C", "D"), ("D", "E")])
+
+    x = np.linspace(0, 10, 100000)
+    for node in task_graph.nodes:
+        task_graph.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    for edge in task_graph.edges:
+        task_graph.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = RandomVariable([1e9], num_samples=1)
+        else:
+            network.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    scheduler = StochHeftScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    pprint.pprint(schedule)
+    # TODO: validate schedule
+
+def test_diamond_stoch_heft():
+    task_graph = nx.DiGraph()
+    task_graph.add_nodes_from(["A", "B", "C", "D", "E"])
+    task_graph.add_edges_from([("A", "B"), ("A", "C"), ("A", "D"), ("B", "E"), ("C", "E"), ("D", "E")])
+
+    x = np.linspace(0, 10, 100000)
+    for node in task_graph.nodes:
+        task_graph.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    for edge in task_graph.edges:
+        task_graph.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = RandomVariable([1e9], num_samples=1)
+        else:
+            network.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    scheduler = StochHeftScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    pprint.pprint(schedule)
+    # TODO: validate schedule
+
+def test_fork_stoch_heft():
+    task_graph = nx.DiGraph()
+    task_graph.add_nodes_from(["A", "B", "C", "D", "E", "F"])
+    task_graph.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")])
+
+    x = np.linspace(0, 10, 100000)
+    for node in task_graph.nodes:
+        task_graph.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    for edge in task_graph.edges:
+        task_graph.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = RandomVariable([1e9], num_samples=1)
+        else:
+            network.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    scheduler = StochHeftScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    pprint.pprint(schedule)
+    # TODO: validate schedule
+
+def test_stoch_heft():
+    test_chain_stoch_heft()
+    test_diamond_stoch_heft()
+    test_fork_stoch_heft()
+
+def test_chain_improved_sheft():
+    task_graph = nx.DiGraph()
+    task_graph.add_nodes_from(["A", "B", "C", "D", "E"])
+    task_graph.add_edges_from([("A", "B"), ("B", "C"), ("C", "D"), ("D", "E")])
+
+    x = np.linspace(0, 10, 100000)
+    for node in task_graph.nodes:
+        task_graph.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    for edge in task_graph.edges:
+        task_graph.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+
+    network = get_random_network()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = RandomVariable([1e9], num_samples=1)
+        else:
+            network.edges[edge]["weight"] = RandomVariable.from_pdf(x, norm.pdf(x, loc=5, scale=1))
+    scheduler = ImprovedSheftScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    pprint.pprint(schedule)
+    # TODO: validate schedule
+
+
+def test_stochastic():
+    test_sheft()
+    test_stoch_heft()
+    test_chain_improved_sheft()
+
 def test():
     logging.basicConfig(level=logging.DEBUG)
-    test_common()
-    test_sheft()
+    # test_common()
+    test_stochastic()
+    
     
 
 if __name__ == "__main__":
