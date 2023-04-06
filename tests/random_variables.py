@@ -225,21 +225,21 @@ def test_div(mode: str = 'norm'):
     plt.close()
 
 def main():
-    # test_sum('norm')
-    # test_sum('uniform')
-    # test_sum('beta')
+    test_sum('norm')
+    test_sum('uniform')
+    test_sum('beta')
 
-    # test_sub('norm')
-    # test_sub('uniform')
-    # test_sub('beta')
+    test_sub('norm')
+    test_sub('uniform')
+    test_sub('beta')
 
-    # test_max('norm')
-    # test_max('uniform')
-    # test_max('beta')
+    test_max('norm')
+    test_max('uniform')
+    test_max('beta')
 
-    # test_mul('norm')
-    # test_mul('uniform')
-    # test_mul('beta')
+    test_mul('norm')
+    test_mul('uniform')
+    test_mul('beta')
 
     test_div('norm')
     test_div('uniform')
