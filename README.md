@@ -23,9 +23,7 @@ The following algorithms are implemented:
 ### Installation
 Clone the repository and install the requirements:
 ```bash
-git clone <repo>
-cd <repo>
-pip install -e . # -e flag is optional - it installs the package in editable mode
+pip install anrg.saga
 ```
 
 ### Running the algorithms
