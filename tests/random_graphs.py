@@ -27,7 +27,7 @@ def get_fork_dag() -> nx.DiGraph:
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")])
     return dag
 
-def get_branching_dag(levels: int = 4, branching_factor: int = 2) -> nx.DiGraph:
+def get_branching_dag(levels: int = 3, branching_factor: int = 2) -> nx.DiGraph:
     G = nx.DiGraph()
     
     node_id = 0

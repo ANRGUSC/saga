@@ -9,6 +9,7 @@ import pathlib
 from saga.common.cpop import CPOPScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
+from saga.common.brute_force import BruteForceScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -130,6 +131,7 @@ def test_common_schedulers():
         HeftScheduler(),
         CPOPScheduler(),
         FastestNodeScheduler(),
+        BruteForceScheduler(),
     ]
 
     for scheduler in schedulers:
