@@ -18,8 +18,8 @@ def test_sum(mode: str = 'norm'):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
-    dist1 = RandomVariable(x, pdf1)
-    dist2 = RandomVariable(x, pdf2)
+    dist1 = RandomVariable.from_pdf(x, pdf1)
+    dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 + dist2
     n_samples = 100000
     samples1 = dist1.sample(n_samples)
@@ -60,8 +60,8 @@ def test_max(mode: str = 'norm'):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
-    dist1 = RandomVariable(x, pdf1)
-    dist2 = RandomVariable(x, pdf2)
+    dist1 = RandomVariable.from_pdf(x, pdf1)
+    dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = RandomVariable.max(dist1, dist2)
     n_samples = 100000
     samples1 = dist1.sample(n_samples)
@@ -103,8 +103,8 @@ def test_sub(mode: str = 'norm'):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
-    dist1 = RandomVariable(x, pdf1)
-    dist2 = RandomVariable(x, pdf2)
+    dist1 = RandomVariable.from_pdf(x, pdf1)
+    dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 - dist2
     n_samples = 100000
     samples1 = dist1.sample(n_samples)
@@ -146,8 +146,8 @@ def test_mul(mode: str = 'norm'):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
-    dist1 = RandomVariable(x, pdf1)
-    dist2 = RandomVariable(x, pdf2)
+    dist1 = RandomVariable.from_pdf(x, pdf1)
+    dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 * dist2
     n_samples = 100000
     samples1 = dist1.sample(n_samples)
@@ -189,8 +189,8 @@ def test_div(mode: str = 'norm'):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=3, b=5)
-    dist1 = RandomVariable(x, pdf1)
-    dist2 = RandomVariable(x, pdf2)
+    dist1 = RandomVariable.from_pdf(x, pdf1)
+    dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 / dist2
     n_samples = 100000
     samples1 = dist1.sample(n_samples)
@@ -199,7 +199,6 @@ def test_div(mode: str = 'norm'):
     samples_direct = dist3.sample(n_samples)
 
     df_dist3 = pd.DataFrame({'x': dist3.x, 'pdf': dist3.pdf})
-    print(df_dist3)
 
     # plot
     fig, ax = plt.subplots(2, 2, figsize=(10, 10))
