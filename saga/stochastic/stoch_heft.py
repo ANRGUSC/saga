@@ -64,7 +64,7 @@ class StochHeftScheduler(Scheduler):
             for task in task_graph.nodes:
                 cost: RandomVariable = task_graph.nodes[task]["weight"]
                 runtimes[node][task] = (cost / speed).mean()
-                logging.info(f"Task {task} on node {node} has expected runtime {runtimes[node][task]}")
+                logging.debug(f"Task {task} on node {node} has expected runtime {runtimes[node][task]}")
 
         commtimes = {}
         for src, dst in network.edges:
@@ -76,7 +76,7 @@ class StochHeftScheduler(Scheduler):
                 commtimes[src, dst][src_task, dst_task] = (cost / speed).mean()
                 commtimes[dst, src][src_task, dst_task] = commtimes[src, dst][src_task, dst_task]
 
-                logging.info(f"Task {src_task} on node {src} to task {dst_task} on node {dst} has expected communication time {commtimes[src, dst][src_task, dst_task]}")
+                logging.debug(f"Task {src_task} on node {src} to task {dst_task} on node {dst} has expected communication time {commtimes[src, dst][src_task, dst_task]}")
 
         return runtimes, commtimes
 

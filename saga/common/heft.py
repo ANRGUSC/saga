@@ -67,7 +67,7 @@ class HeftScheduler(Scheduler):
             for task in task_graph.nodes:
                 cost: float = task_graph.nodes[task]["weight"]
                 runtimes[node][task] = cost / speed
-                logging.info(f"Task {task} on node {node} has runtime {runtimes[node][task]}")
+                logging.debug(f"Task {task} on node {node} has runtime {runtimes[node][task]}")
 
         commtimes = {}
         for src, dst in network.edges:
@@ -78,7 +78,7 @@ class HeftScheduler(Scheduler):
                 cost = task_graph.edges[src_task, dst_task]["weight"]
                 commtimes[src, dst][src_task, dst_task] = cost / speed
                 commtimes[dst, src][src_task, dst_task] = cost / speed
-                logging.info(f"Task {src_task} on node {src} to task {dst_task} on node {dst} has communication time {commtimes[src, dst][src_task, dst_task]}")
+                logging.debug(f"Task {src_task} on node {src} to task {dst_task} on node {dst} has communication time {commtimes[src, dst][src_task, dst_task]}")
 
         return runtimes, commtimes
 
