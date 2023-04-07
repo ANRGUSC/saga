@@ -32,8 +32,6 @@ def format_graph(graph: nx.DiGraph) -> str:
             formatted_graph.edges[edge]["weight"] = formatted_graph.edges[edge]["weight"].mean()
     return formatted_graph
 
-from common import standardize_instance
-
 def draw_task_graph(task_graph: nx.DiGraph, 
                     ax: Optional[plt.Axes] = None,
                     schedule: Optional[Dict[Hashable, List[Task]]] = None) -> plt.Axes:
@@ -53,10 +51,12 @@ def draw_task_graph(task_graph: nx.DiGraph,
     colors = {}
     if schedule is not None:
         tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
-        network_nodes = {task.node for node, tasks in schedule.items() for task in tasks}
-        network_node_idx = {node: i for i, node in enumerate(sorted(network_nodes))}
+        network_nodes = set(schedule.keys())
+
         cmap = plt.get_cmap("tab20", len(network_nodes))
-        colors = {node: cmap(idx) for node, idx in network_node_idx.items()}
+        sorted_nodes = sorted(network_nodes)
+        sorted_colors = [cmap(i) for i in range(len(network_nodes))]
+        colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
 
     nx.draw_networkx_nodes(
         task_graph, pos=pos, ax=ax,
@@ -101,7 +101,6 @@ def draw_task_graph(task_graph: nx.DiGraph,
 
     return ax
 
-
 def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
     """Draws a network
 
@@ -118,14 +117,17 @@ def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
 
     # use same colors as task graph
     cmap = plt.get_cmap("tab20", len(network.nodes))
-    node_idx = {node: i for i, node in enumerate(sorted(network.nodes))}
-    colors = [cmap(idx) for node, idx in node_idx.items()]
+    sorted_nodes = sorted(network.nodes)
+    sorted_colors = [cmap(i) for i in range(len(network.nodes))]
+    node_colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
+    colors = [node_colors[node] for node in sorted_nodes]
     
     # spring layout
     pos = nx.spring_layout(network)
     # draw network nodes with black border and white fill
     nx.draw_networkx_nodes(
         network, pos=pos, ax=ax,
+        nodelist=sorted_nodes,
         node_color=colors,
         edgecolors="black",
         node_size=3000

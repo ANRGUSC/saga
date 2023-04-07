@@ -1,9 +1,7 @@
 from functools import lru_cache
-from typing import Callable, Tuple, Union
+from typing import Tuple, Union
 import numpy as np
 from scipy import integrate
-from sklearn.neighbors import KernelDensity
-from sklearn.model_selection import GridSearchCV
 
 class RandomVariable:
     DEFAULT_NUM_SAMPLES = 100000

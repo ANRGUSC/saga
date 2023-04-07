@@ -7,13 +7,13 @@ long_description = (thisdir / "README.md").read_text()
 
 setup(
     name='anrg.saga',
-    version='0.0.2',
+    version='0.0.5',
     description='Collection of schedulers for distributed computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/ANRGUSC/saga',
     author='Jared Coleman',
-    packages=['saga'],
+    packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
