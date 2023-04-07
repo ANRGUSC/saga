@@ -7,7 +7,32 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from typing import List, Optional, Dict, Hashable
 from ..base import Task, Scheduler
+from ..utils.random_variable import RandomVariable
 
+def format_graph(graph: nx.DiGraph) -> str:
+    """Formats the graph
+
+    copies weight attribute to label attribute
+    if weight is a RandomVariable, then weight is set to the mean
+
+    Args:
+        graph: Graph
+    
+    Returns:
+        Formatted graph
+    """
+    formatted_graph = graph.copy()
+    for node in formatted_graph.nodes:
+        formatted_graph.nodes[node]["label"] = formatted_graph.nodes[node]["weight"]
+        if isinstance(formatted_graph.nodes[node]["weight"], RandomVariable):
+            formatted_graph.nodes[node]["weight"] = formatted_graph.nodes[node]["weight"].mean()
+    for edge in formatted_graph.edges:
+        formatted_graph.edges[edge]["label"] = formatted_graph.edges[edge]["weight"]
+        if isinstance(formatted_graph.edges[edge]["weight"], RandomVariable):
+            formatted_graph.edges[edge]["weight"] = formatted_graph.edges[edge]["weight"].mean()
+    return formatted_graph
+
+from common import standardize_instance
 
 def draw_task_graph(task_graph: nx.DiGraph, 
                     ax: Optional[plt.Axes] = None,
@@ -21,6 +46,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
     """
     if ax is None:
         fig, ax = plt.subplots()
+        
+    task_graph = format_graph(task_graph.copy())
     pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
 
     colors = {}
@@ -30,6 +57,14 @@ def draw_task_graph(task_graph: nx.DiGraph,
         network_node_idx = {node: i for i, node in enumerate(sorted(network_nodes))}
         cmap = plt.get_cmap("tab20", len(network_nodes))
         colors = {node: cmap(idx) for node, idx in network_node_idx.items()}
+
+    nx.draw_networkx_nodes(
+        task_graph, pos=pos, ax=ax,
+        node_size=100,
+        node_color="white",
+        edgecolors="black",
+        linewidths=2,
+    )
 
     nx.draw_networkx_edges(
         task_graph, pos=pos, ax=ax, 
@@ -45,11 +80,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
         except Exception:
             logging.warning(f"Could not get color for {task_name}")
             
-        print(f"task_name: {task_name} color: {color}")
         nx.draw_networkx_labels(
             task_graph, pos=pos, ax=ax,
             labels={
-                task_name: f"{task_name} ({task_graph.nodes[task_name]['weight']:.2f})"
+                task_name: f"{task_name} ({task_graph.nodes[task_name]['label']:.2f})"
             },
             bbox=dict(
                 facecolor=color,
@@ -60,7 +94,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
     nx.draw_networkx_edge_labels(
         task_graph, pos=pos, ax=ax,
         edge_labels={
-            (u, v): f"{task_graph.edges[(u, v)]['weight']:.2f}"
+            (u, v): f"{task_graph.edges[(u, v)]['label']:.2f}"
             for u, v in task_graph.edges
         }
     )
@@ -79,7 +113,7 @@ def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
         fig, ax = plt.subplots()
 
     # don't drdaw self loops
-    network = network.copy()
+    network = format_graph(network.copy())
     network.remove_edges_from(nx.selfloop_edges(network))
 
     # use same colors as task graph
@@ -108,14 +142,14 @@ def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
     nx.draw_networkx_labels(
         network, pos=pos, ax=ax,
         labels={
-            node: f"{node} ({network.nodes[node]['weight']:.2f})"
+            node: f"{node} ({network.nodes[node]['label']:.2f})"
             for node in network.nodes
         }
     )
     nx.draw_networkx_edge_labels(
         network, pos=pos, ax=ax, 
         edge_labels={
-            (u, v): f"{network.edges[(u, v)]['weight']:.2f}"
+            (u, v): f"{network.edges[(u, v)]['label']:.2f}"
             for u, v in network.edges
         }
     )

@@ -9,7 +9,7 @@ from saga.utils.simulator import Simulator
 import pandas as pd
 import pathlib
 
-from random_graphs import (
+from saga.utils.random_graphs import (
     get_diamond_dag, get_chain_dag, get_fork_dag, get_branching_dag, 
     get_network, add_random_weights, add_rv_weights
 )

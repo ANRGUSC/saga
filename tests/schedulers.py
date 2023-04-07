@@ -16,7 +16,7 @@ from saga.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 from saga.utils.tools import validate_simple_schedule
 
-from random_graphs import (
+from saga.utils.random_graphs import (
     get_diamond_dag, get_chain_dag, get_fork_dag, get_branching_dag, 
     get_network, add_random_weights, add_rv_weights
 )

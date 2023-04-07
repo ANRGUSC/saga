@@ -77,19 +77,18 @@ def add_random_weights(graph: T, weight_range: Tuple[float, float] = (1, 10)) ->
 
 def add_rv_weights(graph: T) -> T:
     """Adds random variable weights to the DAG."""
-    def get_rv(weight_range: Tuple[float, float]
-               ):
-        std = np.random.uniform(1, 3)
-        loc = np.random.uniform(weight_range[0] + 3 * std, weight_range[1] - 3 * std)
-        x = np.linspace(loc - 3 * std, loc + 3 * std, 1000)
+    def get_rv():
+        std = np.random.uniform(1e-9, 0.01)
+        loc = np.random.uniform(0.5)
+        x = np.linspace(1e-9, 1, 1000)
         pdf = norm.pdf(x, loc, std)
         return RandomVariable.from_pdf(x, pdf)
     
     for node in graph.nodes:
-        graph.nodes[node]["weight"] = get_rv(weight_range=(20, 50))
+        graph.nodes[node]["weight"] = get_rv()
     for edge in graph.edges:
         if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = RandomVariable([1e9], num_samples=1) # very large communication speed
+            graph.edges[edge]["weight"] = RandomVariable([1e9]) # very large communication speed
         else:
-            graph.edges[edge]["weight"] = get_rv(weight_range=(1, 20))
+            graph.edges[edge]["weight"] = get_rv()
     return graph

@@ -7,9 +7,20 @@ from sklearn.model_selection import GridSearchCV
 
 class RandomVariable:
     DEFAULT_NUM_SAMPLES = 100000
-    def __init__(self, samples: np.ndarray, num_samples: int = DEFAULT_NUM_SAMPLES) -> None:
+    def __init__(self, samples: np.ndarray) -> None:
         self.samples = samples
-        self.num_samples = num_samples
+
+    def __format__(self, format_spec: str) -> str:
+        # format floats in str representation according to format_spec
+        # return f"RV[μ={self.mean():{format_spec}},σ={self.std():{format_spec}}]"
+        return f"{self.mean():{format_spec}} ± {self.std():{format_spec}}"
+    
+    def __str__(self) -> str:
+        # call format with default format spec
+        return self.__format__("0.3f")
+    
+    def __repr__(self) -> str:
+        return str(self)
 
     @staticmethod
     def from_pdf(x: np.ndarray, pdf: np.ndarray, num_samples: int = DEFAULT_NUM_SAMPLES) -> "RandomVariable":
@@ -92,17 +103,22 @@ class RandomVariable:
 
     def __add__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         if isinstance(other, (float, int)):
-            return RandomVariable(self.samples + other, self.num_samples)
+            return RandomVariable(self.samples + other)
+        
+        self_num_samples = len(self.samples)
+        other_num_samples = len(other.samples)
         
         # add the samples of the two random variables
-        if self.num_samples >= other.num_samples:
+        if self_num_samples >= other_num_samples:
             self_samples = self.samples
-            other_samples = np.random.choice(other.samples, self.num_samples, replace=True)
+            missing_samples = self_num_samples - other_num_samples
+            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, missing_samples)])
         else:
-            self_samples = np.random.choice(self.samples, other.num_samples, replace=True)
+            missing_samples = other_num_samples - self_num_samples
+            self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
         samples = self_samples + other_samples
-        return RandomVariable(samples, self.num_samples)
+        return RandomVariable(samples)
     
     def __radd__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         return self.__add__(other)
@@ -114,52 +130,77 @@ class RandomVariable:
         return -self.__add__(-other)
     
     def __neg__(self):
-        return RandomVariable(-self.samples, self.num_samples)
+        return RandomVariable(-self.samples)
     
     def __mul__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         if isinstance(other, (float, int)):
-            return RandomVariable(self.samples * other, self.num_samples)
+            return RandomVariable(self.samples * other)
+        elif np.isclose(other.std(), 0):
+            if np.isclose(self.std(), 0):
+                return RandomVariable([self.mean() * other.mean()])
+            else:
+                return RandomVariable(self.samples * other.mean())
         
+        self_num_samples = len(self.samples)
+        other_num_samples = len(other.samples)
+
         # multiply the samples of the two random variables
-        if self.num_samples >= other.num_samples:
+        if self_num_samples >= other_num_samples:
             self_samples = self.samples
-            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
+            missing_samples = self_num_samples - other_num_samples
+            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, missing_samples)])
         else:
-            self_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
+            missing_samples = other_num_samples - self_num_samples
+            self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
         samples = self_samples * other_samples
-        return RandomVariable(samples, self.num_samples)
+        return RandomVariable(samples)
     
     def __rmul__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         return self.__mul__(other)
 
     def __truediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
         if isinstance(other, (float, int)):
-            return RandomVariable(self.samples / other, self.num_samples)
+            return RandomVariable(self.samples / other)
+        elif np.isclose(other.std(), 0):
+            if np.isclose(self.std(), 0):
+                return RandomVariable([self.mean() / other.mean()])
+            else:
+                return RandomVariable(self.samples / other.mean())
+        
+        self_num_samples = len(self.samples)
+        other_num_samples = len(other.samples)
         
         # divide the samples of the two random variables
-        if self.num_samples >= other.num_samples:
+        if self_num_samples >= other_num_samples:
             self_samples = self.samples
-            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
+            missing_samples = self_num_samples - other_num_samples
+            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, missing_samples)])
         else:
-            self_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
+            missing_samples = other_num_samples - self_num_samples
+            self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
         samples = self_samples / other_samples
-        return RandomVariable(samples, self.num_samples)
+        return RandomVariable(samples)
     
-    def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
-        if isinstance(other, (float, int)):
-            return RandomVariable(other / self.samples, self.num_samples)
+    # def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
+    #     if isinstance(other, (float, int)):
+    #         return RandomVariable(other / self.samples)
         
-        # divide the samples of the two random variables
-        if self.num_samples >= other.num_samples:
-            self_samples = self.samples
-            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
-        else:
-            self_samples = np.concatenate([other.samples, np.random.choice(other.samples, self.num_samples - other.num_samples, replace=True)])
-            other_samples = other.samples
-        samples = other_samples / self_samples
-        return RandomVariable(samples, self.num_samples)
+    #     self_num_samples = len(self.samples)
+    #     other_num_samples = len(other.samples)
+        
+    #     # divide the samples of the two random variables
+        # if self_num_samples >= other_num_samples:
+        #     self_samples = self.samples
+        #     missing_samples = self_num_samples - other_num_samples
+        #     other_samples = np.concatenate([other.samples, np.random.choice(other.samples, missing_samples)])
+        # else:
+        #     missing_samples = other_num_samples - self_num_samples
+        #     self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
+        #     other_samples = other.samples
+    #     samples = other_samples / self_samples
+    #     return RandomVariable(samples)
     
     
     @staticmethod
@@ -172,10 +213,10 @@ class RandomVariable:
         Returns:
             RandomVariable: The maximum of the random variables.
         """
-        max_num_samples = max(rv.num_samples for rv in rvs)
-        all_samples = [np.concatenate([rv.samples, np.random.choice(rv.samples, max_num_samples - rv.num_samples, replace=True)]) for rv in rvs]
+        max_num_samples = max(len(rv.samples) for rv in rvs)
+        all_samples = [np.concatenate([rv.samples, np.random.choice(rv.samples, max_num_samples - len(rv.samples), replace=True)]) for rv in rvs]
         samples = np.max(all_samples, axis=0)
-        return RandomVariable(samples, max_num_samples)
+        return RandomVariable(samples)
     
     def expectation(self):
         return np.mean(self.samples)

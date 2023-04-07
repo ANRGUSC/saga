@@ -38,7 +38,9 @@ def stoch_heft_rank_sort(network: nx.Graph,
         )
         rank[task_name] = avg_comp + max_comm
 
-    return sorted(list(rank.keys()), key=rank.get, reverse=True)
+    sorted_tasks = sorted(list(rank.keys()), key=rank.get, reverse=True)
+    logging.debug(f"Task Ranks: {rank}")
+    return sorted_tasks
 
 class StochHeftScheduler(Scheduler):
     def __init__(self) -> None:
@@ -61,8 +63,12 @@ class StochHeftScheduler(Scheduler):
         for node in network.nodes:
             runtimes[node] = {}
             speed: RandomVariable = network.nodes[node]["weight"]
+            logging.debug(f"Node {node} has speed {speed}")
+            assert(isinstance(speed, RandomVariable))
             for task in task_graph.nodes:
                 cost: RandomVariable = task_graph.nodes[task]["weight"]
+                logging.debug(f"Task {task} has cost {cost}")
+                assert(isinstance(cost, RandomVariable))
                 runtimes[node][task] = (cost / speed).mean()
                 logging.debug(f"Task {task} on node {node} has expected runtime {runtimes[node][task]}")
 
@@ -71,8 +77,12 @@ class StochHeftScheduler(Scheduler):
             commtimes[src, dst] = {}
             commtimes[dst, src] = {}
             speed: RandomVariable = network.edges[src, dst]["weight"]
+            logging.debug(f"Edge {src} -> {dst} has speed {speed}")
+            assert(isinstance(speed, RandomVariable))
             for src_task, dst_task in task_graph.edges:
                 cost = task_graph.edges[src_task, dst_task]["weight"]
+                logging.debug(f"Edge {src_task} -> {dst_task} has cost {cost}")
+                assert(isinstance(cost, RandomVariable))
                 commtimes[src, dst][src_task, dst_task] = (cost / speed).mean()
                 commtimes[dst, src][src_task, dst_task] = commtimes[src, dst][src_task, dst_task]
 

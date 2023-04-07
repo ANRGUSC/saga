@@ -87,7 +87,7 @@ class HeftScheduler(Scheduler):
                   task_graph: nx.DiGraph,
                   runtimes: Dict[Hashable, Dict[Hashable, float]],
                   commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-                  schedule_order: List[Hashable]) -> Dict[str, List[Task]]:
+                  schedule_order: List[Hashable]) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:
@@ -98,19 +98,21 @@ class HeftScheduler(Scheduler):
             schedule_order (List[Hashable]): The order in which to schedule the tasks.
 
         Returns:
-            Dict[str, List[Task]]: The schedule.
+            Dict[Hashable, List[Task]]: The schedule.
 
         Raises:
             ValueError: If the instance is invalid.
         """
-        comp_schedule: Dict[str, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[str, Task] = {}
+        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[Hashable, Task] = {}
 
-        task_name: str
+        task_name: Hashable
+        logging.debug(f"Schedule order: {schedule_order}")
         for task_name in schedule_order:
             min_finish_time = np.inf 
             best_node = None 
             for node in network.nodes: # Find the best node to run the task
+                logging.debug(f"Testing task {task_name} on node {node}")
                 max_arrival_time: float = max( # 
                     [
                         0.0, *[
