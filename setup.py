@@ -32,6 +32,7 @@ setup(
         'scipy',
         'pandas',
         'plotly',
+        'kaleido',
     ],
     python_requires='>=3.6',
 )
