@@ -6,6 +6,9 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from plotly.graph_objects import Figure 
+import pathlib
+
+thisdir = pathlib.Path(__file__).parent.absolute()
 
 
 def main():
@@ -37,18 +40,18 @@ def main():
     ax: plt.Axes = draw_task_graph(task_graph)
     ax.set_title('Task Graph')
     fig = ax.get_figure()
-    fig.savefig('task_graph.png')
+    fig.savefig(thisdir / 'task_graph.png')
 
     # draw the network
     ax: plt.Axes = draw_network(network)
     ax.set_title('Network')
     fig = ax.get_figure()
-    fig.savefig('network.png')
+    fig.savefig(thisdir / 'network.png')
 
     # draw the schedule
     fig: Figure = draw_gantt(schedule)
     fig.update_layout(title='Schedule')
-    fig.write_image('schedule.png')
+    fig.write_image(str(thisdir / 'schedule.png'))
 
 
 if __name__ == '__main__':
