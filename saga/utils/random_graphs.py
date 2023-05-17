@@ -64,7 +64,7 @@ def get_network() -> nx.Graph:
 
 # template T nx.DiGraph or nx.Graph
 T = TypeVar("T", nx.DiGraph, nx.Graph)
-def add_random_weights(graph: T, weight_range: Tuple[float, float] = (1, 10)) -> T:
+def add_random_weights(graph: T, weight_range: Tuple[float, float] = (0, 1)) -> T:
     """Adds random weights to the DAG."""
     for node in graph.nodes:
         graph.nodes[node]["weight"] = np.random.uniform(*weight_range)
