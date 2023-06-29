@@ -1,5 +1,5 @@
-from ..base import Scheduler, Task
-from ..utils.tools import check_instance_simple
+from ...saga.base import Scheduler, Task
+from ...saga.utils.tools import check_instance_simple
 
 import itertools
 from typing import Dict, Hashable, List, Tuple
@@ -42,14 +42,12 @@ class MaxMinScheduler(Scheduler):
                     ect[(task, machine)] = completion_time
 
             # Find task-machine pair with minimum earliest completion time
-            max_task, max_machine = max(ect, key=ect.get)
+            max_machine, max_task = min(ect)
 
             # Add the task to the schedule
-            task = Task(start=max([task.end for task in schedule[max_machine]] or [0]),
-                        end=ect[(max_task, max_machine)],
-                        task=max_task,
-                        machine=max_machine)
-            schedule[max_machine].append(task)
+            schedule[max_machine].append(Task(max_machine, max_task, max(
+                [task.end for task in schedule[max_machine]] or [0]), ect[(max_task, max_machine)]))
+            
 
             # Remove the scheduled task from the task graph
             task_graph.remove_node(max_task)

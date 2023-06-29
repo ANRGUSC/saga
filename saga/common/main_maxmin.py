@@ -10,7 +10,6 @@ import pathlib
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-
 def main():
     # greate a diamond-task graph with random task weights between 0 and 1
     task_graph = nx.DiGraph()
@@ -56,3 +55,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
