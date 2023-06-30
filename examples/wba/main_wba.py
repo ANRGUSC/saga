@@ -1,5 +1,5 @@
 import itertools
-from saga.common.wba import WBAScheduler  # make sure to replace this with the correct import path
+from saga.common.wba import WBAScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx
@@ -32,7 +32,7 @@ def main():
         else:
             network.add_edge(src, dst, weight=1e9)
 
-    scheduler = WBAScheduler()  # replace HeftScheduler with WBAScheduler
+    scheduler = WBAScheduler()
     schedule = scheduler.schedule(network, task_graph)
 
     # draw the task graph
