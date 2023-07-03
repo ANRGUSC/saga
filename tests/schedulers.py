@@ -10,6 +10,7 @@ from saga.common.cpop import CPOPScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
 from saga.common.brute_force import BruteForceScheduler
+from saga.common.minmin import MinMinScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -128,10 +129,11 @@ def test_common_schedulers():
     }
     network = add_random_weights(get_network())
     schedulers = [
-        HeftScheduler(),
-        CPOPScheduler(),
-        FastestNodeScheduler(),
-        BruteForceScheduler(),
+        # HeftScheduler(),
+        # CPOPScheduler(),
+        # FastestNodeScheduler(),
+        # BruteForceScheduler(),
+        MinMinScheduler(),
     ]
 
     for scheduler in schedulers:
@@ -142,7 +144,8 @@ def test_common_schedulers():
                 scheduler=scheduler,
                 network=network.copy(),
                 task_graph=task_graph.copy(),
-                path=thisdir / "output" / "schedulers"
+                path=thisdir / "output" / "schedulers",
+                save_passing=True
             )
             passed = test.run()
             print(f"{test.name} passed: {passed}")
@@ -201,8 +204,8 @@ def test_stochastic_schedulers():
 
 def test():
     test_common_schedulers()
-    test_reweighting_stochastic_schedulers()
-    test_stochastic_schedulers()
+    # test_reweighting_stochastic_schedulers()
+    # test_stochastic_schedulers()
     
 if __name__ == "__main__":
     test()

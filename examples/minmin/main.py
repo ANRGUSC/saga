@@ -16,36 +16,29 @@ def main():
     task_graph.add_nodes_from([1, 2, 3, 4])
     task_graph.add_edges_from([(1, 2), (1, 3), (2, 4), (3, 4)])
 
-    runtimes = {}
-    commtimes = {}
-    machine_capacities = {}
-    task_resources = {}
-
     for node in task_graph.nodes:
-        task_graph.nodes[node]['weight'] = np.random.rand()
-        runtimes[node] = {task: np.random.rand() for task in task_graph.nodes}
-        task_resources[node] = np.random.rand()
-
-    for edge in task_graph.edges:
-        task_graph.edges[edge]['weight'] = np.random.rand()
-        commtimes[edge] = {(task1, task2): np.random.rand() for task1 in task_graph.nodes for task2 in task_graph.nodes if task1 != task2}
+        task_graph.nodes[node]['weight'] = 1
+    
+    for (src, dst) in task_graph.edges:
+        task_graph.edges[src, dst]['weight'] = 1e-9
 
     # generate a fully-connected network with random node and edge weights between 0 and 1
     network = nx.Graph()
     network.add_nodes_from([1, 2, 3, 4])
 
     for node in network.nodes:
-        network.nodes[node]['weight'] = np.random.rand()
-        machine_capacities[node] = np.random.rand()
+        network.nodes[node]['weight'] = 1
 
     for (src, dst) in itertools.product(network.nodes, network.nodes):
         if src != dst:
-            network.add_edge(src, dst, weight=np.random.rand())
+            network.add_edge(src, dst, weight=1)
         else:
             network.add_edge(src, dst, weight=1e9)
 
-    scheduler = MinMinScheduler(runtimes, commtimes, machine_capacities, task_resources)
+    scheduler = MinMinScheduler()
     schedule = scheduler.schedule(network, task_graph)
+
+    print(schedule)
 
     # draw the task graph
     ax: plt.Axes = draw_task_graph(task_graph)
