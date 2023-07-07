@@ -3,14 +3,20 @@ import pprint
 import traceback
 from typing import Callable, Dict, List, Tuple
 
+from matplotlib import pyplot as plt
+
 from saga.base import Scheduler, Task
 import networkx as nx
 import pathlib
 from saga.common.cpop import CPOPScheduler
+from saga.common.eft import EFTScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
 from saga.common.brute_force import BruteForceScheduler
+from saga.common.duplex import DuplexScheduler
 from saga.common.minmin import MinMinScheduler
+from saga.common.maxmin import MaxMinScheduler
+from saga.common.met import METScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -73,6 +79,8 @@ class Test:
             fig.write_image(path / "gantt.png")
 
         path.joinpath("log.txt").write_text("\n".join(log_entries))
+        # close all figures
+        plt.close("all")
 
     def run(self) -> bool:
         # capture logging output to a tempfile
@@ -133,7 +141,11 @@ def test_common_schedulers():
         # CPOPScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
-        MinMinScheduler(),
+        # MinMinScheduler(),
+        # EFTScheduler(),
+        # MaxMinScheduler(),
+        # DuplexScheduler(),
+        METScheduler(),
     ]
 
     for scheduler in schedulers:
@@ -150,7 +162,7 @@ def test_common_schedulers():
             passed = test.run()
             print(f"{test.name} passed: {passed}")
             if not passed:
-                print(f"Failed: {test.name} - see output in {test.path.joinpath(task_graph_name)}")
+                print(f"Failed: {test.name} - see output in {test.path.joinpath('fail', test_name, 'details.md')}")
 
 def test_reweighting_stochastic_schedulers():
     task_graphs = {
