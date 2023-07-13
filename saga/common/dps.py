@@ -57,10 +57,6 @@ class DpsScheduler(Scheduler):
             else :
                 return min(Tuple[max(EFT(pred) + task_graph.edges[pred,task]for pred in task_graph.predecessors(task_graph.nodes[task]))+ task_graph.nodes[task]['weight'] / network.nodes[node]['weight'],node] for node in network.nodes)
 
-        def update_ready_list():
-            nonlocal ready_list
-            ready_list = [task for task in ready_list if task in task_list]
-
         task_list = list(task_graph.nodes)
         task_list.sort(key=lambda task: PRIORITY(TL(task,network), BL(task,network)), reverse=True)
         
