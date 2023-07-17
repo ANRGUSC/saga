@@ -17,6 +17,7 @@ from saga.common.duplex import DuplexScheduler
 from saga.common.minmin import MinMinScheduler
 from saga.common.maxmin import MaxMinScheduler
 from saga.common.met import METScheduler
+from saga.common.spouse import SpouseScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -145,7 +146,8 @@ def test_common_schedulers():
         # EFTScheduler(),
         # MaxMinScheduler(),
         # DuplexScheduler(),
-        METScheduler(),
+        # METScheduler(),
+        SpouseScheduler()
     ]
 
     for scheduler in schedulers:
