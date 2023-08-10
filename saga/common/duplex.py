@@ -1,20 +1,14 @@
-from ..base import Scheduler, Task
-from ..utils.tools import check_instance_simple
-
-import itertools
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List
 
 import networkx as nx
-import numpy as np
 
-from .minmin import MinMinScheduler
+from ..base import Scheduler, Task
 from .maxmin import MaxMinScheduler
-
-class DuplexScheduler(Scheduler):
-    def __init__(self):
-        super().__init__()
+from .minmin import MinMinScheduler
 
 
+class DuplexScheduler(Scheduler): # pylint: disable=too-few-public-methods
+    """Duplex scheduler"""
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Returns the best schedule (minimizing makespan) for a problem instance using dupkex
 
@@ -28,26 +22,16 @@ class DuplexScheduler(Scheduler):
         minmin_schedule = MinMinScheduler().schedule(network, task_graph)
         maxmin_schedule = MaxMinScheduler().schedule(network, task_graph)
 
-        minmin_makespan = max([
-            max([task.end for task in minmin_schedule[node]])
-            for node in minmin_schedule
-        ])
+        minmin_makespan = max(
+            max(task.end for task in tasks)
+            for _, tasks in minmin_schedule.items()
+        )
 
-        maxmin_makespan = max([
-            max([task.end for task in maxmin_schedule[node]])
-            for node in maxmin_schedule
-        ])
+        maxmin_makespan = max(
+            max(task.end for task in tasks)
+            for _, tasks in maxmin_schedule.items()
+        )
 
         if minmin_makespan <= maxmin_makespan:
             return minmin_schedule
-        else:
-            return maxmin_schedule
-
-        
-    
-
-
-
-
-        
-        
+        return maxmin_schedule

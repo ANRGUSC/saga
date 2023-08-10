@@ -1,15 +1,27 @@
-from typing import Dict, Hashable, List, Tuple, Optional
+from typing import Dict, Hashable, List, Tuple
+
 import networkx as nx
-import numpy as np
 
 from ..base import Scheduler, Task
-from ..utils.tools import check_instance_simple
+
 
 class GDLScheduler(Scheduler):
-    def __init__(self):
-        super(GDLScheduler, self).__init__()
+    """Earliest Task First scheduler"""
 
-    def get_runtimes(self, network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, float], Dict[Tuple[Hashable, Hashable], float]]:
+    def get_runtimes(self,
+                     network: nx.Graph,
+                     task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, float],
+                                                      Dict[Tuple[Hashable, Hashable], float]]:
+        """Returns the computation and communication costs of the tasks
+
+        Args:
+            network (nx.Graph): The network.
+            task_graph (nx.DiGraph): The task graph.
+
+        Returns:
+            Tuple[Dict[Hashable, float], Dict[Tuple[Hashable, Hashable], float]]:
+                The computation and communication costs of the tasks.
+        """
         computation_costs = {}
         communication_costs = {}
         for node in network.nodes:
@@ -26,15 +38,47 @@ class GDLScheduler(Scheduler):
 
         return computation_costs, communication_costs
 
-    def compute_b_level(self, task, task_graph, computation_costs, communication_costs):
+    def compute_b_level(self,
+                        task: Hashable,
+                        task_graph: nx.DiGraph,
+                        computation_costs: Dict[Hashable, float],
+                        communication_costs: Dict[Tuple[Hashable, Hashable], float]) -> float:
+        """Computes the b-level of a task
+
+        Args:
+            task (Hashable): The task.
+            task_graph (nx.DiGraph): The task graph.
+            computation_costs (Dict[Hashable, float]): The computation costs of the tasks.
+            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
+
+        Returns:
+            float: The b-level of the task.
+        """
         successors = task_graph.successors(task)
         if not list(successors):
             return computation_costs[task]
         else:
-            values = [communication_costs.get((task, s), 0) + self.compute_b_level(s, task_graph, computation_costs, communication_costs) for s in successors]
+            values = [
+                (communication_costs.get((task, s), 0) +
+                 self.compute_b_level(s, task_graph, computation_costs, communication_costs))
+                for s in successors
+            ]
             return computation_costs[task] + (max(values) if values else 0)
 
-    def compute_est(self, task, processor, schedule, communication_costs):
+    def compute_est(self,
+                    task: Hashable,
+                    schedule: nx.DiGraph,
+                    communication_costs: Dict[Tuple[Hashable, Hashable], float]) -> float:
+        """Computes the earliest start time of a task
+
+        Args:
+            task (Hashable): The task.
+            schedule (nx.DiGraph): The schedule.
+            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
+
+        Returns:
+            float: The earliest start time of the task.
+        """
         try:
             predecessors = schedule.predecessors(task)
         except nx.NetworkXError:
@@ -48,13 +92,29 @@ class GDLScheduler(Scheduler):
                 for predecessor in predecessors
             )
 
-    def update_priorities(self, task_graph, schedule, computation_costs, communication_costs, task_priorities, processor_for_task):
+    def update_priorities(self,
+                          task_graph: nx.DiGraph,
+                          schedule: nx.DiGraph,
+                          computation_costs: Dict[Hashable, float],
+                          communication_costs: Dict[Tuple[Hashable, Hashable], float],
+                          task_priorities: Dict[Hashable, float]) -> None:
+        """Updates the priorities of the tasks
+
+        Args:
+            task_graph (nx.DiGraph): The task graph.
+            schedule (nx.DiGraph): The schedule.
+            computation_costs (Dict[Hashable, float]): The computation costs of the tasks.
+            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
+            task_priorities (Dict[Hashable, float]): The priorities of the tasks.
+        """
         for task in task_graph.nodes:
-            processor = processor_for_task[task] 
-            task_priorities[task] = self.compute_b_level(task, task_graph, computation_costs, communication_costs) - self.compute_est(task, processor, schedule, communication_costs)
+            task_priorities[task] = (
+                self.compute_b_level(task, task_graph, computation_costs, communication_costs) -
+                self.compute_est(task, schedule, communication_costs)
+            )
 
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
-        check_instance_simple(network, task_graph)
+
         schedule = nx.DiGraph()
 
         tasks = list(task_graph.nodes)
@@ -65,19 +125,25 @@ class GDLScheduler(Scheduler):
          # Main scheduling loop
         while tasks:
             # Update task priorities
-            self.update_priorities(task_graph, schedule, computation_costs, communication_costs, task_priorities, processor_for_task)
+            self.update_priorities(task_graph, schedule, computation_costs, communication_costs, task_priorities)
 
             # Select task with highest priority
             task = max(tasks, key=lambda t: task_priorities[t])
 
             # Assign task to processor with earliest finish time
-            est = {p: self.compute_est(task, p, schedule, communication_costs) for p in network}
+            est = {p: self.compute_est(task, schedule, communication_costs) for p in network}
             chosen_processor = min(est, key=est.get)
             processor_for_task[task] = chosen_processor
 
             # Calculate start and finish times
             if task in schedule:
-                start_time = max(est[chosen_processor], max((schedule.nodes[predecessor]['finish_time'] for predecessor in task_graph.predecessors(task) if predecessor in schedule), default=0))
+                start_time = max(
+                    est[chosen_processor], max(
+                        (schedule.nodes[predecessor]['finish_time']
+                        for predecessor in task_graph.predecessors(task)
+                        if predecessor in schedule), default=0
+                    )
+                )
             else:
                 start_time = est[chosen_processor]
 
@@ -90,12 +156,15 @@ class GDLScheduler(Scheduler):
             tasks.remove(task)
 
         # Convert schedule to output format
-        schedule_output = {}
+        schedule_output: Dict[Hashable, List[Task]] = {}
         for task in schedule.nodes:
             if processor_for_task[task] not in schedule_output:
                 schedule_output[processor_for_task[task]] = []
-            schedule_output[processor_for_task[task]].append(Task(node=task, name=str(task), start=schedule.nodes[task]['start_time'], end=schedule.nodes[task]['finish_time']))
+            new_task = Task(
+                node=task, name=str(task),
+                start=schedule.nodes[task]['start_time'],
+                end=schedule.nodes[task]['finish_time']
+            )
+            schedule_output[processor_for_task[task]].append(new_task)
 
         return schedule_output
-
-
