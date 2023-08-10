@@ -1,10 +1,12 @@
 from itertools import product
 from typing import Tuple, TypeVar
+
 import networkx as nx
 import numpy as np
 from scipy.stats import norm
 
 from saga.utils.random_variable import RandomVariable
+
 
 def get_diamond_dag() -> nx.DiGraph:
     """Returns a diamond DAG."""
@@ -28,31 +30,40 @@ def get_fork_dag() -> nx.DiGraph:
     return dag
 
 def get_branching_dag(levels: int = 3, branching_factor: int = 2) -> nx.DiGraph:
-    G = nx.DiGraph()
-    
+    """Returns a branching DAG.
+
+    Args:
+        levels (int, optional): The number of levels. Defaults to 3.
+        branching_factor (int, optional): The branching factor. Defaults to 2.
+
+    Returns:
+        nx.DiGraph: The branching DAG.
+    """
+    graph = nx.DiGraph()
+
     node_id = 0
     level_nodes = [node_id]  # Level 0
-    G.add_node(node_id)
+    graph.add_node(node_id)
     node_id += 1
-    
-    for level in range(1, levels):
+
+    for _ in range(1, levels):
         new_level_nodes = []
-        
+
         for parent in level_nodes:
             children = [node_id + i for i in range(branching_factor)]
-            
-            G.add_edges_from([(parent, child) for child in children])
+
+            graph.add_edges_from([(parent, child) for child in children])
             new_level_nodes.extend(children)
             node_id += branching_factor
-        
+
         level_nodes = new_level_nodes
-    
+
     # Add destination node
     dst_node = node_id
-    G.add_node(dst_node)
-    G.add_edges_from([(node, dst_node) for node in level_nodes])
+    graph.add_node(dst_node)
+    graph.add_edges_from([(node, dst_node) for node in level_nodes])
 
-    return G
+    return graph
 
 def get_network() -> nx.Graph:
     """Returns a network."""
@@ -80,10 +91,10 @@ def add_rv_weights(graph: T) -> T:
     def get_rv():
         std = np.random.uniform(1e-9, 0.01)
         loc = np.random.uniform(0.5)
-        x = np.linspace(1e-9, 1, 1000)
-        pdf = norm.pdf(x, loc, std)
-        return RandomVariable.from_pdf(x, pdf)
-    
+        x_vals = np.linspace(1e-9, 1, 1000)
+        pdf = norm.pdf(x_vals, loc, std)
+        return RandomVariable.from_pdf(x_vals, pdf)
+
     for node in graph.nodes:
         graph.nodes[node]["weight"] = get_rv()
     for edge in graph.edges:

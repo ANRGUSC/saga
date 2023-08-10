@@ -9,7 +9,7 @@ from saga.base import Scheduler, Task
 import networkx as nx
 import pathlib
 from saga.common.cpop import CPOPScheduler
-from saga.common.eft import EFTScheduler
+from saga.common.etf import ETFScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
 from saga.common.brute_force import BruteForceScheduler
@@ -17,6 +17,8 @@ from saga.common.duplex import DuplexScheduler
 from saga.common.minmin import MinMinScheduler
 from saga.common.maxmin import MaxMinScheduler
 from saga.common.met import METScheduler
+from saga.common.fcp import FCPScheduler
+from saga.common.smt import SMTScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -145,7 +147,9 @@ def test_common_schedulers():
         # EFTScheduler(),
         # MaxMinScheduler(),
         # DuplexScheduler(),
-        METScheduler(),
+        # METScheduler(),
+        # FCPScheduler(),
+        SMTScheduler(solver_name="z3"),	
     ]
 
     for scheduler in schedulers:

@@ -1,12 +1,21 @@
-import networkx as nx
-from saga.base import Scheduler, Task
-from saga.utils.random_variable import RandomVariable
 from typing import Dict, Hashable, List, Tuple
+
+import networkx as nx
+
+from saga.base import Task
+from saga.utils.random_variable import RandomVariable
 
 
 class Simulator:
     """Simulates stochastic task graph execution over a network."""
     def __init__(self, network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[str, List[Task]]):
+        """Initializes the simulator.
+
+        Args:
+            network (nx.Graph): The network.
+            task_graph (nx.DiGraph): The task graph.
+            schedule (Dict[str, List[Task]]): The schedule.
+        """
         self.network = network
         self.task_graph = task_graph
         self.schedule = schedule
@@ -21,9 +30,12 @@ class Simulator:
             self.task_graph.nodes,
             key=lambda task: (levels[task], self.tasks[task].node, levels[task])
         )
-        
+
     def sample_instances(self, num_instances: int) -> List[Tuple[nx.Graph, nx.DiGraph]]:
         """Samples a network and task graph instance.
+
+        Args:
+            num_instances (int): The number of instances to sample.
 
         Returns:
             Tuple[nx.Graph, nx.DiGraph]: A tuple of the network and task graph instance.
@@ -35,7 +47,7 @@ class Simulator:
         for edge in self.network.edges:
             speed: RandomVariable = self.network.edges[edge]["weight"]
             node_speeds[edge] = speed.sample(num_samples=num_instances)
-        
+
         task_costs = {}
         for task in self.task_graph.nodes:
             cost: RandomVariable = self.task_graph.nodes[task]["weight"]
@@ -71,13 +83,14 @@ class Simulator:
         instances = self.sample_instances(num_instances=num_simulations)
         results = []
 
-        for i, (network, task_graph) in enumerate(instances):
+        for network, task_graph in instances:
             schedule: Dict[Hashable, List[Task]] = {}
             for task_name in self.schedule_order:
                 runtime = task_graph.nodes[task_name]["weight"] / network.nodes[self.tasks[task_name].node]["weight"]
                 parent_arrival_times = [
                     schedule[self.tasks[parent].node][-1].end + (
-                        task_graph.edges[(parent, task_name)]["weight"] / network.edges[(self.tasks[parent].node, self.tasks[task_name].node)]["weight"]
+                        task_graph.edges[(parent, task_name)]["weight"] /
+                        network.edges[(self.tasks[parent].node, self.tasks[task_name].node)]["weight"]
                     )
                     for parent in task_graph.predecessors(task_name)
                 ]
@@ -100,7 +113,3 @@ class Simulator:
             results.append(schedule)
 
         return results
-                
-
-            
-        

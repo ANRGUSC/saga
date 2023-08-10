@@ -1,5 +1,4 @@
-from ...saga.base import Scheduler, Task
-from ...saga.utils.tools import check_instance_simple
+from saga.base import Scheduler, Task
 
 import itertools
 from typing import Dict, Hashable, List, Tuple
@@ -22,8 +21,6 @@ class MaxMinScheduler(Scheduler):
         Returns:
             A dictionary of the schedule
         """
-        check_instance_simple(network, task_graph)
-
         # Initialize schedule as an empty dictionary
         schedule = {node: [] for node in network.nodes}
 

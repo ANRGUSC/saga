@@ -98,16 +98,6 @@ def validate_simple_schedule(network: nx.Graph, task_graph: nx.DiGraph, schedule
         ValueError: If instance is invalid.
         InvalidScheduleError: If schedule is invalid.
     """
-    # Go through every scheduled task in topological order
-    # Check that:
-    #   - task runtime is correct (task weight / node weight)
-    #   - task start time is feasible: >= parent end time + comm time (task_graph edge weight / network edge weight)
-    #   - task end time is correct: task start time + task runtime
-    #   - tasks on node do not overlap
-
-    # use np.isclose to compare floats
-    # give detailed information if schedule is invalid
-
     check_instance_simple(network, task_graph) # check that instance is valid
 
     tasks = {task.name: task for node in schedule for task in schedule[node]}

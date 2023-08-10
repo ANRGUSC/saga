@@ -42,7 +42,7 @@ class WBAScheduler(Scheduler):
         while len(scheduled_tasks) < task_graph.order():
             available_tasks = [
                 task for task in task_graph.nodes
-                if (task not in scheduled_tasks and 
+                if (task not in scheduled_tasks and
                     set(task_graph.predecessors(task)).issubset(set(scheduled_tasks.keys())))
             ]
 
