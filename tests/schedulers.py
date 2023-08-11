@@ -8,19 +8,11 @@ import networkx as nx
 from matplotlib import pyplot as plt
 
 from saga.base import Scheduler, Task
-from saga.common.brute_force import BruteForceScheduler
-from saga.common.cpop import CpopScheduler
-from saga.common.duplex import DuplexScheduler
-from saga.common.etf import ETFScheduler
-from saga.common.fastest_node import FastestNodeScheduler
-from saga.common.fcp import FCPScheduler
-from saga.common.heft import HeftScheduler
-from saga.common.maxmin import MaxMinScheduler
-from saga.common.met import METScheduler
-from saga.common.minmin import MinMinScheduler
-from saga.common.smt import SMTScheduler
-from saga.common.wba import WBAScheduler
-from saga.common.hybrid import HybridScheduler
+from saga.common import (
+    BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
+    FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
+    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler
+)
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
