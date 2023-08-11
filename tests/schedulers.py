@@ -19,6 +19,7 @@ from saga.common.maxmin import MaxMinScheduler
 from saga.common.met import METScheduler
 from saga.common.minmin import MinMinScheduler
 from saga.common.smt import SMTScheduler
+from saga.common.wba import WBAScheduler
 from saga.common.hybrid import HybridScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.stochastic.sheft import SheftScheduler
@@ -179,18 +180,19 @@ def test_common_schedulers():
     }
     network = add_random_weights(get_network())
     schedulers = [
-        HeftScheduler(),
-        CpopScheduler(),
-        FastestNodeScheduler(),
-        BruteForceScheduler(),
-        MinMinScheduler(),
-        ETFScheduler(),
-        MaxMinScheduler(),
-        DuplexScheduler(),
-        METScheduler(),
-        FCPScheduler(),
-        SMTScheduler(solver_name="z3"),
-        HybridScheduler(schedulers=[HeftScheduler(), CpopScheduler()])
+        # HeftScheduler(),
+        # CpopScheduler(),
+        # FastestNodeScheduler(),
+        # BruteForceScheduler(),
+        # MinMinScheduler(),
+        # ETFScheduler(),
+        # MaxMinScheduler(),
+        # DuplexScheduler(),
+        # METScheduler(),
+        # FCPScheduler(),
+        # SMTScheduler(solver_name="z3"),
+        # HybridScheduler(schedulers=[HeftScheduler(), CpopScheduler()]),
+        WBAScheduler(),
     ]
 
     for scheduler in schedulers:

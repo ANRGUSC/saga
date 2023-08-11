@@ -1,20 +1,32 @@
 import random
-from typing import Dict, Hashable, List
+from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
 from ..base import Scheduler, Task
 
 
-class WBAScheduler(Scheduler):
+class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Worst-Case Bound Aware Scheduler"""
     def __init__(self, alpha: float = 0.5) -> None:
+        """Initializes the WBA scheduler.
+
+        Args:
+            alpha (float, optional): The alpha parameter. Defaults to 0.5.
+        """
         super(WBAScheduler, self).__init__()
         self.alpha = alpha
 
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+        """Returns the schedule of the given task graph on the given network.
 
+        Args:
+            network (nx.Graph): The network graph.
+            task_graph (nx.DiGraph): The task graph.
 
+        Returns:
+            Dict[Hashable, List[Task]]: The schedule.
+        """
         schedule: Dict[Hashable, List[Task]] = {}
         scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
 
@@ -36,9 +48,13 @@ class WBAScheduler(Scheduler):
                 for pred_task in task_graph.predecessors(task)
             )
 
+        def get_est(task: Hashable, node: Hashable) -> float:
+            return max(get_eat(node), get_fat(task, node))
+
         def get_ect(task: Hashable, node: Hashable) -> float:
             return get_eet(task, node) + max(get_eat(node), get_fat(task, node))
 
+        cur_makespan = 0
         while len(scheduled_tasks) < task_graph.order():
             available_tasks = [
                 task for task in task_graph.nodes
@@ -46,31 +62,33 @@ class WBAScheduler(Scheduler):
                     set(task_graph.predecessors(task)).issubset(set(scheduled_tasks.keys())))
             ]
 
-            #implementation from paper
             while available_tasks:
-                avail_pairs = []
                 i_min = float('inf')
                 i_max = -float('inf')
 
+                makespan_increases: Dict[Hashable, Tuple[Hashable, Hashable]] = {}
                 for task in available_tasks:
                     for node in network.nodes:
-                        i = get_ect(task, node) - get_eat(node)
-                        if i <= i_min + self.alpha * (i_max - i_min):
-                            avail_pairs.append((task, node))
-                        i_min = min(i_min, i)
-                        i_max = max(i_max, i)
+                        makespan_increases[task, node] = max(get_ect(task, node) - cur_makespan, 0) # makespan increase
+
+                i_min = min(makespan_increases.values())
+                i_max = max(makespan_increases.values())
+                avail_pairs = [
+                    key for key, value in makespan_increases.items()
+                    if value <= i_min + self.alpha * (i_max - i_min)
+                ]
 
                 sched_task, sched_node = random.choice(avail_pairs)
                 schedule.setdefault(sched_node, [])
                 new_task = Task(
                     node=sched_node,
                     name=sched_task,
-                    start=get_eat(sched_node),
+                    start=get_est(sched_task, sched_node),
                     end=get_ect(sched_task, sched_node)
                 )
                 schedule[sched_node].append(new_task)
                 scheduled_tasks[sched_task] = new_task
-                print(f"Task {sched_task} scheduled on machine {sched_node}")
+                cur_makespan = max(cur_makespan, new_task.end)
                 available_tasks.remove(sched_task)
 
         return schedule
