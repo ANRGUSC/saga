@@ -180,18 +180,18 @@ def test_common_schedulers():
     }
     network = add_random_weights(get_network())
     schedulers = [
-        # HeftScheduler(),
-        # CpopScheduler(),
-        # FastestNodeScheduler(),
-        # BruteForceScheduler(),
-        # MinMinScheduler(),
-        # ETFScheduler(),
-        # MaxMinScheduler(),
-        # DuplexScheduler(),
-        # METScheduler(),
-        # FCPScheduler(),
-        # SMTScheduler(solver_name="z3"),
-        # HybridScheduler(schedulers=[HeftScheduler(), CpopScheduler()]),
+        HeftScheduler(),
+        CpopScheduler(),
+        FastestNodeScheduler(),
+        BruteForceScheduler(),
+        MinMinScheduler(),
+        ETFScheduler(),
+        MaxMinScheduler(),
+        DuplexScheduler(),
+        METScheduler(),
+        FCPScheduler(),
+        SMTScheduler(solver_name="z3"),
+        HybridScheduler(schedulers=[HeftScheduler(), CpopScheduler()]),
         WBAScheduler(),
     ]
 
