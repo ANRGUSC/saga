@@ -5,16 +5,23 @@ import networkx as nx
 
 @dataclass
 class Task:
+    """A task."""
     node: str
     name: str
     start: Optional[float]
-    end: Optional[float] 
+    end: Optional[float]
 
-class Scheduler(ABC):
-    @abstractmethod
-    def __init__(self) -> None:
-        super(Scheduler, self).__init__()
-
+class Scheduler(ABC): # pylint: disable=too-few-public-methods
+    """An abstract class for a scheduler."""
     @abstractmethod
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
-        pass
+        """Schedule the tasks on the network.
+
+        Args:
+            network (nx.Graph): The network.
+            task_graph (nx.DiGraph): The task graph.
+
+        Returns:
+            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
+        """
+        raise NotImplementedError

@@ -61,7 +61,7 @@ def cpop_ranks(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, floa
     rank = {task_name: rank_up[task_name] + rank_down[task_name] for task_name in task_graph.nodes}
     return rank
 
-class CPOPScheduler(Scheduler):
+class CpopScheduler(Scheduler):
     """Implements the CPoP algorithm for task scheduling.
 
     Attributes:

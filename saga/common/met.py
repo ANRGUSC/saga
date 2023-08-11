@@ -32,7 +32,6 @@ class METScheduler(Scheduler): # pylint: disable=too-few-public-methods
 
         def get_fat(task: Hashable, node: Hashable) -> float:
             fat = 0 if task_graph.in_degree(task) <= 0 else max(
-                # schedule[r_schedule[pred_task]][-1].end +
                 scheduled_tasks[pred_task].end +
                 get_commtime(pred_task, task, scheduled_tasks[pred_task].node, node)
                 for pred_task in task_graph.predecessors(task)
