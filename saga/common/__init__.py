@@ -14,3 +14,4 @@ from .met import METScheduler
 from .olb import OLBScheduler
 from .smt import SMTScheduler
 from .wba import WBAScheduler
+from .bil import BILScheduler
