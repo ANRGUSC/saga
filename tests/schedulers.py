@@ -11,7 +11,8 @@ from saga.base import Scheduler, Task
 from saga.common import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
-    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler
+    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
+    BILScheduler
 )
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.stochastic.sheft import SheftScheduler
@@ -185,6 +186,7 @@ def test_common_schedulers():
         SMTScheduler(solver_name="z3"),
         HybridScheduler(schedulers=[HeftScheduler(), CpopScheduler()]),
         WBAScheduler(),
+        BILScheduler(),
     ]
 
     for scheduler in schedulers:
