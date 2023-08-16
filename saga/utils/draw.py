@@ -50,7 +50,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
     task_graph = format_graph(task_graph.copy())
     pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
 
-    colors = {}
+    colors, tasks = {}, {}
     if schedule is not None:
         tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
         network_nodes = set(schedule.keys())
@@ -101,14 +101,20 @@ def draw_task_graph(task_graph: nx.DiGraph,
         }
     )
 
+    axis.margins(0.1)
+    axis.axis("off")
+    plt.tight_layout()
     return axis
 
-def draw_network(network: nx.Graph, axis: Optional[plt.Axes] = None) -> plt.Axes:
+def draw_network(network: nx.Graph, 
+                 axis: Optional[plt.Axes] = None,
+                 draw_colors: bool = True) -> plt.Axes:
     """Draws a network
 
     Args:
         network: Network
         axis: Axes to draw on
+        draw_colors: Whether to draw colors. Default is True.
     """
     if axis is None:
         _, axis = plt.subplots()
@@ -130,7 +136,7 @@ def draw_network(network: nx.Graph, axis: Optional[plt.Axes] = None) -> plt.Axes
     nx.draw_networkx_nodes(
         network, pos=pos, ax=axis,
         nodelist=sorted_nodes,
-        node_color=colors,
+        node_color=colors if draw_colors else "white",
         edgecolors="black",
         node_size=3000
     )
@@ -155,23 +161,26 @@ def draw_network(network: nx.Graph, axis: Optional[plt.Axes] = None) -> plt.Axes
             for u, v in network.edges
         }
     )
+
+    axis.margins(0.1)
+    axis.axis("off")
+    plt.tight_layout()
     return axis
 
 
-def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
-    """Draws a Gantt chart
-
-    Args:
-        schedule: Schedule
-
-    Returns:
-        Gantt chart
-    """
+def draw_gantt(schedule: Dict[Hashable, List[Task]]):
     # Remove dummy tasks with near 0 duration
     schedule = {
         node: [task for task in tasks if task.end - task.start > 1e-6]
         for node, tasks in schedule.items()
     }
+
+    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+
+    # insert dummy tasks to make sure all nodes have at least one task
+    for node in schedule:
+        if len(schedule[node]) == 0:
+            schedule[node].append(Task(name="dummy", start=-1, end=-1, node=node))
 
     data_frame = pd.DataFrame(
         [
@@ -189,7 +198,6 @@ def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
 
     fig = px.timeline(
         data_frame,
-        title="Schedule",
         x_start="Start",
         x_end="Finish",
         y="Node",
@@ -202,11 +210,25 @@ def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
     # set x-axis label to "Time"
     fig.update_layout(xaxis_title="Time")
 
-    # center title
-    fig.update_layout(title_x=0.5)
+    # make the bars black with black outline
+    fig.update_traces(
+        marker_color='white',
+        marker_line_color='black',
+        marker_line_width=1.5,
+        opacity=1
+    )
 
-    # give bars outline
-    fig.update_traces(marker_line_color='rgb(8,48,107)', marker_line_width=1.5, opacity=1)
+    # Integer labels on y-axis
+    fig.update_yaxes(tickvals=list(range(1, len(schedule)+1)))
+    fig.update_yaxes(dtick=1)
 
-    fig.update_yaxes(range=[-1/2, len(schedule)+1/2])
+    # set y-axis range from 0 to len(schedule) + 1
+    fig.update_yaxes(range=[0, len(schedule)+1])
+    fig.update_xaxes(range=[0, makespan+0.1])
+    
+    # set aspect ratio high-res 2:1
+    fig.update_layout(width=1200, height=600)
+
+    # make font larger
+    fig.update_layout(font_size=20)
     return fig
