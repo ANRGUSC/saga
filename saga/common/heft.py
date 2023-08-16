@@ -120,7 +120,6 @@ class HeftScheduler(Scheduler):
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes: # Find the best node to run the task
-                logging.debug("Testing task %s on node %s", task_name, node)
                 max_arrival_time: float = max( #
                     [
                         0.0, *[
@@ -134,6 +133,8 @@ class HeftScheduler(Scheduler):
 
                 runtime = runtimes[node][task_name]
                 idx, start_time = get_insert_loc(comp_schedule[node], max_arrival_time, runtime)
+                
+                logging.debug("Testing task %s on node %s: start time %s, finish time %s", task_name, node, start_time, start_time + runtime)
 
                 finish_time = start_time + runtime
                 if finish_time < min_finish_time:
