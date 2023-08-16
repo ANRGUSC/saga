@@ -1,6 +1,6 @@
 import heapq
 import logging
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List
 
 import networkx as nx
 import numpy as np
@@ -8,6 +8,48 @@ import numpy as np
 from ..base import Scheduler, Task
 from ..utils.tools import get_insert_loc
 
+def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
+    """Computes the upward rank of the tasks in the task graph."""
+    ranks = {}
+    for task_name in reversed(list(nx.topological_sort(task_graph))):
+        avg_comp = np.mean([
+            task_graph.nodes[task_name]['weight'] / network.nodes[node]['weight']
+            for node in network.nodes
+        ])
+        max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
+            (
+                ranks[succ] + # rank of successor
+                np.mean([ # average communication time for input data of successor
+                    task_graph.edges[task_name, succ]['weight'] / network.edges[src, dst]['weight']
+                    for src, dst in network.edges
+                ])
+            )
+            for succ in task_graph.successors(task_name)
+        )
+        ranks[task_name] = avg_comp + max_comm
+
+    return ranks
+
+def downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
+    """Computes the downward rank of the tasks in the task graph."""
+    ranks = {}
+    for task_name in nx.topological_sort(task_graph):
+        ranks[task_name] = 0 if task_graph.in_degree(task_name) <= 0 else max(
+            (
+                np.mean([
+                    task_graph.nodes[pred]['weight'] / network.nodes[node]['weight']
+                    for node in network.nodes
+                ]) +
+                ranks[pred] + # rank of predecessor
+                np.mean([ # average communication time for output data of predecessor
+                    task_graph.edges[pred, task_name]['weight'] / network.edges[src, dst]['weight']
+                    for src, dst in network.edges
+                ])
+            )
+            for pred in task_graph.predecessors(task_name)
+        )
+
+    return ranks
 
 def cpop_ranks(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Computes the ranks of the tasks in the task graph using for the CPoP algorithm.
@@ -20,48 +62,14 @@ def cpop_ranks(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, floa
         Dict[Hashable, float]: The ranks of the tasks in the task graph.
             Keys are task names and values are the ranks.
     """
-    rank_up = {}
-    top_sort = list(nx.topological_sort(task_graph))
-    for task_name in reversed(top_sort):
-        avg_comp = np.mean([
-            task_graph.nodes[task_name]['weight'] /
-            network.nodes[node]['weight'] for node in network.nodes
-        ])
-        max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
-            (
-                rank_up[succ] + # rank of successor
-                np.mean([ # average communication time for input data of successor
-                    task_graph.edges[task_name, succ]['weight'] /
-                    network.edges[src, dst]['weight'] for src, dst in network.edges
-                ])
-            )
-            for succ in task_graph.successors(task_name)
-        )
-        rank_up[task_name] = avg_comp + max_comm
+    upward_ranks = upward_rank(network, task_graph)
+    downward_ranks = downward_rank(network, task_graph)
+    return {
+        task_name: (upward_ranks[task_name] + downward_ranks[task_name])
+        for task_name in task_graph.nodes
+    }
 
-    rank_down = {}
-    # rank_down[i] = max_{j in pred(i)} (rank_down[j] + avg_comp_j + avg_comm_{j,i})
-    for task_name in top_sort:
-        max_comm = 0 if task_graph.in_degree(task_name) <= 0 else max(
-            (
-                rank_down[pred] + # rank of predecessor
-                np.mean([ # average computation time of predecessor
-                    task_graph.nodes[pred]['weight'] /
-                    network.nodes[node]['weight'] for node in network.nodes
-                ]) +
-                np.mean([ # average communication time for output data of predecessor
-                    task_graph.edges[pred, task_name]['weight'] /
-                    network.edges[src, dst]['weight'] for src, dst in network.edges
-                ])
-            )
-            for pred in task_graph.predecessors(task_name)
-        )
-        rank_down[task_name] = avg_comp + max_comm
-
-    rank = {task_name: rank_up[task_name] + rank_down[task_name] for task_name in task_graph.nodes}
-    return rank
-
-class CpopScheduler(Scheduler):
+class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Implements the CPoP algorithm for task scheduling.
 
     Attributes:
@@ -99,8 +107,9 @@ class CpopScheduler(Scheduler):
                 if np.isclose(ranks[task], cp_rank)
             )
         )
+        logging.debug("Critical path node: %s", cp_node)
 
-        pq = [(ranks[start_task], start_task)]
+        pq = [(-ranks[start_task], start_task)]
         heapq.heapify(pq)
         schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_map: Dict[Hashable, Task] = {}
@@ -109,33 +118,50 @@ class CpopScheduler(Scheduler):
             task_rank, task_name = heapq.heappop(pq)
             logging.debug("Processing task %s (predecessors: %s)", task_name, list(task_graph.predecessors(task_name)))
 
-            if np.isclose(task_rank, cp_rank):
+            min_finish_time = np.inf
+            best_node, best_idx = None, None
+            if np.isclose(-task_rank, cp_rank):
                 # assign task to cp_node
-                node = cp_node
-                start_time = 0 if not schedule[node] else schedule[node][-1].end
-                end_time = start_time + task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]
-                schedule[node].append(Task(node, task_name, start_time, end_time))
-                task_map[task_name] = schedule[node][-1]
+                exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
+                max_arrival_time: float = max( #
+                    [
+                        0.0, *[
+                            task_map[parent].end + (
+                                (task_graph.edges[parent, task_name]["weight"] /
+                                 network.edges[task_map[parent].node, cp_node]["weight"])
+                            )
+                            for parent in task_graph.predecessors(task_name)
+                        ]
+                    ]
+                )
+                best_node = cp_node
+                best_idx, start_time = get_insert_loc(schedule[cp_node], max_arrival_time, exec_time)
+                min_finish_time = start_time + exec_time
             else:
                 # schedule on node with earliest completion time
-                candidate_tasks: Dict[Hashable, Tuple[int, Task]] = {}
                 for node in network.nodes:
-                    parent_data_arrival_times = {
-                        parent: task_map[parent].end + (
-                            0 if task_map[parent].node == node else
-                            (task_graph.edges[parent, task_name]["weight"] / 
-                             network.edges[task_map[parent].node, node]["weight"])
-                        )
-                        for parent in task_graph.predecessors(task_name)
-                    }
-                    min_start_time = max(parent_data_arrival_times.values()) if parent_data_arrival_times else 0
+                    max_arrival_time: float = max( #
+                        [
+                            0.0, *[
+                                task_map[parent].end + (
+                                    task_graph.edges[parent, task_name]["weight"] / 
+                                    network.edges[task_map[parent].node, node]["weight"]
+                                )
+                                for parent in task_graph.predecessors(task_name)
+                            ]
+                        ]
+                    )
                     exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]
-                    idx, start_time = get_insert_loc(schedule[node], min_start_time, exec_time)
+                    idx, start_time = get_insert_loc(schedule[node], max_arrival_time, exec_time)
                     end_time = start_time + exec_time
-                    candidate_tasks[node] = idx, Task(node, task_name, start_time, end_time)
-                idx, new_task = min(candidate_tasks.values(), key=lambda x: x[1].end)
-                schedule[new_task.node].insert(idx, new_task)
-                task_map[task_name] = new_task
+                    if end_time < min_finish_time:
+                        min_finish_time = end_time
+                        best_node, best_idx = node, idx
+
+            new_exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[best_node]["weight"]
+            new_task = Task(best_node, task_name, min_finish_time - new_exec_time, min_finish_time)
+            schedule[new_task.node].insert(best_idx, new_task)
+            task_map[task_name] = new_task
 
             # get ready tasks
             ready_tasks = [
@@ -143,15 +169,6 @@ class CpopScheduler(Scheduler):
                 if all(pred in task_map for pred in task_graph.predecessors(succ))
             ]
             for ready_task in ready_tasks:
-                heapq.heappush(pq, (ranks[ready_task], ready_task))
+                heapq.heappush(pq, (-ranks[ready_task], ready_task))
 
         return schedule
-
-
-
-
-
-
-
-
-
