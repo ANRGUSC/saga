@@ -5,25 +5,6 @@ import networkx as nx
 
 from ..base import Scheduler, Task
 
-
-def longest_path_lengths_to_sink(graph: nx.DiGraph) -> Dict[Hashable, float]:
-    """Returns the longest path lengths to the sink node
-
-    Args:
-        graph (nx.DiGraph): The graph.
-
-    Returns:
-        Dict[Hashable, float]: The longest path lengths to the sink node.
-    """
-    reversed_graph = graph.reverse()
-    for _, _, data in reversed_graph.edges(data=True):
-        data['weight'] = -1
-    lengths = nx.single_source_dijkstra_path_length(reversed_graph, "__mcp_sink__")
-    # Convert the negative lengths back to positive
-    for node in lengths:
-        lengths[node] = -lengths[node]
-    return lengths
-
 def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Returns the priorities of the tasks on the network
 
@@ -62,7 +43,17 @@ def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashab
         if task not in (src, sink) and task_graph.out_degree(task) == 0:
             task_graph.add_edge(task, sink, weight=1e-9)
 
-    longest_path_lengths = longest_path_lengths_to_sink(task_graph)
+    longest_path_lengths = {}
+    for task in reversed(list(nx.topological_sort(task_graph))):
+        avg_exec_time = task_graph.nodes[task]['weight'] / avg_node_speed
+        if task == sink:
+            longest_path_lengths[task] = avg_exec_time
+        else:
+            longest_path_lengths[task] = avg_exec_time + max(
+                longest_path_lengths[succ] + task_graph.edges[task, succ]['weight'] / avg_comm_speed
+                for succ in task_graph.successors(task)
+            )
+
     critical_path_length = max(longest_path_lengths.values())
     # paths with greatest priority have the least critical path length - longest path length
     priorities = {
@@ -74,7 +65,10 @@ def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashab
 
 
 class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
-    """Schedules all tasks on the node with the highest processing speed"""
+    """Fast Critical Path Scheduler
+
+    Source: https://doi.org/10.1145/305138.305162
+    """
     def __init__(self, priority_queue_size: Optional[int] = None):
         super().__init__()
         self.priority_queue_size = priority_queue_size

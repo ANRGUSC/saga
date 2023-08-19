@@ -7,6 +7,9 @@ class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Opportunistic Load Balancing scheduler
 
     Source: https://doi.org/10.1006/jpdc.2000.1714
+    Summary: "(OLB) assigns each task, in arbitrary order, to the next machine that is expected
+        to be available, regardless of the task's expected execution time on that machine"
+        (from source).
     """
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Schedule tasks on nodes using the OLB algorithm.
@@ -25,18 +28,18 @@ class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 network.nodes,
                 key=lambda node: schedule[node][-1].end if schedule[node] else 0
             )
-            start_time = max(
+            times = [
                 # time node is available
                 schedule[next_available_node][-1].end if schedule[next_available_node] else 0,
-                # time predecessor tasks are finished + communication time
-                max(
-                    schedule[predecessor][-1].end + (
+                *[
+                    scheduled_tasks[predecessor].end + (
                         task_graph.edges[predecessor, task]['weight'] /
                         network.edges[scheduled_tasks[predecessor].node, next_available_node]['weight']
                     )
                     for predecessor in task_graph.predecessors(task)
-                ) if task_graph.predecessors(task) else 0
-            )
+                ]
+            ]
+            start_time = max(times)
             exec_time = task_graph.nodes[task]['weight'] / network.nodes[next_available_node]['weight']
             new_task = Task(
                 name=task,

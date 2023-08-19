@@ -7,7 +7,10 @@ from ..base import Scheduler, Task
 
 
 class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
-    """Worst-Case Bound Aware Scheduler"""
+    """Workflow-Based Allocation (WBA) scheduler.
+    
+    Source: http://dx.doi.org/10.1109/CCGRID.2005.1558639
+    """
     def __init__(self, alpha: float = 0.5) -> None:
         """Initializes the WBA scheduler.
 
@@ -31,15 +34,19 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
         scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
 
         def get_eet(task: Hashable, node: Hashable) -> float:
+            """Estimated execution time of task on node"""
             return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
 
         def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
+            """Communication time between task1 and task2 on node1 and node2"""
             return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
 
         def get_eat(node: Hashable) -> float:
+            """Earliest available time of node"""
             return schedule[node][-1].end if schedule.get(node) else 0
 
         def get_fat(task: Hashable, node: Hashable) -> float:
+            """Latest available time of task on node"""
             if task_graph.in_degree(task) <= 0:
                 return 0
             return max(
@@ -49,10 +56,12 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
             )
 
         def get_est(task: Hashable, node: Hashable) -> float:
+            """Earliest start time of task on node"""
             return max(get_eat(node), get_fat(task, node))
 
         def get_ect(task: Hashable, node: Hashable) -> float:
-            return get_eet(task, node) + max(get_eat(node), get_fat(task, node))
+            """Earliest completion time of task on node"""
+            return get_eet(task, node) + get_est(task, node)
 
         cur_makespan = 0
         while len(scheduled_tasks) < task_graph.order():

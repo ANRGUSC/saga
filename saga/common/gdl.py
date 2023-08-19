@@ -6,7 +6,11 @@ from ..base import Scheduler, Task
 
 
 class GDLScheduler(Scheduler):
-    """Earliest Task First scheduler"""
+    """Generalized Dynamic Level Scheduler
+
+    Source: https://doi.org/10.1109/71.207593
+    Notes: Considers homogenous communication speeds (not homogenous compute speeds, though)
+    """
 
     def get_runtimes(self,
                      network: nx.Graph,
