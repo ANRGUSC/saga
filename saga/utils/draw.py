@@ -58,7 +58,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         cmap = plt.get_cmap("tab20", len(network_nodes))
         sorted_nodes = sorted(network_nodes)
         sorted_colors = [cmap(i) for i in range(len(network_nodes))]
-        colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
+        colors = dict(zip(sorted_nodes, sorted_colors))
 
     nx.draw_networkx_nodes(
         task_graph, pos=pos, ax=axis,
@@ -80,7 +80,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
         try:
             color = colors[tasks[task_name].node]
         except KeyError:
-            logging.warning("Could not get color for %s", task_name)
+            if schedule is not None:
+                logging.warning("Could not get color for %s", task_name)
 
         nx.draw_networkx_labels(
             task_graph, pos=pos, ax=axis,
@@ -106,7 +107,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
     plt.tight_layout()
     return axis
 
-def draw_network(network: nx.Graph, 
+def draw_network(network: nx.Graph,
                  axis: Optional[plt.Axes] = None,
                  draw_colors: bool = True) -> plt.Axes:
     """Draws a network
@@ -168,7 +169,15 @@ def draw_network(network: nx.Graph,
     return axis
 
 
-def draw_gantt(schedule: Dict[Hashable, List[Task]]):
+def draw_gantt(schedule: Dict[Hashable, List[Task]]) -> Figure:
+    """Draws a gantt chart
+
+    Args:
+        schedule: Schedule
+
+    Returns:
+        Gantt chart
+    """
     # Remove dummy tasks with near 0 duration
     schedule = {
         node: [task for task in tasks if task.end - task.start > 1e-6]
@@ -219,16 +228,21 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]]):
     )
 
     # Integer labels on y-axis
-    fig.update_yaxes(tickvals=list(range(1, len(schedule)+1)))
+    min_node = min(schedule.keys())
+    max_node = max(schedule.keys())
+    fig.update_yaxes(tickvals=list(range(min_node, max_node+1)))
     fig.update_yaxes(dtick=1)
 
     # set y-axis range from 0 to len(schedule) + 1
-    fig.update_yaxes(range=[0, len(schedule)+1])
+    fig.update_yaxes(range=[min_node-1/2, max_node+1/2])
     fig.update_xaxes(range=[0, makespan+0.1])
-    
+
     # set aspect ratio high-res 2:1
     fig.update_layout(width=1200, height=600)
 
     # make font larger
     fig.update_layout(font_size=20)
+
+    # remove margins
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
     return fig
