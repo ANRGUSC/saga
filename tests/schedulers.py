@@ -7,16 +7,16 @@ from typing import Callable, Dict, List, Tuple
 import networkx as nx
 from matplotlib import pyplot as plt
 
-from saga.base import Scheduler, Task
-from saga.common import (
+from saga.schedulers.base import Scheduler, Task
+from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
     BILScheduler, FLBScheduler
 )
-from saga.stochastic.improved_sheft import ImprovedSheftScheduler
-from saga.stochastic.sheft import SheftScheduler
-from saga.stochastic.stoch_heft import StochHeftScheduler
+from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
+from saga.schedulers.stochastic.sheft import SheftScheduler
+from saga.schedulers.stochastic.stoch_heft import StochHeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 from saga.utils.random_graphs import (add_random_weights, add_rv_weights,
                                       get_branching_dag, get_chain_dag,
@@ -164,7 +164,7 @@ class Test:
         return True
 
 def test_common_schedulers():
-    """Tests common schedulers on common task graphs."""
+    """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
         "diamond": add_random_weights(get_diamond_dag()),
         "chain": add_random_weights(get_chain_dag()),
@@ -192,7 +192,7 @@ def test_common_schedulers():
 
     for scheduler in schedulers:
         for task_graph_name, task_graph in task_graphs.items():
-            test_name = f"common/{task_graph_name}/{scheduler.__class__.__name__}"
+            test_name = f"schedulers/{task_graph_name}/{scheduler.__class__.__name__}"
             test = Test(
                 name=test_name,
                 scheduler=scheduler,

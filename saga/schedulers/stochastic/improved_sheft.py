@@ -1,11 +1,14 @@
 import logging
-import networkx as nx
 from typing import Dict, Hashable, List, Tuple
 
+import networkx as nx
+
 from saga.utils.random_variable import RandomVariable
-from .stoch_heft import stoch_heft_rank_sort, StochHeftScheduler
-from ..common.heft import HeftScheduler
+
 from ..base import Scheduler, Task
+from ..heft import HeftScheduler
+from .stoch_heft import StochHeftScheduler, stoch_heft_rank_sort
+
 
 class ImprovedSheftScheduler(Scheduler):
     def __init__(self):

@@ -4,9 +4,9 @@ from typing import Dict, Hashable, List, Optional, Set, Tuple
 
 from networkx import Graph, DiGraph
 
-from saga.base import Task
+from saga.schedulers.base import Task
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 
 
 class FLBScheduler(Scheduler):

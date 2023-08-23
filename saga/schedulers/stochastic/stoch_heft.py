@@ -1,13 +1,14 @@
 import logging
+import pprint
 from typing import Dict, Hashable, List, Tuple, Union
+
 import networkx as nx
 import numpy as np
 
+from saga.utils.random_variable import RandomVariable
 from saga.utils.tools import get_insert_loc
 
 from ..base import Scheduler, Task
-from ..utils.random_variable import RandomVariable
-import pprint
 
 
 def stoch_heft_rank_sort(network: nx.Graph, 

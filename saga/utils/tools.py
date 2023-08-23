@@ -1,8 +1,11 @@
 import logging
 from typing import Dict, Hashable, List, Tuple
+
 import networkx as nx
 import numpy as np
-from ..base import Task, Scheduler
+
+from saga.schedulers.base import Scheduler, Task
+
 
 def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
     """Check if the instance is valid.

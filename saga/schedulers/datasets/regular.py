@@ -1,6 +1,6 @@
 from typing import List
 import networkx as nx
-from ...base import TaskGraphDataset
+from ..base import TaskGraphDataset
 
 class OutTreesDataset(TaskGraphDataset):
     """A dataset of out-trees.

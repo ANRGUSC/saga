@@ -30,7 +30,7 @@ pip install anrg.saga
 The algorithms are implemented as python modules.
 The following example shows how to run the HEFT algorithm on a workflow:
 ```python
-from saga.common.heft import HeftScheduler
+from saga.schedulers import HeftScheduler
 
 scheduler = HeftScheduler()
 network: nx.Graph = ...

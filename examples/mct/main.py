@@ -1,5 +1,5 @@
 import itertools
-from saga.common.olb import OLBScheduler, Task
+from saga.schedulers.olb import OLBScheduler, Task
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 from dataclasses import dataclass
 

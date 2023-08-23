@@ -1,6 +1,6 @@
 from typing import Dict, Hashable, List
 import networkx as nx
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 
 
 class FastestNodeScheduler(Scheduler):

@@ -2,7 +2,7 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler
 

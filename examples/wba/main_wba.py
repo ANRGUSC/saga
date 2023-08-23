@@ -1,5 +1,5 @@
 import itertools
-from saga.common.wba import WBAScheduler
+from saga.schedulers.wba import WBAScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx

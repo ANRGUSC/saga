@@ -1,5 +1,5 @@
 import itertools
-from saga.common.gdl import GDLScheduler
+from saga.schedulers.gdl import GDLScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx

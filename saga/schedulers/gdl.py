@@ -2,7 +2,7 @@ from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 
 
 class GDLScheduler(Scheduler):

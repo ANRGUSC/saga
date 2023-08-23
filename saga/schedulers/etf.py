@@ -3,10 +3,10 @@ from typing import Dict, Hashable, List, Tuple, Set
 import networkx as nx
 import numpy as np
 
-from saga.base import Task
+from saga.schedulers.base import Task
 
-from ..base import Task
-from ..base import Scheduler
+from .base import Task
+from .base import Scheduler
 
 
 class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods

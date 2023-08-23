@@ -5,7 +5,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 from ..utils.tools import get_insert_loc
 
 thisdir = pathlib.Path(__file__).resolve().parent

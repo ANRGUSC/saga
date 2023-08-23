@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Optional, Set
 
 import networkx as nx
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 
 def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Returns the priorities of the tasks on the network
@@ -68,6 +68,9 @@ class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Fast Critical Path Scheduler
 
     Source: https://doi.org/10.1145/305138.305162
+    Note: This original algorithm assumes the network communication/computation speeds are the same for all nodes.
+    This implementation allows for different speeds by scaling the task weights by the average speeds (the algorithm
+    will still perform poorly for heterogeneous networks, but it will at least produce valid schedules).
     """
     def __init__(self, priority_queue_size: Optional[int] = None):
         super().__init__()

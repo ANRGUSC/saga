@@ -5,7 +5,7 @@ from typing import Dict, Hashable, List
 import networkx as nx
 import numpy as np
 
-from ..base import Scheduler, Task
+from .base import Scheduler, Task
 from ..utils.tools import get_insert_loc
 
 def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
