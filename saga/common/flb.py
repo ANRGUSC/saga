@@ -1,3 +1,4 @@
+from pprint import pformat
 from queue import PriorityQueue
 from typing import Dict, Hashable, List, Optional, Set, Tuple
 
@@ -74,7 +75,7 @@ class FLBScheduler(Scheduler):
                 scheduled_tasks[pred].end + (
                     task_graph.edges[pred, task]['weight'] /
                     avg_comm_speed
-                ) 
+                )
                 for pred in task_graph.predecessors(task)
             )
 
@@ -138,6 +139,9 @@ class FLBScheduler(Scheduler):
 
             est_t1_p1 = getEST(task1, proc1) if proc1 is not None and task1 is not None else float('inf')
             est_t2_p2 = getEST(task2, proc2) if proc2 is not None and task2 is not None else float('inf')
+            if est_t1_p1 == float('inf') and est_t2_p2 == float('inf'):
+                # NOTE: This should never happen. If it does, it means that there is a bug in the algorithm.
+                raise RuntimeError(f"No tasks to schedule. proc1={proc1}, task1={task1}, proc2={proc2}, task2={task2}")
             if est_t1_p1 <= est_t2_p2:
                 new_task = Task(
                     node=proc1,
@@ -148,9 +152,9 @@ class FLBScheduler(Scheduler):
                 schedule[proc1].append(new_task)
                 scheduled_tasks[task1] = new_task
 
-                active_procs.get()
-                emt_ep_tasks[proc1].get()
-                lmt_ep_tasks[proc1].queue = [ # remove t1 from lmt_ep_tasks[p1]
+                assert active_procs.get()[1] == proc1
+                assert emt_ep_tasks[proc1].get()[1] == task1 # dequeue task from emt_ep_tasks[p1]
+                lmt_ep_tasks[proc1].queue = [ # remove task1 from lmt_ep_tasks[p1]
                     (priority, task) for priority, task in lmt_ep_tasks[proc1].queue
                     if task != task1
                 ]
@@ -166,8 +170,8 @@ class FLBScheduler(Scheduler):
                 schedule[proc2].append(new_task)
                 scheduled_tasks[task2] = new_task
 
-                all_procs.get()
-                non_ep_tasks.get()
+                assert all_procs.get()[1] == proc2
+                assert non_ep_tasks.get()[1] == task2 # dequeue task from non_ep_tasks
                 return task2, proc2
 
         def update_task_lists(task: Hashable, proc: Hashable):
@@ -176,12 +180,12 @@ class FLBScheduler(Scheduler):
                 _, task = lmt_ep_tasks[proc].queue[0] if lmt_ep_tasks[proc].queue else (0, None)
                 if task is None:
                     break
-                if getLMT(task) >= getPRT(proc):
+                if getLMT(task) >= getPRT(proc): # last message arrival time of t >= processor ready time
                     break
 
-                lmt_ep_tasks[proc].get() # dequeue task from lmt_ep_tasks[p]
+                assert lmt_ep_tasks[proc].get()[1] == task # dequeue task from lmt_ep_tasks[p]
                 emt_ep_tasks[proc].queue = [ # remove task from emt_ep_tasks[p]
-                    (priority, task) for priority, _task in emt_ep_tasks[proc].queue
+                    (priority, _task) for priority, _task in emt_ep_tasks[proc].queue
                     if _task != task
                 ]
                 non_ep_tasks.put((getLMT(task), task)) # enqueue task in non_ep_tasks
@@ -195,7 +199,11 @@ class FLBScheduler(Scheduler):
                     if _proc != proc
                 ]
             else:
-                # add proc to active_procs with priority getEST(task, proc)
+                # remove proc from active_procs and add back with priority est
+                active_procs.queue = [
+                    (priority, _proc) for priority, _proc in active_procs.queue
+                    if _proc != proc
+                ]
                 active_procs.put((getEST(task, proc), proc))
 
         def update_ready_tasks(task: Hashable, proc: Hashable):
@@ -206,10 +214,12 @@ class FLBScheduler(Scheduler):
                 if not all(pred in scheduled_tasks for pred in task_graph.predecessors(succ)):
                     continue
 
-                enabling_proc = getEP(succ)
-                lmt = getLMT(succ)
-                emt = getEMT(succ, enabling_proc)
-                if lmt < getPRT(enabling_proc):
+                enabling_proc = getEP(succ) # get enabling processor of succ
+                lmt = getLMT(succ) # get last message arrival time of succ
+                emt = getEMT(succ, enabling_proc) # get effective message arrival time of succ on enabling processor
+                if lmt < getPRT(enabling_proc): # if lmt < processor ready time
+                    # task perhaps should not execute on ep, since this indicates that the ep is not ready
+                    # when the task is ready to execute
                     # enqueue succ with priority lmt in non_ep_tasks
                     non_ep_tasks.put((lmt, succ))
                 else:
@@ -218,17 +228,20 @@ class FLBScheduler(Scheduler):
                         # enqueue ep with priority est in active_procs
                         active_procs.put((getEST(succ, enabling_proc), enabling_proc))
                     else:
+                        # get next task to execute on ep (according to current priorities)
                         head_task = emt_ep_tasks[enabling_proc].queue[0][1]
+                        # get the emt of this task
                         _emt = getEMT(head_task, enabling_proc)
                         if emt < _emt:
-                            # update ep with priority (maxEMT, prt) in active_procs
+                            # succ should execute before head_task on ep because it becomes ready before head_task
+                            # update ep with priority max(EMT, prt) in active_procs
                             #   first, remove ep from active_procs
+                            new_priority = max(emt, getPRT(enabling_proc))
                             active_procs.queue = [
                                 (priority, _proc) for priority, _proc in active_procs.queue
                                 if _proc != enabling_proc
                             ]
-                            #  then, add ep back to active_procs with priority max(EMT, prt)
-                            active_procs.put((max(_emt, getPRT(enabling_proc)), enabling_proc))
+                            active_procs.put((new_priority, enabling_proc))
                     # enqueue succ with priority emt in emt_ep_tasks[ep]
                     emt_ep_tasks[enabling_proc].put((emt, succ))
                     # enqueue succ with priority lmt in lmt_ep_tasks[ep]
