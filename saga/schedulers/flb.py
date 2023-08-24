@@ -1,8 +1,11 @@
+import json
+import logging
 from pprint import pformat
 from queue import PriorityQueue
-from typing import Dict, Hashable, List, Optional, Set, Tuple
+from typing import Dict, Hashable, List, Tuple
 
-from networkx import Graph, DiGraph
+import networkx as nx
+from networkx import DiGraph, Graph
 
 from saga.schedulers.base import Task
 
@@ -141,6 +144,16 @@ class FLBScheduler(Scheduler):
             est_t2_p2 = getEST(task2, proc2) if proc2 is not None and task2 is not None else float('inf')
             if est_t1_p1 == float('inf') and est_t2_p2 == float('inf'):
                 # NOTE: This should never happen. If it does, it means that there is a bug in the algorithm.
+                # log queue values
+                logging.debug("active_procs: %s", pformat(active_procs.queue))
+                logging.debug("all_procs: %s", pformat(all_procs.queue))
+                logging.debug("non_ep_tasks: %s", pformat(non_ep_tasks.queue))
+                logging.debug("emt_ep_tasks: %s", pformat({node: pformat(emt_ep_tasks[node].queue) for node in emt_ep_tasks}))
+                logging.debug("schedule: %s", pformat(schedule))
+                logging.debug("task_graph: %s", json.dumps(nx.readwrite.json_graph.node_link_data(task_graph)))
+                logging.debug("network: %s", json.dumps(nx.readwrite.json_graph.node_link_data(network)))
+
+
                 raise RuntimeError(f"No tasks to schedule. proc1={proc1}, task1={task1}, proc2={proc2}, task2={task2}")
             if est_t1_p1 <= est_t2_p2:
                 new_task = Task(
@@ -170,12 +183,15 @@ class FLBScheduler(Scheduler):
                 schedule[proc2].append(new_task)
                 scheduled_tasks[task2] = new_task
 
-                assert all_procs.get()[1] == proc2
+                assert all_procs.get()[1] == proc2 # dequeue proc2 from all_procs
+
+                # NOTE: this is not in the original algorithm, but it seems necessary
+                all_procs.put((getPRT(proc2), proc2)) # add proc2 with new priority PRT
+
                 assert non_ep_tasks.get()[1] == task2 # dequeue task from non_ep_tasks
                 return task2, proc2
 
         def update_task_lists(task: Hashable, proc: Hashable):
-            # TODO: why is t overwritten here? What's the point of this?
             while True:
                 _, task = lmt_ep_tasks[proc].queue[0] if lmt_ep_tasks[proc].queue else (0, None)
                 if task is None:
@@ -246,7 +262,7 @@ class FLBScheduler(Scheduler):
                     emt_ep_tasks[enabling_proc].put((emt, succ))
                     # enqueue succ with priority lmt in lmt_ep_tasks[ep]
                     lmt_ep_tasks[enabling_proc].put((lmt, succ))
-        
+
         while len(scheduled_tasks) < len(task_graph.nodes):
             task, proc = schedule_task()
             update_task_lists(task, proc)
