@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from matplotlib import pyplot as plt
-from saga.schedulers.base import Task
+from saga.scheduler import Task
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 from simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration

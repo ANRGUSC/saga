@@ -1,13 +1,10 @@
 import pathlib
 import pickle
-from typing import Dict, Hashable, List
+from typing import Dict
 
-import networkx as nx
 import pandas as pd
-from saga.schedulers.base import Task
-from saga.schedulers import CpopScheduler, HeftScheduler
-
 from simulated_annealing import SimulatedAnnealing
+from io import StringIO
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
@@ -20,6 +17,7 @@ def load_results() -> Dict[str, Dict[str, SimulatedAnnealing]]:
     return results
 
 def main():
+    """Generate table of results."""
     keep_schedulers = [
         # "CPOP",
         # "HEFT",
@@ -56,6 +54,9 @@ def main():
     df_results = df_results.reindex(sorted(df_results.columns), axis=1)
     df_results = df_results.reindex(sorted(df_results.index), axis=0)
 
+    # # get max value for each row
+    # df_results["Max"] = df_results.max(axis=1, skipna=True, numeric_only=True)
+
     df_results = df_results.fillna("")
     df_results = df_results.replace("nan", "")
 
@@ -75,7 +76,52 @@ def main():
         label="tab:sa_results"
     )
 
-    df_results.to_html(buf=thisdir / "output" / "results.html")
+    # Highlight max value in each row
+    def highlight_max(s):
+        is_max = s == s.max()
+        return ['background-color: #dc3545' if v else '' for v in is_max]
+
+    # Apply the function to the DataFrame
+    styled_df = df_results.style.apply(highlight_max, axis=1)
+    styled_df.set_table_attributes('class="table table-striped table-hover"')
+
+    # Add styling to the table
+    styled_df.set_table_styles([
+        {"selector": "th", "props": [("text-align", "center")]},
+        {"selector": "td", "props": [("text-align", "center")]},
+        {"selector": "caption", "props": [("caption-side", "bottom")]}
+    ])
+
+    # Generate the HTML representation with Bootstrap classes
+    html_buffer = StringIO()
+    styled_df.to_html(
+        buf=html_buffer,
+        escape=False,
+        classes="table table-striped table-hover table-sm",
+        index_names=False,
+        justify="center"
+    )
+
+    html_buffer.seek(0)
+    base_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            <!-- set font size smaller for all elements -->
+            * {{
+                font-size: 0.8rem;
+            }}
+        </style>
+    </head>
+    <body>
+        {html_buffer.read()}
+    </body>
+    </html>
+    """
+
+    (thisdir / "output" / "results.html").write_text(base_html)
 
 if __name__ == "__main__":
     main()

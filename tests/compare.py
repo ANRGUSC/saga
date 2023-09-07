@@ -1,6 +1,6 @@
 from typing import Dict
 import numpy as np
-from saga.schedulers.base import Scheduler
+from saga.scheduler import Scheduler
 from saga.schedulers.stochastic.mean_heft import MeanHeftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler

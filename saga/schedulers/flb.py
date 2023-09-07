@@ -7,9 +7,9 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 from networkx import DiGraph, Graph
 
-from saga.schedulers.base import Task
+from saga.scheduler import Task
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 
 class FLBScheduler(Scheduler):
@@ -29,7 +29,7 @@ class FLBScheduler(Scheduler):
 
         avg_comm_speed = sum(
             network.edges[edge]['weight'] for edge in network.edges
-            if edge[0] != edge[1]
+            if edge[0] != edge[1] or len(network.nodes) == 1
         ) / len(network.edges)
 
         fastest_node = max(network.nodes, key=lambda node: network.nodes[node]['weight'])

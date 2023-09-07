@@ -8,7 +8,7 @@ import numpy as np
 from saga.utils.random_variable import RandomVariable
 from saga.utils.tools import get_insert_loc
 
-from ..base import Scheduler, Task
+from ...scheduler import Scheduler, Task
 
 
 def stoch_heft_rank_sort(network: nx.Graph, 

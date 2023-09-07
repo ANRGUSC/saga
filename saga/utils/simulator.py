@@ -2,7 +2,7 @@ from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
-from saga.schedulers.base import Task
+from saga.scheduler import Task
 from saga.utils.random_variable import RandomVariable
 
 

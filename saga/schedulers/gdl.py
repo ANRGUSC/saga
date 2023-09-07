@@ -1,8 +1,10 @@
+from functools import partial
 from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
+import numpy as np
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 
 class GDLScheduler(Scheduler):
@@ -11,164 +13,166 @@ class GDLScheduler(Scheduler):
     Source: https://doi.org/10.1109/71.207593
     Notes: Considers homogenous communication speeds (not homogenous compute speeds, though)
     """
-
-    def get_runtimes(self,
-                     network: nx.Graph,
-                     task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, float],
-                                                      Dict[Tuple[Hashable, Hashable], float]]:
-        """Returns the computation and communication costs of the tasks
-
-        Args:
-            network (nx.Graph): The network.
-            task_graph (nx.DiGraph): The task graph.
-
-        Returns:
-            Tuple[Dict[Hashable, float], Dict[Tuple[Hashable, Hashable], float]]:
-                The computation and communication costs of the tasks.
-        """
-        computation_costs = {}
-        communication_costs = {}
-        for node in network.nodes:
-            speed: float = network.nodes[node]["weight"]
-            for task in task_graph.nodes:
-                cost: float = task_graph.nodes[task]["weight"]
-                computation_costs[task] = cost / speed
-
-        for src, dst in network.edges:
-            speed: float = network.edges[src, dst]["weight"]
-            for src_task, dst_task in task_graph.edges:
-                cost = task_graph.edges[src_task, dst_task]["weight"]
-                communication_costs[(src_task, dst_task)] = cost / speed
-
-        return computation_costs, communication_costs
-
-    def compute_b_level(self,
-                        task: Hashable,
-                        task_graph: nx.DiGraph,
-                        computation_costs: Dict[Hashable, float],
-                        communication_costs: Dict[Tuple[Hashable, Hashable], float]) -> float:
-        """Computes the b-level of a task
-
-        Args:
-            task (Hashable): The task.
-            task_graph (nx.DiGraph): The task graph.
-            computation_costs (Dict[Hashable, float]): The computation costs of the tasks.
-            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
-
-        Returns:
-            float: The b-level of the task.
-        """
-        successors = task_graph.successors(task)
-        if not list(successors):
-            return computation_costs[task]
-        else:
-            values = [
-                (communication_costs.get((task, s), 0) +
-                 self.compute_b_level(s, task_graph, computation_costs, communication_costs))
-                for s in successors
-            ]
-            return computation_costs[task] + (max(values) if values else 0)
-
-    def compute_est(self,
-                    task: Hashable,
-                    schedule: nx.DiGraph,
-                    communication_costs: Dict[Tuple[Hashable, Hashable], float]) -> float:
-        """Computes the earliest start time of a task
-
-        Args:
-            task (Hashable): The task.
-            schedule (nx.DiGraph): The schedule.
-            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
-
-        Returns:
-            float: The earliest start time of the task.
-        """
-        try:
-            predecessors = schedule.predecessors(task)
-        except nx.NetworkXError:
-            return 0
-
-        if not list(predecessors):
-            return 0
-        else:
-            return max(
-                schedule[predecessor][task]['finish_time'] + communication_costs.get((predecessor, task), 0)
-                for predecessor in predecessors
-            )
-
-    def update_priorities(self,
-                          task_graph: nx.DiGraph,
-                          schedule: nx.DiGraph,
-                          computation_costs: Dict[Hashable, float],
-                          communication_costs: Dict[Tuple[Hashable, Hashable], float],
-                          task_priorities: Dict[Hashable, float]) -> None:
-        """Updates the priorities of the tasks
-
-        Args:
-            task_graph (nx.DiGraph): The task graph.
-            schedule (nx.DiGraph): The schedule.
-            computation_costs (Dict[Hashable, float]): The computation costs of the tasks.
-            communication_costs (Dict[Tuple[Hashable, Hashable], float]): The communication costs of the tasks.
-            task_priorities (Dict[Hashable, float]): The priorities of the tasks.
-        """
-        for task in task_graph.nodes:
-            task_priorities[task] = (
-                self.compute_b_level(task, task_graph, computation_costs, communication_costs) -
-                self.compute_est(task, schedule, communication_costs)
-            )
+    def __init__(self, dynamic_level: int = 2):
+        super().__init__()
+        self.dynamic_level = dynamic_level
+        if dynamic_level not in (1, 2):
+            raise ValueError("dynamic_level must be 1 or 2")
 
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        scheduled_tasks: Dict[Hashable, Task] = {}
 
-        schedule = nx.DiGraph()
-
-        tasks = list(task_graph.nodes)
-        computation_costs, communication_costs = self.get_runtimes(network, task_graph)
-        task_priorities = {task: 0 for task in tasks}
-        processor_for_task = {task: None for task in tasks}
-
-         # Main scheduling loop
-        while tasks:
-            # Update task priorities
-            self.update_priorities(task_graph, schedule, computation_costs, communication_costs, task_priorities)
-
-            # Select task with highest priority
-            task = max(tasks, key=lambda t: task_priorities[t])
-
-            # Assign task to processor with earliest finish time
-            est = {p: self.compute_est(task, schedule, communication_costs) for p in network}
-            chosen_processor = min(est, key=est.get)
-            processor_for_task[task] = chosen_processor
-
-            # Calculate start and finish times
-            if task in schedule:
-                start_time = max(
-                    est[chosen_processor], max(
-                        (schedule.nodes[predecessor]['finish_time']
-                        for predecessor in task_graph.predecessors(task)
-                        if predecessor in schedule), default=0
-                    )
+        execution_time = {}
+        for task in task_graph.nodes:
+            for node in network.nodes:
+                execution_time[task, node] = (
+                    task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
                 )
+
+        communication_time = {}
+        for dep in task_graph.edges:
+            for link in network.edges:
+                communication_time[dep, tuple(sorted(link))] = (
+                    task_graph.edges[dep]['weight'] / network.edges[link]['weight']
+                )
+
+        median_execution_time_per_task = {
+            task: np.median([
+                execution_time[task, node]
+                for node in network.nodes
+            ])
+            for task in task_graph.nodes
+        }
+
+        median_execution_time = np.median([
+            execution_time[task, node]
+            for task in task_graph.nodes
+            for node in network.nodes
+        ])
+
+        delta_execution_time = {}
+        for task in task_graph.nodes:
+            for node in network.nodes:
+                delta_execution_time[task, node] = (
+                    median_execution_time - execution_time[task, node]
+                )
+
+        # the static level of a task is the largest sum of execution times
+        # along any directed path from the task to a sink
+        static_level = {}
+        for task in reversed(list(nx.topological_sort(task_graph))):
+            if task_graph.out_degree(task) == 0:
+                static_level[task] = median_execution_time_per_task[task]
             else:
-                start_time = est[chosen_processor]
+                static_level[task] = median_execution_time_per_task[task] + max(
+                    static_level[succ] + task_graph.edges[task, succ]['weight']
+                    for succ in task_graph.successors(task)
+                )
 
-            finish_time = start_time + computation_costs[task]
-
-            # Add task to schedule
-            schedule.add_node(task, start_time=start_time, finish_time=finish_time)
-
-            # Remove task from task list
-            tasks.remove(task)
-
-        # Convert schedule to output format
-        schedule_output: Dict[Hashable, List[Task]] = {}
-        for task in schedule.nodes:
-            if processor_for_task[task] not in schedule_output:
-                schedule_output[processor_for_task[task]] = []
-            new_task = Task(
-                node=task, name=str(task),
-                start=schedule.nodes[task]['start_time'],
-                end=schedule.nodes[task]['finish_time']
+        def data_available(task: str, node: str) -> float:
+            """returns time when data is available to execute task on node"""
+            if task_graph.in_degree(task) == 0:
+                return 0
+            return max(
+                scheduled_tasks[pred].end + ( # finish time + communication time
+                    task_graph.edges[pred, task]['weight'] /
+                    network.edges[scheduled_tasks[pred].node, node]['weight']
+                )
+                for pred in task_graph.predecessors(task)
             )
-            schedule_output[processor_for_task[task]].append(new_task)
 
-        return schedule_output
+        def node_available(node: str) -> float:
+            """returns time when node is available to execute task"""
+            if len(schedule[node]) == 0:
+                return 0
+            return max(task.end for task in schedule[node])
+
+        def dynamic_level_1(task: str, node: str) -> float:
+            return static_level[task] - max(
+                data_available(task, node),
+                node_available(node)
+            ) + delta_execution_time[task, node]
+
+        largest_output_descendants = {
+            task: max(
+                task_graph.successors(task),
+                key=partial(
+                    lambda t, s: task_graph.edges[t, s]['weight'],
+                    task
+                )
+            )
+            for task in task_graph.nodes
+            if task_graph.out_degree(task) > 0
+        }
+
+        def descendant_earliest_finish(task, child, node):
+            """returns earliest finish time of child's descendants on node
+
+            NOTE: slight difference from paper, comm time is *inside* the
+            min function since we have heterogeneous comm speeds. This is
+            backwards-compatible with the paper's definition when the comm
+            speeds are homogeneous.
+            """
+            if len(network.nodes) == 1:
+                return np.inf
+            return min(
+                communication_time[(task, child), tuple(sorted((node, other)))] +
+                execution_time[child, other]
+                for other in network.nodes
+                if node != other
+            )
+
+        def descendant_consideration(task: str, node: str) -> float:
+            dc = largest_output_descendants.get(task) # pylint: disable=invalid-name
+            if dc is None:
+                return 0
+            return median_execution_time_per_task[dc] - min(
+                execution_time[dc, node],
+                descendant_earliest_finish(task, dc, node)
+            )
+
+        def dynamic_level_2(task: str, node: str) -> float:
+            return dynamic_level_1(task, node) + descendant_consideration(task, node)
+
+        def preferred_node(task: str) -> str:
+            return min(
+                network.nodes,
+                key=lambda node: dynamic_level(task, node)
+            )
+
+        dynamic_level = dynamic_level_1 if self.dynamic_level == 1 else dynamic_level_2
+        def cost(task: str) -> float:
+            return dynamic_level(task, preferred_node(task)) - max(
+                dynamic_level(task, other)
+                for other in network.nodes
+            )
+
+        def global_dynamic_level(task: str) -> float:
+            return dynamic_level(task, preferred_node(task)) + cost(task)
+
+        while len(scheduled_tasks) < len(task_graph.nodes):
+            candidate_tasks = [
+                task for task in task_graph.nodes
+                if task not in scheduled_tasks and all(
+                    pred in scheduled_tasks
+                    for pred in task_graph.predecessors(task)
+                )
+            ]
+            task = min(candidate_tasks, key=global_dynamic_level)
+            node = preferred_node(task)
+            start_time = max(
+                data_available(task, node),
+                node_available(node)
+            )
+            exec_time = execution_time[task, node]
+            new_task = Task(
+                node=node,
+                name=task,
+                start=start_time,
+                end=start_time+exec_time
+            )
+            scheduled_tasks[task] = new_task
+            schedule[node].append(new_task)
+
+        return schedule

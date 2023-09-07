@@ -3,11 +3,14 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 
 class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
-    """Minimum Completion Time scheduler"""
+    """Minimum Completion Time scheduler
+    
+    Source: https://doi.org/10.1006/jpdc.2000.1714
+    """
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Returns the schedule of the tasks on the network
 

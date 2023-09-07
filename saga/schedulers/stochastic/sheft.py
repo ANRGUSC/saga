@@ -5,7 +5,7 @@ from scipy.stats import rv_continuous
 
 from saga.utils.random_variable import RandomVariable
 
-from ..base import Scheduler, Task
+from ...scheduler import Scheduler, Task
 from ..heft import HeftScheduler
 
 

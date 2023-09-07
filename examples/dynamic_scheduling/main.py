@@ -6,7 +6,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 from plotly.graph_objects import Figure
 
-from saga.schedulers.base import Task
+from saga.scheduler import Task
 from saga.schedulers import CpopScheduler, HeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 

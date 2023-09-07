@@ -1,7 +1,7 @@
 from typing import Dict, Hashable, List
 import networkx as nx
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Opportunistic Load Balancing scheduler

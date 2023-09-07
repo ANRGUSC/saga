@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.express as px
 from plotly.graph_objects import Figure
 
-from saga.schedulers.base import Task
+from saga.scheduler import Task
 from ..utils.random_variable import RandomVariable
 
 

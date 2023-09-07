@@ -1,4 +1,4 @@
-from saga.schedulers.base import Scheduler, Task
+from saga.scheduler import Scheduler, Task
 
 import itertools
 from typing import Dict, Hashable, List, Tuple

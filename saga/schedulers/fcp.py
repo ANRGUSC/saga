@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Optional, Set
 
 import networkx as nx
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Returns the priorities of the tasks on the network
@@ -23,7 +23,8 @@ def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashab
     ) / len(network.nodes)
     avg_comm_speed = sum(
         network.edges[edge]['weight'] for edge in network.edges
-        if edge[0] != edge[1]
+        # if there is only one node, the avg is the self-loop edge weight
+        if edge[0] != edge[1] or len(network.nodes) == 1
     ) / len(network.edges)
 
     # scale task weights by average speeds

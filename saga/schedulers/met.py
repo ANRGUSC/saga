@@ -2,7 +2,7 @@ from functools import partial
 from typing import Dict, List, Hashable
 import networkx as nx
 
-from .base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 
 
 class METScheduler(Scheduler): # pylint: disable=too-few-public-methods

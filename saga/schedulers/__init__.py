@@ -1,3 +1,4 @@
+from .gdl import GDLScheduler
 from .brute_force import BruteForceScheduler
 from .cpop import CpopScheduler
 from .duplex import DuplexScheduler
@@ -5,7 +6,6 @@ from .etf import ETFScheduler
 from .heft import HeftScheduler
 from .fastest_node import FastestNodeScheduler
 from .fcp import FCPScheduler
-from .gdl import GDLScheduler
 from .hybrid import HybridScheduler
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler

@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO)
 # set logging format [time] [level] message
 logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s')
 
-def main():
+def main(): # pylint: disable=too-many-locals, too-many-statements
     """Run the experiments."""
     schedulers = {
         "CPOP": CpopScheduler(),
@@ -55,17 +55,18 @@ def main():
     max_temp = 10
     min_temp = 0.1
     cooling_rate = 0.99
-    get_makespan = SimulatedAnnealing.DEFAULT_GET_MAKESPAN
+    get_makespan = SimulatedAnnealing.default_get_makespan
     skip_existing = True
     task_graph_changes = [
         TaskGraphAddDependency, TaskGraphDeleteDependency,
         TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight
     ]
 
-    for base_scheduler_name, base_scheduler in base_schedulers.items():
+    for base_scheduler_name, base_scheduler in base_schedulers.items(): # pylint: disable=too-many-nested-blocks
         for scheduler_name, scheduler in schedulers.items():
             savepath = thisdir / "results" / base_scheduler_name / f"{scheduler_name}.pkl"
-            if savepath.exists() and skip_existing and not {base_scheduler_name, scheduler_name}.intersection(rerun_for):
+            if (savepath.exists() and skip_existing
+                and not {base_scheduler_name, scheduler_name}.intersection(rerun_for)):
                 logging.info("Skipping experiment for %s/%s", scheduler_name, base_scheduler_name)
                 continue
 

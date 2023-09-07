@@ -1,9 +1,16 @@
+import json
+import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Iterator, Union
-import networkx as nx
+import time
+from typing import Dict, Iterator, List, Optional, Tuple
 
-from .schedulers.base import Scheduler
+import networkx as nx
+import pandas as pd
+
+from .utils.tools import validate_simple_schedule, standardize_task_graph
+
+from .scheduler import Scheduler
 
 
 @dataclass
@@ -136,7 +143,7 @@ class Comparison:
 
     def makespan_ratio(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, Dict[str, float]]:
         """ Get the makespan ratio of the schedulers on the dataset.
-        
+
         Args:
             index (int): The index of the network and task graph.
 
@@ -152,7 +159,7 @@ class Comparison:
             for scheduler_name, makespan in makespans.items()
         }
         return network, task_graph, ratios
-    
+
     def all_makepsan_ratios(self) -> Dict[str, float]:
         """Get the makespan ratio of the schedulers on the dataset.
 
@@ -181,7 +188,7 @@ class Comparison:
             scheduler_name: sum(makespan_ratios) / len(makespan_ratios)
             for scheduler_name, makespan_ratios in ratios.items()
         }
-    
+
     def min_makepsan_ratio(self) -> Dict[str, float]:
         """Get the minimum makespan ratio of the schedulers on the dataset.
 
@@ -193,7 +200,7 @@ class Comparison:
             scheduler_name: min(makespan_ratios)
             for scheduler_name, makespan_ratios in ratios.items()
         }
-    
+
     def max_makepsan_ratio(self) -> Dict[str, float]:
         """Get the maximum makespan ratio of the schedulers on the dataset.
 
@@ -205,14 +212,14 @@ class Comparison:
             scheduler_name: max(makespan_ratios)
             for scheduler_name, makespan_ratios in ratios.items()
         }
-    
+
     def median_makepsan_ratio(self) -> Dict[str, float]:
         ratios = self.all_makepsan_ratios()
         return {
             scheduler_name: sorted(makespan_ratios)[len(makespan_ratios) // 2]
             for scheduler_name, makespan_ratios in ratios.items()
         }
-    
+
     def std_makepsan_ratio(self) -> Dict[str, float]:
         """Get the standard deviation of the makespan ratios of the schedulers on the dataset.
 
@@ -225,7 +232,7 @@ class Comparison:
             scheduler_name: (sum((makespan_ratio - mean_ratios[scheduler_name])**2 for makespan_ratio in makespan_ratios) / len(makespan_ratios))**0.5
             for scheduler_name, makespan_ratios in ratios.items()
         }
-    
+
     def variance_makepsan_ratio(self) -> Dict[str, float]:
         """Get the variance of the makespan ratios of the schedulers on the dataset.
 
@@ -236,7 +243,7 @@ class Comparison:
             scheduler_name: std_ratio**2
             for scheduler_name, std_ratio in self.std_makepsan_ratio().items()
         }
-    
+
     def stats(self) -> Dict[str, Dict[str, float]]:
         """Get the statistics of the makespan ratios of the schedulers on the dataset.
 
@@ -262,10 +269,30 @@ class Comparison:
                 self.variance_makepsan_ratio().values(),
             )
         }
+    
+    def to_df(self) -> pd.DataFrame:
+        """Convert the comparison to a dataframe.
+
+        Returns:
+            pd.DataFrame: The dataframe.
+        """
+        return pd.DataFrame(
+            [
+                [scheduler_name, makespan_ratio]
+                for scheduler_name, makespan_ratios in self.all_makepsan_ratios().items()
+                for makespan_ratio in makespan_ratios
+            ],
+            columns=["scheduler", "makespan_ratio"]
+        )
 
 
 class Dataset(ABC):
     """Abstract class for datasets."""
+    def __init__(self, name: Optional[str] = None) -> None:
+        super().__init__()
+        if name is None:
+            name = self.__class__.__name__
+        self.name = name
 
     @abstractmethod
     def __len__(self) -> int:
@@ -308,10 +335,13 @@ class Dataset(ABC):
         Returns:
             Evaluation: The evaluation of the scheduler on the dataset.
         """
+        logging.info("Evaluating %s on %s.", scheduler.__class__.__name__, self.name)
         makespans = []
         for network, task_graph in self:
             try:
+                task_graph = standardize_task_graph(task_graph)
                 schedule = scheduler.schedule(network, task_graph)
+                validate_simple_schedule(network, task_graph, schedule)
                 makespan = max(task.end for _, tasks in schedule.items() for task in tasks)
             except Exception as exception: # pylint: disable=broad-except
                 if ignore_errors:
@@ -340,41 +370,70 @@ class Dataset(ABC):
         return Comparison(evaluations)
 
     @staticmethod
-    def from_networks_and_task_graphs(networks: List[nx.Graph], task_graphs: List[nx.DiGraph]) -> "AllPairsDataset":
+    def from_networks_and_task_graphs(networks: List[nx.Graph],
+                                      task_graphs: List[nx.DiGraph],
+                                      name: Optional[str] = None) -> "AllPairsDataset":
         """Create a dataset of all pairs of networks and task graphs.
 
         Args:
             networks (List[nx.Graph]): The networks.
             task_graphs (List[nx.DiGraph]): The task graphs.
+            name (Optional[str], optional): The name of the dataset. Defaults to class name.
 
         Returns:
             AllPairsDataset: The dataset of all pairs of networks and task graphs.
         """
-        return AllPairsDataset(networks, task_graphs)
+        return AllPairsDataset(networks, task_graphs, name=name)
 
     @staticmethod
-    def from_pairs(pairs: List[Tuple[nx.Graph, nx.DiGraph]]) -> "PairsDataset":
+    def from_pairs(pairs: List[Tuple[nx.Graph, nx.DiGraph]],
+                   name: Optional[str] = None) -> "PairsDataset":
         """Create a dataset of all pairs of networks and task graphs.
 
         Args:
             pairs (List[Tuple[nx.Graph, nx.DiGraph]]): The pairs of networks and task graphs.
+            name (Optional[str], optional): The name of the dataset. Defaults to class name.
 
         Returns:
             AllPairsDataset: The dataset of all pairs of networks and task graphs.
         """
-        return PairsDataset(pairs)
+        return PairsDataset(pairs, name=name)
+
+    def to_json(self, *args, **kwargs) -> str:
+        """Convert the dataset to a JSON object.
+
+        Returns:
+            Dict[str, Union[List[str], List[List[str]]]]: The JSON object.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "Dataset":
+        """Create a dataset from a JSON object.
+
+        Args:
+            json_str (str): The JSON object.
+
+        Returns:
+            Dataset: The dataset.
+        """
+        raise NotImplementedError
 
 
 class AllPairsDataset(Dataset):
     """A dataset of all pairs of networks and task graphs."""
-    def __init__(self, networks: List[nx.Graph], task_graphs: List[nx.DiGraph]):
+    def __init__(self, 
+                 networks: List[nx.Graph],
+                 task_graphs: List[nx.DiGraph],
+                 name: Optional[str] = None) -> None:
         """A dataset of all pairs of networks and task graphs.
 
         Args:
             networks (List[nx.Graph]): The networks.
             task_graphs (List[nx.DiGraph]): The task graphs.
+            name (Optional[str], optional): The name of the dataset. Defaults to class name.
         """
-        assert len(networks) == len(task_graphs)
+        super().__init__(name)
         self.networks = networks
         self.task_graphs = task_graphs
 
@@ -388,15 +447,45 @@ class AllPairsDataset(Dataset):
         task_graph_index = index % len(self.task_graphs)
         return self.networks[network_index], self.task_graphs[task_graph_index]
 
+    def to_json(self, *args, **kwargs) -> str:
+        """Convert the dataset to a JSON object.
+
+        Returns:
+            Dict[str, Union[List[str], List[List[str]]]]: The JSON object.
+        """
+        data = {
+            "name": self.name,
+            "networks": [nx.node_link_data(network) for network in self.networks],
+            "task_graphs": [nx.node_link_data(task_graph) for task_graph in self.task_graphs],
+        }
+        return json.dumps(data, *args, **kwargs)
+
+    @classmethod
+    def from_json(cls, json_str: str, *args, **kwargs) -> "Dataset":
+        """Create a dataset from a JSON object.
+
+        Args:
+            json_str (str): The JSON object.
+
+        Returns:
+            Dataset: The dataset.
+        """
+        data: Dict = json.loads(json_str, *args, **kwargs)
+        networks = [nx.node_link_graph(network_data) for network_data in data["networks"]]
+        task_graphs = [nx.node_link_graph(task_graph_data) for task_graph_data in data["task_graphs"]]
+        name = data.get("name") or None
+        return cls(networks, task_graphs, name=name)
+
 
 class PairsDataset(Dataset):
     """A dataset of pairs of networks and task graphs."""
-    def __init__(self, pairs: List[Tuple[nx.Graph, nx.DiGraph]]):
+    def __init__(self, pairs: List[Tuple[nx.Graph, nx.DiGraph]], name: Optional[str] = None) -> None:
         """A dataset of pairs of networks and task graphs.
 
         Args:
             pairs (List[Tuple[nx.Graph, nx.DiGraph]]): The pairs of networks and task graphs.
         """
+        super().__init__(name)
         self.pairs = pairs
 
     def __len__(self) -> int:
@@ -406,3 +495,43 @@ class PairsDataset(Dataset):
         if index < 0 or index >= len(self):
             raise IndexError
         return self.pairs[index]
+
+    def to_json(self, *args, **kwargs) -> str:
+        """Convert the dataset to a JSON object.
+
+        Returns:
+            Dict[str, Union[List[str], List[List[str]]]]: The JSON object.
+        """
+        data = {
+            "name": self.name,
+            "pairs": [
+                [nx.node_link_data(network), nx.node_link_data(task_graph)]
+                for network, task_graph in self.pairs
+            ]
+        }
+        return json.dumps(data, *args, **kwargs)
+
+    @classmethod
+    def from_json(cls, json_str: str, *args, **kwargs) -> "Dataset":
+        """Create a dataset from a JSON object.
+
+        Args:
+            json_str (str): The JSON object.
+
+        Returns:
+            Dataset: The dataset.
+        """
+        data: Dict = json.loads(json_str, *args, **kwargs)
+        if isinstance(data, dict):
+            name = data.get("name") or None
+            pairs = [
+                (nx.node_link_graph(network_data), nx.node_link_graph(task_graph_data))
+                for network_data, task_graph_data in data["pairs"]
+            ]
+        else: # TODO: For backwards compatibility, remove in future
+            name = None
+            pairs = [
+                (nx.node_link_graph(network_data), nx.node_link_graph(task_graph_data))
+                for network_data, task_graph_data in data
+            ]
+        return cls(pairs, name=name)

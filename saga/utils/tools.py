@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from saga.schedulers.base import Scheduler, Task
+from saga.scheduler import Scheduler, Task
 
 
 def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
@@ -83,11 +83,40 @@ def get_insert_loc(schedule: List[Task],
 
 class InvalidScheduleError(Exception):
     """Raised when a schedule is invalid."""
-    def __init__(self, network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[Hashable, List[Task]], message: str = "Invalid schedule.") -> None:
+    def __init__(self,
+                 network: nx.Graph,
+                 task_graph: nx.DiGraph,
+                 schedule: Dict[Hashable, List[Task]],
+                 message: str = "Invalid schedule.") -> None:
         self.network = network
         self.task_graph = task_graph
         self.schedule = schedule
         self.message = message
+
+def standardize_task_graph(task_graph: nx.DiGraph) -> nx.DiGraph:
+    """Standardize a task graph.
+
+    Args:
+        task_graph (nx.DiGraph): The task graph.
+
+    Returns:
+        nx.DiGraph: The standardized task graph.
+    """
+    task_graph = task_graph.copy()
+    # add source and sink
+    source = "__saga_src__"
+    sink = "__saga_sink__"
+    task_graph.add_node(source, weight=1e-9)
+    task_graph.add_node(sink, weight=1e-9)
+    for node in task_graph.nodes:
+        if node in (source, sink):
+            continue
+        if task_graph.in_degree(node) == 0:
+            task_graph.add_edge(source, node, weight=1e-9)
+        if task_graph.out_degree(node) == 0:
+            task_graph.add_edge(node, sink, weight=1e-9)
+
+    return task_graph
 
 def validate_simple_schedule(network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[Hashable, List[Task]]) -> None:
     """Validate a simple schedule.
