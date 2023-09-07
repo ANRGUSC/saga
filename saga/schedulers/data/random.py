@@ -104,7 +104,7 @@ def gen_in_trees(num: int, # pylint: disable=arguments-differ
 
     return in_trees
 
-def gen_parallel_chains(num: int, # pylint: disable=arguments-differ
+def gen_parallel_chains(num: int,
                         num_chains: int,
                         chain_length: int,
                         get_task_weight: Callable[[Hashable], float] = None,

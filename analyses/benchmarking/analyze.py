@@ -1,5 +1,4 @@
 # Importing required libraries to load and examine the data
-import json
 import pathlib
 
 import pandas as pd
@@ -9,35 +8,37 @@ thisdir = pathlib.Path(__file__).parent.absolute()
 
 def main():
     """Analyze the results."""
-    data = json.loads(thisdir.joinpath("results.json").read_text(encoding="utf-8"))
-    rows = []
-    for dataset_name, dataset in data.items():
-        for scheduler, stats in dataset.items():
-            for stat, value in stats.items():
-                rows.append({
-                    "dataset": dataset_name,
-                    "scheduler": scheduler,
-                    "stat": stat,
-                    "value": value,
-                })
+    data = pd.read_csv(thisdir.joinpath("results.csv"), index_col=0)
 
-    df_stats = pd.DataFrame(rows).set_index(["dataset", "scheduler", "stat"])
-    print(df_stats.unstack())
+    # strip "Scheduler" from scheduler names
+    data["scheduler"] = data["scheduler"].str.replace("Scheduler", "")
 
-    # Box plot: x-axis is scheduler, y-axis is makespan, color is dataset
+    # Box Plot of Makespan, x-axis: scheduler, color: dataset
     fig = px.box(
-        df_stats.reset_index(),
-        x="scheduler", y="value", color="dataset",
+        data, x="scheduler", y="makespan_ratio", color="dataset",
         template="plotly_white",
-        title="Makespan of Schedulers on Datasets"
+        labels={
+            "scheduler": "Scheduler",
+            "makespan_ratio": "Makespan Ratio",
+            "dataset": "Dataset",
+        }
     )
-    # make higher resolution
-    fig.update_layout(
-        autosize=False,
-        width=1000,
-        height=600,
-    )
+    max_val = data["makespan_ratio"].max()
+    # # get number of digits in max_val
+    num_digits = len(str(int(max_val)))
+    # # round to next 10^num_digits
+    max_val = int(max_val / 10**(num_digits - 1) + 1) * 10**(num_digits - 1)
+    # tick_jump = 10**(num_digits - 1)
+    # ticks = [1] + [tick_jump * i for i in range(1, int(max_val / tick_jump) + 1)]
+
+    fig.update_yaxes(range=[1/2, max_val])
+    # set first tick to 1 then 10, 20, 30, ...
+    # fig.update_yaxes(tickvals=ticks)
+    fig.write_html(thisdir.joinpath("boxplot.html"))
     fig.write_image(thisdir.joinpath("boxplot.png"))
+
+
+
 
 if __name__ == "__main__":
     main()
