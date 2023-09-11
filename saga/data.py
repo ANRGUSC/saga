@@ -22,7 +22,7 @@ class Evaluation:
 
     def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, float]:
         if index < 0 or index >= len(self):
-            raise IndexError
+            raise IndexError(f"Index {index} out of range")
         network, task_graph = self.dataset[index]
         makespan = self.makespans[index]
         return network, task_graph, makespan
@@ -122,10 +122,13 @@ class Comparison:
             scheduler.__name__: evaluation
             for scheduler, evaluation in evaluations.items()
         }
+        # check that all evaluations are the same length
+        if len(set(len(evaluation) for evaluation in self.evaluations.values())) != 1:
+            raise ValueError("Evaluations must be the same length")
 
     def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, Dict[str, float]]:
         if index < 0 or index >= len(self):
-            raise IndexError
+            raise IndexError(f"Index {index} out of range")
         makespans = {}
         network, task_graph = None, None
         for scheduler_name, evaluation in self.evaluations.items():
@@ -139,7 +142,8 @@ class Comparison:
         Returns:
             int: The number of schedulers in the comparison.
         """
-        return len(self.evaluations)
+        evaluation = next(iter(self.evaluations.values()))
+        return len(evaluation)
 
     def makespan_ratio(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, Dict[str, float]]:
         """ Get the makespan ratio of the schedulers on the dataset.
@@ -335,9 +339,9 @@ class Dataset(ABC):
         Returns:
             Evaluation: The evaluation of the scheduler on the dataset.
         """
-        logging.info("Evaluating %s on %s.", scheduler.__class__.__name__, self.name)
         makespans = []
-        for network, task_graph in self:
+        for i, (network, task_graph) in enumerate(self):
+            logging.info("Evaluating %s on %s instance %d/%d.", scheduler.__name__, self.name, i+1, len(self))
             try:
                 task_graph = standardize_task_graph(task_graph)
                 schedule = scheduler.schedule(network, task_graph)
@@ -442,7 +446,7 @@ class AllPairsDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph]:
         if index < 0 or index >= len(self):
-            raise IndexError
+            raise IndexError(f"Index {index} out of range")
         network_index = index // len(self.task_graphs)
         task_graph_index = index % len(self.task_graphs)
         return self.networks[network_index], self.task_graphs[task_graph_index]

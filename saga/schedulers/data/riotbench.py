@@ -25,10 +25,10 @@ def get_fog_networks(num: int,
         edge_node_cpu: CPU capacity of edge nodes.
         fog_node_cpu: CPU capacity of fog nodes.
         cloud_node_cpu: CPU capacity of cloud nodes.
-        edge_fog_bw: Bandwidth between edge and fog nodes.
-        fog_cloud_bw: Bandwidth between fog and cloud nodes.
-        fog_fog_bw: Bandwidth between fog nodes.
-        cloud_cloud_bw: Bandwidth between cloud nodes.
+        edge_fog_bw: Bandwidth between edge and fog nodes (Mbps).
+        fog_cloud_bw: Bandwidth between fog and cloud nodes (Mbps).
+        fog_fog_bw: Bandwidth between fog nodes (Mbps).
+        cloud_cloud_bw: Bandwidth between cloud nodes (Mbps).
 
     Returns:
         A list of networks.
@@ -64,6 +64,11 @@ def get_fog_networks(num: int,
             elif has_cloud and not (has_edge or has_fog): # cloud to cloud
                 network.add_edge(src, dst, weight=cloud_cloud_bw)
         networks.append(network)
+
+        # Scale all edge weights by 125 so units are KiloBytes per second
+        # to match the units of the task graph.
+        for (src, dst) in network.edges:
+            network.edges[src, dst]["weight"] *= 125
     return networks
 
 def gaussian(min_value: float, max_value: float) -> float:

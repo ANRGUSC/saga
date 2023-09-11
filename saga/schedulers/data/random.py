@@ -12,7 +12,7 @@ def _default_task_weight(task: Hashable) -> float: # pylint: disable=unused-argu
     Returns:
         float: The task weight.
     """
-    return random.uniform(0, 1)
+    return max(min(1e-9, random.gauss(1, 1/3)), 2)
 
 def _default_dependency_weight(src: Hashable, dst: Hashable) -> float: # pylint: disable=unused-argument
     """Default dependency weight function.
@@ -24,7 +24,7 @@ def _default_dependency_weight(src: Hashable, dst: Hashable) -> float: # pylint:
     Returns:
         float: The dependency weight.
     """
-    return random.uniform(0, 1)
+    return max(min(1e-9, random.gauss(1, 1/3)), 2)
 
 def gen_out_trees(num: int, # pylint: disable=arguments-differ
                   num_levels: int,
