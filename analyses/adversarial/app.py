@@ -100,10 +100,10 @@ def iteration_viewer(sa_run: SimulatedAnnealing) -> None:
 
         st.table(df_iteration)
         instance_view(
-            iteration.current_network,
-            iteration.current_task_graph,
-            iteration.current_schedule,
-            iteration.current_base_schedule,
+            iteration.neighbor_network,
+            iteration.neighbor_task_graph,
+            iteration.neighbor_schedule,
+            iteration.neighbor_base_schedule,
             scheduler_name=sa_run.scheduler.__class__.__name__,
             base_scheduler_name=sa_run.base_scheduler.__class__.__name__
         )
@@ -165,8 +165,8 @@ def main():
             last_iteration = sa_run.iterations[-1]
             st.header(f"Worst Makespan Ratio: {last_iteration.best_energy:.2f}")
             instance_view(
-                last_iteration.current_network,
-                last_iteration.current_task_graph,
+                last_iteration.best_network,
+                last_iteration.best_task_graph,
                 last_iteration.best_schedule,
                 last_iteration.best_base_schedule,
                 scheduler_name=sa_run.scheduler.__class__.__name__,
