@@ -1,6 +1,7 @@
 import pathlib
 import pickle
 from typing import Dict
+import numpy as np
 
 import pandas as pd
 from simulated_annealing import SimulatedAnnealing
@@ -31,6 +32,7 @@ def main():
     results = load_results()
 
     rows = []
+    min_value = np.inf
     for base_scheduler_name, base_scheduler_results in results.items():
         if keep_schedulers and not base_scheduler_name in keep_schedulers:
             continue
@@ -38,6 +40,8 @@ def main():
             if keep_schedulers and not scheduler_name in keep_schedulers:
                 continue
             makespan_ratio = scheduler_results.iterations[-1].best_energy
+            if makespan_ratio < min_value:
+                min_value = makespan_ratio
             if makespan_ratio > 1e3:
                 makespan_ratio = ">1000"
             else:
@@ -64,64 +68,90 @@ def main():
     df_results.to_csv(thisdir / "output" / "results.csv")
     df_results.to_string(buf=thisdir / "output" / "results.txt")
 
+    # sort columns alphabetically
+    df_results = df_results.reindex(sorted(df_results.columns), axis=1)
+    
+    df_results.columns = [f"\\textbf{{{col}}}" for col in df_results.columns]
     df_results.to_latex(
-        buf=thisdir / "output" / "results.tex",
+        buf=thisdir / "output" / f"results.tex",
         escape=False,
-        column_format="|c|c|c|c|c|c|c|c|c|c|c|c|c|c|",
-        multicolumn_format="c",
-        multicolumn=True,
         na_rep="N/A",
         bold_rows=True,
         caption="Makespan ratio for each scheduler relative to the base scheduler.",
         label="tab:sa_results"
     )
 
-    # Highlight max value in each row
-    def highlight_max(s):
-        is_max = s == s.max()
-        return ['background-color: #dc3545' if v else '' for v in is_max]
 
-    # Apply the function to the DataFrame
-    styled_df = df_results.style.apply(highlight_max, axis=1)
-    styled_df.set_table_attributes('class="table table-striped table-hover"')
+    # split into two sets of columns since the table is too wide
+    num_cols = len(df_results.columns)
+    df_results_split = [
+        df_results.iloc[:, :num_cols//2],
+        df_results.iloc[:, num_cols//2:]
+    ]
 
-    # Add styling to the table
-    styled_df.set_table_styles([
-        {"selector": "th", "props": [("text-align", "center")]},
-        {"selector": "td", "props": [("text-align", "center")]},
-        {"selector": "caption", "props": [("caption-side", "bottom")]}
-    ])
+    for i, _df_results in enumerate(df_results_split, start=1):
+        _df_results.to_latex(
+            buf=thisdir / "output" / f"results_{i}.tex",
+            escape=False,
+            na_rep="N/A",
+            bold_rows=True,
+            caption="Makespan ratio for each scheduler relative to the base scheduler.",
+            label="tab:sa_results"
+        )
 
-    # Generate the HTML representation with Bootstrap classes
-    html_buffer = StringIO()
-    styled_df.to_html(
-        buf=html_buffer,
-        escape=False,
-        classes="table table-striped table-hover table-sm",
-        index_names=False,
-        justify="center"
-    )
+    # # Highlight max value in each row
+    # def highlight(s):
+    #     styles = []
+    #     for v in s:
+    #         if v == '>1000':
+    #             styles.append('background-color: #dc3545')
+    #         elif v == f"{min_value:.2f}":
+    #             styles.append('background-color: #ffc107')
+    #         else:
+    #             styles.append('')
+    #     return styles
 
-    html_buffer.seek(0)
-    base_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-        <style>
-            <!-- set font size smaller for all elements -->
-            * {{
-                font-size: 0.8rem;
-            }}
-        </style>
-    </head>
-    <body>
-        {html_buffer.read()}
-    </body>
-    </html>
-    """
+    # # Apply the function to the DataFrame
+    # styled_df = df_results.style.apply(highlight, axis=1)
+    # styled_df.set_table_attributes('class="table table-striped table-hover"')
 
-    (thisdir / "output" / "results.html").write_text(base_html)
+    # # Add styling to the table
+    # styled_df.set_table_styles([
+    #     {"selector": "th", "props": [("text-align", "center")]},
+    #     {"selector": "td", "props": [("text-align", "center")]},
+    #     {"selector": "caption", "props": [("caption-side", "bottom")]}
+    # ])
+
+    # # Generate the HTML representation with Bootstrap classes
+    # html_buffer = StringIO()
+    # styled_df.to_html(
+    #     buf=html_buffer,
+    #     escape=False,
+    #     classes="table table-striped table-hover table-sm",
+    #     index_names=False,
+    #     justify="center"
+    # )
+
+    # html_buffer.seek(0)
+    # base_html = f"""
+    # <!DOCTYPE html>
+    # <html>
+    # <head>
+    #     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    #     <style>
+    #         <!-- set font size smaller for all elements -->
+    #         * {{
+    #             font-size: 0.8rem;
+    #         }}
+    #     </style>
+    # </head>
+    # <body>
+    #     {html_buffer.read()}
+    # </body>
+    # </html>
+    # """
+
+    # (thisdir / "output" / "results.html").write_text(base_html)
 
 if __name__ == "__main__":
     main()

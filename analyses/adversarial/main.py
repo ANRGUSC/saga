@@ -1,9 +1,11 @@
 import copy
 import logging  # pylint: disable=missing-module-docstring
 import pathlib
+import random
 from typing import Optional
 
 import dill as pickle
+import numpy as np
 from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
                              ETFScheduler, FastestNodeScheduler, FCPScheduler,
                              FLBScheduler, GDLScheduler, HeftScheduler,
@@ -26,11 +28,14 @@ logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s')
 
 def main(): # pylint: disable=too-many-locals, too-many-statements
     """Run the experiments."""
+    random.seed(9281995) # for reproducibility
+    np.random.seed(9281995) # for reproducibility
+
     schedulers = {
         "CPOP": CpopScheduler(),
+        "HEFT": HeftScheduler(),
         "Duplex": DuplexScheduler(),
         "ETF": ETFScheduler(),
-        "HEFT": HeftScheduler(),
         "Fastest Node": FastestNodeScheduler(),
         "FCP": FCPScheduler(),
         "GDL": GDLScheduler(),
@@ -48,7 +53,7 @@ def main(): # pylint: disable=too-many-locals, too-many-statements
     homogenous_comp_algs = {"ETF", "FCP", "FLB"}
     # algorithms that only work when the communication speed is the same for all network edges
     homogenous_comm_algs = {"BIL", "GDL", "FCP", "FLB"}
-    rerun_for = ["FCP"]
+    rerun_for = ["HEFT", "CPOP"]
 
     # Configuration Parameters
     max_iterations = [1000]*5
@@ -83,8 +88,9 @@ def main(): # pylint: disable=too-many-locals, too-many-statements
                         "Running experiment for %s/%s with %s iterations",
                         scheduler_name, base_scheduler_name, max_iter
                     )
-                    network = add_random_weights(get_network())
-                    task_graph = add_random_weights(get_chain_dag())
+
+                    network = add_random_weights(get_network(random.randint(3, 5)))
+                    task_graph = add_random_weights(get_chain_dag(random.randint(3, 5)))
 
                     change_types = copy.deepcopy(task_graph_changes)
                     if scheduler_name in homogenous_comp_algs or base_scheduler_name in homogenous_comp_algs:
