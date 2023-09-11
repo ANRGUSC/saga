@@ -132,7 +132,7 @@ def draw_network(network: nx.Graph,
     colors = [node_colors[node] for node in sorted_nodes]
 
     # spring layout
-    pos = nx.spring_layout(network)
+    pos = nx.circular_layout(network)
     # draw network nodes with black border and white fill
     nx.draw_networkx_nodes(
         network, pos=pos, ax=axis,
@@ -163,7 +163,7 @@ def draw_network(network: nx.Graph,
         }
     )
 
-    axis.margins(0.1)
+    axis.margins(0.2)
     axis.axis("off")
     plt.tight_layout()
     return axis

@@ -1,4 +1,5 @@
 from itertools import product
+import random
 from typing import Tuple, TypeVar
 
 import networkx as nx
@@ -15,11 +16,12 @@ def get_diamond_dag() -> nx.DiGraph:
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
     return dag
 
-def get_chain_dag() -> nx.DiGraph:
+def get_chain_dag(num_nodes: int = 4) -> nx.DiGraph:
     """Returns a chain DAG."""
     dag = nx.DiGraph()
-    dag.add_nodes_from(["A", "B", "C", "D"])
-    dag.add_edges_from([("A", "B"), ("B", "C"), ("C", "D")])
+    nodes = [chr(ord("A") + i) for i in range(num_nodes)]
+    dag.add_nodes_from(nodes)
+    dag.add_edges_from([(nodes[i], nodes[i+1]) for i in range(num_nodes - 1)])
     return dag
 
 def get_fork_dag() -> nx.DiGraph:
@@ -65,12 +67,12 @@ def get_branching_dag(levels: int = 3, branching_factor: int = 2) -> nx.DiGraph:
 
     return graph
 
-def get_network() -> nx.Graph:
+def get_network(num_nodes = 4) -> nx.Graph:
     """Returns a network."""
     network = nx.Graph()
-    network.add_nodes_from(range(4))
+    network.add_nodes_from(range(num_nodes))
     # fully connected
-    network.add_edges_from(product(range(4), range(4)))
+    network.add_edges_from(product(range(num_nodes), range(num_nodes)))
     return network
 
 # template T nx.DiGraph or nx.Graph
