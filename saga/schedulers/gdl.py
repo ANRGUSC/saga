@@ -1,4 +1,4 @@
-from functools import partial
+from functools import lru_cache, partial
 from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
@@ -70,6 +70,7 @@ class GDLScheduler(Scheduler):
                     for succ in task_graph.successors(task)
                 )
 
+        @lru_cache(maxsize=None)
         def data_available(task: str, node: str) -> float:
             """returns time when data is available to execute task on node"""
             if task_graph.in_degree(task) == 0:
@@ -82,12 +83,14 @@ class GDLScheduler(Scheduler):
                 for pred in task_graph.predecessors(task)
             )
 
+        @lru_cache(maxsize=None)
         def node_available(node: str) -> float:
             """returns time when node is available to execute task"""
             if len(schedule[node]) == 0:
                 return 0
             return max(task.end for task in schedule[node])
 
+        @lru_cache(maxsize=None)
         def dynamic_level_1(task: str, node: str) -> float:
             return static_level[task] - max(
                 data_available(task, node),
@@ -106,6 +109,7 @@ class GDLScheduler(Scheduler):
             if task_graph.out_degree(task) > 0
         }
 
+        @lru_cache(maxsize=None)
         def descendant_earliest_finish(task, child, node):
             """returns earliest finish time of child's descendants on node
 
@@ -123,6 +127,7 @@ class GDLScheduler(Scheduler):
                 if node != other
             )
 
+        @lru_cache(maxsize=None)
         def descendant_consideration(task: str, node: str) -> float:
             dc = largest_output_descendants.get(task) # pylint: disable=invalid-name
             if dc is None:
@@ -132,9 +137,11 @@ class GDLScheduler(Scheduler):
                 descendant_earliest_finish(task, dc, node)
             )
 
+        @lru_cache(maxsize=None)
         def dynamic_level_2(task: str, node: str) -> float:
             return dynamic_level_1(task, node) + descendant_consideration(task, node)
 
+        @lru_cache(maxsize=None)
         def preferred_node(task: str) -> str:
             return min(
                 network.nodes,
@@ -142,14 +149,28 @@ class GDLScheduler(Scheduler):
             )
 
         dynamic_level = dynamic_level_1 if self.dynamic_level == 1 else dynamic_level_2
+        @lru_cache(maxsize=None)
         def cost(task: str) -> float:
             return dynamic_level(task, preferred_node(task)) - max(
                 dynamic_level(task, other)
                 for other in network.nodes
             )
 
+        @lru_cache(maxsize=None)
         def global_dynamic_level(task: str) -> float:
             return dynamic_level(task, preferred_node(task)) + cost(task)
+
+        def clear_caches():
+            """Clears the scheduler's caches"""
+            data_available.cache_clear()
+            node_available.cache_clear()
+            dynamic_level_1.cache_clear()
+            dynamic_level_2.cache_clear()
+            descendant_earliest_finish.cache_clear()
+            descendant_consideration.cache_clear()
+            dynamic_level.cache_clear()
+            cost.cache_clear()
+            global_dynamic_level.cache_clear()
 
         while len(scheduled_tasks) < len(task_graph.nodes):
             candidate_tasks = [
@@ -174,5 +195,7 @@ class GDLScheduler(Scheduler):
             )
             scheduled_tasks[task] = new_task
             schedule[node].append(new_task)
+
+            clear_caches()
 
         return schedule

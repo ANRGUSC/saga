@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Dict, Hashable, List
 import networkx as nx
 
@@ -21,15 +22,19 @@ class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
         schedule: Dict[Hashable, List[Task]] = {}
         scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
 
+        @lru_cache(maxsize=None)
         def get_eet(task: Hashable, node: Hashable) -> float:
             return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
 
+        @lru_cache(maxsize=None)
         def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
             return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_eat(node: Hashable) -> float:
             return schedule[node][-1].end if schedule.get(node) else 0
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_fat(task: Hashable, node: Hashable) -> float:
             return 0 if task_graph.in_degree(task) <= 0 else max([
                 scheduled_tasks[pred_task].end +
@@ -37,8 +42,15 @@ class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 for pred_task in task_graph.predecessors(task)
             ])
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_ect(task: Hashable, node: Hashable) -> float:
             return get_eet(task, node) + max(get_eat(node), get_fat(task, node))
+
+        def clear_caches():
+            """Clear all caches."""
+            get_eat.cache_clear()
+            get_fat.cache_clear()
+            get_ect.cache_clear()
 
         while len(scheduled_tasks) < task_graph.order():
             available_tasks = [
@@ -63,5 +75,7 @@ class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 scheduled_tasks[sched_task] = new_task
 
                 available_tasks.remove(sched_task)
+
+                clear_caches()
 
         return schedule

@@ -1,3 +1,4 @@
+from functools import lru_cache
 import random
 from typing import Dict, Hashable, List, Tuple
 
@@ -33,18 +34,22 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
         schedule: Dict[Hashable, List[Task]] = {}
         scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
 
+        @lru_cache(maxsize=None)
         def get_eet(task: Hashable, node: Hashable) -> float:
             """Estimated execution time of task on node"""
             return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
 
+        @lru_cache(maxsize=None)
         def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
             """Communication time between task1 and task2 on node1 and node2"""
             return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_eat(node: Hashable) -> float:
             """Earliest available time of node"""
             return schedule[node][-1].end if schedule.get(node) else 0
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_fat(task: Hashable, node: Hashable) -> float:
             """Latest available time of task on node"""
             if task_graph.in_degree(task) <= 0:
@@ -55,13 +60,22 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 for pred_task in task_graph.predecessors(task)
             )
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_est(task: Hashable, node: Hashable) -> float:
             """Earliest start time of task on node"""
             return max(get_eat(node), get_fat(task, node))
 
+        @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
         def get_ect(task: Hashable, node: Hashable) -> float:
             """Earliest completion time of task on node"""
             return get_eet(task, node) + get_est(task, node)
+        
+        def clear_caches():
+            """Clear all caches."""
+            get_eat.cache_clear()
+            get_fat.cache_clear()
+            get_est.cache_clear()
+            get_ect.cache_clear()
 
         cur_makespan = 0
         while len(scheduled_tasks) < task_graph.order():
@@ -99,5 +113,7 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 scheduled_tasks[sched_task] = new_task
                 cur_makespan = max(cur_makespan, new_task.end)
                 available_tasks.remove(sched_task)
+
+                clear_caches()
 
         return schedule
