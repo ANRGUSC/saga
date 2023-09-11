@@ -7,6 +7,7 @@ import numpy as np
 
 from ..scheduler import Scheduler, Task
 from ..utils.tools import get_insert_loc
+from .cpop import upward_rank
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -20,24 +21,25 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     Returns:
         List[Hashable]: The sorted list of tasks.
     """
-    rank: Dict[Hashable, float] = {}
-    logging.debug("Topological sort: %s", list(nx.topological_sort(task_graph)))
-    for task_name in reversed(list(nx.topological_sort(task_graph))):
-        avg_comp = np.mean([
-            task_graph.nodes[task_name]['weight'] /
-            network.nodes[node]['weight'] for node in network.nodes
-        ])
-        max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
-            (
-                rank.get(succ, 0) +
-                np.mean([
-                    task_graph.edges[task_name, succ]['weight'] /
-                    network.edges[src, dst]['weight'] for src, dst in network.edges
-                ])
-            )
-            for succ in task_graph.successors(task_name)
-        )
-        rank[task_name] = avg_comp + max_comm
+    # rank: Dict[Hashable, float] = {}
+    # logging.debug("Topological sort: %s", list(nx.topological_sort(task_graph)))
+    # for task_name in reversed(list(nx.topological_sort(task_graph))):
+    #     avg_comp = np.mean([
+    #         task_graph.nodes[task_name]['weight'] /
+    #         network.nodes[node]['weight'] for node in network.nodes
+    #     ])
+    #     max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
+    #         (
+    #             rank.get(succ, 0) +
+    #             np.mean([
+    #                 task_graph.edges[task_name, succ]['weight'] /
+    #                 network.edges[src, dst]['weight'] for src, dst in network.edges
+    #             ])
+    #         )
+    #         for succ in task_graph.successors(task_name)
+    #     )
+    #     rank[task_name] = avg_comp + max_comm
+    rank = upward_rank(network, task_graph)
 
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
