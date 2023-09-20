@@ -27,8 +27,10 @@ def load_results(path: pathlib.Path) -> SimulatedAnnealing:
     return pickle.load(path.open("rb"))
 
 st.set_page_config(layout="wide")
-runs = list(thisdir.joinpath("results").glob("**/*.pkl"))
-resultsdir = thisdir.joinpath("results")
+
+RESULTS_PATH = "results"
+runs = list(thisdir.joinpath(RESULTS_PATH).glob("**/*.pkl"))
+resultsdir = thisdir.joinpath(RESULTS_PATH)
 base_schedulers = [path.name for path in resultsdir.glob("*")]
 
 def instance_view(network: nx.Graph,

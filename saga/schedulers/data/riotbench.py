@@ -69,6 +69,10 @@ def get_fog_networks(num: int,
         # to match the units of the task graph.
         for (src, dst) in network.edges:
             network.edges[src, dst]["weight"] *= 125
+
+        # Make self-loops infinite
+        for node in network.nodes:
+            network.edges[node, node]["weight"] = 1e9
     return networks
 
 def gaussian(min_value: float, max_value: float) -> float:

@@ -41,10 +41,10 @@ def load_dataset(name: str) -> Dataset:
 
 def in_trees_dataset():
     """Generate the in_trees dataset."""
-    num_instances = 2500
-    min_levels, max_levels = 3, 5
-    min_branching, max_branching = 2, 4
-    min_nodes, max_nodes = 3, 10
+    num_instances = 1000
+    min_levels, max_levels = 2, 4
+    min_branching, max_branching = 2, 3
+    min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
         network = gen_random_networks(
@@ -62,10 +62,10 @@ def in_trees_dataset():
 
 def out_trees_dataset():
     """Generate the out_trees dataset."""
-    num_instances = 2500
-    min_levels, max_levels = 3, 5
-    min_branching, max_branching = 2, 4
-    min_nodes, max_nodes = 3, 10
+    num_instances = 1000
+    min_levels, max_levels = 2, 4
+    min_branching, max_branching = 2, 3
+    min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
         network = gen_random_networks(
@@ -84,10 +84,10 @@ def out_trees_dataset():
 
 def chains_dataset():
     """Generate the chains dataset."""
-    num_instances = 2500
+    num_instances = 1000
     min_chains, max_chains = 2, 5
     min_chain_length, max_chain_length = 2, 5
-    min_nodes, max_nodes = 3, 10
+    min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
         network = gen_random_networks(
@@ -120,7 +120,7 @@ def wfcommons_dataset(recipe_name: str):
 def riotbench_dataset(get_task_graphs: Callable[[int], List[nx.DiGraph]],
                       name: str):
     """Generate the etl dataset."""
-    num_instances = 1000
+    num_instances = 100
     pairs = []
     min_edge_nodes, max_edge_nodes = 75, 125
     min_fog_nodes, max_fog_nodes = 3, 7
@@ -144,11 +144,11 @@ def main():
     random.seed(9281995) # For reproducibility
 
     # # Random Graphs
-    # in_trees_dataset()
-    # out_trees_dataset()
-    # chains_dataset()
+    in_trees_dataset()
+    out_trees_dataset()
+    chains_dataset()
 
-    # # Riotbench
+    # Riotbench
     # riotbench_dataset(get_etl_task_graphs, name="etl")
     # riotbench_dataset(get_predict_task_graphs, name="predict")
     # riotbench_dataset(get_stats_task_graphs, name="stats")
@@ -158,7 +158,7 @@ def main():
     # wfcommons_dataset("epigenomics")
     # wfcommons_dataset("montage")
     # wfcommons_dataset("cycles")
-    wfcommons_dataset("seismology")
+    # wfcommons_dataset("seismology")
     # wfcommons_dataset("soykb")
     # wfcommons_dataset("srasearch")
     # wfcommons_dataset("genome")
