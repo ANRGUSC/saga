@@ -94,12 +94,16 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 "boxstyle": "round,pad=0.5"
             }
         )
+
+    edge_labels = {}
+    for u, v in task_graph.edges:
+        label = task_graph.edges[(u, v)]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        edge_labels[(u, v)] = label
     nx.draw_networkx_edge_labels(
         task_graph, pos=pos, ax=axis,
-        edge_labels={
-            (u, v): f"{task_graph.edges[(u, v)]['label']:.2f}"
-            for u, v in task_graph.edges
-        }
+        edge_labels=edge_labels,
     )
 
     axis.margins(0.1)
@@ -148,19 +152,28 @@ def draw_network(network: nx.Graph,
         edge_color="black",
     )
 
+    node_labels = {}
+    for node in network.nodes:
+        label = network.nodes[node]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        node_labels[node] = label
+
     nx.draw_networkx_labels(
         network, pos=pos, ax=axis,
-        labels={
-            node: f"{node} ({network.nodes[node]['label']:.2f})"
-            for node in network.nodes
-        }
+        labels=node_labels,
     )
+
+    edge_labels = {}
+    for u, v in network.edges:
+        label = network.edges[(u, v)]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        edge_labels[(u, v)] = label
+
     nx.draw_networkx_edge_labels(
         network, pos=pos, ax=axis,
-        edge_labels={
-            (u, v): f"{network.edges[(u, v)]['label']:.2f}"
-            for u, v in network.edges
-        }
+        edge_labels=edge_labels,
     )
 
     axis.margins(0.2)

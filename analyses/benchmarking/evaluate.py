@@ -48,7 +48,7 @@ class TrimmedDataset(Dataset):
             raise IndexError
         return self.dataset[index]
 
-def evaluate_dataset(dataset_name: str, max_instances: int = 0):
+def evaluate_dataset(dataset_name: str, max_instances: int = 0, num_jobs: int = 1):
     """Evaluate a dataset."""
     logging.info("Evaluating dataset %s.", dataset_name)
     dataset = load_dataset(dataset_name)
@@ -57,7 +57,7 @@ def evaluate_dataset(dataset_name: str, max_instances: int = 0):
     logging.info("Loaded dataset %s.", dataset_name)
     schedulers = get_schedulers()
     logging.info("Running comparison.")
-    comparison = dataset.compare(schedulers)
+    comparison = dataset.compare(schedulers, num_jobs=num_jobs)
 
     logging.info("Saving results.")
     df_comp = comparison.to_df()
@@ -86,14 +86,8 @@ def main():
     # Evaluate datasets in parallel, redirect stdout/stderr to logs/<dataset_name>.log
     logdir = thisdir.joinpath("logs")
     logdir.mkdir(parents=True, exist_ok=True)
-    if args.num_jobs > 1:
-        Parallel(n_jobs=-1, verbose=10)(
-            delayed(evaluate_dataset)(dataset_name, args.trim)
-            for dataset_name in dataset_names
-        )
-    else:
-        for dataset_name in dataset_names:
-            evaluate_dataset(dataset_name, args.trim)
+    for dataset_name in dataset_names:
+        evaluate_dataset(dataset_name, args.trim, num_jobs=args.num_jobs)
 
 
 if __name__ == "__main__":

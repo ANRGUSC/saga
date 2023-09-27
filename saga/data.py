@@ -1,16 +1,16 @@
 import json
 import logging
+import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import time
 from typing import Dict, Iterator, List, Optional, Tuple
 
 import networkx as nx
 import pandas as pd
-
-from .utils.tools import validate_simple_schedule, standardize_task_graph
+from joblib import Parallel, delayed
 
 from .scheduler import Scheduler
+from .utils.tools import standardize_task_graph, validate_simple_schedule
 
 
 @dataclass
@@ -341,7 +341,7 @@ class Dataset(ABC):
         """
         makespans = []
         for i, (network, task_graph) in enumerate(self):
-            print(f"Evaluating {scheduler.__name__} on {self.name} instance {i+1}/{len(self)}", end="\r")
+            print(f"Evaluating {scheduler.__name__} on {self.name} instance {i+1}/{len(self)}")
             try:
                 task_graph = standardize_task_graph(task_graph)
                 schedule = scheduler.schedule(network, task_graph)
@@ -357,20 +357,32 @@ class Dataset(ABC):
 
     def compare(self,
                 schedulers: List[Scheduler],
-                ignore_errors: bool = False) -> Comparison:
+                ignore_errors: bool = False,
+                num_jobs: int = 1) -> Comparison:
         """Compare schedulers on the dataset.
 
         Args:
             schedulers (List[Scheduler]): The schedulers.
             ignore_errors (bool, optional): Whether to ignore errors. Defaults to False.
+            num_jobs (int, optional): The number of jobs to run in parallel. Defaults to 1.
 
         Returns:
             Comparison: The comparison of the schedulers on the dataset.
         """
-        evaluations = {
-            scheduler: self.evaluate(scheduler, ignore_errors=ignore_errors)
-            for scheduler in schedulers
-        }
+        if num_jobs == 1:
+            evaluations = {
+                scheduler: self.evaluate(scheduler, ignore_errors=ignore_errors)
+                for scheduler in schedulers
+            }
+        else:
+            evaluations = Parallel(n_jobs=num_jobs)(
+                delayed(self.evaluate)(scheduler, ignore_errors=ignore_errors)
+                for scheduler in schedulers
+            )
+            evaluations = {
+                scheduler: evaluation
+                for scheduler, evaluation in zip(schedulers, evaluations)
+            }
         return Comparison(evaluations)
 
     @staticmethod
@@ -412,7 +424,7 @@ class Dataset(ABC):
         raise NotImplementedError
 
     @classmethod
-    def from_json(cls, json_str: str) -> "Dataset":
+    def from_json(cls, json_str: str, *args, **kwargs) -> "Dataset":
         """Create a dataset from a JSON object.
 
         Args:
