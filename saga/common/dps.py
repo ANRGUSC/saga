@@ -23,25 +23,23 @@ def calc_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float
         case 'min':
             return min_TEC(task, network, task_graph)
 
+#max Task Execution Cost
 def max_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return max(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes)
 
+#avg Task Execution Cost
 def avg_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return sum(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes) / len(network.nodes)
 
+#median Task Execution Cost
 def median_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return np.median(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes)
 
+#min Task Execution Cost
 def min_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return min(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes)  
 
 def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
-    # if(len(task_graph.predecessors(task_graph.nodes[task]))) == 0:
-        # return 0
-    # print(task)
-    # print(task_graph)
-    # print(task_graph.nodes[task])
-    # print(task_graph.predecessors(task))
     if task_graph.predecessors(task) is None:
         return 0
     max_TL = 0
@@ -58,8 +56,8 @@ def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
         "This is the third term of the equation"
         if assigned_tasks.get(pred) is None or assigned_tasks.get(task) is None:
             TL += task_graph.edges[pred, task]['weight']
-        elif assigned_tasks.get(pred) == assigned_tasks.get(task):
-            TL += 0
+        # elif assigned_tasks.get(pred) == assigned_tasks.get(task):
+        #     TL += 0
         else:
             TL += task_graph.edges[pred, task]['weight'] / network.edges[assigned_tasks.get(pred), assigned_tasks.get(task)]['weight']
         
@@ -68,7 +66,6 @@ def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
     return max_TL
 
 def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
-    # if(len(task_graph.successors(task_graph.nodes[task]))) == 0:
     if task_graph.successors(task) is None:
         if assigned_tasks.get(task) is None:
             return calc_TEC(task, network, task_graph)
@@ -82,8 +79,8 @@ def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
         "This is the second term of the equation"
         if assigned_tasks.get(succ) is None or assigned_tasks.get(task) is None:
             BL += task_graph.edges[task, succ]['weight']
-        elif assigned_tasks.get(succ) == assigned_tasks.get(task):
-            BL += 0
+        # elif assigned_tasks.get(succ) == assigned_tasks.get(task):
+        #     BL += 0
         else:
             BL += task_graph.edges[task, succ]['weight'] / network.edges[assigned_tasks.get(task), assigned_tasks.get(succ)]['weight']
 
@@ -141,26 +138,20 @@ class DpsScheduler(Scheduler):
 
     def _schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[Task]]:
         task_list = list(nx.topological_sort(task_graph))
-        # print("task list" + str(task_list))
         assigned_tasks = {}
         task_list.sort(key=lambda x: calc_priority(x, network, task_graph,assigned_tasks), reverse=True)
         ready_list = task_list.copy()
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
         runtimes, commtimes = DpsScheduler.get_runtimes(network, task_graph)
-        # print("ready list" + str(ready_list))
 
         while len(ready_list) > 0:
             task = ready_list.pop(0)
-            # print(task)
             "Earliest Finish Time"
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes:
                 logging.debug(f"Trying to assign task {task} to node {node}")
-                # print("#############")
-                # print(task_graph.predecessors(task))
-                # print(task_schedule.get(task_graph.predecessors(task)))
                 if(task_graph.predecessors(task) is not None):
                     max_arrival_time: float = max( 
                         [
@@ -191,5 +182,5 @@ class DpsScheduler(Scheduler):
         return comp_schedule
 
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
-        # check_instance_simple(network, task_graph)
+        check_instance_simple(network, task_graph)
         return self._schedule(task_graph, network)
