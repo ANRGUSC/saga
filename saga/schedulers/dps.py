@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..base import Scheduler, Task
+from ..scheduler import Scheduler, Task
 from ..utils.tools import check_instance_simple, get_insert_loc
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -44,16 +44,16 @@ def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
         return 0
     max_TL = 0
     for pred in task_graph.predecessors(task):
-        "This is the first term of the equation"
+        #This is the first term of the equation
         TL = calc_TL(pred, network, task_graph, assigned_tasks)
 
-        "This is the second term of the equation"
+        #This is the second term of the equation
         if assigned_tasks.get(pred) is None:
             TL += calc_TEC(pred, network, task_graph)
         else:
             TL += task_graph.nodes[pred]['weight'] / network.nodes[assigned_tasks.get(pred)]['weight']
 
-        "This is the third term of the equation"
+        #This is the third term of the equation
         if assigned_tasks.get(pred) is None or assigned_tasks.get(task) is None:
             TL += task_graph.edges[pred, task]['weight']
         # elif assigned_tasks.get(pred) == assigned_tasks.get(task):
@@ -73,10 +73,10 @@ def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
             return task_graph.nodes[task]['weight'] / network.nodes[assigned_tasks.get(task)]['weight']
     max_BL = 0
     for succ in task_graph.successors(task):
-        "This is the first term of the equation"
+        #This is the first term of the equation
         BL = calc_BL(succ, network, task_graph, assigned_tasks)
 
-        "This is the second term of the equation"
+        #This is the second term of the equation
         if assigned_tasks.get(succ) is None or assigned_tasks.get(task) is None:
             BL += task_graph.edges[task, succ]['weight']
         # elif assigned_tasks.get(succ) == assigned_tasks.get(task):
@@ -84,7 +84,7 @@ def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
         else:
             BL += task_graph.edges[task, succ]['weight'] / network.edges[assigned_tasks.get(task), assigned_tasks.get(succ)]['weight']
 
-        "This is the third term of the equation"
+        #This is the third term of the equation
         if assigned_tasks.get(task) is None:
             BL += calc_TEC(task, network, task_graph)
         else:
@@ -147,7 +147,7 @@ class DpsScheduler(Scheduler):
 
         while len(ready_list) > 0:
             task = ready_list.pop(0)
-            "Earliest Finish Time"
+            #Earliest Finish Time
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes:
