@@ -1,24 +1,27 @@
 import logging
+import pathlib
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
 from ..base import Scheduler, Task
 from ..utils.tools import check_instance_simple, get_insert_loc
+thisdir = pathlib.Path(__file__).resolve().parent
+
 
 # options for mode can be 'avg', 'median', 'max' or 'min'
 mode = 'avg'
 
-def calc_TEC() -> float:
+def calc_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     match mode:
         case 'avg':
-            return avg_TEC()
+            return avg_TEC(task, network, task_graph)
         case 'median':
-            return median_TEC()
+            return median_TEC(task, network, task_graph)
         case 'max':
-            return max_TEC()
+            return max_TEC(task, network, task_graph)
         case 'min':
-            return min_TEC()
+            return min_TEC(task, network, task_graph)
 
 def max_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return max(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes)
@@ -33,12 +36,18 @@ def min_TEC(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph) -> float:
     return min(task_graph.nodes[task]['weight'] / network.nodes[node]['weight'] for node in network.nodes)  
 
 def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
-    if(len(task_graph.predecessors(task_graph.nodes[task]))) == 0:
+    # if(len(task_graph.predecessors(task_graph.nodes[task]))) == 0:
+        # return 0
+    # print(task)
+    # print(task_graph)
+    # print(task_graph.nodes[task])
+    # print(task_graph.predecessors(task))
+    if task_graph.predecessors(task) is None:
         return 0
     max_TL = 0
-    for pred in task_graph.predecessors(task_graph.nodes[task]):
+    for pred in task_graph.predecessors(task):
         "This is the first term of the equation"
-        TL = calc_TL(pred, network, task_graph)
+        TL = calc_TL(pred, network, task_graph, assigned_tasks)
 
         "This is the second term of the equation"
         if assigned_tasks.get(pred) is None:
@@ -59,15 +68,16 @@ def calc_TL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
     return max_TL
 
 def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
-    if(len(task_graph.successors(task_graph.nodes[task]))) == 0:
+    # if(len(task_graph.successors(task_graph.nodes[task]))) == 0:
+    if task_graph.successors(task) is None:
         if assigned_tasks.get(task) is None:
             return calc_TEC(task, network, task_graph)
         else:
             return task_graph.nodes[task]['weight'] / network.nodes[assigned_tasks.get(task)]['weight']
     max_BL = 0
-    for succ in task_graph.successors(task_graph.nodes[task]):
+    for succ in task_graph.successors(task):
         "This is the first term of the equation"
-        BL = calc_BL(succ, network, task_graph)
+        BL = calc_BL(succ, network, task_graph, assigned_tasks)
 
         "This is the second term of the equation"
         if assigned_tasks.get(succ) is None or assigned_tasks.get(task) is None:
@@ -130,32 +140,40 @@ class DpsScheduler(Scheduler):
         return runtimes, commtimes
 
     def _schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[Task]]:
-        task_list = list(task_graph.nodes)
-        task_list.sort(key=lambda x: calc_priority(x, network, task_graph), reverse=True)
-        ready_list = task_list.copy()
+        task_list = list(nx.topological_sort(task_graph))
+        print("task list" + str(task_list))
         assigned_tasks = {}
+        task_list.sort(key=lambda x: calc_priority(x, network, task_graph,assigned_tasks), reverse=True)
+        ready_list = task_list.copy()
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
         runtimes, commtimes = DpsScheduler.get_runtimes(network, task_graph)
+        print("ready list" + str(ready_list))
 
         while len(ready_list) > 0:
             task = ready_list.pop(0)
+            # print(task)
             "Earliest Finish Time"
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes:
                 logging.debug(f"Trying to assign task {task} to node {node}")
-                max_arrival_time: float = max( # 
-                    [
-                        0.0, *[
-                            task_schedule[parent].end + (
-                                commtimes[(task_schedule[parent].node, node)][(parent, task)]
-                            )
-                            for parent in task_graph.predecessors(task)
+                print("#############")
+                print(task_graph.predecessors(task))
+                print(task_schedule.get(task_graph.predecessors(task)))
+                if(task_graph.predecessors(task) is not None and task_schedule.get(task_graph.predecessors(task)) is not None):
+                    max_arrival_time: float = max( 
+                        [
+                            0.0, *[
+                                task_schedule[parent].end + (
+                                    commtimes[(task_schedule[parent].node, node)][(parent, task)]
+                                )
+                                for parent in task_graph.predecessors(task)
+                            ]
                         ]
-                    ]
-                )
-
+                    )
+                else:
+                    max_arrival_time = 0.0
                 runtime = runtimes[node][task]   
                 idx, start_time = get_insert_loc(comp_schedule[node], max_arrival_time, runtime)
                 
@@ -165,13 +183,13 @@ class DpsScheduler(Scheduler):
                     best_node = node, idx 
 
             new_runtime = runtimes[best_node[0]][task]
-            task = Task(best_node[0], task, min_finish_time - new_runtime, min_finish_time)
-            comp_schedule[best_node[0]].insert(best_node[1], task)
-            task_schedule[task] = task
+            task_ob = Task(best_node[0], task, min_finish_time - new_runtime, min_finish_time)
+            comp_schedule[best_node[0]].insert(best_node[1], task_ob)
+            task_schedule[task] = task_ob
             assigned_tasks[task] = best_node[0]
             ready_list.sort(key=lambda x: calc_priority(x, network, task_graph, assigned_tasks), reverse=True)
         return comp_schedule
 
-    def schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[Task]]:
-        check_instance_simple(network, task_graph)
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+        # check_instance_simple(network, task_graph)
         return self._schedule(task_graph, network)
