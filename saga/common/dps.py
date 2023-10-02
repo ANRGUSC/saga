@@ -98,7 +98,7 @@ def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
     return max_BL
     
 def calc_priority(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
-    return calc_TL(task, network, task_graph, assigned_tasks) + calc_BL(task, network, task_graph, assigned_tasks)
+    return calc_BL(task, network, task_graph, assigned_tasks) - calc_TL(task, network, task_graph, assigned_tasks)
     
 class DpsScheduler(Scheduler):
     def __init__(self):
@@ -141,14 +141,14 @@ class DpsScheduler(Scheduler):
 
     def _schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[Task]]:
         task_list = list(nx.topological_sort(task_graph))
-        print("task list" + str(task_list))
+        # print("task list" + str(task_list))
         assigned_tasks = {}
         task_list.sort(key=lambda x: calc_priority(x, network, task_graph,assigned_tasks), reverse=True)
         ready_list = task_list.copy()
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
         runtimes, commtimes = DpsScheduler.get_runtimes(network, task_graph)
-        print("ready list" + str(ready_list))
+        # print("ready list" + str(ready_list))
 
         while len(ready_list) > 0:
             task = ready_list.pop(0)
@@ -158,10 +158,10 @@ class DpsScheduler(Scheduler):
             best_node = None
             for node in network.nodes:
                 logging.debug(f"Trying to assign task {task} to node {node}")
-                print("#############")
-                print(task_graph.predecessors(task))
-                print(task_schedule.get(task_graph.predecessors(task)))
-                if(task_graph.predecessors(task) is not None and task_schedule.get(task_graph.predecessors(task)) is not None):
+                # print("#############")
+                # print(task_graph.predecessors(task))
+                # print(task_schedule.get(task_graph.predecessors(task)))
+                if(task_graph.predecessors(task) is not None):
                     max_arrival_time: float = max( 
                         [
                             0.0, *[
