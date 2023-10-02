@@ -219,7 +219,7 @@ def test_reweighting_stochastic_schedulers():
     }
     network = add_rv_weights(get_network())
     schedulers = [
-        # SheftScheduler()
+        SheftScheduler()
     ]
 
     for scheduler in schedulers:
@@ -248,8 +248,8 @@ def test_stochastic_schedulers():
     }
     network = add_rv_weights(get_network())
     schedulers = [
-        # StochHeftScheduler(),
-        # ImprovedSheftScheduler(),
+        StochHeftScheduler(),
+        ImprovedSheftScheduler(),
     ]
 
     for scheduler in schedulers:
