@@ -149,7 +149,7 @@ class DpsScheduler(Scheduler):
                     [
                         0.0, *[
                             task_schedule[parent].end + (
-                                commtimes[(task_schedule[parent].node, node)][(parent, task_name)]
+                                commtimes[(task_schedule[parent].node, node)][(parent, task)]
                             )
                             for parent in task_graph.predecessors(task)
                         ]
