@@ -1,5 +1,5 @@
 import itertools
-from saga.common.heft import HeftScheduler
+from maxmin import MaxMinScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx
@@ -33,7 +33,7 @@ def main():
         else:
             network.add_edge(src, dst, weight=1e9)
 
-    scheduler = HeftScheduler()
+    scheduler = MaxMinScheduler()
     schedule = scheduler.schedule(network, task_graph)
 
     # draw the task graph

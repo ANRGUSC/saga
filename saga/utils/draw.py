@@ -1,13 +1,15 @@
 import logging
-import networkx as nx
+from typing import Dict, Hashable, List, Optional
+
 import matplotlib.pyplot as plt
-import numpy as np
+import networkx as nx
 import pandas as pd
 import plotly.express as px
 from plotly.graph_objects import Figure
-from typing import List, Optional, Dict, Hashable
-from ..base import Task, Scheduler
+
+from saga.scheduler import Task
 from ..utils.random_variable import RandomVariable
+
 
 def format_graph(graph: nx.DiGraph) -> str:
     """Formats the graph
@@ -17,7 +19,7 @@ def format_graph(graph: nx.DiGraph) -> str:
 
     Args:
         graph: Graph
-    
+
     Returns:
         Formatted graph
     """
@@ -32,23 +34,23 @@ def format_graph(graph: nx.DiGraph) -> str:
             formatted_graph.edges[edge]["weight"] = formatted_graph.edges[edge]["weight"].mean()
     return formatted_graph
 
-def draw_task_graph(task_graph: nx.DiGraph, 
-                    ax: Optional[plt.Axes] = None,
+def draw_task_graph(task_graph: nx.DiGraph,
+                    axis: Optional[plt.Axes] = None,
                     schedule: Optional[Dict[Hashable, List[Task]]] = None) -> plt.Axes:
     """Draws a task graph
 
     Args:
         task_graph: Task graph
-        ax: Axes to draw on
+        axis: Axes to draw on
         schedule: Schedule for coloring nodes
     """
-    if ax is None:
-        fig, ax = plt.subplots()
-        
+    if axis is None:
+        _, axis = plt.subplots()
+
     task_graph = format_graph(task_graph.copy())
     pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
 
-    colors = {}
+    colors, tasks = {}, {}
     if schedule is not None:
         tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
         network_nodes = set(schedule.keys())
@@ -56,10 +58,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
         cmap = plt.get_cmap("tab20", len(network_nodes))
         sorted_nodes = sorted(network_nodes)
         sorted_colors = [cmap(i) for i in range(len(network_nodes))]
-        colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
+        colors = dict(zip(sorted_nodes, sorted_colors))
 
     nx.draw_networkx_nodes(
-        task_graph, pos=pos, ax=ax,
+        task_graph, pos=pos, ax=axis,
         node_size=100,
         node_color="white",
         edgecolors="black",
@@ -67,8 +69,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
     )
 
     nx.draw_networkx_edges(
-        task_graph, pos=pos, ax=ax, 
-        arrowsize=20, arrowstyle="->", 
+        task_graph, pos=pos, ax=axis,
+        arrowsize=20, arrowstyle="->",
         width=2, edge_color="black",
         node_size=750,
     )
@@ -77,39 +79,50 @@ def draw_task_graph(task_graph: nx.DiGraph,
         color = "white"
         try:
             color = colors[tasks[task_name].node]
-        except Exception:
-            logging.warning(f"Could not get color for {task_name}")
-            
+        except KeyError:
+            if schedule is not None:
+                logging.warning("Could not get color for %s", task_name)
+
         nx.draw_networkx_labels(
-            task_graph, pos=pos, ax=ax,
+            task_graph, pos=pos, ax=axis,
             labels={
                 task_name: f"{task_name} ({task_graph.nodes[task_name]['label']:.2f})"
             },
-            bbox=dict(
-                facecolor=color,
-                edgecolor="black",
-                boxstyle="round,pad=0.5"
-            )
+            bbox={
+                "facecolor": color,
+                "edgecolor": "black",
+                "boxstyle": "round,pad=0.5"
+            }
         )
+
+    edge_labels = {}
+    for u, v in task_graph.edges:
+        label = task_graph.edges[(u, v)]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        edge_labels[(u, v)] = label
     nx.draw_networkx_edge_labels(
-        task_graph, pos=pos, ax=ax,
-        edge_labels={
-            (u, v): f"{task_graph.edges[(u, v)]['label']:.2f}"
-            for u, v in task_graph.edges
-        }
+        task_graph, pos=pos, ax=axis,
+        edge_labels=edge_labels,
     )
 
-    return ax
+    axis.margins(0.1)
+    axis.axis("off")
+    plt.tight_layout()
+    return axis
 
-def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
+def draw_network(network: nx.Graph,
+                 axis: Optional[plt.Axes] = None,
+                 draw_colors: bool = True) -> plt.Axes:
     """Draws a network
 
     Args:
         network: Network
-        ax: Axes to draw on
+        axis: Axes to draw on
+        draw_colors: Whether to draw colors. Default is True.
     """
-    if ax is None:
-        fig, ax = plt.subplots()
+    if axis is None:
+        _, axis = plt.subplots()
 
     # don't drdaw self loops
     network = format_graph(network.copy())
@@ -121,49 +134,60 @@ def draw_network(network: nx.Graph, ax: Optional[plt.Axes] = None) -> plt.Axes:
     sorted_colors = [cmap(i) for i in range(len(network.nodes))]
     node_colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
     colors = [node_colors[node] for node in sorted_nodes]
-    
+
     # spring layout
-    pos = nx.spring_layout(network)
+    pos = nx.circular_layout(network)
     # draw network nodes with black border and white fill
     nx.draw_networkx_nodes(
-        network, pos=pos, ax=ax,
+        network, pos=pos, ax=axis,
         nodelist=sorted_nodes,
-        node_color=colors,
+        node_color=colors if draw_colors else "white",
         edgecolors="black",
         node_size=3000
     )
 
     # draw network edges
     nx.draw_networkx_edges(
-        network, pos=pos, ax=ax,
+        network, pos=pos, ax=axis,
         edge_color="black",
     )
 
+    node_labels = {}
+    for node in network.nodes:
+        label = network.nodes[node]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        node_labels[node] = label
 
-    # draw "weight" labels on nodes and edges
     nx.draw_networkx_labels(
-        network, pos=pos, ax=ax,
-        labels={
-            node: f"{node} ({network.nodes[node]['label']:.2f})"
-            for node in network.nodes
-        }
+        network, pos=pos, ax=axis,
+        labels=node_labels,
     )
-    nx.draw_networkx_edge_labels(
-        network, pos=pos, ax=ax, 
-        edge_labels={
-            (u, v): f"{network.edges[(u, v)]['label']:.2f}"
-            for u, v in network.edges
-        }
-    )
-    return ax
-    
 
-def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
-    """Draws a Gantt chart
+    edge_labels = {}
+    for u, v in network.edges:
+        label = network.edges[(u, v)]['label']
+        if isinstance(label, (int, float)):
+            label = f"{label:.2f}"
+        edge_labels[(u, v)] = label
+
+    nx.draw_networkx_edge_labels(
+        network, pos=pos, ax=axis,
+        edge_labels=edge_labels,
+    )
+
+    axis.margins(0.2)
+    axis.axis("off")
+    plt.tight_layout()
+    return axis
+
+
+def draw_gantt(schedule: Dict[Hashable, List[Task]]) -> Figure:
+    """Draws a gantt chart
 
     Args:
         schedule: Schedule
-    
+
     Returns:
         Gantt chart
     """
@@ -173,7 +197,14 @@ def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
         for node, tasks in schedule.items()
     }
 
-    df = pd.DataFrame(
+    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+
+    # insert dummy tasks to make sure all nodes have at least one task
+    for node in schedule:
+        if len(schedule[node]) == 0:
+            schedule[node].append(Task(name="dummy", start=-1, end=-1, node=node))
+
+    data_frame = pd.DataFrame(
         [
             {
                 "Task": task.name,
@@ -185,28 +216,46 @@ def draw_gantt(schedule: Dict[Hashable, Task]) -> Figure:
             for task in tasks
         ]
     )
-    df['delta'] = df['Finish'] - df['Start']
+    data_frame['delta'] = data_frame['Finish'] - data_frame['Start']
 
     fig = px.timeline(
-        df, 
-        title="Schedule",
-        x_start="Start", 
-        x_end="Finish", 
-        y="Node", 
+        data_frame,
+        x_start="Start",
+        x_end="Finish",
+        y="Node",
         text="Task",
         template="plotly_white"
     )
     fig.layout.xaxis.type = "linear"
-    fig.data[0].x = df.delta.tolist()
+    fig.data[0].x = data_frame.delta.tolist()
 
     # set x-axis label to "Time"
     fig.update_layout(xaxis_title="Time")
 
-    # center title
-    fig.update_layout(title_x=0.5)
+    # make the bars black with black outline
+    fig.update_traces(
+        marker_color='white',
+        marker_line_color='black',
+        marker_line_width=1.5,
+        opacity=1
+    )
 
-    # give bars outline
-    fig.update_traces(marker_line_color='rgb(8,48,107)', marker_line_width=1.5, opacity=1)
+    # Integer labels on y-axis
+    min_node = min(schedule.keys())
+    max_node = max(schedule.keys())
+    fig.update_yaxes(tickvals=list(range(min_node, max_node+1)))
+    fig.update_yaxes(dtick=1)
 
-    fig.update_yaxes(range=[-1/2, len(schedule)+1/2])
+    # set y-axis range from 0 to len(schedule) + 1
+    fig.update_yaxes(range=[min_node-1/2, max_node+1/2])
+    fig.update_xaxes(range=[0, makespan+0.1])
+
+    # set aspect ratio high-res 2:1
+    fig.update_layout(width=1200, height=600)
+
+    # make font larger
+    fig.update_layout(font_size=20)
+
+    # remove margins
+    fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
     return fig
