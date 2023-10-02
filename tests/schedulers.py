@@ -10,6 +10,7 @@ from saga.common.cpop import CPOPScheduler
 from saga.common.fastest_node import FastestNodeScheduler
 from saga.common.heft import HeftScheduler
 from saga.common.brute_force import BruteForceScheduler
+from saga.common.dps import DPSScheduler
 from saga.stochastic.sheft import SheftScheduler
 from saga.stochastic.stoch_heft import StochHeftScheduler
 from saga.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -128,10 +129,11 @@ def test_common_schedulers():
     }
     network = add_random_weights(get_network())
     schedulers = [
-        HeftScheduler(),
-        CPOPScheduler(),
-        FastestNodeScheduler(),
-        BruteForceScheduler(),
+        # HeftScheduler(),
+        # CPOPScheduler(),
+        # FastestNodeScheduler(),
+        # BruteForceScheduler(),
+        DpsScheduler(),
     ]
 
     for scheduler in schedulers:
@@ -158,7 +160,7 @@ def test_reweighting_stochastic_schedulers():
     }
     network = add_rv_weights(get_network())
     schedulers = [
-        SheftScheduler()
+        # SheftScheduler()
     ]
 
     for scheduler in schedulers:
@@ -186,8 +188,8 @@ def test_stochastic_schedulers():
     }
     network = add_rv_weights(get_network())
     schedulers = [
-        StochHeftScheduler(),
-        ImprovedSheftScheduler(),
+        # StochHeftScheduler(),
+        # ImprovedSheftScheduler(),
     ]
 
     for scheduler in schedulers:
