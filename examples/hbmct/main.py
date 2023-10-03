@@ -14,7 +14,7 @@ def main():
     task_graph.add_nodes_from([1, 2, 3, 4])
     task_graph.add_edges_from([(1, 2), (1, 3), (2, 4), (3, 4)])
     for node in task_graph.nodes:
-        task_graph.nodes[node]['weight'] = np.random.rand()
+        task_graph.nodes[node]['weight'] = np.random.uniform(low = 2, high= 5)
     for edge in task_graph.edges:
         task_graph.edges[edge]['weight'] = np.random.rand()
 
@@ -37,6 +37,12 @@ def main():
     ax.set_title('Task Graph')
     fig = ax.get_figure()
     fig.savefig(thisdir / 'task_graph_rand.png')
+
+    # draw the network
+    ax: plt.Axes = draw_network(network)
+    ax.set_title('Network')
+    fig = ax.get_figure()
+    fig.savefig(thisdir / 'network.png')
 
 if __name__ == '__main__':
     main()
