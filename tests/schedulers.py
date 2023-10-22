@@ -5,6 +5,7 @@ import traceback
 from typing import Callable, Dict, List, Tuple
 
 import networkx as nx
+
 from matplotlib import pyplot as plt
 
 from saga.scheduler import Scheduler, Task
@@ -12,7 +13,7 @@ from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, GDLScheduler
+    BILScheduler, FLBScheduler, DpsScheduler, GDLScheduler
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
@@ -188,6 +189,7 @@ def test_common_schedulers():
         # WBAScheduler(),
         # BILScheduler(),
         # FLBScheduler(),
+        DpsScheduler(),
         GDLScheduler()
     ]
 
