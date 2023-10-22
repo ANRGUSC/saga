@@ -105,9 +105,8 @@ class Test:
         axis = draw_task_graph(self.task_graph, schedule=schedule)
         axis.figure.savefig(path / "task_graph.png")
         if schedule is not None:
-            fig = draw_gantt(schedule)
-            # plotly Figure
-            fig.write_image(path / "gantt.png")
+            ax: plt.Axes = draw_gantt(schedule)
+            ax.get_figure().savefig(path / "gantt.png")
 
         path.joinpath("log.txt").write_text("\n".join(log_entries))
         # close all figures

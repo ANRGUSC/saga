@@ -1,13 +1,11 @@
-import logging
 from typing import Dict, Hashable, List, Optional
 
 import matplotlib.pyplot as plt
 import networkx as nx
 import pandas as pd
-import plotly.express as px
-from plotly.graph_objects import Figure
 
 from saga.scheduler import Task
+
 from ..utils.random_variable import RandomVariable
 
 

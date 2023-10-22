@@ -4,7 +4,6 @@ from typing import Dict, List
 
 import networkx as nx
 from matplotlib import pyplot as plt
-from plotly.graph_objects import Figure
 
 from saga.scheduler import Task
 from saga.schedulers import CpopScheduler, HeftScheduler

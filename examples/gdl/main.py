@@ -5,7 +5,6 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from plotly.graph_objects import Figure 
 import pathlib
 
 thisdir = pathlib.Path(__file__).parent.absolute()
@@ -41,17 +40,20 @@ def main():
     ax.set_title('Task Graph')
     fig = ax.get_figure()
     fig.savefig(thisdir / 'task_graph_rand.png')
+    plt.close(fig)
 
     # draw the network
     ax: plt.Axes = draw_network(network)
     ax.set_title('Network')
     fig = ax.get_figure()
     fig.savefig(thisdir / 'network_rand.png')
+    plt.close(fig)
 
     # draw the schedule
-    fig: Figure = draw_gantt(schedule)
-    fig.update_layout(title='Schedule')
-    fig.write_image(str(thisdir / 'schedule_rand.png'))
+    ax: plt.Axes = draw_gantt(schedule)
+    ax.set_title('Schedule')
+    fig = ax.get_figure()
+    fig.savefig(thisdir / 'schedule_rand.png')
 
 
 if __name__ == '__main__':
