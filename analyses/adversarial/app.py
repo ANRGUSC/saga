@@ -1,5 +1,5 @@
 import pathlib # pylint: disable=missing-module-docstring
-from typing import Dict, Hashable, List
+from typing import Dict, Hashable, List, Optional
 
 import dill as pickle
 import networkx as nx
@@ -57,16 +57,23 @@ def instance_view(network: nx.Graph,
     col_schedule, col_base_schedule = st.columns([1, 1])
     with col_schedule:
         st.subheader(f"{scheduler_name} Schedule")
-        fig = draw_gantt(schedule)
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        
+        fig_schedule, ax_schedule = plt.subplots()
+        draw_gantt(schedule, axis=ax_schedule)
+        # fig.update_layout(height=300)
+        # st.plotly_chart(fig, use_container_width=True)
+        fig_schedule.set_figheight(3)
+        st.pyplot(fig_schedule, use_container_width=True)
+
 
     with col_base_schedule:
         st.subheader(f"{base_scheduler_name} Schedule")
-        fig = draw_gantt(base_schedule)
-        # set height to 200px
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
+        fig_base_schedule, axis_base_schedule = plt.subplots()
+        draw_gantt(base_schedule, axis=axis_base_schedule)
+        # fig.update_layout(height=300)
+        # st.plotly_chart(fig, use_container_width=True)
+        fig_base_schedule.set_figheight(3)
+        st.pyplot(fig_base_schedule, use_container_width=True)
 
 
 def iteration_viewer(sa_run: SimulatedAnnealing) -> None:
@@ -110,9 +117,6 @@ def iteration_viewer(sa_run: SimulatedAnnealing) -> None:
             base_scheduler_name=sa_run.base_scheduler.__class__.__name__
         )
 
-def foo(*args, **kwargs):
-    print(args, kwargs)
-
 def main():
     """Main function to show results of simulated annealing"""
     st.title("Adversarial Instance Finder")
@@ -121,11 +125,21 @@ def main():
     with col_selectors:
         st.subheader("Select two schedulers to compare")
 
-        base_scheduler_name = st.selectbox("Select a base scheduler", base_schedulers)
-        scheduler_choices = []
-        if base_scheduler_name:
-            scheduler_choices = [path.stem for path in resultsdir.glob(f"{base_scheduler_name}/*")]
-        scheduler_choice = st.session_state.get('scheduler_choice', None)
+        query_params = st.experimental_get_query_params()
+
+        base_scheduler_choice = query_params.get('base_scheduler', [None])[0]
+        base_scheduler_name = st.selectbox(
+            "Select a base scheduler",
+            base_schedulers,
+            index=(
+                base_schedulers.index(base_scheduler_choice)
+                if base_scheduler_choice in base_schedulers
+                else 0
+            )
+        ) or base_scheduler_choice
+        scheduler_choices = [path.stem for path in resultsdir.glob(f"{base_scheduler_name}/*")]
+
+        scheduler_choice = query_params.get('scheduler', [None])[0]
         scheduler_name = st.selectbox(
             "Select a scheduler",
             scheduler_choices,
@@ -135,7 +149,10 @@ def main():
                 else 0
             )
         )
-        st.session_state['scheduler_choice'] = scheduler_name
+
+        query_params = dict(scheduler=scheduler_name, base_scheduler=base_scheduler_name)
+        query_params = {k: v for k, v in query_params.items() if v}
+        st.experimental_set_query_params(**query_params)
 
         st.caption(f"Simulated Annealing tries to find a worst case-scenario for {scheduler_name} against {base_scheduler_name}")
 

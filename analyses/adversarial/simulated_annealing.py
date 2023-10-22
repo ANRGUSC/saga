@@ -220,7 +220,7 @@ class SimulatedAnnealing:
         while iteration < self.max_iterations and temp > self.min_temp:
             log_prefix = f"[Iter {iteration}/{self.max_iterations} | Temp {temp:.2f}]"
             # logging.info("%s Running", log_prefix)
-            print("%s Running" % log_prefix) #, end="\r")
+            print("%s Running" % log_prefix, end="\r")
 
             ChangeType = random.choice(self.change_types) # pylint: disable=invalid-name
             neighbor_network, neighbor_task_graph = current_network.copy(), current_task_graph.copy()

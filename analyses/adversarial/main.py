@@ -35,7 +35,8 @@ logging.basicConfig(format='[%(asctime)s] [%(levelname)s] %(message)s')
 homogenous_comp_algs = {"ETF", "FCP", "FLB"}
 # algorithms that only work when the communication speed is the same for all network edges
 homogenous_comm_algs = {"BIL", "GDL", "FCP", "FLB"}
-rerun_for = []
+rerun_schedulers = ["FLB"]
+rerun_base_schedulers = []
 
 
 def run_experiments(scheduler_pairs: List[Tuple[Tuple[str, Scheduler], Tuple[str, Scheduler]]],
@@ -78,7 +79,8 @@ def run_experiments(scheduler_pairs: List[Tuple[Tuple[str, Scheduler], Tuple[str
     #     for scheduler_name, scheduler in schedulers.items():
         savepath = output_path / base_scheduler_name / f"{scheduler_name}.pkl"
         if (savepath.exists() and skip_existing
-            and not {base_scheduler_name, scheduler_name}.intersection(rerun_for)):
+            and not scheduler_name in rerun_schedulers
+            and not base_scheduler_name in rerun_base_schedulers):
             logging.info("Skipping experiment for %s/%s", scheduler_name, base_scheduler_name)
             continue
 
@@ -164,14 +166,11 @@ SCHEDULERS = {
 }
 def experiment_1(): # pylint: disable=too-many-locals, too-many-statements
     """Run first set of experiments."""
-    random.seed(9281995) # for reproducibility
-    np.random.seed(9281995) # for reproducibility
-
     scheduler_pairs = list(product(SCHEDULERS.items(), SCHEDULERS.items()))
     run_experiments(
         scheduler_pairs=scheduler_pairs,
         max_iterations=1000,
-        num_tries=5,
+        num_tries=10,
         max_temp=10,
         min_temp=0.1,
         cooling_rate=0.99,
@@ -181,9 +180,6 @@ def experiment_1(): # pylint: disable=too-many-locals, too-many-statements
 
 def experiment_2(): # pylint: disable=too-many-locals, too-many-statements
     """Run second set of experiments."""
-    random.seed(9281995) # for reproducibility
-    np.random.seed(9281995) # for reproducibility
-
     scheduler_pairs = []
     for scheduler_name, scheduler in SCHEDULERS.items():
         all_others = HybridScheduler([s for s in SCHEDULERS.values() if s != scheduler])
@@ -195,7 +191,7 @@ def experiment_2(): # pylint: disable=too-many-locals, too-many-statements
     run_experiments(
         scheduler_pairs=scheduler_pairs,
         max_iterations=1000,
-        num_tries=5,
+        num_tries=15,
         max_temp=10,
         min_temp=0.1,
         cooling_rate=0.99,
@@ -338,11 +334,14 @@ def eval_hybrid_all():
 
 def main():
     """Run the experiments."""
-    # experiment_1()
+    random.seed(9281995) # for reproducibility
+    np.random.seed(9281995) # for reproducibility
+
+    experiment_1()
     # experiment_2()
     # ensemble_experiment()
     # ensemble_experiment_2()
-    eval_hybrid_all()
+    # eval_hybrid_all()
 
 if __name__ == "__main__":
     main()
