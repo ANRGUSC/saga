@@ -206,8 +206,8 @@ def test_common_schedulers():
         # WBAScheduler(),
         # BILScheduler(),
         # FLBScheduler(),
-        # DpsScheduler(),
-        # GDLScheduler(),
+        # GDLScheduler()
+        HbmctScheduler()
         MsbcScheduler()
         DPSScheduler(),
         GDLScheduler()
