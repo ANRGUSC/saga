@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, List, Optional
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -40,7 +40,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     linewidths: int = 2,
                     arrowsize: int = 20,
                     font_size: int = 20,
-                    weight_font_size: int = 12) -> plt.Axes:
+                    weight_font_size: int = 12,
+                    figsize: Tuple[int, int] = None) -> plt.Axes:
     """Draws a task graph
 
     Args:
@@ -53,9 +54,11 @@ def draw_task_graph(task_graph: nx.DiGraph,
         arrowsize: Arrow size. Defaults to 20.
         font_size: Font size. Defaults to 20.
         weight_font_size: Weight font size. Defaults to 12.
+        figsize: Figure size. Defaults to None.
     """
     if axis is None:
-        _, axis = plt.subplots()
+        # make size slightly larger than default
+        _, axis = plt.subplots(figsize=figsize)
 
     task_graph = format_graph(task_graph.copy())
     pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
@@ -112,7 +115,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         axis.annotate(
             cost_label,
             xy=pos[task_name],
-            xytext=(pos[task_name][0] + font_size//2, pos[task_name][1] - font_size//4),
+            xytext=(pos[task_name][0] + font_size//4, pos[task_name][1] - font_size//4),
             fontsize=weight_font_size,
         )
 
@@ -143,7 +146,8 @@ def draw_network(network: nx.Graph,
                  node_size: int = 3000,
                  linewidths: int = 2,
                  font_size: int = 20,
-                 weight_font_size: int = 12) -> plt.Axes:
+                 weight_font_size: int = 12,
+                 figsize: Tuple[int, int] = None) -> plt.Axes:
     """Draws a network
 
     Args:
@@ -151,9 +155,14 @@ def draw_network(network: nx.Graph,
         axis: Axes to draw on
         draw_colors: Whether to draw colors. Default is True.
         use_latex: Whether to use latex for labels. Defaults to False.
+        node_size: Node size. Defaults to 3000.
+        linewidths: Line width. Defaults to 2.
+        font_size: Font size. Defaults to 20.
+        weight_font_size: Weight font size. Defaults to 12.
+        figsize: Figure size. Defaults to None.
     """
     if axis is None:
-        _, axis = plt.subplots()
+        _, axis = plt.subplots(figsize=figsize)
 
     # don't drdaw self loops
     network = format_graph(network.copy())
@@ -235,7 +244,8 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
                use_latex: bool = False,
                font_size: int = 20,
                xmax: float = None,
-               axis: Optional[plt.Axes] = None) -> plt.Axes:
+               axis: Optional[plt.Axes] = None,
+               figsize: Tuple[int, int] = (10, 4)) -> plt.Axes:
     """Draws a gantt chart
 
     Args:
@@ -243,6 +253,8 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
         use_latex: Whether to use latex for labels. Defaults to False.
         font_size: Font size. Defaults to 20.
         xmax: Maximum x value. Defaults to None.
+        axis: Axis to draw on. Defaults to None.
+        figsize: Figure size. Defaults to None.
 
     Returns:
         Gantt chart
@@ -293,7 +305,7 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
     
     # Create a figure and axis
     if axis is None:
-        _, axis = plt.subplots(figsize=(10, 4))
+        _, axis = plt.subplots(figsize=figsize)
     
     # Plot each task as a horizontal bar with labels
     for index, row in data_frame.iterrows():

@@ -177,7 +177,7 @@ def main():
         # title="Makespan Ratio",
         x_label="Scheduler",
         y_label="Dataset",
-        color_label="Makespan Ratio"
+        color_label="Maximum Makespan Ratio"
     )
     ax.get_figure().savefig(
         thisdir.joinpath("benchmarking.pdf"),

@@ -42,8 +42,9 @@ def instance_view(network: nx.Graph,
     col_task_graph, col_network = st.columns([1, 1])
     with col_task_graph:
         st.subheader("Task Graph")
-        fig_task_graph, ax_task_graph = plt.subplots()
+        fig_task_graph, ax_task_graph = plt.subplots(figsize=(3, 3))
         draw_task_graph(task_graph, axis=ax_task_graph)
+        fig_task_graph.savefig("task_graph.png")
         fig_task_graph.set_figheight(3)
         st.pyplot(fig_task_graph, use_container_width=True)
 
@@ -108,6 +109,13 @@ def iteration_viewer(sa_run: SimulatedAnnealing) -> None:
         )
 
         st.table(df_iteration)
+        print(
+            iteration.neighbor_network, "\n",
+            iteration.neighbor_task_graph, "\n",
+            iteration.neighbor_schedule, "\n",
+            iteration.neighbor_base_schedule, "\n",
+            sa_run.scheduler.__class__.__name__, "\n",
+            sa_run.base_scheduler.__class__.__name__)
         instance_view(
             iteration.neighbor_network,
             iteration.neighbor_task_graph,
