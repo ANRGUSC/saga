@@ -13,7 +13,8 @@ from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler
+    BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler,
+    SufferageScheduler
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
@@ -207,10 +208,11 @@ def test_common_schedulers():
         # BILScheduler(),
         # FLBScheduler(),
         # GDLScheduler()
-        HbmctScheduler()
-        MsbcScheduler()
-        DPSScheduler(),
-        GDLScheduler()
+        # HbmctScheduler()
+        # MsbcScheduler()
+        # DPSScheduler(),
+        # GDLScheduler(),
+        SufferageScheduler(),
     ]
 
     for scheduler in schedulers:
