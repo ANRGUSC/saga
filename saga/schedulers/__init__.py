@@ -16,4 +16,5 @@ from .smt import SMTScheduler
 from .wba import WBAScheduler
 from .bil import BILScheduler
 from .flb import FLBScheduler
+from .msbc import MsbcScheduler
 from .dps import DPSScheduler
