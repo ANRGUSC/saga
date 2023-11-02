@@ -1,4 +1,5 @@
 
+import logging
 from typing import Dict, Iterable, List
 
 import networkx as nx
@@ -33,5 +34,5 @@ class HybridScheduler(Scheduler):
             makespan = max(tasks[-1].end if tasks else 0 for tasks in schedule.values())
             if makespan < best_makespan:
                 best_scheduler, best_schedule, best_makespan = scheduler, schedule, makespan
-        print(f"Best Scheduler: {best_scheduler.__class__.__name__}")
+        logging.debug("Best Scheduler: %s", best_scheduler.__class__.__name__)
         return best_schedule

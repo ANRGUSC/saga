@@ -10,24 +10,10 @@ from matplotlib import pyplot as plt
 
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
-    # BruteForceScheduler,
-    # CpopScheduler,
-    # DuplexScheduler,
-    # ETFScheduler,
-    # FastestNodeScheduler,
-    # FCPScheduler,
-    # HeftScheduler,
-    # MaxMinScheduler,
-    # METScheduler,
-    # MinMinScheduler,
-    # SMTScheduler,
-    # WBAScheduler,
-    # HybridScheduler,
-    # BILScheduler,
-    # FLBScheduler,
-    # DpsScheduler,
-    # GDLScheduler,
-    MsbcScheduler,
+    BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
+    FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
+    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
+    BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
@@ -134,9 +120,8 @@ class Test:
         axis = draw_task_graph(self.task_graph, schedule=schedule)
         axis.figure.savefig(path / "task_graph.png")
         if schedule is not None:
-            fig = draw_gantt(schedule)
-            # plotly Figure
-            fig.write_image(path / "gantt.png")
+            ax: plt.Axes = draw_gantt(schedule)
+            ax.get_figure().savefig(path / "gantt.png")
 
         path.joinpath("log.txt").write_text("\n".join(log_entries))
         # close all figures
@@ -224,6 +209,8 @@ def test_common_schedulers():
         # DpsScheduler(),
         # GDLScheduler(),
         MsbcScheduler()
+        DPSScheduler(),
+        GDLScheduler()
     ]
 
     for scheduler in schedulers:

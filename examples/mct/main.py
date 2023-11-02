@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
-from plotly.graph_objects import Figure 
 import pathlib
 
 thisdir = pathlib.Path(__file__).parent.absolute()
@@ -65,9 +64,10 @@ def main():
             start_time = end_time  # The next task starts when the current one ends
     
     # draw the schedule
-    fig: Figure = draw_gantt(schedule)
-    fig.update_layout(title='Schedule')
-    fig.write_image(str(thisdir / 'schedule.png'))
+    ax: plt.Axes = draw_gantt(schedule)
+    ax.set_title('Schedule')
+    fig = ax.get_figure()
+    fig.savefig(thisdir / 'schedule.png')
 
 if __name__ == '__main__':
     main()

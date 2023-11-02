@@ -97,7 +97,7 @@ def calc_BL(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_
 def calc_priority(task: Hashable, network: nx.Graph, task_graph: nx.DiGraph, assigned_tasks: dict) -> float:
     return calc_BL(task, network, task_graph, assigned_tasks) - calc_TL(task, network, task_graph, assigned_tasks)
     
-class DpsScheduler(Scheduler):
+class DPSScheduler(Scheduler):
     def __init__(self):
         super().__init__()
 
@@ -143,7 +143,7 @@ class DpsScheduler(Scheduler):
         ready_list = task_list.copy()
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
-        runtimes, commtimes = DpsScheduler.get_runtimes(network, task_graph)
+        runtimes, commtimes = DPSScheduler.get_runtimes(network, task_graph)
 
         while len(ready_list) > 0:
             task = ready_list.pop(0)

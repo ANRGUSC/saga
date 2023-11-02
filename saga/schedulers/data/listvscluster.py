@@ -2,13 +2,16 @@ from functools import lru_cache
 import logging
 import pathlib
 import random
+import re
 import zipfile
-from typing import Callable, Dict, Hashable, List
+from typing import Callable, Dict, Hashable, List, Optional
 
 import networkx as nx
 import xml.etree.ElementTree as ET
 import requests
 from io import BytesIO
+
+from saga.data import Dataset
 
 
 datapath = pathlib.Path.home() / ".saga/listvscluster"
@@ -93,6 +96,26 @@ def load_all_task_graphs() -> Dict[str, List[nx.DiGraph]]:
             data[category] = graphs
 
     return data
+
+def sanitize_name(text: str) -> str:
+    text = re.sub(r"\s+", " ", text.lower())
+    text = re.sub(r"[^a-z0-9 ]", "", text)
+    text = text.replace(" ", "_")
+    return text
+
+class LVCDataset(Dataset):
+    def __init__(self, category: str):
+        super().__init__(name=sanitize_name(category))
+        pull_data()
+        if category not in get_categories():
+            raise ValueError(f"Category {category} not found")
+        
+        self._category = category
+        self._paths = datapath.glob(f"listSchedVSclusterSched/{category}/**/*.gxl")
+        
+        # sort paths by path length (shortest first) and then by name (alphabetical)
+        self._paths = sorted(self._paths, key=lambda path: (len(path.parts), str(path)))
+        
 
 
 
