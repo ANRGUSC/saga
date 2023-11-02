@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Task
 
 
 def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:

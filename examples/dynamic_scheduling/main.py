@@ -4,7 +4,6 @@ from typing import Dict, List
 
 import networkx as nx
 from matplotlib import pyplot as plt
-from plotly.graph_objects import Figure
 
 from saga.scheduler import Task
 from saga.schedulers import CpopScheduler, HeftScheduler
@@ -12,6 +11,13 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 logging.basicConfig(level=logging.DEBUG)
 thisdir = pathlib.Path(__file__).parent.absolute()
+
+plt.rcParams.update({
+    # 'font.size': 20,
+    'font.family': 'serif',
+    'font.serif': ['Computer Modern'],
+    'text.usetex': True,
+})
 
 def get_makespan(schedule: Dict[str, List[Task]]) -> float:
     """Get makespan of a schedule.
@@ -36,8 +42,8 @@ def main():
     task_graph.add_edges_from([(2, 5), (3, 5), (4, 5)], weight=3)
 
 
-    axis = draw_task_graph(task_graph)
-    axis.get_figure().savefig(savepath / 'task_graph.png')
+    axis = draw_task_graph(task_graph, use_latex=True)
+    axis.get_figure().savefig(savepath / 'task_graph.pdf')
     plt.close(axis.get_figure())
 
     # simple 3-node network (complete graph)
@@ -48,41 +54,52 @@ def main():
 
     network.nodes[3]['weight'] = 1 + 1e-9
 
-    axis = draw_network(network, draw_colors=False)
-    axis.get_figure().savefig(savepath / 'network.png')
+    axis = draw_network(network, draw_colors=False, use_latex=True)
+    axis.get_figure().savefig(savepath / 'network.pdf')
     plt.close(axis.get_figure())
 
     schedule_heft = HeftScheduler().schedule(network, task_graph)
     heft_makespan = get_makespan(schedule_heft)
-    fig: Figure = draw_gantt(schedule_heft)
-    fig.write_image(savepath / 'heft_schedule.png')
 
     schedule_cpop = CpopScheduler().schedule(network, task_graph)
     cpop_makespan = get_makespan(schedule_cpop)
-    fig: Figure = draw_gantt(schedule_cpop)
-    fig.write_image(savepath / 'cpop_schedule.png')
 
+    # modify network
     network.edges[(1, 3)]['weight'] = 1/2
     network.edges[(2, 3)]['weight'] = 1/2
 
-    axis = draw_network(network, draw_colors=False)
-    axis.get_figure().savefig(savepath / 'modified_network.png')
+    axis = draw_network(network, draw_colors=False, use_latex=True)
+    axis.get_figure().savefig(savepath / 'modified_network.pdf')
     plt.close(axis.get_figure())
 
-    schedule_heft = HeftScheduler().schedule(network, task_graph)
-    heft_makespan_modified_network = get_makespan(schedule_heft)
-    fig: Figure = draw_gantt(schedule_heft)
-    fig.write_image(savepath / 'heft_schedule_modified_network.png')
+    schedule_heft_modified = HeftScheduler().schedule(network, task_graph)
+    heft_makespan_modified_network = get_makespan(schedule_heft_modified)
 
-    schedule_cpop = CpopScheduler().schedule(network, task_graph)
-    cpop_makespan_modified_network = get_makespan(schedule_cpop)
-    fig: Figure = draw_gantt(schedule_cpop)
-    fig.write_image(savepath / 'cpop_schedule_modified_network.png')
+    schedule_cpop_modified = CpopScheduler().schedule(network, task_graph)
+    cpop_makespan_modified_network = get_makespan(schedule_cpop_modified)
 
     print(f'HEFT makespan: {heft_makespan:.2f}')
     print(f'CPOP makespan: {cpop_makespan:.2f}')
     print(f'HEFT makespan (modified network): {heft_makespan_modified_network:.2f}')
     print(f'CPOP makespan (modified network): {cpop_makespan_modified_network:.2f}')
+
+    # Draw schedules
+    max_makespan = max(heft_makespan, cpop_makespan, heft_makespan_modified_network, cpop_makespan_modified_network)
+    ## HEFT
+    axis = draw_gantt(schedule_heft, use_latex=True, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'heft_schedule.pdf')
+
+    ## CPOP
+    axis = draw_gantt(schedule_cpop, use_latex=True, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'cpop_schedule.pdf')
+    
+    ## HEFT (modified network)
+    axis = draw_gantt(schedule_heft_modified, use_latex=True, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'heft_schedule_modified_network.pdf')
+
+    ## CPOP (modified network)
+    axis = draw_gantt(schedule_cpop_modified, use_latex=True, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'cpop_schedule_modified_network.pdf')
 
 
 if __name__ == '__main__':

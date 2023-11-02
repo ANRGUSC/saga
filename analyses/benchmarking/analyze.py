@@ -62,6 +62,13 @@ def gradient_heatmap(data: pd.DataFrame,
     Returns:
         plt.Axes: matplotlib axes
     """
+    plt.rcParams.update({
+        'font.size': 20,
+        'font.family': 'serif',
+        'font.serif': ['Computer Modern'],
+        'text.usetex': True,
+    })
+
     data = data.copy()
     # combine xs and ys into a single column if necessary
     # make column categorical and sorted by x/y order
@@ -144,13 +151,13 @@ def gradient_heatmap(data: pd.DataFrame,
     if upper_threshold < np.inf:
         cbar.ax.set_yticklabels(
             [f'{tick}' for tick in cbar.get_ticks()][:-1]
-            + [f'>{upper_threshold}']
+            + [f'$> {upper_threshold}$']
         )
 
     if title:
         plt.title(title)
-    plt.xlabel(x_label if x_label else x)
-    plt.ylabel(y_label if y_label else y)
+    plt.xlabel(x_label if x_label else x, labelpad=20)
+    plt.ylabel(y_label if y_label else y, labelpad=20)
 
     return ax
 
@@ -158,6 +165,8 @@ def main():
     """Analyze the results."""
     data = load_data()
     data["scheduler"] = data["scheduler"].str.replace("Scheduler", "")
+    # drop any datasets that start with lvc_
+    data = data[~data["dataset"].str.startswith("lvc_")]
     ax = gradient_heatmap(
         data,
         x="scheduler",
@@ -165,10 +174,15 @@ def main():
         color="makespan_ratio",
         cmap="coolwarm",
         upper_threshold=5.0,
-        title="Makespan Ratio",
+        # title="Makespan Ratio",
         x_label="Scheduler",
         y_label="Dataset",
-        color_label="Makespan Ratio",
+        color_label="Makespan Ratio"
+    )
+    ax.get_figure().savefig(
+        thisdir.joinpath("benchmarking.pdf"),
+        dpi=300,
+        bbox_inches='tight'
     )
     ax.get_figure().savefig(
         thisdir.joinpath("benchmarking.png"),

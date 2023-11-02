@@ -3,9 +3,7 @@ from saga.schedulers.minmin import MinMinScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx
-import numpy as np
 import matplotlib.pyplot as plt
-from plotly.graph_objects import Figure 
 import pathlib
 
 thisdir = pathlib.Path(__file__).parent.absolute()
@@ -53,9 +51,10 @@ def main():
     fig.savefig(thisdir / 'network1.png')
 
     # draw the schedule
-    fig: Figure = draw_gantt(schedule)
-    fig.update_layout(title='Schedule')
-    fig.write_image(str(thisdir / 'schedule1.png'))
+    ax: plt.Axes = draw_gantt(schedule)
+    ax.set_title('Schedule')
+    fig = ax.get_figure()
+    fig.savefig(thisdir / 'schedule1.png')
 
 if __name__ == '__main__':
     main()

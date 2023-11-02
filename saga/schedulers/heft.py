@@ -11,6 +11,7 @@ from .cpop import upward_rank
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
+
 def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """Sort tasks based on their rank (as defined in the HEFT paper).
 
@@ -46,11 +47,14 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
 
 class HeftScheduler(Scheduler):
     """Schedules tasks using the HEFT algorithm."""
+
     @staticmethod
-    def get_runtimes(network: nx.Graph,
-                     task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, Dict[Hashable, float]],
-                                                      Dict[Tuple[Hashable, Hashable],
-                                                           Dict[Tuple[Hashable, Hashable], float]]]:
+    def get_runtimes(
+        network: nx.Graph, task_graph: nx.DiGraph
+    ) -> Tuple[
+        Dict[Hashable, Dict[Hashable, float]],
+        Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
+    ]:
         """Get the expected runtimes of all tasks on all nodes.
 
         Args:
@@ -72,7 +76,12 @@ class HeftScheduler(Scheduler):
             for task in task_graph.nodes:
                 cost: float = task_graph.nodes[task]["weight"]
                 runtimes[node][task] = cost / speed
-                logging.debug("Task %s on node %s has runtime %s", task, node, runtimes[node][task])
+                logging.debug(
+                    "Task %s on node %s has runtime %s",
+                    task,
+                    node,
+                    runtimes[node][task],
+                )
 
         commtimes = {}
         for src, dst in network.edges:
@@ -85,17 +94,25 @@ class HeftScheduler(Scheduler):
                 commtimes[dst, src][src_task, dst_task] = cost / speed
                 logging.debug(
                     "Task %s on node %s to task %s on node %s has communication time %s",
-                    src_task, src, dst_task, dst, commtimes[src, dst][src_task, dst_task]
+                    src_task,
+                    src,
+                    dst_task,
+                    dst,
+                    commtimes[src, dst][src_task, dst_task],
                 )
 
         return runtimes, commtimes
 
-    def _schedule(self,
-                  network: nx.Graph,
-                  task_graph: nx.DiGraph,
-                  runtimes: Dict[Hashable, Dict[Hashable, float]],
-                  commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-                  schedule_order: List[Hashable]) -> Dict[Hashable, List[Task]]:
+    def _schedule(
+        self,
+        network: nx.Graph,
+        task_graph: nx.DiGraph,
+        runtimes: Dict[Hashable, Dict[Hashable, float]],
+        commtimes: Dict[
+            Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
+        ],
+        schedule_order: List[Hashable],
+    ) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:
@@ -121,22 +138,34 @@ class HeftScheduler(Scheduler):
         for task_name in schedule_order:
             min_finish_time = np.inf
             best_node = None
-            for node in network.nodes: # Find the best node to run the task
-                max_arrival_time: float = max( #
+            for node in network.nodes:  # Find the best node to run the task
+                max_arrival_time: float = max(  #
                     [
-                        0.0, *[
-                            task_schedule[parent].end + (
-                                commtimes[(task_schedule[parent].node, node)][(parent, task_name)]
+                        0.0,
+                        *[
+                            task_schedule[parent].end
+                            + (
+                                commtimes[(task_schedule[parent].node, node)][
+                                    (parent, task_name)
+                                ]
                             )
                             for parent in task_graph.predecessors(task_name)
-                        ]
+                        ],
                     ]
                 )
 
                 runtime = runtimes[node][task_name]
-                idx, start_time = get_insert_loc(comp_schedule[node], max_arrival_time, runtime)
-                
-                logging.debug("Testing task %s on node %s: start time %s, finish time %s", task_name, node, start_time, start_time + runtime)
+                idx, start_time = get_insert_loc(
+                    comp_schedule[node], max_arrival_time, runtime
+                )
+
+                logging.debug(
+                    "Testing task %s on node %s: start time %s, finish time %s",
+                    task_name,
+                    node,
+                    start_time,
+                    start_time + runtime,
+                )
 
                 finish_time = start_time + runtime
                 if finish_time < min_finish_time:
@@ -144,13 +173,17 @@ class HeftScheduler(Scheduler):
                     best_node = node, idx
 
             new_runtime = runtimes[best_node[0]][task_name]
-            task = Task(best_node[0], task_name, min_finish_time - new_runtime, min_finish_time)
+            task = Task(
+                best_node[0], task_name, min_finish_time - new_runtime, min_finish_time
+            )
             comp_schedule[best_node[0]].insert(best_node[1], task)
             task_schedule[task_name] = task
 
         return comp_schedule
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def schedule(
+        self, network: nx.Graph, task_graph: nx.DiGraph
+    ) -> Dict[str, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:

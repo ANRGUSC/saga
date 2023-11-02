@@ -5,6 +5,7 @@ import traceback
 from typing import Callable, Dict, List, Tuple
 
 import networkx as nx
+
 from matplotlib import pyplot as plt
 
 from saga.scheduler import Scheduler, Task
@@ -12,16 +13,21 @@ from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, GDLScheduler, HbmctScheduler
+    BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
 from saga.schedulers.stochastic.stoch_heft import StochHeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from saga.utils.random_graphs import (add_random_weights, add_rv_weights,
-                                      get_branching_dag, get_chain_dag,
-                                      get_diamond_dag, get_fork_dag,
-                                      get_network)
+from saga.utils.random_graphs import (
+    add_random_weights,
+    add_rv_weights,
+    get_branching_dag,
+    get_chain_dag,
+    get_diamond_dag,
+    get_fork_dag,
+    get_network,
+)
 from saga.utils.tools import validate_simple_schedule
 
 thisdir = pathlib.Path(__file__).resolve().parent
@@ -29,6 +35,7 @@ thisdir = pathlib.Path(__file__).resolve().parent
 
 class ListHandler(logging.Handler):
     """A logging handler that appends log entries to a list."""
+
     def __init__(self, log_list: List[str]) -> None:
         """Initializes the handler.
 
@@ -47,17 +54,22 @@ class ListHandler(logging.Handler):
         log_entry = self.format(record)
         self.log_list.append(log_entry)
 
+
 class Test:
     """A test case for a scheduler."""
-    def __init__(self,
-                 name: str,
-                 scheduler: Scheduler,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 path: pathlib.Path,
-                 save_passing: bool = False,
-                 simplify_instance: Callable[[nx.Graph, nx.DiGraph],
-                                             Tuple[nx.Graph, nx.DiGraph]] = lambda x, y: (x, y)) -> None:
+
+    def __init__(
+        self,
+        name: str,
+        scheduler: Scheduler,
+        network: nx.Graph,
+        task_graph: nx.DiGraph,
+        path: pathlib.Path,
+        save_passing: bool = False,
+        simplify_instance: Callable[
+            [nx.Graph, nx.DiGraph], Tuple[nx.Graph, nx.DiGraph]
+        ] = lambda x, y: (x, y),
+    ) -> None:
         """Initializes the test case.
 
         Args:
@@ -80,11 +92,13 @@ class Test:
         self.path = path
         self.simplify_instance = simplify_instance
 
-    def save_output(self,
-                    details: Dict[str, str],
-                    schedule: Dict[str, List[Task]],
-                    log_entries: List[str],
-                    path: pathlib.Path) -> None:
+    def save_output(
+        self,
+        details: Dict[str, str],
+        schedule: Dict[str, List[Task]],
+        log_entries: List[str],
+        path: pathlib.Path,
+    ) -> None:
         """Saves the output of the test.
 
         Args:
@@ -95,7 +109,9 @@ class Test:
         """
         path = path / self.name
         path.mkdir(parents=True, exist_ok=True)
-        details_str = "\n".join([f"# {key}\n{value}\n\n" for key, value in details.items()])
+        details_str = "\n".join(
+            [f"# {key}\n{value}\n\n" for key, value in details.items()]
+        )
         path.joinpath("details.md").write_text(details_str)
 
         # draw network, task graph, and gantt chart (if schedule is not None)
@@ -104,9 +120,8 @@ class Test:
         axis = draw_task_graph(self.task_graph, schedule=schedule)
         axis.figure.savefig(path / "task_graph.png")
         if schedule is not None:
-            fig = draw_gantt(schedule)
-            # plotly Figure
-            fig.write_image(path / "gantt.png")
+            ax: plt.Axes = draw_gantt(schedule)
+            ax.get_figure().savefig(path / "gantt.png")
 
         path.joinpath("log.txt").write_text("\n".join(log_entries))
         # close all figures
@@ -136,7 +151,9 @@ class Test:
         schedule = None
         try:
             schedule = self.scheduler.schedule(self.network, self.task_graph)
-            simple_network, simple_task_graph = self.simplify_instance(self.network, self.task_graph)
+            simple_network, simple_task_graph = self.simplify_instance(
+                self.network, self.task_graph
+            )
             validate_simple_schedule(simple_network, simple_task_graph, schedule)
             if self.save_passing:
                 details = {
@@ -144,7 +161,7 @@ class Test:
                     "schedule": pprint.pformat(schedule),
                 }
                 self.save_output(details, schedule, log_entries, self.path / "pass")
-        except Exception as exp: # pylint: disable=broad-except
+        except Exception as exp:  # pylint: disable=broad-except
             details = {
                 "scheduler": str(self.scheduler_name),
                 "error": str(exp),
@@ -162,6 +179,7 @@ class Test:
             logging.getLogger().setLevel(current_config)
 
         return True
+
 
 def test_common_schedulers():
     """Tests schedulers schedulers on schedulers task graphs."""
@@ -190,6 +208,9 @@ def test_common_schedulers():
         # FLBScheduler(),
         # GDLScheduler()
         HbmctScheduler()
+        MsbcScheduler()
+        DPSScheduler(),
+        GDLScheduler()
     ]
 
     for scheduler in schedulers:
@@ -201,12 +222,15 @@ def test_common_schedulers():
                 network=network.copy(),
                 task_graph=task_graph.copy(),
                 path=thisdir / "output" / "schedulers",
-                save_passing=True
+                save_passing=True,
             )
             passed = test.run()
             print(f"{test.name} passed: {passed}")
             if not passed:
-                print(f"Failed: {test.name} - see output in {test.path.joinpath('fail', test_name, 'details.md')}")
+                print(
+                    f"Failed: {test.name} - see output in {test.path.joinpath('fail', test_name, 'details.md')}"
+                )
+
 
 def test_reweighting_stochastic_schedulers():
     """Tests the stochastic schedulers with reweighting."""
@@ -217,9 +241,7 @@ def test_reweighting_stochastic_schedulers():
         "branching": add_rv_weights(get_branching_dag()),
     }
     network = add_rv_weights(get_network())
-    schedulers = [
-        SheftScheduler()
-    ]
+    schedulers = [SheftScheduler()]
 
     for scheduler in schedulers:
         for task_graph_name, task_graph in task_graphs.items():
@@ -230,12 +252,15 @@ def test_reweighting_stochastic_schedulers():
                 network=network.copy(),
                 task_graph=task_graph.copy(),
                 path=thisdir / "output" / "schedulers",
-                simplify_instance=scheduler.reweight_instance
+                simplify_instance=scheduler.reweight_instance,
             )
             passed = test.run()
             print(f"{test.name} passed: {passed}")
             if not passed:
-                print(f"Failed: {test.name} - see output in {test.path.joinpath(task_graph_name)}")
+                print(
+                    f"Failed: {test.name} - see output in {test.path.joinpath(task_graph_name)}"
+                )
+
 
 def test_stochastic_schedulers():
     """Tests stochastic schedulers."""
@@ -260,11 +285,13 @@ def test_stochastic_schedulers():
             print()
             # TODO: add test functionality for stochastic schedulers
 
+
 def test_all():
     """Runs all tests."""
     test_common_schedulers()
     # test_reweighting_stochastic_schedulers()
     # test_stochastic_schedulers()
+
 
 if __name__ == "__main__":
     test_all()

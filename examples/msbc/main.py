@@ -1,60 +1,62 @@
 import itertools
-from saga.schedulers.gdl import GDLScheduler
+from saga.schedulers.msbc import MsbcScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+from plotly.graph_objects import Figure
 import pathlib
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
 
 def main():
-    # greate a diamond-task graph with random task weights between 0 and 1
+    # create a diamond-task graph with random task weights between 0 and 1
     task_graph = nx.DiGraph()
     task_graph.add_nodes_from([1, 2, 3, 4])
     task_graph.add_edges_from([(1, 2), (1, 3), (2, 4), (3, 4)])
+
     for node in task_graph.nodes:
-        task_graph.nodes[node]['weight'] = np.random.rand()
+        task_graph.nodes[node]["weight"] = np.random.rand()
     for edge in task_graph.edges:
-        task_graph.edges[edge]['weight'] = np.random.rand()
+        task_graph.edges[edge]["weight"] = np.random.rand()
 
     # generate a fully-connected network with random node and edge weights between 0 and 1
     network = nx.Graph()
     network.add_nodes_from([1, 2, 3, 4])
+
     for node in network.nodes:
-        network.nodes[node]['weight'] = np.random.rand()
-    for (src, dst) in itertools.product(network.nodes, network.nodes):
-        print(f"Adding edge {src} -> {dst}")
+        network.nodes[node]["weight"] = 1
+
+    for src, dst in itertools.product(network.nodes, network.nodes):
         if src != dst:
-            network.add_edge(src, dst, weight=np.random.rand())
+            network.add_edge(src, dst, weight=1e9)
         else:
             network.add_edge(src, dst, weight=1e9)
 
-    scheduler = GDLScheduler()
-    schedule = scheduler.schedule(network, task_graph)
+    # print(schedule)
 
     # draw the task graph
     ax: plt.Axes = draw_task_graph(task_graph)
-    ax.set_title('Task Graph')
+    ax.set_title("Task Graph")
     fig = ax.get_figure()
-    fig.savefig(thisdir / 'task_graph_rand.png')
-    plt.close(fig)
+    fig.savefig(thisdir / "task_graph1.png")
 
     # draw the network
     ax: plt.Axes = draw_network(network)
-    ax.set_title('Network')
+    ax.set_title("Network")
     fig = ax.get_figure()
-    fig.savefig(thisdir / 'network_rand.png')
-    plt.close(fig)
+    fig.savefig(thisdir / "network1.png")
 
+    scheduler = MsbcScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    # scheduler.schedule(network, task_graph)
     # draw the schedule
-    ax: plt.Axes = draw_gantt(schedule)
-    ax.set_title('Schedule')
-    fig = ax.get_figure()
-    fig.savefig(thisdir / 'schedule_rand.png')
+    fig: Figure = draw_gantt(schedule)
+    fig.update_layout(title="Schedule")
+    fig.write_image(str(thisdir / "schedule1.png"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
