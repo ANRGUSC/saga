@@ -42,7 +42,8 @@ class LAHeftScheduler(HeftScheduler):
         schedule_order_copy = schedule_order.copy()
         while schedule_order_copy:
             task1 = schedule_order_copy.pop(0)
-            if schedule_order_copy:
+            #cross check with jared
+            if schedule_order_copy and schedule_order_copy[0] not in task_graph.successors(task1):
                 task2 = schedule_order_copy.pop(0)
                 min_finish_time_overall = np.inf
                 min_finish_task = None
