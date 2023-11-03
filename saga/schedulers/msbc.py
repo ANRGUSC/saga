@@ -171,7 +171,9 @@ def get_priority(
 
 
 class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
-    """Implements the CPoP algorithm for task scheduling."""
+    """Implements the MSBC algorithm for task scheduling.
+    Link:https://ieeexplore.ieee.org/abstract/document/1517309
+    """
 
     @staticmethod
     def get_runtimes(
@@ -262,11 +264,10 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             ]
         )
 
-        # print(readySet)
         scheduled_set = set()
         sorted_nodes = sorted(
             network.nodes, key=lambda node: network.nodes[node]["weight"], reverse=True
-        )
+        )  # Breaking ties by assigning to faster nodes
         while len(ready_set) > 0:
             task_name = max(ready_set, key=lambda x: priorities[x])
             ready_set.remove(task_name)

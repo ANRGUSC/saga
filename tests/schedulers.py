@@ -10,11 +10,26 @@ from matplotlib import pyplot as plt
 
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
-    BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
-    FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
-    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler,
-    SufferageScheduler
+    BruteForceScheduler,
+    CpopScheduler,
+    DuplexScheduler,
+    ETFScheduler,
+    FastestNodeScheduler,
+    FCPScheduler,
+    HeftScheduler,
+    MaxMinScheduler,
+    METScheduler,
+    MinMinScheduler,
+    SMTScheduler,
+    WBAScheduler,
+    HybridScheduler,
+    BILScheduler,
+    FLBScheduler,
+    DPSScheduler,
+    GDLScheduler,
+    MsbcScheduler,
+    SufferageScheduler,
+    HcptScheduler,
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
@@ -212,7 +227,8 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
+        # SufferageScheduler(),
+        HcptScheduler()
     ]
 
     for scheduler in schedulers:
