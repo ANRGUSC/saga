@@ -17,3 +17,4 @@ from .wba import WBAScheduler
 from .bil import BILScheduler
 from .flb import FLBScheduler
 from .dps import DPSScheduler
+from .laheft import LAHeftScheduler
