@@ -212,7 +212,10 @@ def delete_task_from_schedule(task_name:Hashable,
     return new_ft, new_schedule
 
 class HbmctScheduler(Scheduler):
-    """Schedules tasks using the HBMCT algorithm."""
+    """Schedules tasks using the HBMCT (Hybrid Minimum Completion Time) algorithm.
+
+    Source: https://dx.doi.org/10.1137/0218016
+    """
     @staticmethod
     def get_runtimes(network: nx.Graph,
                      task_graph: nx.DiGraph) -> Tuple[Dict[Hashable, Dict[Hashable, float]],
