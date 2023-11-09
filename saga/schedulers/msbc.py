@@ -171,7 +171,10 @@ def get_priority(
 
 
 class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
-    """Implements the CPoP algorithm for task scheduling."""
+    """Implements the Multiple Strict Bounds Constraints (MSBC) scheduling algorithm
+
+    Source: https://dx.doi.org/10.1109/PACRIM.2005.1517309
+    """
 
     @staticmethod
     def get_runtimes(
