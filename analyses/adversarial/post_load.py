@@ -1,5 +1,5 @@
 import pathlib
-import pickle
+import dill as pickle
 from functools import lru_cache
 from typing import Dict
 
@@ -9,9 +9,9 @@ from simulated_annealing import SimulatedAnnealing
 thisdir = pathlib.Path(__file__).parent.absolute()
 
 @lru_cache(maxsize=1)
-def load_results() -> Dict[str, Dict[str, SimulatedAnnealing]]:
+def load_results(resultspath: pathlib.Path) -> Dict[str, Dict[str, SimulatedAnnealing]]:
     results = {}
-    for base_path in (thisdir / "results").glob("*"):
+    for base_path in resultspath.glob("*"):
         results[base_path.name] = {}
         for path in base_path.glob("*.pkl"):
             results[base_path.name][path.stem] = pickle.loads(path.read_bytes())
@@ -28,13 +28,17 @@ def to_df(results: Dict[str, Dict[str, SimulatedAnnealing]]) -> pd.DataFrame:
     df_results = pd.DataFrame(rows, columns=["Base Scheduler", "Scheduler", "Makespan Ratio"])
     return df_results
 
-def load_results_csv() -> pd.DataFrame:
-    df_results = pd.read_csv(thisdir.joinpath("output", "results.csv"), index_col=0)
+def load_results_csv(outputpath: pathlib.Path) -> pd.DataFrame:
+    df_results = pd.read_csv(outputpath.joinpath("results.csv"), index_col=0)
     return df_results
 
-def main():
-    df_results = to_df(load_results())
-    df_results.to_csv(thisdir.joinpath("output", "results.csv"))
+def results_to_csv(resultspath: pathlib.Path,
+                   outputpath: pathlib.Path):
+    df_results = to_df(load_results(resultspath))
+    df_results.to_csv(outputpath.joinpath("results.csv"))
 
-if __name__ == "__main__":
-    main()
+def print_stats(outputpath: pathlib.Path):
+    df_results = load_results_csv(outputpath)
+    df_hybrid = df_results[df_results["Scheduler"].str.startswith("Not")]
+    for row in df_hybrid.itertuples():
+        print(row)

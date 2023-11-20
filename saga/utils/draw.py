@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, List, Optional, Tuple
+from typing import Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -9,7 +9,7 @@ from saga.scheduler import Task
 from ..utils.random_variable import RandomVariable
 
 
-def format_graph(graph: nx.DiGraph) -> str:
+def format_graph(graph: Union[nx.DiGraph, nx.Graph]) -> Union[nx.DiGraph, nx.Graph]:
     """Formats the graph
 
     copies weight attribute to label attribute
@@ -21,16 +21,13 @@ def format_graph(graph: nx.DiGraph) -> str:
     Returns:
         Formatted graph
     """
-    formatted_graph = graph.copy()
-    for node in formatted_graph.nodes:
-        formatted_graph.nodes[node]["label"] = formatted_graph.nodes[node]["weight"]
-        if isinstance(formatted_graph.nodes[node]["weight"], RandomVariable):
-            formatted_graph.nodes[node]["weight"] = formatted_graph.nodes[node]["weight"].mean()
-    for edge in formatted_graph.edges:
-        formatted_graph.edges[edge]["label"] = formatted_graph.edges[edge]["weight"]
-        if isinstance(formatted_graph.edges[edge]["weight"], RandomVariable):
-            formatted_graph.edges[edge]["weight"] = formatted_graph.edges[edge]["weight"].mean()
-    return formatted_graph
+    graph = graph.copy()
+    for node in graph.nodes:
+        graph.nodes[node]["weight"] = round(graph.nodes[node]["weight"], 2)
+    for edge in graph.edges:
+        graph.edges[edge]["weight"] = round(graph.edges[edge]["weight"], 2)
+
+    return graph
 
 def draw_task_graph(task_graph: nx.DiGraph,
                     axis: Optional[plt.Axes] = None,
@@ -41,7 +38,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     arrowsize: int = 20,
                     font_size: int = 20,
                     weight_font_size: int = 12,
-                    figsize: Tuple[int, int] = None) -> plt.Axes:
+                    figsize: Tuple[int, int] = None,
+                    draw_node_labels: bool = True,
+                    draw_edge_weights: bool = True,
+                    draw_node_weights: bool = True) -> plt.Axes:
     """Draws a task graph
 
     Args:
@@ -55,6 +55,9 @@ def draw_task_graph(task_graph: nx.DiGraph,
         font_size: Font size. Defaults to 20.
         weight_font_size: Weight font size. Defaults to 12.
         figsize: Figure size. Defaults to None.
+        draw_node_labels: Whether to draw node labels. Defaults to True.
+        draw_edge_weights: Whether to draw edge weights. Defaults to True.
+        draw_node_weights: Whether to draw node weights. Defaults to True.
     """
     if axis is None:
         # make size slightly larger than default
@@ -75,7 +78,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
 
     nx.draw_networkx_nodes(
         task_graph, pos=pos, ax=axis,
-        node_size=1,
+        node_size=1 if draw_node_labels else node_size,
         node_color="white",
         edgecolors="black",
         linewidths=linewidths,
@@ -89,50 +92,51 @@ def draw_task_graph(task_graph: nx.DiGraph,
     )
 
     for task_name in task_graph.nodes:
-        color = "white"
-        if schedule is not None and task_name in tasks:
-            color = colors[tasks[task_name].node]
-        task_label = r"$%s$" % task_name if use_latex else task_name
-        nx.draw_networkx_labels(
-            task_graph, pos=pos, ax=axis,
-            font_size=font_size,
-            labels={
-                task_name: task_label
-            },
-            bbox={
-                "facecolor": color,
-                "edgecolor": "black",
-                "boxstyle": "round,pad=0.5",
-                # line widths
-                "linewidth": linewidths,
+        if draw_node_labels:
+            color = "white"
+            if schedule is not None and task_name in tasks:
+                color = colors[tasks[task_name].node]
+            task_label = r"$%s$" % task_name if use_latex else task_name
+            nx.draw_networkx_labels(
+                task_graph, pos=pos, ax=axis,
+                font_size=font_size,
+                labels={task_name: task_label},
+                bbox={
+                    "facecolor": color,
+                    "edgecolor": "black",
+                    "boxstyle": "round,pad=0.5",
+                    # line widths
+                    "linewidth": linewidths,
 
-            }
-        )
-        if use_latex:
-            cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['label'], 1))
-        else:
-            cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['label'], 1)}"
-        axis.annotate(
-            cost_label,
-            xy=pos[task_name],
-            xytext=(pos[task_name][0] + font_size//4, pos[task_name][1] - font_size//4),
-            fontsize=weight_font_size,
-        )
-
-    edge_labels = {}
-    for u, v in task_graph.edges:
-        label = task_graph.edges[(u, v)]['label']
-        if isinstance(label, (int, float)):
+                }
+            )
+        if draw_node_weights:
             if use_latex:
-                label = r"$c\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['weight'], 1))
             else:
-                label = f"c({u}, {v})={round(label, 1)}"
-        edge_labels[(u, v)] = label
-    nx.draw_networkx_edge_labels(
-        task_graph, pos=pos, ax=axis,
-        edge_labels=edge_labels,
-        font_size=weight_font_size,
-    )
+                cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['weight'], 1)}"
+            axis.annotate(
+                cost_label,
+                xy=pos[task_name],
+                xytext=(pos[task_name][0] + font_size//4, pos[task_name][1] - font_size//4),
+                fontsize=weight_font_size,
+            )
+
+    if draw_edge_weights:
+        edge_labels = {}
+        for u, v in task_graph.edges:
+            label = task_graph.edges[(u, v)]['weight']
+            if isinstance(label, (int, float)):
+                if use_latex:
+                    label = r"$c\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                else:
+                    label = f"c({u}, {v})={round(label, 1)}"
+            edge_labels[(u, v)] = label
+        nx.draw_networkx_edge_labels(
+            task_graph, pos=pos, ax=axis,
+            edge_labels=edge_labels,
+            font_size=weight_font_size,
+        )
 
     axis.margins(0.1)
     axis.axis("off")
@@ -147,7 +151,10 @@ def draw_network(network: nx.Graph,
                  linewidths: int = 2,
                  font_size: int = 20,
                  weight_font_size: int = 12,
-                 figsize: Tuple[int, int] = None) -> plt.Axes:
+                 figsize: Tuple[int, int] = None,
+                 draw_node_labels: bool = True,
+                 draw_edge_weights: bool = True,
+                 draw_node_weights: bool = True) -> plt.Axes:
     """Draws a network
 
     Args:
@@ -160,11 +167,14 @@ def draw_network(network: nx.Graph,
         font_size: Font size. Defaults to 20.
         weight_font_size: Weight font size. Defaults to 12.
         figsize: Figure size. Defaults to None.
+        draw_node_labels: Whether to draw node labels. Defaults to True.
+        draw_edge_weights: Whether to draw edge weights. Defaults to True.
+        draw_node_weights: Whether to draw node weights. Defaults to True.
     """
     if axis is None:
         _, axis = plt.subplots(figsize=figsize)
 
-    # don't drdaw self loops
+    # don't draw self loops
     network = format_graph(network.copy())
     network.remove_edges_from(nx.selfloop_edges(network))
 
@@ -190,27 +200,34 @@ def draw_network(network: nx.Graph,
 
     node_labels = {}
     for node in network.nodes:
-        label = network.nodes[node]['label']
-        if isinstance(label, (int, float)) and use_latex:
-            label = r"$%s$" % node
-        node_labels[node] = label
-        
-        if use_latex:
-            weight_label = r"$s(%s)=%s$" % (node, round(network.nodes[node]['weight'], 1))
-        else:
-            weight_label = f"s({node})={round(network.nodes[node]['weight'], 1)}"
-        axis.annotate(
-            weight_label,
-            xy=pos[node],
-            xytext=(pos[node][0]+0.19, pos[node][1]-0.02),
-            fontsize=weight_font_size,
-        )
+        if draw_node_labels:
+            label = network.nodes[node].get("label", node)
+            if isinstance(label, (int, float)) and use_latex:
+                label = r"$%s$" % node
+            node_labels[node] = label
+        if draw_node_weights:
+            if use_latex:
+                weight_label = r"$s(%s)=%s$" % (node, round(network.nodes[node]['weight'], 1))
+            else:
+                weight_label = f"{round(network.nodes[node]['weight'], 1)}"
+            
+            # get min and max x-coordinate from pos
+            xmin = min(pos[node][0] for node in network.nodes)
+            xmax = max(pos[node][0] for node in network.nodes)
+            shift = (xmax - xmin) / 10
+            axis.annotate(
+                weight_label,
+                xy=pos[node],
+                xytext=(pos[node][0] + shift, pos[node][1]),
+                fontsize=weight_font_size,
+            )
 
-    nx.draw_networkx_labels(
-        network, pos=pos, ax=axis,
-        labels=node_labels,
-        font_size=font_size,
-    )
+    if draw_node_labels:
+        nx.draw_networkx_labels(
+            network, pos=pos, ax=axis,
+            labels=node_labels,
+            font_size=font_size,
+        )
 
     # draw network edges
     nx.draw_networkx_edges(
@@ -219,21 +236,22 @@ def draw_network(network: nx.Graph,
         width=linewidths,
     )
 
-    edge_labels = {}
-    for u, v in network.edges:
-        label = network.edges[(u, v)]['label']
-        if isinstance(label, (int, float)):
-            if use_latex:
-                label = r"$s\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
-            else:
-                label = f"s({u}, {v})={round(label, 1)}"
-        edge_labels[(u, v)] = label
+    if draw_edge_weights:
+        edge_labels = {}
+        for u, v in network.edges:
+            label = network.edges[(u, v)].get("label", network.edges[(u, v)]['weight'])
+            if isinstance(label, (int, float)):
+                if use_latex:
+                    label = r"$s\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                else:
+                    label = f"{round(label, 1)}"
+            edge_labels[(u, v)] = label
 
-    nx.draw_networkx_edge_labels(
-        network, pos=pos, ax=axis,
-        edge_labels=edge_labels,
-        font_size=weight_font_size,
-    )
+        nx.draw_networkx_edge_labels(
+            network, pos=pos, ax=axis,
+            edge_labels=edge_labels,
+            font_size=weight_font_size,
+        )
 
     axis.margins(0.2)
     axis.axis("off")
@@ -245,7 +263,8 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
                font_size: int = 20,
                xmax: float = None,
                axis: Optional[plt.Axes] = None,
-               figsize: Tuple[int, int] = (10, 4)) -> plt.Axes:
+               figsize: Tuple[int, int] = (10, 4),
+               draw_task_labels: bool = True) -> plt.Axes:
     """Draws a gantt chart
 
     Args:
@@ -255,6 +274,7 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
         xmax: Maximum x value. Defaults to None.
         axis: Axis to draw on. Defaults to None.
         figsize: Figure size. Defaults to None.
+        draw_task_labels: Whether to draw task labels. Defaults to True.
 
     Returns:
         Gantt chart
@@ -316,11 +336,12 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
                 color='white', edgecolor='black'
             )
             # Add the task label in the center of the bar
-            axis.text(
-                row['Start'] + row['delta'] / 2, row['Node'],
-                row['Task'], ha='center', va='center', color='black',
-                fontsize=font_size,
-            )
+            if draw_task_labels:
+                axis.text(
+                    row['Start'] + row['delta'] / 2, row['Node'],
+                    row['Task'], ha='center', va='center', color='black',
+                    fontsize=font_size,
+                )
     
     # Set the y-ticks to be the unique set of nodes
     axis.set_yticks(unique_nodes)

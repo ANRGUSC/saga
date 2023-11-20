@@ -28,10 +28,16 @@ def load_results(path: pathlib.Path) -> SimulatedAnnealing:
 
 st.set_page_config(layout="wide")
 
-RESULTS_PATH = "results"
+RESULTS_PATH = "results/wfcommons"
+DRAW_NETWORK_NODE_LABELS = True
+DRAW_NETWORK_NODE_WEIGHTS = True
+DRAW_NETWORK_EDGE_WEIGHTS = False
+DRAW_TASK_GRAPH_NODE_LABELS = False
+DRAW_TASK_GRAPH_NODE_WEIGHTS = False
+DRAW_TASK_GRAPH_EDGE_WEIGHTS = False
 runs = list(thisdir.joinpath(RESULTS_PATH).glob("**/*.pkl"))
 resultsdir = thisdir.joinpath(RESULTS_PATH)
-base_schedulers = [path.name for path in resultsdir.glob("*")]
+base_schedulers = [path.name for path in resultsdir.glob("*") if path.is_dir()]
 
 def instance_view(network: nx.Graph,
                   task_graph: nx.DiGraph,
@@ -43,7 +49,14 @@ def instance_view(network: nx.Graph,
     with col_task_graph:
         st.subheader("Task Graph")
         fig_task_graph, ax_task_graph = plt.subplots(figsize=(3, 3))
-        draw_task_graph(task_graph, axis=ax_task_graph)
+        draw_task_graph(
+            task_graph,
+            figsize=(10, 10),
+            axis=ax_task_graph,
+            draw_edge_weights=DRAW_TASK_GRAPH_EDGE_WEIGHTS,
+            draw_node_labels=DRAW_TASK_GRAPH_NODE_LABELS,
+            draw_node_weights=DRAW_TASK_GRAPH_NODE_WEIGHTS
+        )
         fig_task_graph.savefig("task_graph.png")
         fig_task_graph.set_figheight(3)
         st.pyplot(fig_task_graph, use_container_width=True)
@@ -51,7 +64,15 @@ def instance_view(network: nx.Graph,
     with col_network:
         st.subheader("Network")
         fig_network, ax_network = plt.subplots()
-        draw_network(network, axis=ax_network, draw_colors=False)
+        draw_network(
+            network,
+            axis=ax_network,
+            figsize=(10, 10),
+            draw_colors=False,
+            draw_node_weights=DRAW_NETWORK_NODE_WEIGHTS,
+            draw_node_labels=DRAW_NETWORK_NODE_LABELS,
+            draw_edge_weights=DRAW_NETWORK_EDGE_WEIGHTS
+        )
         fig_network.set_figheight(3)
         st.pyplot(fig_network, use_container_width=True)
 
@@ -60,7 +81,11 @@ def instance_view(network: nx.Graph,
         st.subheader(f"{scheduler_name} Schedule")
         
         fig_schedule, ax_schedule = plt.subplots()
-        draw_gantt(schedule, axis=ax_schedule)
+        draw_gantt(
+            schedule,
+            axis=ax_schedule,
+            draw_task_labels=DRAW_TASK_GRAPH_NODE_LABELS,
+        )
         # fig.update_layout(height=300)
         # st.plotly_chart(fig, use_container_width=True)
         fig_schedule.set_figheight(3)
@@ -70,7 +95,12 @@ def instance_view(network: nx.Graph,
     with col_base_schedule:
         st.subheader(f"{base_scheduler_name} Schedule")
         fig_base_schedule, axis_base_schedule = plt.subplots()
-        draw_gantt(base_schedule, axis=axis_base_schedule)
+        draw_gantt(
+            base_schedule,
+            figsize=(100, 50),
+            axis=axis_base_schedule,
+            draw_task_labels=DRAW_TASK_GRAPH_NODE_LABELS,
+        )
         # fig.update_layout(height=300)
         # st.plotly_chart(fig, use_container_width=True)
         fig_base_schedule.set_figheight(3)

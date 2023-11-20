@@ -12,6 +12,7 @@ import git
 import networkx as nx
 from scipy import stats
 from wfcommons.common.workflow import Workflow
+from wfcommons import wfchef
 from wfcommons.wfchef.recipes import (BlastRecipe, BwaRecipe, CyclesRecipe,
                                       EpigenomicsRecipe, GenomeRecipe,
                                       MontageRecipe, SeismologyRecipe,
@@ -60,6 +61,28 @@ instances = {
         "glob": "*/chameleon-cloud/*.json"
     }
 }
+def download_repo(repo: str) -> pathlib.Path:
+    """Download the given to ~/.saga/data/<repo_name> if it does not exist.
+
+    Args:
+        repo (str): The git repository to download.
+
+    Returns:
+        pathlib.Path: The path to the downloaded repository.
+
+    Raises:
+        GitCommandError: If the git command fails.
+    """
+    # remove .git if at end of repo
+    repo_name = pathlib.Path(repo).stem
+    path = pathlib.Path.home() / ".saga" / "data" / repo_name
+    if path.exists():
+        return path
+
+    git.Repo.clone_from(repo, path, progress=git.remote.RemoteProgress())
+    return path
+
+
 def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     """Get graphs representing the specified cloud_name.
 
@@ -79,27 +102,26 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     repo = instances[cloud_name]["repo"]
     glob = instances[cloud_name]["glob"]
 
+    path_repo = download_repo(repo)
     networks: Dict[str, nx.Graph] = {} # hash -> graph
-    with tempfile.TemporaryDirectory() as tmp:
-        git.Repo.clone_from(repo, tmp, progress=git.remote.RemoteProgress())
-        for path in pathlib.Path(tmp).glob(glob):
-            workflow = json.loads(path.read_text(encoding="utf-8"))
-            network = nx.Graph()
-            for machine in workflow["workflow"]["machines"]:
-                network.add_node(machine["nodeName"], weight=machine["cpu"]["speed"])
+    for path in pathlib.Path(path_repo).glob(glob):
+        workflow = json.loads(path.read_text(encoding="utf-8"))
+        network = nx.Graph()
+        for machine in workflow["workflow"]["machines"]:
+            network.add_node(machine["nodeName"], weight=machine["cpu"]["speed"])
 
-            network_hash = hash(frozenset({(node, network.nodes[node]["weight"]) for node in network.nodes}))
+        network_hash = hash(frozenset({(node, network.nodes[node]["weight"]) for node in network.nodes}))
 
-            # normalize machine speeds to average speed
-            avg_speed = sum(network.nodes[node]["weight"] for node in network.nodes) / len(network.nodes)
-            for node in network.nodes:
-                network.nodes[node]["weight"] /= avg_speed
+        # normalize machine speeds to average speed
+        avg_speed = sum(network.nodes[node]["weight"] for node in network.nodes) / len(network.nodes)
+        for node in network.nodes:
+            network.nodes[node]["weight"] /= avg_speed
 
-            for (src, dst) in product(network.nodes, network.nodes):
-                # unlimited bandwidth since i/o is integrated into task weights
-                network.add_edge(src, dst, weight=1e9)
+        for (src, dst) in product(network.nodes, network.nodes):
+            # unlimited bandwidth since i/o is integrated into task weights
+            network.add_edge(src, dst, weight=1e9)
 
-            networks[network_hash] = network
+        networks[network_hash] = network
 
     return list(networks.values())
 
@@ -130,11 +152,8 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     best_dist = min(fit_results, key=lambda k: fit_results[k]["D"])
     best_fit_params = fit_results[best_dist]["params"]
 
-
     min_data = min(data)
     max_data = max(data)
-
-    print(f"Clip: {min_data} <= x <= {max_data}")
 
     return lambda num: [
         max(min_data, min(max_data, float(value)))
@@ -198,6 +217,12 @@ def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
             task_graph.add_edge(task["name"], child, weight=1e-9)
 
     return task_graph
+
+def get_workflow_task_info(recipe_name: str) -> Dict:
+    path = pathlib.Path(wfchef.__file__).parent.joinpath('recipes', recipe_name, 'task_type_stats.json')
+    if not path.exists():
+        raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
+    return json.loads(path.read_text(encoding="utf-8"))
 
 def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
     """Generate a list of network, task graph pairs for the given recipe.
