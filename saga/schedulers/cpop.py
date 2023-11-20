@@ -101,8 +101,7 @@ def cpop_ranks(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, floa
 class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Implements the CPoP algorithm for task scheduling.
 
-    Attributes:
-        name (str): The name of the scheduler.
+    Source: https://dx.doi.org/10.1109/71.993206
     """
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Computes the schedule for the task graph using the CPoP algorithm.

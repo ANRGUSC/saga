@@ -46,7 +46,10 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
 
 
 class HeftScheduler(Scheduler):
-    """Schedules tasks using the HEFT algorithm."""
+    """Schedules tasks using the HEFT algorithm.
+
+    Source: https://dx.doi.org/10.1109/71.993206
+    """
 
     @staticmethod
     def get_runtimes(

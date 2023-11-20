@@ -5,7 +5,10 @@ import networkx as nx
 from ..scheduler import Scheduler, Task
 
 class SufferageScheduler(Scheduler):
-    """Sufferage scheduler"""
+    """Implements a sufferage scheduler.
+    
+    Source: https://dx.doi.org/10.1007/978-3-540-69277-5_7
+    """
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Schedules the task graph on the network
 
