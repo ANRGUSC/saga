@@ -1,0 +1,3 @@
+[submodule "wfcommons"]
+	path = wfcommons
+	url = git@github.com:wfcommons/wfcommons.git
