@@ -22,26 +22,9 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     Returns:
         List[Hashable]: The sorted list of tasks.
     """
-    # rank: Dict[Hashable, float] = {}
-    # logging.debug("Topological sort: %s", list(nx.topological_sort(task_graph)))
-    # for task_name in reversed(list(nx.topological_sort(task_graph))):
-    #     avg_comp = np.mean([
-    #         task_graph.nodes[task_name]['weight'] /
-    #         network.nodes[node]['weight'] for node in network.nodes
-    #     ])
-    #     max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
-    #         (
-    #             rank.get(succ, 0) +
-    #             np.mean([
-    #                 task_graph.edges[task_name, succ]['weight'] /
-    #                 network.edges[src, dst]['weight'] for src, dst in network.edges
-    #             ])
-    #         )
-    #         for succ in task_graph.successors(task_name)
-    #     )
-    #     rank[task_name] = avg_comp + max_comm
     rank = upward_rank(network, task_graph)
-
+    topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
+    rank = {node: (rank[node] + topological_sort[node]) for node in rank}
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 
@@ -135,6 +118,13 @@ class HeftScheduler(Scheduler):
         """
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
+
+        # print(f"------------------")
+        # for node in nx.topological_sort(task_graph):
+        #     print(f"{node}({task_graph.nodes[node]['weight']})")
+        #     for child in task_graph.successors(node):
+        #         print(f"  -->{child}({task_graph.edges[node, child]['weight']})")
+        # print(schedule_order)
 
         task_name: Hashable
         logging.debug("Schedule order: %s", schedule_order)
