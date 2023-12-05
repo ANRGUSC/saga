@@ -140,7 +140,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
 
     axis.margins(0.1)
     axis.axis("off")
-    plt.tight_layout()
+    # plt.tight_layout()
     return axis
 
 def draw_network(network: nx.Graph,
@@ -347,11 +347,11 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
     axis.set_yticks(unique_nodes)
     axis.set_yticklabels(unique_nodes)
 
-    # set tick font size
-    for tick in axis.xaxis.get_major_ticks():
-        tick.label.set_fontsize(font_size)
-    for tick in axis.yaxis.get_major_ticks():
-        tick.label.set_fontsize(font_size)
+    # # set tick font size
+    # for tick in axis.xaxis.get_major_ticks():
+    #     tick.label.set_fontsize(font_size)
+    # for tick in axis.yaxis.get_major_ticks():
+    #     tick.label.set_fontsize(font_size)
     
     # Set labels and title
     axis.set_xlabel('Time', fontsize=font_size)
