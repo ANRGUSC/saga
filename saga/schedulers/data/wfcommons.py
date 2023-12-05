@@ -6,7 +6,7 @@ import random
 import tempfile
 from functools import lru_cache
 from itertools import product
-from typing import Dict, Iterable, List, Tuple, Type, Union, Callable
+from typing import Dict, Iterable, List, Set, Tuple, Type, Union, Callable
 
 import git
 import networkx as nx
@@ -55,12 +55,6 @@ def get_num_task_range(recipe_name: str) -> Tuple[int, int]:
     return min_tasks, max_tasks
 
 
-instances = {
-    "chameleon": {
-        "repo": "https://github.com/wfcommons/pegasus-instances.git",
-        "glob": "*/chameleon-cloud/*.json"
-    }
-}
 def download_repo(repo: str) -> pathlib.Path:
     """Download the given to ~/.saga/data/<repo_name> if it does not exist.
 
@@ -82,7 +76,12 @@ def download_repo(repo: str) -> pathlib.Path:
     git.Repo.clone_from(repo, path, progress=git.remote.RemoteProgress())
     return path
 
-
+clouds = {
+    "chameleon": {
+        "repo": "https://github.com/wfcommons/pegasus-instances.git",
+        "glob": "*/chameleon-cloud/*.json"
+    }
+}
 def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     """Get graphs representing the specified cloud_name.
 
@@ -96,11 +95,11 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
         ValueError: If the cloud_name is not found.
     """
     # git clone - print progress
-    if cloud_name not in instances:
-        raise ValueError(f"Cloud {cloud_name} not found. Available clouds: {instances.keys()}")
+    if cloud_name not in clouds:
+        raise ValueError(f"Cloud {cloud_name} not found. Available clouds: {clouds.keys()}")
 
-    repo = instances[cloud_name]["repo"]
-    glob = instances[cloud_name]["glob"]
+    repo = clouds[cloud_name]["repo"]
+    glob = clouds[cloud_name]["glob"]
 
     path_repo = download_repo(repo)
     networks: Dict[str, nx.Graph] = {} # hash -> graph
@@ -124,6 +123,46 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
         networks[network_hash] = network
 
     return list(networks.values())
+
+pegasus_workflows = {
+    wfname: {
+        "repo": "https://github.com/wfcommons/pegasus-instances.git",
+        "glob": f"{wfname}/chameleon-cloud/*.json"
+    } for wfname in ["1000genome", "cycles", "epigenomics", "montage", "seismology", "soykb", "srasearch"]
+}
+makeflow_workflows = {
+    wfname: {
+        "repo": "https://github.com/wfcommons/makeflow-instances.git",
+        "glob": f"{wfname}/chameleon-cloud/*.json"
+    } for wfname in ["blast", "bwa"]
+}
+workflow_instances = {**pegasus_workflows, **makeflow_workflows}
+workflow_instances["genome"] = workflow_instances["1000genome"]
+def get_real_workflows(wfname: str) -> List[Workflow]:
+    """Get workflows representing the specified wfname.
+
+    Args:
+        wfname (str): The name of the workflow.
+
+    Returns:
+        List[Workflow]: The workflows representing the workflow.
+
+    Raises:
+        ValueError: If the wfname is not found.
+    """
+    if wfname not in workflow_instances:
+        raise ValueError(f"Workflow {wfname} not found. Available workflows: {workflow_instances.keys()}")
+
+    repo = workflow_instances[wfname]["repo"]
+    glob = workflow_instances[wfname]["glob"]
+
+    path_repo = download_repo(repo)
+    workflows: List[Workflow] = []
+    for path in pathlib.Path(path_repo).glob(glob):
+        workflows.append(trace_to_digraph(path))
+    return workflows
+    
+
 
 def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     """Get a function that generates random numbers from the best fit distribution.
@@ -161,13 +200,20 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     ]
 
 
-def get_networks(num: int, cloud_name: str) -> List[nx.Graph]:
+def get_networks(num: int,
+                 cloud_name: str,
+                 network_speed: float = 100) -> List[nx.Graph]:
     """Generate a random networkx graph.
+
+    Since Chameleon cloud uses a shared file-system for communication and network speeds are very hight
+    (10-100 Gbps), the communication bottleneck is the SSD speed. Default network speed is based on 
+    specification of SSD in Chameleon cloud at time of writing (11/19/2023).
+    Source: https://www.disctech.com/Seagate-ST2000NX0273-2000GB-SAS-Hard-Drive
 
     Args:
         num (int): The number of networks to generate.
         cloud_name (str): The name of the cloud.
-
+        network_speed (float, optional): The speed of the network in MegaBytes per second. Defaults to 136.
 
     Returns:
         List[nx.Graph]: The list of networkx graphs.
@@ -186,8 +232,7 @@ def get_networks(num: int, cloud_name: str) -> List[nx.Graph]:
             network.add_node(i, weight=max(1e-9, node_speeds[i]))
 
         for (src, dst) in product(network.nodes, network.nodes):
-            # unlimited bandwidth since i/o is integrated into task weights
-            network.add_edge(src, dst, weight=1e9)
+            network.add_edge(src, dst, weight=network_speed if src != dst else 1e9)
 
         networks.append(network)
 
@@ -205,20 +250,50 @@ def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
     """
     trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
-    task_graph = nx.DiGraph()
+    children: Dict[str, Set[str]] = {}
     for task in trace["workflow"]["tasks"]:
+        for parent in task.get("parents", []):
+            children.setdefault(parent, set()).add(task["name"])
+
+    task_graph = nx.DiGraph()
+    outputs: Dict[str, Dict[str, float]] = {}
+    input_files: Dict[str, Set[str]] = {}
+    for task in trace["workflow"]["tasks"]:
+        if "children" not in task:
+            task["children"] = children.get(task["name"], set())
+
         runtime = task.get('runtime', task.get('runtimeInSeconds'))
         if runtime is None:
-            raise ValueError(f"Task {task['name']} has no 'runtime' or 'runtimeInSeconds' attribute.")
+            raise ValueError(f"Task {task['name']} has no 'runtime' or 'runtimeInSeconds' attribute. {list(task.keys())}. {path}")
         task_graph.add_node(task["name"], weight=max(1e-9, runtime))
+
+        for io_file in task["files"]:
+            if io_file["link"] == "output":
+                size_in_bytes = io_file.get("sizeInBytes", io_file.get("size"))
+                if size_in_bytes is None:
+                    raise ValueError(f"File {io_file['name']} has no 'sizeInBytes' or 'size' attribute. {path}")
+                outputs.setdefault(task["name"], {})[io_file["name"]] = size_in_bytes / 1e6 # convert to MB
+            elif io_file["link"] == "input":
+                input_files.setdefault(task["name"], set()).add(io_file["name"])
 
     for task in trace["workflow"]["tasks"]:
         for child in task.get("children", []):
-            task_graph.add_edge(task["name"], child, weight=1e-9)
+            weight = 0
+            for input_file in input_files.get(child, []):
+                weight += outputs[task["name"]].get(input_file, 0)
+            task_graph.add_edge(task["name"], child, weight=max(1e-9, weight))
 
     return task_graph
 
 def get_workflow_task_info(recipe_name: str) -> Dict:
+    """Get the task type statistics for the given recipe.
+    
+    Args:
+        recipe_name (str): The name of the recipe.
+
+    Returns:
+        Dict: The task type statistics.
+    """
     path = pathlib.Path(wfchef.__file__).parent.joinpath('recipes', recipe_name, 'task_type_stats.json')
     if not path.exists():
         raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
@@ -251,7 +326,7 @@ def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
 
 def test():
     """Test the module."""
-    task_graph = get_workflows(1, "blast")[0]
+    task_graph = get_workflows(1, "1000genome")[0]
     # print node and edge attributes
     for node in task_graph.nodes:
         print(node, task_graph.nodes[node])
