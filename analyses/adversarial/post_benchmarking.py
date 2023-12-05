@@ -1,16 +1,38 @@
+# Importing required libraries to load and examine the data
+import logging
 import pathlib
-from typing import Callable, Hashable, Iterable, List, Optional, Union
-
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
+from typing import List, Optional, Union, Callable, Iterable
 import numpy as np
-import pandas as pd
-from matplotlib.patches import Rectangle
-from post_load import load_results_csv
 
-thisdir = pathlib.Path(__file__).parent.absolute()
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+
+
+DATASET_ORDER = [
+    "in_trees", "out_trees", "chains",
+
+    "blast", "bwa", "cycles", "epigenomics",
+    "genome", "montage", "seismology", "soykb",
+    "srasearch",
+
+    "etl", "predict", "stats", "train",
+]
+
+def load_data(resultsdir, glob: str = None) -> pd.DataFrame:
+    data = None
+    glob = glob or "*.csv"
+    print(resultsdir, glob)
+    for path in resultsdir.glob(glob):
+        df_dataset = pd.read_csv(path, index_col=0)
+        df_dataset["dataset"] = path.stem
+        if data is None:
+            data = df_dataset
+        else:
+            data = pd.concat([data, df_dataset], ignore_index=True)
+    if data is None:
+        return pd.DataFrame()
+    return data
 
 def gradient_heatmap(data: pd.DataFrame,
                      x: Union[str, List[str]], # pylint: disable=invalid-name
@@ -22,8 +44,8 @@ def gradient_heatmap(data: pd.DataFrame,
                      x_label: str = None,
                      y_label: str = None,
                      color_label: str = None,
-                     xorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
-                     yorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
+                     xorder: Callable[[Iterable[str]], Iterable[str]] = None,
+                     yorder: Callable[[Iterable[str]], Iterable[str]] = None,
                      ax: plt.Axes = None) -> plt.Axes: # pylint: disable=invalid-name
     """Create a heatmap with a custom gradient for each cell.
 
@@ -38,8 +60,6 @@ def gradient_heatmap(data: pd.DataFrame,
         x_label (str, optional): x-axis label. Defaults to None.
         y_label (str, optional): y-axis label. Defaults to None.
         color_label (str, optional): colorbar label. Defaults to None.
-        xorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order x-axis. Defaults to None.
-        yorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order y-axis. Defaults to None.
         ax (plt.Axes, optional): matplotlib axes. Defaults to None.
 
     Returns:
@@ -47,8 +67,8 @@ def gradient_heatmap(data: pd.DataFrame,
     """
     plt.rcParams.update({
         'font.size': 20,
-        'font.family': 'serif',
-        'font.serif': ['Computer Modern'],
+        # 'font.family': 'serif',
+        # 'font.serif': ['Computer Modern'],
         'text.usetex': True,
     })
 
@@ -100,9 +120,11 @@ def gradient_heatmap(data: pd.DataFrame,
     for i, yval in enumerate(yvals):
         for j, xval in enumerate(xvals):
             df_color = data.loc[(data[x] == xval) & (data[y] == yval), color].sort_values()
-            if not df_color.empty:
-                gradient = df_color.values.reshape(1, -1)
+            gradient = df_color.values.reshape(1, -1)
 
+            if df_color.empty: # add a white cell if there is no data
+                rect = Rectangle((j, i), 1, 1, linewidth=1, edgecolor='black', facecolor='white')
+            else:
                 im = ax.imshow(
                     gradient,
                     cmap=cmap,
@@ -111,38 +133,8 @@ def gradient_heatmap(data: pd.DataFrame,
                     vmin=global_min,
                     vmax=global_max
                 )
-            else:
-                # paint cell white (can't use cmap because it will be a different color)
-                im = ax.imshow(
-                    np.array([[0]]),
-                    cmap="binary",
-                    aspect='auto',
-                    extent=[j, j+1, i, i+1],
-                    vmin=global_min,
-                    vmax=global_max
-                )
-
-            # Add a border with Rectangle (x, y, width, height)
-            rect = Rectangle((j, i), 1, 1, linewidth=1, edgecolor='black', facecolor='none')
+                rect = Rectangle((j, i), 1, 1, linewidth=1, edgecolor='black', facecolor='none')
             ax.add_patch(rect)
-
-            # Add text in the center of the rectangle with the mean value
-            value = df_color.mean()
-            # if is nan, then there are no values for this cell
-            if np.isnan(value):
-                value = ""
-            elif value > 1000:
-                value = f'$>{1000}$'
-            elif value > upper_threshold:
-                value = f'$>{upper_threshold}$'
-            else:
-                value = f'${value:.2f}$'
-            ax.text(
-                j+0.5, i+0.5, value,
-                horizontalalignment='center',
-                verticalalignment='center',
-                fontsize=10
-            )
 
     # Add labels, ticks, and other plot elements
     ax.set_xticks(np.arange(len(xvals)) + 0.5)  # Adjusted tick positions
@@ -157,16 +149,12 @@ def gradient_heatmap(data: pd.DataFrame,
     ax.set_ylim([0, len(yvals)])  # Set y-axis limits
 
     # Add colorbar
-    cbar = plt.colorbar(
-        im, ax=ax,
-        orientation='vertical',
-        label=color_label if color_label else color
-    )
+    cbar = plt.colorbar(im, ax=ax, orientation='vertical', label=color_label if color_label else color)
 
     # Make upper bound label of colorbar ">{upper_threshold}"
     if upper_threshold < np.inf:
         cbar.ax.set_yticklabels(
-            [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
+            [f'{tick}' for tick in cbar.get_ticks()][:-1]
             + [f'$> {upper_threshold}$']
         )
 
@@ -177,77 +165,37 @@ def gradient_heatmap(data: pd.DataFrame,
 
     return ax
 
-def tab_results(savedir: pathlib.Path,
-                upper_threshold: float = 5.0,
-                include_hybrid = False,
-                add_worst_row = True) -> None:
-    """Generate table of results."""
-    savedir.mkdir(parents=True, exist_ok=True)
-    df_all_results = load_results_csv(savedir)
-
-    # rename some schedulers via dict
-    rename_dict = {
-        "CPOP": "CPoP",
-        "Fastest Node": "FastestNode",
-    }
-    rename_dict = {
-        **rename_dict,
-        **{f"Not{key}": f"Not{value}" for key, value in rename_dict.items()}
-    }
-    df_all_results["Scheduler"] = df_all_results["Scheduler"].replace(rename_dict)
-    df_all_results["Base Scheduler"] = df_all_results["Base Scheduler"].replace(rename_dict)
-
-    df_results = df_all_results[
-        (~df_all_results["Scheduler"].str.startswith("Not")) & 
-        (~df_all_results["Base Scheduler"].str.startswith("Not"))]
-    if include_hybrid:
-        hybrid_values = []
-        for scheduler in df_results["Scheduler"].unique():
-            # get NotScheduler Base Scheduler result
-            res = df_all_results[
-                (df_all_results["Scheduler"] == scheduler) &
-                (df_all_results["Base Scheduler"] == f"Not{scheduler}")
-            ]
-            try:
-                hybrid_values.append([scheduler, "Hybrid", res["Makespan Ratio"].values[0]])
-            except IndexError:
-                pass
-
-        # append hybrid values to df_results
-        df_hybrid = pd.DataFrame(hybrid_values, columns=["Scheduler", "Base Scheduler", "Makespan Ratio"])
-        df_results = pd.concat([df_results, df_hybrid], ignore_index=True)
-
-    if add_worst_row:
-        worst_results = df_results.groupby("Scheduler")["Makespan Ratio"].max()
-        df_worst = pd.DataFrame(
-            [[scheduler, "Worst", worst_results[scheduler]]
-             for scheduler in worst_results.index],
-            columns=["Scheduler", "Base Scheduler", "Makespan Ratio"]
-        )
-        df_results = pd.concat([df_results, df_worst], ignore_index=True)
-
-    axis = gradient_heatmap(
-        df_results,
-        x="Scheduler",
-        y="Base Scheduler",
-        color="Makespan Ratio",
+def run(resultsdir: pathlib.Path,
+        outputdir: pathlib.Path,
+        glob: str = None,
+        title: str = None,
+        upper_threshold: float = 5.0) -> None:
+    """Analyze the results."""
+    outputdir.mkdir(parents=True, exist_ok=True)
+    data = load_data(resultsdir, glob)
+    if data.empty:
+        logging.info("No data found. Skipping.")
+        return
+    data["scheduler"] = data["scheduler"].str.replace("Scheduler", "")
+    ax = gradient_heatmap(
+        data,
+        x="scheduler",
+        y="dataset",
+        color="makespan_ratio",
+        cmap="coolwarm",
         upper_threshold=upper_threshold,
+        title=title,
         x_label="Scheduler",
-        y_label="Base Scheduler",
-        color_label="Makespan Ratio",
-        # custom order so that "Hybrid" and "Worst" are at the bottom
-        xorder=lambda x: x.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst"),
-        yorder=lambda y: y.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst")
+        y_label="Dataset",
+        color_label="Maximum Makespan Ratio"
     )
-    plt.tight_layout()
-    axis.get_figure().savefig(
-        savedir / "results.pdf",
+    ax.get_figure().savefig(
+        outputdir.joinpath("benchmarking.pdf"),
         dpi=300,
         bbox_inches='tight'
     )
-    axis.get_figure().savefig(
-        savedir / "results.png",
+    ax.get_figure().savefig(
+        outputdir.joinpath("benchmarking.png"),
         dpi=300,
         bbox_inches='tight'
     )
-

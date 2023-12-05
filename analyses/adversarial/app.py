@@ -28,13 +28,23 @@ def load_results(path: pathlib.Path) -> SimulatedAnnealing:
 
 st.set_page_config(layout="wide")
 
-RESULTS_PATH = "results/wfcommons"
+RESULTS_PATH = "results/compare_all"
 DRAW_NETWORK_NODE_LABELS = True
 DRAW_NETWORK_NODE_WEIGHTS = True
-DRAW_NETWORK_EDGE_WEIGHTS = False
-DRAW_TASK_GRAPH_NODE_LABELS = False
-DRAW_TASK_GRAPH_NODE_WEIGHTS = False
-DRAW_TASK_GRAPH_EDGE_WEIGHTS = False
+DRAW_NETWORK_EDGE_WEIGHTS = True
+DRAW_TASK_GRAPH_NODE_LABELS = True
+DRAW_TASK_GRAPH_NODE_WEIGHTS = True
+DRAW_TASK_GRAPH_EDGE_WEIGHTS = True
+
+
+# RESULTS_PATH = "results/wfcommons"
+# DRAW_NETWORK_NODE_LABELS = True
+# DRAW_NETWORK_NODE_WEIGHTS = True
+# DRAW_NETWORK_EDGE_WEIGHTS = False
+# DRAW_TASK_GRAPH_NODE_LABELS = False
+# DRAW_TASK_GRAPH_NODE_WEIGHTS = False
+# DRAW_TASK_GRAPH_EDGE_WEIGHTS = False
+
 runs = list(thisdir.joinpath(RESULTS_PATH).glob("**/*.pkl"))
 resultsdir = thisdir.joinpath(RESULTS_PATH)
 base_schedulers = [path.name for path in resultsdir.glob("*") if path.is_dir()]

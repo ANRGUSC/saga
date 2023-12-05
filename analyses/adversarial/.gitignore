@@ -1,5 +1,6 @@
 output
 results
+datasets
 *.png
 *.pdf
 

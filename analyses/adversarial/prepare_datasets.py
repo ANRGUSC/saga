@@ -2,20 +2,12 @@ import json
 import logging
 import pathlib
 import random
-import re
 from typing import Callable, Dict, List, Optional
 
 import networkx as nx
 import numpy as np
-from scipy import stats
 
 from saga.data import AllPairsDataset, Dataset, PairsDataset
-from saga.schedulers.data.listvscluster import \
-    get_network as get_listvscluster_network
-from saga.schedulers.data.listvscluster import \
-    load_task_graphs as get_listvscluster_task_graphs
-from saga.schedulers.data.listvscluster import \
-    get_categories as get_listvscluster_categories
 from saga.schedulers.data.random import (gen_in_trees, gen_out_trees,
                                          gen_parallel_chains,
                                          gen_random_networks)
@@ -24,33 +16,27 @@ from saga.schedulers.data.riotbench import (get_etl_task_graphs,
                                             get_predict_task_graphs,
                                             get_stats_task_graphs,
                                             get_train_task_graphs)
-from saga.schedulers.data.wfcommons import (
-    get_networks, get_real_networks, get_workflows, get_workflow_task_info,
-    get_real_workflows
-)
+from saga.schedulers.data.wfcommons import (get_networks, get_real_workflows,
+                                            get_workflows)
 
-logging.basicConfig(level=logging.INFO)
-thisdir = pathlib.Path(__file__).parent.absolute()
-datapath = thisdir.joinpath("datasets")
-
-def save_dataset(dataset: Dataset) -> pathlib.Path:
+def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:
     """Save the dataset to disk."""
-    dataset_file = datapath.joinpath(f"{dataset.name}.json")
+    dataset_file = savedir.joinpath(f"{dataset.name}.json")
     dataset_file.parent.mkdir(parents=True, exist_ok=True)
     dataset_file.write_text(dataset.to_json(), encoding="utf-8")
     logging.info("Saved dataset to %s.", dataset_file)
     return dataset_file
 
-def load_dataset(name: str) -> Dataset:
+def load_dataset(datadir: pathlib.Path, name: str) -> Dataset:
     """Load the dataset from disk."""
-    if datapath.joinpath(name).is_dir():
+    if datadir.joinpath(name).is_dir():
         return LargeDataset.from_json(
-            datapath.joinpath(f"{name}.json").read_text(encoding="utf-8")
+            datadir.joinpath(f"{name}.json").read_text(encoding="utf-8")
         )
 
-    dataset_file = datapath.joinpath(f"{name}.json")
+    dataset_file = datadir.joinpath(f"{name}.json")
     if not dataset_file.exists():
-        datasets = [path.stem for path in datapath.glob("*.json")]
+        datasets = [path.stem for path in datadir.glob("*.json")]
         raise ValueError(f"Dataset {name} does not exist. Available datasets are {datasets}")
     text = dataset_file.read_text(encoding="utf-8")
     try:
@@ -108,7 +94,7 @@ class LargeDataset(Dataset):
             pathlib.Path(path): length for path, length in data["datasets"].items()
         }, data["name"])
 
-def in_trees_dataset():
+def in_trees_dataset() -> Dataset:
     """Generate the in_trees dataset."""
     num_instances = 1000
     min_levels, max_levels = 2, 4
@@ -126,10 +112,9 @@ def in_trees_dataset():
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
         pairs.append((network, task_graph))
-    dataset = PairsDataset(pairs, name="in_trees")
-    save_dataset(dataset)
+    return PairsDataset(pairs, name="in_trees")
 
-def out_trees_dataset():
+def out_trees_dataset() -> Dataset:
     """Generate the out_trees dataset."""
     num_instances = 1000
     min_levels, max_levels = 2, 4
@@ -147,11 +132,10 @@ def out_trees_dataset():
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
         pairs.append((network, task_graph))
-    dataset = PairsDataset(pairs, name="out_trees")
-    save_dataset(dataset)
+    return PairsDataset(pairs, name="out_trees")
 
 
-def chains_dataset():
+def chains_dataset() -> Dataset:
     """Generate the chains dataset."""
     num_instances = 1000
     min_chains, max_chains = 2, 5
@@ -169,15 +153,14 @@ def chains_dataset():
             chain_length=random.randint(min_chain_length, max_chain_length)
         )[0]
         pairs.append((network, task_graph))
-    dataset = PairsDataset(pairs, name="chains")
-    save_dataset(dataset)
+    return PairsDataset(pairs, name="chains")
 
 def wfcommons_dataset(recipe_name: str,
                       ccr: float = 1.0,
                       num_instances: int = 100,
-                      dataset_name: Optional[str] = None):
+                      dataset_name: Optional[str] = None) -> None:
     """Generate the wfcommons dataset.
-    
+
     Args:
         recipe_name: The name of the recipe to generate the dataset for.
         ccr: The communication to computation ratio - the ratio of the average
@@ -211,11 +194,10 @@ def wfcommons_dataset(recipe_name: str,
         task_graph = get_workflows(num=1, recipe_name=recipe_name)[0]
         pairs.append((network, task_graph))
 
-    dataset = PairsDataset(pairs, name=dataset_name or recipe_name)
-    save_dataset(dataset)
+    return PairsDataset(pairs, name=dataset_name or recipe_name)
 
 def riotbench_dataset(get_task_graphs: Callable[[int], List[nx.DiGraph]],
-                      name: str):
+                      name: str) -> Dataset:
     """Generate the etl dataset."""
     num_instances = 100
     pairs = []
@@ -232,85 +214,55 @@ def riotbench_dataset(get_task_graphs: Callable[[int], List[nx.DiGraph]],
         task_graph = get_task_graphs(num=1)[0]
         pairs.append((network, task_graph))
 
-    dataset = PairsDataset(pairs, name=name)
-    save_dataset(dataset)
+    return PairsDataset(pairs, name=name)
 
-
-def listvscluster_dataset():
-    num_networks_per_task_graph = 10
-    categories = get_listvscluster_categories()
-    for category in categories:
-        # remove puncutation from category name and replace spaces with underscores (remove duplicate spaces first)
-        category_clean = re.sub(r"\s+", " ", category.lower())
-        category_clean = re.sub(r"[^\w\s]", "", category_clean)
-        category_clean = category_clean.replace(" ", "_")
-
-        if datapath.joinpath(f"lvc_{category_clean}.json").exists():
-            print(f"Skipping LvC Dataset: {category_clean}")
-            continue
-
-        task_graphs = get_listvscluster_task_graphs(category)
-
-        _datasets = {}
-        print(f"Generating LvC Dataset: {category_clean}")
-        for i, task_graph in enumerate(task_graphs):
-            pairs = []
-            # gen 10 networks of different sizes ranging from 2 to graph size
-            network_sizes = np.linspace(2, task_graph.number_of_nodes(), num_networks_per_task_graph, dtype=int)
-            for network_size in network_sizes:
-                network = get_listvscluster_network(network_size)
-                pairs.append((network, task_graph))
-            dataset = PairsDataset(pairs, name=f"lvc_{category_clean}/{i}")
-            _datasets[save_dataset(dataset)] = num_networks_per_task_graph
-
-        dataset = LargeDataset(_datasets, name=f"lvc_{category_clean}")
-        save_dataset(dataset)
-
-def main():
+def run(savedir: pathlib.Path, skip_existing: bool = True):
     """Generate the datasets."""
     random.seed(0) # For reproducibility
     np.random.seed(0)
+    savedir.mkdir(parents=True, exist_ok=True)
 
-    # # Random Graphs
-    # in_trees_dataset()
-    # out_trees_dataset()
-    # chains_dataset()
+    # Random Graphs
+    if not savedir.joinpath("in_trees.json").exists() or not skip_existing:
+        # in_trees_dataset()
+        save_dataset(savedir, in_trees_dataset())
+    if not savedir.joinpath("out_trees.json").exists() or not skip_existing:
+        # out_trees_dataset()
+        save_dataset(savedir, out_trees_dataset())
+    if not savedir.joinpath("chains.json").exists() or not skip_existing:
+        # chains_dataset()
+        save_dataset(savedir, chains_dataset())
 
     # # Riotbench
-    # riotbench_dataset(get_etl_task_graphs, name="etl")
-    # riotbench_dataset(get_predict_task_graphs, name="predict")
-    # riotbench_dataset(get_stats_task_graphs, name="stats")
-    # riotbench_dataset(get_train_task_graphs, name="train")
+    if not savedir.joinpath("etl.json").exists() or not skip_existing:
+        # riotbench_dataset(get_etl_task_graphs, name="etl")
+        save_dataset(savedir, riotbench_dataset(get_etl_task_graphs, name="etl"))
+    if not savedir.joinpath("predict.json").exists() or not skip_existing:
+        # riotbench_dataset(get_predict_task_graphs, name="predict")
+        save_dataset(savedir, riotbench_dataset(get_predict_task_graphs, name="predict"))
+    if not savedir.joinpath("stats.json").exists() or not skip_existing:
+        # riotbench_dataset(get_stats_task_graphs, name="stats")
+        save_dataset(savedir, riotbench_dataset(get_stats_task_graphs, name="stats"))
+    if not savedir.joinpath("train.json").exists() or not skip_existing:
+        # riotbench_dataset(get_train_task_graphs, name="train")
+        save_dataset(savedir, riotbench_dataset(get_train_task_graphs, name="train"))
 
     # # Wfcommons
-    # wfcommons_dataset("epigenomics")
-    # wfcommons_dataset("montage")
-    # wfcommons_dataset("cycles")
-    # wfcommons_dataset("seismology")
-    # wfcommons_dataset("soykb")
-    # wfcommons_dataset("srasearch")
-    # wfcommons_dataset("genome")
-    # wfcommons_dataset("blast")
-    # wfcommons_dataset("bwa")
+    for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
+        if not savedir.joinpath(f"{recipe_name}.json").exists() or not skip_existing:
+            # wfcommons_dataset(recipe_name)
+            save_dataset(savedir, wfcommons_dataset(recipe_name))
+
+def run_wfcommons_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
+    """Generate the datasets."""
+    random.seed(0) # For reproducibility
+    np.random.seed(0)
+    savedir.mkdir(parents=True, exist_ok=True)
 
     # Wfcommons w/ different CCRs
-    ccrs = [1/5, 2/5, 3/5, 4/5, 1, 5/4, 5/3, 5/2, 5]
+    ccrs = [1/5, 1/2, 1, 2, 5]
     for ccr in ccrs:
-        wfcommons_dataset("epigenomics", ccr=ccr, dataset_name=f"epigenomics_ccr{ccr}")
-        wfcommons_dataset("montage", ccr=ccr, dataset_name=f"montage_ccr{ccr}")
-        wfcommons_dataset("cycles", ccr=ccr, dataset_name=f"cycles_ccr{ccr}")
-        wfcommons_dataset("seismology", ccr=ccr, dataset_name=f"seismology_ccr{ccr}")
-        wfcommons_dataset("soykb", ccr=ccr, dataset_name=f"soykb_ccr{ccr}")
-        wfcommons_dataset("srasearch", ccr=ccr, dataset_name=f"srasearch_ccr{ccr}")
-        wfcommons_dataset("genome", ccr=ccr, dataset_name=f"genome_ccr{ccr}")
-        wfcommons_dataset("blast", ccr=ccr, dataset_name=f"blast_ccr{ccr}")
-        wfcommons_dataset("bwa", ccr=ccr, dataset_name=f"bwa_ccr{ccr}")
-
-
-    # # List vs Cluster
-    # listvscluster_dataset()
-
-
-
-if __name__ == "__main__":
-    main()
+        for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
+            if not savedir.joinpath(f"{recipe_name}_ccr_{ccr}.json").exists() or not skip_existing:
+                # wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}")
+                save_dataset(savedir, wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}"))

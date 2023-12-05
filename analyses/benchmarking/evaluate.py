@@ -3,6 +3,8 @@ import logging
 import pathlib
 import random
 
+import numpy as np
+
 from datasets import load_dataset
 from joblib import Parallel, delayed
 from saga.data import Dataset
@@ -20,7 +22,7 @@ exclude_schedulers = [ # exclude optimal schedulers
 ]
 
 all_datasets = [
-    path.stem for path in thisdir.joinpath(".datasets").glob("*.json")
+    path.stem for path in thisdir.joinpath("datasets").glob("*.json")
 ]
 
 def get_schedulers() -> list[Scheduler]:
@@ -75,7 +77,8 @@ def get_parser() -> argparse.ArgumentParser:
 
 def main():
     """Run the benchmarking."""
-    random.seed(9281995) # For reproducibility
+    random.seed(0) # For reproducibility
+    np.random.seed(0) # For reproducibility
 
     # Parse arguments
     parser = get_parser()
