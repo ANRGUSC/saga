@@ -1,6 +1,8 @@
 import itertools
 from saga.general import GeneralScheduler
 from saga.general.RankingHeuristics import upward_rank_sort, downward_rank_sort
+from saga.general.ScheduleType.insertion_scheduler import InsertionScheduler
+from saga.general.SelectionMetrics.heft_selector import heft_selector
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 import networkx as nx
@@ -34,11 +36,9 @@ def main():
         else:
             network.add_edge(src, dst, weight=1e9)
 
-    scheduler = GeneralScheduler(upward_rank_sort)
+    scheduler = GeneralScheduler(upward_rank_sort, InsertionScheduler, heft_selector)
     schedule = scheduler.schedule(network, task_graph)
-
-    scheduler = GeneralScheduler(downward_rank_sort)
-    schedule = scheduler.schedule(network, task_graph)
+    print(schedule)
 
     # draw the task graph
     # ax: plt.Axes = draw_task_graph(task_graph)

@@ -7,6 +7,9 @@ from typing import Callable, Dict, List, Tuple
 import networkx as nx
 
 from matplotlib import pyplot as plt
+from saga.general.RankingHeuristics.cpop_sorts import upward_rank_sort
+from saga.general.ScheduleType.insertion_scheduler import InsertionScheduler
+from saga.general.SelectionMetrics import heft_selector
 
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
@@ -16,6 +19,7 @@ from saga.schedulers import (
     BILScheduler, FLBScheduler, DPSScheduler, GDLScheduler, MsbcScheduler,
     SufferageScheduler
 )
+from saga.general import GeneralScheduler
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
 from saga.schedulers.stochastic.stoch_heft import StochHeftScheduler
@@ -191,8 +195,9 @@ def test_common_schedulers():
         "branching": add_random_weights(get_branching_dag()),
     }
     network = add_random_weights(get_network())
+
     schedulers = [
-        # HeftScheduler(),
+        HeftScheduler(),
         # CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
@@ -212,7 +217,7 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
+        GeneralScheduler(upward_rank_sort, InsertionScheduler, heft_selector),
     ]
 
     for scheduler in schedulers:

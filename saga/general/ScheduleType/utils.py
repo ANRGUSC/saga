@@ -2,6 +2,22 @@ from typing import List, Tuple
 
 from saga.scheduler import Task
 
+def get_ready_time(node, task_name, task_graph, commtimes, task_schedule):
+    return  max(  #
+                    [
+                        0.0,
+                        *[
+                            task_schedule[parent].end
+                            + (
+                                commtimes[(task_schedule[parent].node, node)][
+                                    (parent, task_name)
+                                ]
+                            )
+                            for parent in task_graph.predecessors(task_name)
+                        ],
+                    ]
+                )
+
 
 def get_insert_loc(schedule: List[Task], 
                    min_start_time: float, 
