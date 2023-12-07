@@ -1,7 +1,6 @@
 import argparse
 import pathlib
 from functools import partial
-import re
 
 from saga.schedulers import (
     BILScheduler, CpopScheduler, DuplexScheduler,
@@ -16,9 +15,7 @@ import exp_wfcommons
 import exp_benchmarking
 import prepare_datasets
 import post_benchmarking
-
-from post_load import results_to_csv
-from post_tab_results import tab_results
+import post_compare_all
 
 import pathlib
 
@@ -32,6 +29,7 @@ def chain(funcs):
 
 def tab_results_ccr(resultsdir: pathlib.Path,
                     savedir: pathlib.Path,
+                    benchmarking_resultsdir: pathlib.Path = None,
                     upper_threshold: float = 5.0,
                     include_hybrid = False,
                     add_worst_row = False,
@@ -39,10 +37,10 @@ def tab_results_ccr(resultsdir: pathlib.Path,
     for recipe_path in resultsdir.glob("*"):
         for resultsdir in recipe_path.glob("ccr_*"):
             if not resultsdir.joinpath("results.csv").exists() or reprocess:
-                results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
+                post_compare_all.results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
                 
             ccr = float(resultsdir.name.split("_")[-1])
-            tab_results(
+            post_compare_all.tab_results(
                 resultsdir=resultsdir,
                 savedir=savedir.joinpath(recipe_path.stem, f"ccr_{ccr}"),
                 upper_threshold=upper_threshold,
@@ -57,12 +55,12 @@ experiments = {
             output_path=thisdir.joinpath("results", "compare_all"),
         ),
         "process": partial(
-            results_to_csv,
+            post_compare_all.results_to_csv,
             resultspath=thisdir.joinpath("results", "compare_all"),
             outputpath=thisdir.joinpath("output", "compare_all")
         ),
         "plot": partial(
-            tab_results,
+            post_compare_all.tab_results,
             savedir=thisdir.joinpath("output", "compare_all"),
             upper_threshold=2.0,
         ),
