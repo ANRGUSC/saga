@@ -1,9 +1,4 @@
 import pathlib
-
-import matplotlib
-
-matplotlib.use("Agg")
-
 from functools import lru_cache
 from typing import Dict
 
@@ -17,6 +12,14 @@ thisdir = pathlib.Path(__file__).parent.absolute()
 
 @lru_cache(maxsize=1)
 def load_results(resultspath: pathlib.Path) -> Dict[str, Dict[str, SimulatedAnnealing]]:
+    """Load results from resultspath.
+
+    Args:
+        resultspath: path to results directory
+
+    Returns:
+        results: dict of dicts of SimulatedAnnealing objects
+    """
     results = {}
     for base_path in resultspath.glob("*"):
         results[base_path.name] = {}
@@ -26,6 +29,14 @@ def load_results(resultspath: pathlib.Path) -> Dict[str, Dict[str, SimulatedAnne
 
 
 def to_df(results: Dict[str, Dict[str, SimulatedAnnealing]]) -> pd.DataFrame:
+    """Convert results to dataframe.
+
+    Args:
+        results: dict of dicts of SimulatedAnnealing objects
+
+    Returns:
+        df_results: dataframe of results
+    """
     rows = []
     for base_scheduler_name, base_scheduler_results in results.items():
         for scheduler_name, scheduler_results in base_scheduler_results.items():
@@ -36,27 +47,45 @@ def to_df(results: Dict[str, Dict[str, SimulatedAnnealing]]) -> pd.DataFrame:
     return df_results
 
 def load_results_csv(outputpath: pathlib.Path) -> pd.DataFrame:
+    """Load results from outputpath.
+
+    Args:
+        outputpath: path to output directory
+
+    Returns:
+        df_results: dataframe of results
+    """
     df_results = pd.read_csv(outputpath.joinpath("results.csv"), index_col=0)
     return df_results
 
 def results_to_csv(resultspath: pathlib.Path,
                    outputpath: pathlib.Path):
+    """Convert results to csv.
+
+    Args:
+        resultspath: path to results directory
+        outputpath: path to output directory
+
+    Returns:
+        df_results: dataframe of results
+    """
     df_results = to_df(load_results(resultspath))
     df_results.to_csv(outputpath.joinpath("results.csv"))
-
-def print_stats(outputpath: pathlib.Path):
-    df_results = load_results_csv(outputpath)
-    df_hybrid = df_results[df_results["Scheduler"].str.startswith("Not")]
-    for row in df_hybrid.itertuples():
-        print(row)
-
 
 def tab_results(resultsdir: pathlib.Path,
                 savedir: pathlib.Path,
                 upper_threshold: float = 5.0,
                 include_hybrid = False,
                 add_worst_row = True) -> None:
-    """Generate table of results."""
+    """Generate table of results.
+
+    Args:
+        resultsdir: path to results directory
+        savedir: path to save directory
+        upper_threshold: upper threshold for heatmap
+        include_hybrid: whether to include hybrid results
+        add_worst_row: whether to add a row for the worst result
+    """
     savedir.mkdir(parents=True, exist_ok=True)
     df_all_results = load_results_csv(resultsdir)
 
@@ -73,7 +102,7 @@ def tab_results(resultsdir: pathlib.Path,
     df_all_results["Base Scheduler"] = df_all_results["Base Scheduler"].replace(rename_dict)
 
     df_results = df_all_results[
-        (~df_all_results["Scheduler"].str.startswith("Not")) & 
+        (~df_all_results["Scheduler"].str.startswith("Not")) &
         (~df_all_results["Base Scheduler"].str.startswith("Not"))]
     if include_hybrid:
         hybrid_values = []
