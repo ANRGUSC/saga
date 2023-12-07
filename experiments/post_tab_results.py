@@ -1,12 +1,13 @@
 import pathlib
 
 import matplotlib
+
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from post_load import load_results_csv
 from plot import gradient_heatmap
+from post_load import load_results_csv
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
