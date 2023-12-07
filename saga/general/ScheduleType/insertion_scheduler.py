@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, List
+from typing import Dict, Hashable, List, Tuple
 from saga.scheduler import Task
 from .schedule_type import ScheduleType
 from .utils import get_insert_loc, get_ready_time
@@ -6,7 +6,11 @@ import networkx as nx
 
 class InsertionScheduler(ScheduleType):
     
-    def __init__(self, task_graph:nx.DiGraph, runtimes, commtimes):
+    def __init__(self, task_graph:nx.DiGraph, 
+                 runtimes:Dict[Hashable, Dict[Hashable, float]], 
+                 commtimes: Dict[
+                    Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
+                ],):
         self.task_graph = task_graph
         self.runtimes = runtimes
         self.commtimes = commtimes

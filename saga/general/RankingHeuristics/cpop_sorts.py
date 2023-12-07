@@ -75,16 +75,49 @@ def downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, f
 
 
 def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+    """
+    Sorts the tasks in the task graph by their upward rank.
+    
+    Args:
+        network (nx.Graph): The network to schedule onto.
+        task_graph (nx.DiGraph): The task graph to schedule.
+    
+    Returns:
+        List[Hashable]: The sorted tasks.
+    """
+    
     rank = upward_rank(network, task_graph)
 
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+    """
+    Sorts the tasks in the task graph by their downward rank.
+    
+    Args:
+        network (nx.Graph): The network to schedule onto.
+        task_graph (nx.DiGraph): The task graph to schedule.
+    
+    Returns:
+        List[Hashable]: The sorted tasks.
+    """
+
     rank = downward_rank(network, task_graph)
 
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 def upward_downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+    """
+    Sorts the tasks in the task graph by their upward+downward rank.
+    
+    Args:
+        network (nx.Graph): The network to schedule onto.
+        task_graph (nx.DiGraph): The task graph to schedule.
+    
+    Returns:
+        List[Hashable]: The sorted tasks.
+    """
+
     upward_ranks = upward_rank(network, task_graph)
     downward_ranks = downward_rank(network, task_graph)
     return {
