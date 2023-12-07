@@ -30,6 +30,26 @@ def chain(funcs):
             func(*args, **kwargs)
     return chained_func
 
+def tab_results_ccr(resultsdir: pathlib.Path,
+                    savedir: pathlib.Path,
+                    upper_threshold: float = 5.0,
+                    include_hybrid = False,
+                    add_worst_row = False,
+                    reprocess = False) -> None:
+    for recipe_path in resultsdir.glob("*"):
+        for resultsdir in recipe_path.glob("ccr_*"):
+            if not resultsdir.joinpath("results.csv").exists() or reprocess:
+                results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
+                
+            ccr = float(resultsdir.name.split("_")[-1])
+            tab_results(
+                resultsdir=resultsdir,
+                savedir=savedir.joinpath(recipe_path.stem, f"ccr_{ccr}"),
+                upper_threshold=upper_threshold,
+                include_hybrid=include_hybrid,
+                add_worst_row=add_worst_row
+            )
+
 experiments = {
     "compare_all": {
         "run": partial(
@@ -46,6 +66,28 @@ experiments = {
             savedir=thisdir.joinpath("output", "compare_all"),
             upper_threshold=2.0,
         ),
+    },
+    "compare_wfcommons_ccr": {
+        "run": partial(
+            exp_wfcommons.run_many,
+            output_path=thisdir.joinpath("results", "compare_wfcommons_ccr"),
+            cloud="chameleon",
+            ccrs=[1/5, 1/2, 1, 2, 5],
+            schedulers=[
+                CpopScheduler(),
+                FastestNodeScheduler(),
+                HeftScheduler(),
+                MaxMinScheduler(),
+                MinMinScheduler(),
+                WBAScheduler(),
+            ]
+        ),
+        "plot": partial(
+            tab_results_ccr,
+            resultsdir=thisdir.joinpath("results", "compare_wfcommons_ccr"),
+            savedir=thisdir.joinpath("output", "compare_wfcommons_ccr"),
+            # upper_threshold=2.0,
+        )
     },
     "benchmarking": {
         "prepare": prepare_datasets.run,
@@ -88,20 +130,11 @@ experiments = {
             datadir=thisdir.joinpath("datasets", "benchmarking_wfcommons_ccr"),
             resultsdir=thisdir.joinpath("results", "benchmarking_wfcommons_ccr"),
             schedulers=[
-                # BILScheduler(),
                 CpopScheduler(),
-                # DuplexScheduler(),
-                # ETFScheduler(),
                 FastestNodeScheduler(),
-                # FCPScheduler(),
-                # FLBScheduler(),
-                # GDLScheduler(),
                 HeftScheduler(),
                 MaxMinScheduler(),
-                # MCTScheduler(),
-                # METScheduler(),
                 MinMinScheduler(),
-                # OLBScheduler(),
                 WBAScheduler(),
             ],
             trim=0,
@@ -134,21 +167,6 @@ experiments = {
         ),
     },
 }
-# for recipe_name in ["montage", "srasearch"]:
-#     for ccr in [(1,5),(2,5),(3,5),(4,5),(1,1),(5,4),(5,3),(5,2),(5,1)]:
-#         experiments[f"{recipe_name}_ccr_{ccr[0]}_{ccr[1]}"] = {
-#             "run": partial(
-#                 exp_wfcommons.run,
-#                 cloud="chameleon",
-#                 recipe_name=recipe_name,
-#                 ccr=ccr[0]/ccr[1],
-#             ),
-#             "proccess": partial(
-#                 tab_results,
-#                 upper_threshold=2.0,
-#             ),
-#         }
-
         
 def get_parser():
     parser = argparse.ArgumentParser(description="Run an experiment")

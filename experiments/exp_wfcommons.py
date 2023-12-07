@@ -11,9 +11,7 @@ import numpy as np
 from changes import Change
 from simulated_annealing import SimulatedAnnealing
 
-from saga.schedulers import (CpopScheduler, SufferageScheduler,
-                             FastestNodeScheduler, HeftScheduler,
-                             MaxMinScheduler, MinMinScheduler, WBAScheduler)
+from saga.scheduler import Scheduler
 from saga.schedulers.data.wfcommons import (get_networks, get_num_task_range,
                                             get_real_networks, get_real_workflows,
                                             get_workflow_task_info, recipes,
@@ -196,6 +194,7 @@ def run(output_path: pathlib.Path,
         cloud: str,
         recipe_name: str,
         ccr: float,
+        schedulers: List[Scheduler],
         neighbor_granularity: float = 10,
         max_iterations: int = 1000,
         num_runs: int = 1):
@@ -206,6 +205,7 @@ def run(output_path: pathlib.Path,
         cloud (str): The cloud type for the network.
         recipe_name (str): The recipe name for the workflow.
         ccr (float): The CCR for the network.
+        schedulers (List[Scheduler]): The schedulers to run.
         neighbor_granularity (float, optional): The granularity of weight changes. A higher granularity means
             smaller changes between neighbor graphs. Defaults to 10.
         max_iterations (int, optional): The maximum number of iterations for the simulated annealing algorithm. Defaults to 1000.
@@ -226,20 +226,16 @@ def run(output_path: pathlib.Path,
 
     network_speed = mean_edge_weight / (ccr * mean_task_weight) 
 
-    schedulers = {
-        "HEFT": HeftScheduler(),
-        "CPoP": CpopScheduler(),
-        "MinMin": MinMinScheduler(),
-        "MaxMin": MaxMinScheduler(),
-        "Sufferage": SufferageScheduler(),
-        "WBA": WBAScheduler(),
+    all_schedulers = {
+        scheduler.__class__.__name__.removesuffix("Scheduler"): scheduler
+        for scheduler in schedulers
     }
     rerun_all = False
     rerun_schedulers = {"MinMin"}
     rerun_base_schedulers = set()
 
     for _ in range(num_runs):
-        for (target_sched_name, target_scheduler), (base_sched_name, base_scheduler) in product(schedulers.items(), schedulers.items()):
+        for (target_sched_name, target_scheduler), (base_sched_name, base_scheduler) in product(all_schedulers.items(), all_schedulers.items()):
             if target_sched_name == base_sched_name:
                 continue
             savepath = output_path.joinpath(f'{base_sched_name}/{target_sched_name}.pkl')
@@ -279,3 +275,41 @@ def run(output_path: pathlib.Path,
             else:
                 print(f"Saving base={base_sched_name}, target={target_sched_name} because new energy is better (old={old_energy}, new={sa.iterations[-1].best_energy})")
                 savepath.write_bytes(pickle.dumps(sa))
+
+
+def run_many(output_path: pathlib.Path,
+             cloud: str,
+             ccrs: List[float],
+             schedulers: List[Scheduler],
+             recipe_name: str = None,
+             neighbor_granularity: float = 10,
+             max_iterations: int = 1000,
+             num_runs: int = 1):
+    """Runs experiment.
+
+    Args:
+        output_path (pathlib.Path): Path to save results.
+        cloud (str): The cloud type for the network.
+        recipe_name (str): The recipe name for the workflow.
+        ccrs (List[float]): The CCRs for the network.
+        schedulers (List[Scheduler]): The schedulers to run.
+        neighbor_granularity (float, optional): The granularity of weight changes. A higher granularity means
+            smaller changes between neighbor graphs. Defaults to 10.
+        max_iterations (int, optional): The maximum number of iterations for the simulated annealing algorithm. Defaults to 1000.
+        num_runs (int, optional): The number of runs to perform. Defaults to 1.
+    """
+    all_recipes = [
+        name
+        for name in recipes.keys()
+        if name is None or recipe_name == name
+    ]
+    for recipe_name in all_recipes:
+        for ccr in ccrs:
+            run(output_path=output_path.joinpath(recipe_name, f"ccr_{ccr}"),
+                cloud=cloud,
+                recipe_name=recipe_name,
+                ccr=ccr,
+                schedulers=schedulers,
+                neighbor_granularity=neighbor_granularity,
+                max_iterations=max_iterations,
+                num_runs=num_runs)
