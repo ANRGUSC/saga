@@ -1,5 +1,4 @@
 from typing import Dict, Hashable, List
-from queue import PriorityQueue
 import networkx as nx
 import numpy as np
 def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
@@ -75,7 +74,7 @@ def downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, f
     return ranks
 
 
-def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
+def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """
     Sorts the tasks in the task graph by their upward rank.
     
@@ -88,11 +87,8 @@ def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue
     """
     
     rank = upward_rank(network, task_graph)
-    queue = PriorityQueue()
-    for task_name, task_rank in rank.items():
-        queue.put((-task_rank, task_name))
 
-    return queue
+    return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """
@@ -108,11 +104,7 @@ def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashab
 
     rank = downward_rank(network, task_graph)
 
-    queue = PriorityQueue()
-    for task_name, task_rank in rank.items():
-        queue.put((-task_rank, task_name))
-
-    return queue
+    return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 def upward_downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """
@@ -128,8 +120,7 @@ def upward_downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hash
 
     upward_ranks = upward_rank(network, task_graph)
     downward_ranks = downward_rank(network, task_graph)
-    queue = PriorityQueue()
-    for task_name in task_graph.nodes:
-        queue.put((-upward_ranks[task_name] - downward_ranks[task_name], task_name))
-    
-    return queue
+    return {
+        task_name: (upward_ranks[task_name] + downward_ranks[task_name])
+        for task_name in task_graph.nodes
+    }

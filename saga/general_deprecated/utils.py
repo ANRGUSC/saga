@@ -55,5 +55,3 @@ def get_runtimes(
                 )
 
         return runtimes, commtimes
-
-

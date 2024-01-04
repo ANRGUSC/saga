@@ -1,17 +1,34 @@
-from typing import Dict, Hashable, List, Callable
+from abc import abstractmethod
+from queue import PriorityQueue
+from typing import Dict, Hashable, List, Callable, Optional, Tuple
 import networkx as nx
-
-from .ScheduleType.schedule_type import ScheduleType
 from ..scheduler import Scheduler, Task
 from .utils import get_runtimes
+#QUESTIONS: Are Prioritqueue and ranking_heuristic the same thing for dynamic scheduling?
+
+class Filter:
+    @abstractmethod
+    def __call__(self, network: nx.Graph, task_graph: nx.DiGraph, priority_queue: PriorityQueue, schedule: Dict[Hashable, List[Task]]) -> PriorityQueue:
+        raise NotImplementedError
+
 class GeneralScheduler(Scheduler):
     """
     A general scheduler that takes in a ranking heuristic, a schedule type and a task selector and schedules a task graph onto a network.
     """
-    def __init__(self, ranking_heuristic: Callable[[nx.Graph, nx.DiGraph], List[Hashable]], 
-                 schedule_type: ScheduleType, 
-                 selector: Callable[[nx.Graph, List[Hashable], ScheduleType], Dict[Hashable, List[Task]]]
-                 ) -> None:
+    def __init__(self,
+                ranking_heuristic: Callable[[nx.Graph, nx.DiGraph], List[Hashable]], 
+                get_priority_queue: Callable[[nx.Graph, nx.DiGraph, Optional[PriorityQueue], Optional[Dict[Hashable, List[Task]]]], PriorityQueue],
+                # filter: Filter,
+                insert_task: Callable[[nx.Graph,
+                                       nx.DiGraph,
+                                       Dict[Hashable, Dict[Hashable, float]], #runtimes
+                                       Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]], #commtimes
+                                       Dict[Hashable, List[Task]], #comp_schedule
+                                       Dict[Hashable, Task], #task_schedule
+                                       Hashable], #task_name
+                                       None],
+                k = 1
+                ) -> None:
         """
         Args:
             ranking_heuristic (Callable[[nx.Graph, nx.DiGraph], List[Hashable]]): The heuristic used to get the initial ranking of the tasks
@@ -19,8 +36,12 @@ class GeneralScheduler(Scheduler):
             selector (Callable[[nx.Graph, List[Hashable], ScheduleType], Dict[Hashable, List[Task]]]): The task selector to use, for eg. HEFT or CPOP
         """
         self.ranking_heauristic = ranking_heuristic
-        self.schedule_type = schedule_type
-        self.selector = selector
+        if get_priority_queue:
+            self.get_priority_queue = get_priority_queue
+        else:
+            self.get_priority_queue = lambda network, task_graph, priority_queue, schedule: priority_queue
+        self.insert_task = insert_task
+        self.k = k
 
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph
     ) -> Dict[Hashable, List[Task]]:
@@ -34,9 +55,21 @@ class GeneralScheduler(Scheduler):
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
         """
-        rankings = self.ranking_heauristic(network, task_graph)
+        priority_queue = self.ranking_heauristic(network, task_graph)
         runtimes, commtimes = get_runtimes(network, task_graph)
-        schedule_type_obj = self.schedule_type(task_graph, runtimes, commtimes)
-        return self.selector(network, rankings, schedule_type_obj)
+        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[Hashable, Task] = {}
+        priority_queue = self.get_priority_queue(network, task_graph, priority_queue, comp_schedule)
+        while priority_queue.qsize()>0:
+
+            for _ in range(k):
+                _pq = PriorityQueue([(task_name, priority) for priority, task_name in priority_queue.queue
+                                    if task_graph.prededecessors.issubset(task_schedule.keys())])
+                _, (task_name, priority) = _pq.get()
+                self.insert_task(network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, task_name)
+                priority_queue = self.get_priority_queue(network, task_graph, priority_queue, comp_schedule)
+
+
+        return comp_schedule
 
 
