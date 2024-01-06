@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 from saga.general import GeneralScheduler
 from saga.general.InsertTask import earliest_finish_time_insert_schedule, critical_path_insert_schedule
-from saga.general.RankingHeuristics import upward_rank_sort, cpop_rank_sort
+from saga.general.RankingHeuristics import upward_rank_sort, cpop_rank_sort, random_rank_sort
 
 
 from saga.scheduler import Scheduler, Task

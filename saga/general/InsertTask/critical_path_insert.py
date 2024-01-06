@@ -16,7 +16,7 @@ def critical_path_insert_schedule(
         ) -> None:
     
 
-    if priority == 1:
+    if priority and priority == 1:
 
         critical_node = max(network.nodes, key=lambda node: network.nodes[node]['weight'])
         insert(task_graph, runtimes, commtimes, critical_node, task_name, comp_schedule, task_schedule)

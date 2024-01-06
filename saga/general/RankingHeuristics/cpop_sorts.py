@@ -94,7 +94,7 @@ def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue
 
     return queue
 
-def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
     """
     Sorts the tasks in the task graph by their downward rank.
     
@@ -114,7 +114,7 @@ def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashab
 
     return queue
 
-def cpop_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+def cpop_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
     """
     Sorts the tasks in the task graph by their upward+downward rank.
     
