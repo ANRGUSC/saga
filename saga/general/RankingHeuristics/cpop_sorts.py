@@ -90,7 +90,7 @@ def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue
     rank = upward_rank(network, task_graph)
     queue = PriorityQueue()
     for task_name, task_rank in rank.items():
-        queue.put((-task_rank, task_name))
+        queue.put((-task_rank, (task_name, None)))
 
     return queue
 
@@ -110,11 +110,11 @@ def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashab
 
     queue = PriorityQueue()
     for task_name, task_rank in rank.items():
-        queue.put((-task_rank, task_name))
+        queue.put((-task_rank, (task_name, None)))
 
     return queue
 
-def upward_downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+def cpop_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """
     Sorts the tasks in the task graph by their upward+downward rank.
     
@@ -129,7 +129,10 @@ def upward_downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hash
     upward_ranks = upward_rank(network, task_graph)
     downward_ranks = downward_rank(network, task_graph)
     queue = PriorityQueue()
+    start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)
+    cp_val = upward_ranks[start_task] + downward_ranks[start_task]
     for task_name in task_graph.nodes:
-        queue.put((-upward_ranks[task_name] - downward_ranks[task_name], task_name))
+        priority = 1 if np.isclose(cp_val, upward_ranks[task_name] + downward_ranks[task_name]) else 0
+        queue.put((-upward_ranks[task_name] - downward_ranks[task_name], (task_name, priority)))
     
     return queue

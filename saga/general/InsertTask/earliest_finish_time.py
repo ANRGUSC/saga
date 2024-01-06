@@ -27,7 +27,9 @@ def earliest_finish_time_insert_schedule(
     commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
     comp_schedule: Dict[Hashable, List[Task]],
     task_schedule: Dict[Hashable, Task],
-    task_name: Hashable) -> None:
+    task_name: Hashable,
+    _: int,
+    ) -> None:
     """
     Insert the task into the schedule at the earliest possible finish time.
 
@@ -52,5 +54,3 @@ def earliest_finish_time_insert_schedule(
             min_finish_time = finish_time
             best_node = node
     insert(task_graph, runtimes, commtimes, best_node, task_name, comp_schedule, task_schedule)
-    
-        

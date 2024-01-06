@@ -1,5 +1,5 @@
-from abc import abstractmethod
 from queue import PriorityQueue
+from abc import abstractmethod
 from typing import Dict, Hashable, List, Callable, Optional, Tuple
 import networkx as nx
 from ..scheduler import Scheduler, Task
@@ -10,6 +10,8 @@ class Filter:
     @abstractmethod
     def __call__(self, network: nx.Graph, task_graph: nx.DiGraph, priority_queue: PriorityQueue, schedule: Dict[Hashable, List[Task]]) -> PriorityQueue:
         raise NotImplementedError
+
+
 
 class GeneralScheduler(Scheduler):
     """
@@ -61,14 +63,20 @@ class GeneralScheduler(Scheduler):
         task_schedule: Dict[Hashable, Task] = {}
         priority_queue = self.get_priority_queue(network, task_graph, priority_queue, comp_schedule)
         while priority_queue.qsize()>0:
+            
+            
+            # _pq = PriorityQueue([(task_name, priority) for priority, task_name in priority_queue.queue
+            #                     if task_graph.prededecessors.issubset(task_schedule.keys())])
 
-            for _ in range(k):
-                _pq = PriorityQueue([(task_name, priority) for priority, task_name in priority_queue.queue
-                                    if task_graph.prededecessors.issubset(task_schedule.keys())])
-                _, (task_name, priority) = _pq.get()
-                self.insert_task(network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, task_name)
-                priority_queue = self.get_priority_queue(network, task_graph, priority_queue, comp_schedule)
-
+            ranking, (task_name, priority) = priority_queue.get()
+            tempList = []
+            while not set(task_graph.predecessors(task_name)).issubset(task_schedule.keys()):
+                tempList.append((ranking, task_name, priority))
+                ranking, (task_name, priority) = priority_queue.get()
+            self.insert_task(network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, task_name, priority)
+            priority_queue = self.get_priority_queue(network, task_graph, priority_queue, comp_schedule)
+            for ranking, task_name, priority in tempList:
+                priority_queue.put((ranking, (task_name, priority)))
 
         return comp_schedule
 

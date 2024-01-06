@@ -9,8 +9,8 @@ import networkx as nx
 from matplotlib import pyplot as plt
 
 from saga.general import GeneralScheduler
-from saga.general.InsertTask import earliest_finish_time_insert_schedule
-from saga.general.RankingHeuristics import upward_rank_sort
+from saga.general.InsertTask import earliest_finish_time_insert_schedule, critical_path_insert_schedule
+from saga.general.RankingHeuristics import upward_rank_sort, cpop_rank_sort
 
 
 from saga.scheduler import Scheduler, Task
@@ -198,8 +198,8 @@ def test_common_schedulers():
     network = add_random_weights(get_network())
 
     schedulers = [
-        HeftScheduler(),
-        # CpopScheduler(),
+        # HeftScheduler(),
+        CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
         # MinMinScheduler(),
@@ -218,7 +218,7 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        GeneralScheduler(upward_rank_sort, None, earliest_finish_time_insert_schedule, k=1),
+        GeneralScheduler(cpop_rank_sort, None, critical_path_insert_schedule, k=1),
     ]
 
     for scheduler in schedulers:
