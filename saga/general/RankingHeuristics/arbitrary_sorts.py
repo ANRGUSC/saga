@@ -14,8 +14,8 @@ def random_rank_sort(_: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
         List[Hashable]: The sorted tasks.
     """
 
-    queue = PriorityQueue()
+    queue = []
     for task_name in task_graph.nodes:
-        queue.put((random.random(), (task_name, None)))
-
-    return queue
+        queue.append((task_name, None))
+    
+    return sorted(queue, key=lambda _: random.random(), reverse=True)
