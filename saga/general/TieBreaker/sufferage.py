@@ -1,9 +1,7 @@
-
-from queue import PriorityQueue
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
-
 from saga.scheduler import Task
+
 def sufferage_tiebreaker(
         network: nx.Graph,
         task_graph: nx.DiGraph,
@@ -12,7 +10,7 @@ def sufferage_tiebreaker(
         comp_schedule: Dict[Hashable, List[Task]],
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
-        ) -> Hashable:
+        ) -> Tuple[Hashable, int]:
 
     def get_eat(node: Hashable) -> float:
         """Earliest available time on a node"""
