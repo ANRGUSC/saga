@@ -8,6 +8,11 @@ import networkx as nx
 
 from matplotlib import pyplot as plt
 
+from saga.general import GeneralScheduler
+from saga.general.InsertTask import earliest_finish_time_insert_schedule, critical_path_insert_schedule
+from saga.general.RankingHeuristics import upward_rank_sort, cpop_rank_sort, random_rank_sort
+from saga.general.TieBreaker import sufferage_tiebreaker, random_tiebreaker
+
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
@@ -182,6 +187,20 @@ class Test:
         return True
 
 
+# class KDepth:
+#     def __init__(self, scheduler, k: int = 1):
+#         self.scheduler = scheduler
+
+#     def __call__(self, network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, priority_queue):
+        
+#         for task in priority_queue:
+#             _task_graph = None # trim task_graph to only include child tasks within k distance from task
+#             _task_schedule = deepcopy(task_schedule)
+
+#             self.scheduler.insert_task(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, task)
+#             schedule = self.scheduler(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, priority_queue)
+#            # TODO: return option w/ smallest makespan
+
 def test_common_schedulers():
     """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
@@ -191,9 +210,10 @@ def test_common_schedulers():
         "branching": add_random_weights(get_branching_dag()),
     }
     network = add_random_weights(get_network())
+
     schedulers = [
         # HeftScheduler(),
-        # CpopScheduler(),
+        CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
         # MinMinScheduler(),
@@ -212,7 +232,16 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
+        # SufferageScheduler(),
+        GeneralScheduler(
+            cpop_rank_sort, None, earliest_finish_time_insert_schedule
+            # KDepth(
+            #     GeneralScheduler(
+            #         cpop_rank_sort, None, critical_path_insert_schedule
+            #     )
+            # ), 
+            # critical_path_insert_schedule
+        ),
     ]
 
     for scheduler in schedulers:
