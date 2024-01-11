@@ -187,6 +187,20 @@ class Test:
         return True
 
 
+# class KDepth:
+#     def __init__(self, scheduler, k: int = 1):
+#         self.scheduler = scheduler
+
+#     def __call__(self, network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, priority_queue):
+        
+#         for task in priority_queue:
+#             _task_graph = None # trim task_graph to only include child tasks within k distance from task
+#             _task_schedule = deepcopy(task_schedule)
+
+#             self.scheduler.insert_task(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, task)
+#             schedule = self.scheduler(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, priority_queue)
+#            # TODO: return option w/ smallest makespan
+
 def test_common_schedulers():
     """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
@@ -199,7 +213,7 @@ def test_common_schedulers():
 
     schedulers = [
         # HeftScheduler(),
-        # CpopScheduler(),
+        CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
         # MinMinScheduler(),
@@ -218,8 +232,16 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
-        GeneralScheduler(upward_rank_sort, random_tiebreaker, earliest_finish_time_insert_schedule, k=1),
+        # SufferageScheduler(),
+        GeneralScheduler(
+            cpop_rank_sort, None, earliest_finish_time_insert_schedule
+            # KDepth(
+            #     GeneralScheduler(
+            #         cpop_rank_sort, None, critical_path_insert_schedule
+            #     )
+            # ), 
+            # critical_path_insert_schedule
+        ),
     ]
 
     for scheduler in schedulers:

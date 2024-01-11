@@ -74,7 +74,9 @@ class GeneralScheduler(Scheduler):
         self.k = k
 
     def schedule(
-        self, network: nx.Graph, task_graph: nx.DiGraph
+        self, network: nx.Graph, task_graph: nx.DiGraph,
+        task_schedule: Dict[Hashable, Task] = None,
+        k_steps=None
     ) -> Dict[Hashable, List[Task]]:
         """
         Schedule a task graph onto a network by parameters given in the constructor.
@@ -89,7 +91,7 @@ class GeneralScheduler(Scheduler):
         priority_queue = self.ranking_heauristic(network, task_graph)
         runtimes, commtimes = get_runtimes(network, task_graph)
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
+        task_schedule: Dict[Hashable, Task] = task_schedule or {}
         while priority_queue:
             # Apply Filter here
             # ready_tasks = []
