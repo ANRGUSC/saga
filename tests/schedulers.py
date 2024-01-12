@@ -12,7 +12,7 @@ from saga.general import GeneralScheduler
 from saga.general.InsertTask import EarliestFinishTimeInsert, CriticalPathInsert
 from saga.general.RankingHeuristics import UpwardRankSort, CriticalPathSort, DownwardRankSort
 from saga.general.TieBreaker import Sufferage, RandomTieBreaker
-
+from saga.general.Filters import KFirstFilter
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
@@ -213,7 +213,7 @@ def test_common_schedulers():
 
     schedulers = [
         # HeftScheduler(),
-        CpopScheduler(),
+        # CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
         # MinMinScheduler(),
@@ -232,9 +232,9 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        # SufferageScheduler(),
+        SufferageScheduler(),
         GeneralScheduler(
-            CriticalPathSort(), None, CriticalPathInsert()
+            UpwardRankSort(), KFirstFilter(3), Sufferage(), EarliestFinishTimeInsert()
             # KDepth(
             #     GeneralScheduler(
             #         cpop_rank_sort, None, critical_path_insert_schedule

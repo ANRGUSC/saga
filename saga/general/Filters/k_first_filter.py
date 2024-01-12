@@ -2,9 +2,11 @@ from abc import ABC, abstractmethod
 import networkx as nx
 from typing import Dict, Hashable, List, Tuple
 from saga.scheduler import Task
+from .filter import Filter
 
-class Filter(ABC):
-    @abstractmethod
+class KFirstFilter(Filter):
+    def __init__(self, k: int = 1):
+        self.k = k
     def __call__(
         self,
         network: nx.Graph,
@@ -12,4 +14,4 @@ class Filter(ABC):
         priority_queue: List,
         schedule: Dict[Hashable, List[Task]],
     ):
-        raise NotImplementedError
+        return priority_queue[:self.k]

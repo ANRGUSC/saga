@@ -7,7 +7,7 @@ from saga.general.TieBreaker import TieBreaker
 from ..scheduler import Scheduler, Task
 from .utils import get_runtimes
 from saga.general.RankingHeuristics import RankingHeuristic
-from saga.general.Filter import Filter
+from saga.general.Filters import Filter
 
 
 # class Filter:
@@ -30,10 +30,10 @@ class GeneralScheduler(Scheduler):
     def __init__(
         self,
         ranking_heuristic: RankingHeuristic,
-        tie_breaker: TieBreaker,
         filter: Filter,
+        tie_breaker: TieBreaker,
         insert_task: InsertTask,
-        k=1,
+        k:int =1,
     ) -> None:
         """
         Args:
@@ -50,6 +50,12 @@ class GeneralScheduler(Scheduler):
             )
         self.insert_task = insert_task
         self.k = k
+        if filter:
+            self.filter = filter
+        else:
+            self.filter = (
+                lambda network, task_graph, priority_queue, schedule: priority_queue
+            )
 
     def schedule(
         self, network: nx.Graph, task_graph: nx.DiGraph,
@@ -81,7 +87,10 @@ class GeneralScheduler(Scheduler):
                     task_schedule.keys()
                 ):
                     ready_tasks.append((task_name, priority))
-
+            
+            ready_tasks = self.filter(
+                network, task_graph, ready_tasks, comp_schedule
+            )
             task_name, priority = self.tie_breaker(
                 network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, ready_tasks
             )
