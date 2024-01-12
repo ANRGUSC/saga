@@ -1,12 +1,11 @@
-from queue import PriorityQueue
-from typing import Dict, Hashable, List, Tuple
+from abc import ABC, abstractmethod
 import networkx as nx
+from typing import Dict, Hashable, List, Tuple
 from saga.scheduler import Task
-import random
-from .tie_breaker import TieBreaker
-class RandomTieBreaker(TieBreaker):
-    def __init__(self):
-        pass
+
+
+class TieBreaker(ABC):
+    @abstractmethod
     def __call__(
         self,
         network: nx.Graph,
@@ -19,4 +18,4 @@ class RandomTieBreaker(TieBreaker):
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
     ) -> Tuple[Hashable, int]:
-        return random.choice(priority_queue)
+        raise NotImplementedError

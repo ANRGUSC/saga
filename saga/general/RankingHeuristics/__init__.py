@@ -1,2 +1,3 @@
-from .cpop_sorts import upward_rank_sort, downward_rank_sort, cpop_rank_sort
-from .arbitrary_sorts import random_rank_sort
+from .cpop_sorts import UpwardRankSort, DownwardRankSort, CriticalPathSort
+from .arbitrary_sorts import RandomRankSort
+from .ranking_heuristic import RankingHeuristic

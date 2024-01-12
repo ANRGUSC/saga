@@ -2,22 +2,24 @@ from queue import PriorityQueue
 from abc import abstractmethod
 from typing import Dict, Hashable, List, Callable, Optional, Tuple
 import networkx as nx
+from saga.general.InsertTask import InsertTask
+from saga.general.TieBreaker import TieBreaker
 from ..scheduler import Scheduler, Task
 from .utils import get_runtimes
+from saga.general.RankingHeuristics import RankingHeuristic
+from saga.general.Filter import Filter
 
-# QUESTIONS: Are Prioritqueue and ranking_heuristic the same thing for dynamic scheduling?
 
-
-class Filter:
-    @abstractmethod
-    def __call__(
-        self,
-        network: nx.Graph,
-        task_graph: nx.DiGraph,
-        priority_queue: PriorityQueue,
-        schedule: Dict[Hashable, List[Task]],
-    ) -> PriorityQueue:
-        raise NotImplementedError
+# class Filter:
+#     @abstractmethod
+#     def __call__(
+#         self,
+#         network: nx.Graph,
+#         task_graph: nx.DiGraph,
+#         priority_queue: PriorityQueue,
+#         schedule: Dict[Hashable, List[Task]],
+#     ) -> PriorityQueue:
+#         raise NotImplementedError
 
 
 class GeneralScheduler(Scheduler):
@@ -27,34 +29,10 @@ class GeneralScheduler(Scheduler):
 
     def __init__(
         self,
-        ranking_heuristic: Callable[[nx.Graph, nx.DiGraph], List],
-        tie_breaker: Callable[
-            [
-                nx.Graph,
-                nx.DiGraph,
-                Dict[Hashable, Dict[Hashable, float]],
-                Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-                Dict[Hashable, List[Task]],  # comp_schedule
-                Dict[Hashable, Task],  # task_schedule
-                Optional[List],  # PriorityQueue, need to enforce types here
-            ],
-            Hashable,
-        ],
-        # filter: Filter,
-        insert_task: Callable[
-            [
-                nx.Graph,
-                nx.DiGraph,
-                Dict[Hashable, Dict[Hashable, float]],  # runtimes
-                Dict[
-                    Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
-                ],  # commtimes
-                Dict[Hashable, List[Task]],  # comp_schedule
-                Dict[Hashable, Task],  # task_schedule
-                Hashable,
-            ],  # task_name
-            None,
-        ],
+        ranking_heuristic: RankingHeuristic,
+        tie_breaker: TieBreaker,
+        filter: Filter,
+        insert_task: InsertTask,
         k=1,
     ) -> None:
         """

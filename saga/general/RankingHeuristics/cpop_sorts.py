@@ -1,7 +1,10 @@
 from typing import Dict, Hashable, List
 from queue import PriorityQueue
+from .ranking_heuristic import RankingHeuristic
 import networkx as nx
 import numpy as np
+
+
 def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Computes the upward rank of the tasks in the task graph."""
     ranks = {}
@@ -74,66 +77,71 @@ def downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, f
 
     return ranks
 
+class UpwardRankSort(RankingHeuristic):
+    def __init__(self):
+        pass
+    def __call__(self, network: nx.Graph, task_graph: nx.DiGraph) -> List:
+        """
+        Sorts the tasks in the task graph by their upward rank.
+        
+        Args:
+            network (nx.Graph): The network to schedule onto.
+            task_graph (nx.DiGraph): The task graph to schedule.
+        
+        Returns:
+            List[Hashable]: The sorted tasks.
+        """
+        rank = upward_rank(network, task_graph)
+        queue = []
+        for task_name in task_graph.nodes:
+            queue.append((task_name, None))
 
-def upward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List:
-    """
-    Sorts the tasks in the task graph by their upward rank.
-    
-    Args:
-        network (nx.Graph): The network to schedule onto.
-        task_graph (nx.DiGraph): The task graph to schedule.
-    
-    Returns:
-        List[Hashable]: The sorted tasks.
-    """
-    
-    rank = upward_rank(network, task_graph)
-    queue = []
-    for task_name in task_graph.nodes:
-        queue.append((task_name, None))
+        return sorted(queue, key=lambda x: rank[x[0]], reverse=True)
 
-    return sorted(queue, key=lambda x: rank[x[0]], reverse=True)
+class DownwardRankSort(RankingHeuristic):
+    def __init__(self):
+        pass
+    def __call__(self, network: nx.Graph, task_graph: nx.DiGraph) -> List:
+        """
+        Sorts the tasks in the task graph by their downward rank.
+        
+        Args:
+            network (nx.Graph): The network to schedule onto.
+            task_graph (nx.DiGraph): The task graph to schedule.
+        
+        Returns:
+            List[Hashable]: The sorted tasks.
+        """
+        rank = downward_rank(network, task_graph)
+        queue = []
+        for task_name in task_graph.nodes:
+            queue.append((task_name, None))
 
-def downward_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List:
-    """
-    Sorts the tasks in the task graph by their downward rank.
-    
-    Args:
-        network (nx.Graph): The network to schedule onto.
-        task_graph (nx.DiGraph): The task graph to schedule.
-    
-    Returns:
-        List[Hashable]: The sorted tasks.
-    """
+        return sorted(queue, key=lambda x: rank[x[0]], reverse=True)
 
-    rank = downward_rank(network, task_graph)
+class CriticalPathSort(RankingHeuristic):
+    def __init__(self):
+        pass
 
-    queue = []
-    for task_name in task_graph.nodes:
-        queue.append(task_name, None)
-
-    return sorted(queue, key=lambda x: rank[x[0]], reverse=True)
-
-def cpop_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List:
-    """
-    Sorts the tasks in the task graph by their upward+downward rank.
-    
-    Args:
-        network (nx.Graph): The network to schedule onto.
-        task_graph (nx.DiGraph): The task graph to schedule.
-    
-    Returns:
-        List[Hashable]: The sorted tasks.
-    """
-
-    upward_ranks = upward_rank(network, task_graph)
-    downward_ranks = downward_rank(network, task_graph)
-    queue = []
-    start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)
-    cp_val = upward_ranks[start_task] + downward_ranks[start_task]
-    
-    for task_name in task_graph.nodes:
-        priority = 1 if np.isclose(cp_val, upward_ranks[task_name] + downward_ranks[task_name]) else 0
-        queue.append((task_name, priority))
-    
-    return sorted(queue, key=lambda x: upward_ranks[x[0]] + downward_ranks[x[0]], reverse=True)
+    def __call__(self, network: nx.Graph, task_graph: nx.DiGraph) -> List:
+        """
+        Sorts the tasks in the task graph by their upward+downward rank.
+        
+        Args:
+            network (nx.Graph): The network to schedule onto.
+            task_graph (nx.DiGraph): The task graph to schedule.
+        
+        Returns:
+            List[Hashable]: The sorted tasks.
+        """
+        upward_ranks = upward_rank(network, task_graph)
+        downward_ranks = downward_rank(network, task_graph)
+        queue = []
+        start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)
+        cp_val = upward_ranks[start_task] + downward_ranks[start_task]
+        
+        for task_name in task_graph.nodes:
+            priority = 1 if np.isclose(cp_val, upward_ranks[task_name] + downward_ranks[task_name]) else 0
+            queue.append((task_name, priority))
+        
+        return sorted(queue, key=lambda x: upward_ranks[x[0]] + downward_ranks[x[0]], reverse=True)

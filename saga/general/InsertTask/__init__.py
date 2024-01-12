@@ -1,2 +1,3 @@
-from .earliest_finish_time import earliest_finish_time_insert_schedule, get_earliest_finish_time_insert
-from .critical_path_insert import critical_path_insert_schedule
+from .earliest_finish_time import get_earliest_finish_time_insert, EarliestFinishTimeInsert
+from .critical_path_insert import CriticalPathInsert
+from .insert_task import InsertTask

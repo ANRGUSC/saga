@@ -1,21 +1,26 @@
 import random
 import networkx as nx
 from queue import PriorityQueue
+from .ranking_heuristic import RankingHeuristic
 
-def random_rank_sort(_: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
-    """
-    Sorts the tasks in the task graph by their random rank.
+class RandomRankSort(RankingHeuristic):
+    def __init__(self):
+        pass
     
-    Args:
-        network (nx.Graph): The network to schedule onto.
-        task_graph (nx.DiGraph): The task graph to schedule.
-    
-    Returns:
-        List[Hashable]: The sorted tasks.
-    """
+    def __call__(self, _: nx.Graph, task_graph: nx.DiGraph) -> PriorityQueue:
+        """
+        Sorts the tasks in the task graph by their random rank.
+        
+        Args:
+            network (nx.Graph): The network to schedule onto.
+            task_graph (nx.DiGraph): The task graph to schedule.
+        
+        Returns:
+            List[Hashable]: The sorted tasks.
+        """
 
-    queue = []
-    for task_name in task_graph.nodes:
-        queue.append((task_name, None))
-    
-    return sorted(queue, key=lambda _: random.random(), reverse=True)
+        queue = []
+        for task_name in task_graph.nodes:
+            queue.append((task_name, None))
+        
+        return sorted(queue, key=lambda _: random.random(), reverse=True)
