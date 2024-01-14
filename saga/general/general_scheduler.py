@@ -88,6 +88,14 @@ class GeneralScheduler(Scheduler):
         if not task_schedule:
             task_schedule = task_schedule or {}
         k = 0
+        i=0
+        while i<len(priority_queue):
+            task_name, priority = priority_queue[i]
+            if task_name in task_schedule:
+                priority_queue.remove((task_name, priority))
+            else:
+                i+=1
+                
         while priority_queue and k < k_steps:
 
             ready_tasks = []

@@ -167,6 +167,7 @@ class Test:
                     "schedule": pprint.pformat(schedule),
                 }
                 self.save_output(details, schedule, log_entries, self.path / "pass")
+                print(max([schedule[node][-1].end for node in schedule if schedule[node]]))
         except Exception as exp:  # pylint: disable=broad-except
             details = {
                 "scheduler": str(self.scheduler_name),
@@ -204,15 +205,15 @@ class Test:
 def test_common_schedulers():
     """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
-        "diamond": add_random_weights(get_diamond_dag()),
-        "chain": add_random_weights(get_chain_dag()),
-        "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag()),
+        # "diamond": add_random_weights(get_diamond_dag()),
+        # "chain": add_random_weights(get_chain_dag()),
+        # "fork": add_random_weights(get_fork_dag()),
+        "branching": add_random_weights(get_branching_dag(levels=5, branching_factor=3)),
     }
     network = add_random_weights(get_network())
 
     schedulers = [
-        # HeftScheduler(),
+        HeftScheduler(),
         # CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
@@ -234,7 +235,7 @@ def test_common_schedulers():
         # GDLScheduler(),
         # SufferageScheduler(),
         GeneralScheduler(
-            UpwardRankSort(), None, None, LookAheadInsert()
+            UpwardRankSort(), None, None, LookAheadInsert(k=3)
         ),
     ]
 
