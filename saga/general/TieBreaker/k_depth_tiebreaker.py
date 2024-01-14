@@ -27,24 +27,25 @@ def get_k_depth_graph(
                     ]
                     task_set_for_eval.append(child)
                     parent.add(child)
+                    for pred in task_graph.predecessors(
+                        child
+                        ):  # Add parents as the scheduler will look at them for scheduling
+                        if pred not in new_task_graph.nodes:
+                            new_task_graph.add_node(pred)
+                            new_task_graph.nodes[pred]["weight"] = task_graph.nodes[pred][
+                                "weight"
+                            ]
+                        if (pred, child) not in new_task_graph.edges:
+                            new_task_graph.add_edge(pred, child)
+                            new_task_graph.edges[pred, child]["weight"] = task_graph.edges[
+                                pred, child
+                            ]["weight"]
                 if (task_name, child) not in new_task_graph.edges:
                     new_task_graph.add_edge(task_name, child)
                     new_task_graph.edges[task_name, child]["weight"] = task_graph.edges[
                         task_name, child
                     ]["weight"]
-                for pred in task_graph.predecessors(
-                    child
-                ):  # Add parents as the scheduler will look at them for scheduling
-                    if pred not in new_task_graph.nodes:
-                        new_task_graph.add_node(pred)
-                        new_task_graph.nodes[pred]["weight"] = task_graph.nodes[pred][
-                            "weight"
-                        ]
-                    if (pred, child) not in new_task_graph.edges:
-                        new_task_graph.add_edge(pred, child)
-                        new_task_graph.edges[pred, child]["weight"] = task_graph.edges[
-                            pred, child
-                        ]["weight"]
+               
                 recurse(child, k - 1)
 
     for task_name, _ in priority_queue:

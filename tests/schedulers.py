@@ -237,6 +237,9 @@ def test_common_schedulers():
         GeneralScheduler(
             UpwardRankSort(), None, KDepthTieBreaker(k=2), EarliestFinishTimeInsert()
         ),
+        # GeneralScheduler(
+        #     UpwardRankSort(), None, None, LookAheadInsert(k=2)
+        # ),
     ]
 
     for scheduler in schedulers:
