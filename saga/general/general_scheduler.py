@@ -59,8 +59,13 @@ class GeneralScheduler(Scheduler):
 
     def schedule(
         self, network: nx.Graph, task_graph: nx.DiGraph,
+        comp_schedule: Dict[Hashable, List[Task]] = None,
         task_schedule: Dict[Hashable, Task] = None,
-        k_steps=None
+        k_steps=float("inf"),
+        runtimes: Dict[Hashable, Dict[Hashable, float]] = None,
+        commtimes: Dict[
+            Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
+        ] = None,
     ) -> Dict[Hashable, List[Task]]:
         """
         Schedule a task graph onto a network by parameters given in the constructor.
@@ -72,13 +77,18 @@ class GeneralScheduler(Scheduler):
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
         """
+
         priority_queue = self.ranking_heauristic(network, task_graph)
-        runtimes, commtimes = get_runtimes(network, task_graph)
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = task_schedule or {}
-        while priority_queue:
-            # Apply Filter here
-            # ready_tasks = []
+        if runtimes is None or commtimes is None:
+            assert runtimes is None and commtimes is None, "Both runtimes and commtimes must be None or neither must be None"
+            runtimes, commtimes = get_runtimes(network, task_graph)
+
+        if not comp_schedule:
+            comp_schedule = {node: [] for node in network.nodes}
+        if not task_schedule:
+            task_schedule = task_schedule or {}
+        k = 0
+        while priority_queue and k < k_steps:
 
             ready_tasks = []
 
@@ -107,5 +117,6 @@ class GeneralScheduler(Scheduler):
             )
 
             priority_queue.remove((task_name, priority))
+            k+=1
 
         return comp_schedule

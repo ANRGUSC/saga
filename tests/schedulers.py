@@ -9,7 +9,7 @@ import networkx as nx
 from matplotlib import pyplot as plt
 
 from saga.general import GeneralScheduler
-from saga.general.InsertTask import EarliestFinishTimeInsert, CriticalPathInsert
+from saga.general.InsertTask import EarliestFinishTimeInsert, CriticalPathInsert, LookAheadInsert
 from saga.general.RankingHeuristics import UpwardRankSort, CriticalPathSort, DownwardRankSort
 from saga.general.TieBreaker import Sufferage, RandomTieBreaker
 from saga.general.Filters import KFirstFilter
@@ -232,15 +232,9 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
+        # SufferageScheduler(),
         GeneralScheduler(
-            UpwardRankSort(), KFirstFilter(3), Sufferage(), EarliestFinishTimeInsert()
-            # KDepth(
-            #     GeneralScheduler(
-            #         cpop_rank_sort, None, critical_path_insert_schedule
-            #     )
-            # ), 
-            # critical_path_insert_schedule
+            UpwardRankSort(), None, None, LookAheadInsert()
         ),
     ]
 
