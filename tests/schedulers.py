@@ -11,7 +11,7 @@ from matplotlib import pyplot as plt
 from saga.general import GeneralScheduler
 from saga.general.InsertTask import EarliestFinishTimeInsert, CriticalPathInsert, LookAheadInsert
 from saga.general.RankingHeuristics import UpwardRankSort, CriticalPathSort, DownwardRankSort
-from saga.general.TieBreaker import Sufferage, RandomTieBreaker
+from saga.general.TieBreaker import Sufferage, RandomTieBreaker, KDepthTieBreaker
 from saga.general.Filters import KFirstFilter
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
@@ -208,7 +208,7 @@ def test_common_schedulers():
         # "diamond": add_random_weights(get_diamond_dag()),
         # "chain": add_random_weights(get_chain_dag()),
         # "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag(levels=5, branching_factor=3)),
+        "branching": add_random_weights(get_branching_dag(levels=4, branching_factor=3)),
     }
     network = add_random_weights(get_network())
 
@@ -235,7 +235,7 @@ def test_common_schedulers():
         # GDLScheduler(),
         # SufferageScheduler(),
         GeneralScheduler(
-            UpwardRankSort(), None, None, LookAheadInsert(k=3)
+            UpwardRankSort(), None, KDepthTieBreaker(k=2), EarliestFinishTimeInsert()
         ),
     ]
 
