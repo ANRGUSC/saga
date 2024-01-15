@@ -66,6 +66,7 @@ class GeneralScheduler(Scheduler):
         commtimes: Dict[
             Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
         ] = None,
+        rankings =None
     ) -> Dict[Hashable, List[Task]]:
         """
         Schedule a task graph onto a network by parameters given in the constructor.
@@ -77,8 +78,10 @@ class GeneralScheduler(Scheduler):
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
         """
-
-        priority_queue = self.ranking_heauristic(network, task_graph)
+        if not rankings:
+            priority_queue = self.ranking_heauristic(network, task_graph)
+        else:
+            priority_queue = rankings
         if runtimes is None or commtimes is None:
             assert runtimes is None and commtimes is None, "Both runtimes and commtimes must be None or neither must be None"
             runtimes, commtimes = get_runtimes(network, task_graph)
