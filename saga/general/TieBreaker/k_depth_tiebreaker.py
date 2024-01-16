@@ -89,6 +89,7 @@ class KDepthTieBreaker(TieBreaker):
         comp_schedule: Dict[Hashable, List[Task]],
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
+        rankings:List,
     ) -> Tuple[Hashable, int]:
         min_finish_time = np.inf
         best_task, best_priority = None, None
@@ -107,6 +108,7 @@ class KDepthTieBreaker(TieBreaker):
                 _task_schedule,
                 task_name,
                 priority=priority,
+                rankings=rankings
             )
             _comp_schedule = self.scheduler.schedule(
                 network,
@@ -115,6 +117,7 @@ class KDepthTieBreaker(TieBreaker):
                 _task_schedule,
                 runtimes=runtimes,
                 commtimes=commtimes,
+                rankings=rankings
                 # Add a way to pass CPOP priorities here
             )
             finish_time = max([_task_schedule[task_name].end for task_name in task_set])

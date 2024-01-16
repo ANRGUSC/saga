@@ -14,5 +14,6 @@ class InsertTask(ABC):
         task_schedule: Dict[Hashable, Task],
         task_name: Hashable,
         priority: int,
+        rankings:List
         ) -> None:  
         raise NotImplementedError

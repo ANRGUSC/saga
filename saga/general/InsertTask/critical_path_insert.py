@@ -20,6 +20,7 @@ class CriticalPathInsert(InsertTask):
         task_schedule: Dict[Hashable, Task],
         task_name: Hashable,
         priority: int,
+        rankings:List
         ) -> None:
         if priority and priority == 1:
 

@@ -1,6 +1,7 @@
 from queue import PriorityQueue
 from abc import abstractmethod
 from typing import Dict, Hashable, List, Callable, Optional, Tuple
+import copy
 import networkx as nx
 from saga.general.InsertTask import InsertTask
 from saga.general.TieBreaker import TieBreaker
@@ -46,7 +47,7 @@ class GeneralScheduler(Scheduler):
             self.tie_breaker = tie_breaker
         else:
             self.tie_breaker = (
-                lambda network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, priority_queue: priority_queue[0]
+                lambda network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, ready_task, _: ready_task[ 0]
             )
         self.insert_task = insert_task
         self.k = k
@@ -81,7 +82,7 @@ class GeneralScheduler(Scheduler):
         if not rankings:
             priority_queue = self.ranking_heauristic(network, task_graph)
         else:
-            priority_queue = rankings
+            priority_queue = copy.deepcopy(rankings)
         if runtimes is None or commtimes is None:
             assert runtimes is None and commtimes is None, "Both runtimes and commtimes must be None or neither must be None"
             runtimes, commtimes = get_runtimes(network, task_graph)
@@ -94,7 +95,7 @@ class GeneralScheduler(Scheduler):
         i=0
         while i<len(priority_queue):
             task_name, priority = priority_queue[i]
-            if task_name in task_schedule:
+            if task_name in task_schedule or task_name not in task_graph.nodes:
                 priority_queue.remove((task_name, priority))
             else:
                 i+=1
@@ -104,7 +105,7 @@ class GeneralScheduler(Scheduler):
             ready_tasks = []
 
             for task_name, priority in priority_queue:
-                if set(task_graph.predecessors(task_name)).issubset(
+                if task_name in task_graph.nodes and set(task_graph.predecessors(task_name)).issubset(
                     task_schedule.keys()
                 ):
                     ready_tasks.append((task_name, priority))
@@ -113,7 +114,7 @@ class GeneralScheduler(Scheduler):
                 network, task_graph, ready_tasks, comp_schedule
             )
             task_name, priority = self.tie_breaker(
-                network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, ready_tasks
+                network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, ready_tasks, priority_queue
             )
 
             self.insert_task(
@@ -125,6 +126,7 @@ class GeneralScheduler(Scheduler):
                 task_schedule,
                 task_name,
                 priority,
+                priority_queue
             )
 
             priority_queue.remove((task_name, priority))

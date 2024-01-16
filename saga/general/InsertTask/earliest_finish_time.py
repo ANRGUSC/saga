@@ -34,6 +34,7 @@ class EarliestFinishTimeInsert(InsertTask):
         task_schedule: Dict[Hashable, Task],
         task_name: Hashable,
         priority: int,
+        rankings:List
         ) -> None:
         """
         Insert the task into the schedule at the earliest possible finish time.

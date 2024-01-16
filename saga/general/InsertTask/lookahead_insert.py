@@ -75,6 +75,7 @@ class LookAheadInsert(ABC):
         task_schedule: Dict[Hashable, Task],
         task_name: Hashable,
         priority: int,
+        rankings:List,
     ) -> None:
         if task_graph.out_degree(task_name) == 0:
             self.scheduler.insert_task(
@@ -86,6 +87,7 @@ class LookAheadInsert(ABC):
                 task_schedule,
                 task_name,
                 priority,
+                rankings,
             )
             return
 
@@ -111,6 +113,7 @@ class LookAheadInsert(ABC):
                 _task_schedule,
                 runtimes=runtimes,
                 commtimes=commtimes,
+                rankings=rankings,
                 #Add a way to pass CPOP priorities here
             )
             finish_time = max(

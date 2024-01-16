@@ -208,13 +208,13 @@ def test_common_schedulers():
         # "diamond": add_random_weights(get_diamond_dag()),
         # "chain": add_random_weights(get_chain_dag()),
         # "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag(levels=4, branching_factor=3)),
+        "branching": add_random_weights(get_branching_dag(levels=4, branching_factor=2)),
     }
     network = add_random_weights(get_network())
 
     schedulers = [
-        HeftScheduler(),
-        # CpopScheduler(),
+        # HeftScheduler(),
+        CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
         # MinMinScheduler(),
@@ -234,9 +234,19 @@ def test_common_schedulers():
         # DPSScheduler(),
         # GDLScheduler(),
         # SufferageScheduler(),
+        # GeneralScheduler(
+        #     CriticalPathSort(), None, KDepthTieBreaker(k=2, scheduler=GeneralScheduler(
+        #         CriticalPathSort(), None, None, CriticalPathInsert()
+        #     )), CriticalPathInsert()
+        # ),
         GeneralScheduler(
-            UpwardRankSort(), None, KDepthTieBreaker(k=2), EarliestFinishTimeInsert()
+            CriticalPathSort(), None, None, LookAheadInsert(k=2, scheduler=GeneralScheduler(
+                CriticalPathSort(), None, None, CriticalPathInsert()
+            ))
         ),
+        # GeneralScheduler(
+        #     UpwardRankSort(), None, KDepthTieBreaker(k=2), EarliestFinishTimeInsert()
+        # ),
         # GeneralScheduler(
         #     UpwardRankSort(), None, None, LookAheadInsert(k=2)
         # ),

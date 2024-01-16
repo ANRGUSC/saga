@@ -18,5 +18,6 @@ class RandomTieBreaker(TieBreaker):
         comp_schedule: Dict[Hashable, List[Task]],
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
+        rankings:List
     ) -> Tuple[Hashable, int]:
         return random.choice(priority_queue)

@@ -17,5 +17,6 @@ class TieBreaker(ABC):
         comp_schedule: Dict[Hashable, List[Task]],
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
+        rankings:List
     ) -> Tuple[Hashable, int]:
         raise NotImplementedError

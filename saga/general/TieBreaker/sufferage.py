@@ -19,6 +19,7 @@ class Sufferage(TieBreaker):
         comp_schedule: Dict[Hashable, List[Task]],
         task_schedule: Dict[Hashable, Task],
         priority_queue: List,
+        rankings:List
     ) -> Tuple[Hashable, int]:
         def get_eat(node: Hashable) -> float:
             """Earliest available time on a node"""
