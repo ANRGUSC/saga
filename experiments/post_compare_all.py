@@ -76,7 +76,10 @@ def tab_results(resultsdir: pathlib.Path,
                 savedir: pathlib.Path,
                 upper_threshold: float = 5.0,
                 include_hybrid = False,
-                add_worst_row = True) -> None:
+                add_worst_row = True,
+                title: str = None,
+                savename: str  = "results",
+                mode: str = None) -> None:
     """Generate table of results.
 
     Args:
@@ -85,6 +88,9 @@ def tab_results(resultsdir: pathlib.Path,
         upper_threshold: upper threshold for heatmap
         include_hybrid: whether to include hybrid results
         add_worst_row: whether to add a row for the worst result
+        title: title for plot
+        savename: name for plot
+        mode: "pdf", "png", or None. None saves both.
     """
     savedir.mkdir(parents=True, exist_ok=True)
     df_all_results = load_results_csv(resultsdir)
@@ -130,6 +136,9 @@ def tab_results(resultsdir: pathlib.Path,
         )
         df_results = pd.concat([df_results, df_worst], ignore_index=True)
 
+    def default_order(x):
+        return x.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst").replace(r"\textit", "AA")
+
     axis = gradient_heatmap(
         df_results,
         x="Scheduler",
@@ -140,18 +149,23 @@ def tab_results(resultsdir: pathlib.Path,
         y_label="Base Scheduler",
         color_label="Makespan Ratio",
         # custom order so that "Hybrid" and "Worst" are at the bottom
-        xorder=lambda x: x.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst"),
-        yorder=lambda y: y.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst")
+        xorder=default_order,
+        yorder=default_order,
+        include_cell_labels=True,
+        title=title,
+        cell_font_size=12.0
     )
     plt.tight_layout()
-    axis.get_figure().savefig(
-        savedir / "results.pdf",
-        dpi=300,
-        bbox_inches='tight'
-    )
-    axis.get_figure().savefig(
-        savedir / "results.png",
-        dpi=300,
-        bbox_inches='tight'
-    )
+    if mode is None or mode == "pdf":
+        axis.get_figure().savefig(
+            savedir / f"{savename}.pdf",
+            dpi=300,
+            bbox_inches='tight'
+        )
+    if mode is None or mode == "png":
+        axis.get_figure().savefig(
+            savedir / f"{savename}.png",
+            dpi=300,
+            bbox_inches='tight'
+        )
 

@@ -1,27 +1,27 @@
 import argparse
 import pathlib
 from functools import partial
+from typing import Dict
 
-from saga.schedulers import (
-    BILScheduler, CpopScheduler, DuplexScheduler,
-    ETFScheduler, FastestNodeScheduler, FCPScheduler,
-    FLBScheduler, GDLScheduler, HeftScheduler,
-    MaxMinScheduler, MCTScheduler, METScheduler,
-    MinMinScheduler, OLBScheduler, WBAScheduler
-)
+import pandas as pd
 
+import exp_benchmarking
 import exp_compare_all
 import exp_wfcommons
-import exp_benchmarking
-import prepare_datasets
 import post_benchmarking
 import post_compare_all
+import prepare_datasets
 
-import pathlib
+from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
+                             ETFScheduler, FastestNodeScheduler, FCPScheduler,
+                             FLBScheduler, GDLScheduler, HeftScheduler,
+                             MaxMinScheduler, MCTScheduler, METScheduler,
+                             MinMinScheduler, OLBScheduler, WBAScheduler)
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
 def chain(funcs):
+    """Chain multiple functions together."""
     def chained_func(*args, **kwargs):
         for func in funcs:
             func(*args, **kwargs)
@@ -33,19 +33,56 @@ def tab_results_ccr(resultsdir: pathlib.Path,
                     upper_threshold: float = 5.0,
                     include_hybrid = False,
                     add_worst_row = False,
-                    reprocess = False) -> None:
+                    reprocess = False,
+                    mode: str = "png") -> None:
+    """Generate table of results.
+
+    Args:
+        resultsdir: path to results directory
+        savedir: path to save directory
+        benchmarking_resultsdir: path to benchmarking results directory
+        upper_threshold: upper threshold for heatmap
+        include_hybrid: whether to include hybrid results
+        add_worst_row: whether to add a row for the worst result
+    """
+    bencmarking_results: Dict[str, Dict[float, pd.DataFrame]] = {}
+    if benchmarking_resultsdir is not None:
+        for path in benchmarking_resultsdir.glob("*.csv"):
+            ccr = float(path.stem.split("_")[-1])
+            recipe_name = path.stem.split("_")[0]
+            df = pd.read_csv(path, index_col=0)
+            df.rename(columns={"scheduler": "Scheduler", "makespan_ratio": "Makespan Ratio"}, inplace=True)
+            # removesuffix "Scheduler" from scheduler names
+            df["Scheduler"] = df["Scheduler"].apply(lambda x: x.removesuffix("Scheduler"))
+            # rename_dict = {
+            #     "Cpop": "CPoP",
+            #     # "FastestNode": "FastestNode",
+            # }
+            # df["Scheduler"] = df["Scheduler"].apply(lambda x: rename_dict.get(x, x))
+            df["Base Scheduler"] = r"\textit{Benchmarking}"
+            bencmarking_results.setdefault(recipe_name, {})[ccr] = df
+
     for recipe_path in resultsdir.glob("*"):
+        recipe_name = recipe_path.stem
         for resultsdir in recipe_path.glob("ccr_*"):
             if not resultsdir.joinpath("results.csv").exists() or reprocess:
                 post_compare_all.results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
-                
+
+            if benchmarking_resultsdir is not None:
+                df_results = pd.read_csv(resultsdir.joinpath("results.csv"), index_col=0)
+                df_results = pd.concat([df_results, bencmarking_results[recipe_name][ccr]], ignore_index=True)
+                df_results.to_csv(resultsdir.joinpath("results.csv"))
+
             ccr = float(resultsdir.name.split("_")[-1])
             post_compare_all.tab_results(
                 resultsdir=resultsdir,
-                savedir=savedir.joinpath(recipe_path.stem, f"ccr_{ccr}"),
+                savedir=savedir,
                 upper_threshold=upper_threshold,
                 include_hybrid=include_hybrid,
-                add_worst_row=add_worst_row
+                add_worst_row=add_worst_row,
+                title=f"{recipe_name} (CCR = {ccr})",
+                savename=f"{recipe_name}_ccr_{ccr}",
+                mode=mode,
             )
 
 experiments = {
@@ -62,7 +99,7 @@ experiments = {
         "plot": partial(
             post_compare_all.tab_results,
             savedir=thisdir.joinpath("output", "compare_all"),
-            upper_threshold=2.0,
+            upper_threshold=5.0,
         ),
     },
     "compare_wfcommons_ccr": {
@@ -84,6 +121,7 @@ experiments = {
             tab_results_ccr,
             resultsdir=thisdir.joinpath("results", "compare_wfcommons_ccr"),
             savedir=thisdir.joinpath("output", "compare_wfcommons_ccr"),
+            benchmarking_resultsdir=thisdir.joinpath("results", "benchmarking_wfcommons_ccr"),
             # upper_threshold=2.0,
         )
     },
@@ -167,6 +205,7 @@ experiments = {
 }
         
 def get_parser():
+    """Get parser."""
     parser = argparse.ArgumentParser(description="Run an experiment")
     subparsers = parser.add_subparsers(dest="exprunner_experiment")
 
@@ -201,6 +240,7 @@ def get_parser():
     return parser
 
 def main():
+    """Run experiment."""
     parser = get_parser()
     args = parser.parse_args()
 

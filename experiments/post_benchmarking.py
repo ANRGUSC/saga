@@ -19,7 +19,6 @@ DATASET_ORDER = [
 def load_data(resultsdir, glob: str = None) -> pd.DataFrame:
     data = None
     glob = glob or "*.csv"
-    print(resultsdir, glob)
     for path in resultsdir.glob(glob):
         df_dataset = pd.read_csv(path, index_col=0)
         df_dataset["dataset"] = path.stem

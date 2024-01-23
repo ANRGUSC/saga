@@ -301,7 +301,7 @@ def run_many(output_path: pathlib.Path,
     all_recipes = [
         name
         for name in recipes.keys()
-        if name is None or recipe_name == name
+        if recipe_name is None or recipe_name == name
     ]
     for recipe_name in all_recipes:
         for ccr in ccrs:

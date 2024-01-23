@@ -20,10 +20,11 @@ def gradient_heatmap(data: pd.DataFrame,
                      x_label: str = None,
                      y_label: str = None,
                      color_label: str = None,
-                     include_cell_labels: bool = False,
+                     cell_font_size: float = None,
                      xorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
                      yorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
-                     ax: plt.Axes = None) -> plt.Axes: # pylint: disable=invalid-name
+                     ax: plt.Axes = None,
+                     font_size: float = 20.0) -> plt.Axes: # pylint: disable=invalid-name
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -37,7 +38,7 @@ def gradient_heatmap(data: pd.DataFrame,
         x_label (str, optional): x-axis label. Defaults to None.
         y_label (str, optional): y-axis label. Defaults to None.
         color_label (str, optional): colorbar label. Defaults to None.
-        include_cell_labels (bool, optional): whether to include text in each cell. Defaults to False.
+        cell_font_size (bool, optional): font size for makespan ratio cell labels. None indicates no label. Default is None.
         xorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order x-axis. Defaults to None.
         yorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order y-axis. Defaults to None.
         ax (plt.Axes, optional): matplotlib axes. Defaults to None.
@@ -46,7 +47,7 @@ def gradient_heatmap(data: pd.DataFrame,
         plt.Axes: matplotlib axes
     """
     plt.rcParams.update({
-        'font.size': 20,
+        'font.size': font_size,
         'font.family': 'serif',
         'font.serif': ['Computer Modern'],
         'text.usetex': True,
@@ -117,7 +118,7 @@ def gradient_heatmap(data: pd.DataFrame,
             
             ax.add_patch(rect)
 
-            if not df_color.empty and include_cell_labels:
+            if not df_color.empty and cell_font_size is not None:
                 value = df_color.mean()
                 if np.isnan(value):
                     value = ""
@@ -131,7 +132,7 @@ def gradient_heatmap(data: pd.DataFrame,
                     j+0.5, i+0.5, value,
                     horizontalalignment='center',
                     verticalalignment='center',
-                    fontsize=10
+                    fontsize=cell_font_size
                 )
 
     # Add labels, ticks, and other plot elements
