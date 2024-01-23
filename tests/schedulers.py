@@ -8,6 +8,11 @@ import networkx as nx
 
 from matplotlib import pyplot as plt
 
+from saga.general import GeneralScheduler
+from saga.general.InsertTask import EarliestFinishTimeInsert, CriticalPathInsert, LookAheadInsert
+from saga.general.RankingHeuristics import UpwardRankSort, CriticalPathSort, DownwardRankSort
+from saga.general.TieBreaker import Sufferage, RandomTieBreaker
+from saga.general.Filters import KFirstFilter
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
@@ -162,6 +167,7 @@ class Test:
                     "schedule": pprint.pformat(schedule),
                 }
                 self.save_output(details, schedule, log_entries, self.path / "pass")
+                print(max([schedule[node][-1].end for node in schedule if schedule[node]]))
         except Exception as exp:  # pylint: disable=broad-except
             details = {
                 "scheduler": str(self.scheduler_name),
@@ -182,17 +188,32 @@ class Test:
         return True
 
 
+# class KDepth:
+#     def __init__(self, scheduler, k: int = 1):
+#         self.scheduler = scheduler
+
+#     def __call__(self, network, task_graph, runtimes, commtimes, comp_schedule, task_schedule, priority_queue):
+        
+#         for task in priority_queue:
+#             _task_graph = None # trim task_graph to only include child tasks within k distance from task
+#             _task_schedule = deepcopy(task_schedule)
+
+#             self.scheduler.insert_task(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, task)
+#             schedule = self.scheduler(network, _task_graph, runtimes, commtimes, comp_schedule, _task_schedule, priority_queue)
+#            # TODO: return option w/ smallest makespan
+
 def test_common_schedulers():
     """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
-        "diamond": add_random_weights(get_diamond_dag()),
-        "chain": add_random_weights(get_chain_dag()),
-        "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag()),
+        # "diamond": add_random_weights(get_diamond_dag()),
+        # "chain": add_random_weights(get_chain_dag()),
+        # "fork": add_random_weights(get_fork_dag()),
+        "branching": add_random_weights(get_branching_dag(levels=5, branching_factor=3)),
     }
     network = add_random_weights(get_network())
+
     schedulers = [
-        # HeftScheduler(),
+        HeftScheduler(),
         # CpopScheduler(),
         # FastestNodeScheduler(),
         # BruteForceScheduler(),
@@ -212,7 +233,10 @@ def test_common_schedulers():
         # MsbcScheduler()
         # DPSScheduler(),
         # GDLScheduler(),
-        SufferageScheduler(),
+        # SufferageScheduler(),
+        GeneralScheduler(
+            UpwardRankSort(), None, None, LookAheadInsert(k=3)
+        ),
     ]
 
     for scheduler in schedulers:

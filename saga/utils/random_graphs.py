@@ -9,7 +9,7 @@ from scipy.stats import norm
 from saga.utils.random_variable import RandomVariable
 
 
-def get_diamond_dag() -> nx.DiGraph:
+def  get_diamond_dag() -> nx.DiGraph:
     """Returns a diamond DAG."""
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D"])
