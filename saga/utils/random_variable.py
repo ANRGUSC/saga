@@ -105,7 +105,7 @@ class RandomVariable:
         # Sample a value uniformly within each selected bin
         bin_width = bin_edges[1] - bin_edges[0]
         new_points = np.random.rand(num_samples) * bin_width + selected_bins
-        return new_points
+        return new_points if num_samples > 1 else new_points[0]
 
 
     @property
@@ -215,6 +215,32 @@ class RandomVariable:
             self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
         samples = self_samples / other_samples
+        return RandomVariable(samples)
+
+    def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
+        """Divide two random variables."""
+        if np.isclose(self.std(), 0):
+            if np.isclose(other.std(), 0):
+                return RandomVariable([other.mean() / self.mean()])
+            else:
+                return RandomVariable(other.samples / self.mean())
+
+        if isinstance(other, (float, int)):
+            return RandomVariable(other / np.array(self.samples))
+
+        self_num_samples = len(self.samples)
+        other_num_samples = len(other.samples)
+
+        # divide the samples of the two random variables
+        if self_num_samples >= other_num_samples:
+            self_samples = self.samples
+            missing_samples = self_num_samples - other_num_samples
+            other_samples = np.concatenate([other.samples, np.random.choice(other.samples, missing_samples)])
+        else:
+            missing_samples = other_num_samples - self_num_samples
+            self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
+            other_samples = other.samples
+        samples = other_samples / self_samples
         return RandomVariable(samples)
 
     @staticmethod

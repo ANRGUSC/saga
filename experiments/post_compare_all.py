@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from plot import gradient_heatmap
 from simulated_annealing import SimulatedAnnealing
+from post_benchmarking import SCHEDULER_RENAMES
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
@@ -99,6 +100,7 @@ def tab_results(resultsdir: pathlib.Path,
     rename_dict = {
         "CPOP": "CPoP",
         "Fastest Node": "FastestNode",
+        **SCHEDULER_RENAMES
     }
     rename_dict = {
         **rename_dict,
@@ -151,7 +153,7 @@ def tab_results(resultsdir: pathlib.Path,
         # custom order so that "Hybrid" and "Worst" are at the bottom
         xorder=default_order,
         yorder=default_order,
-        include_cell_labels=True,
+        # include_cell_labels=True,
         title=title,
         cell_font_size=12.0
     )

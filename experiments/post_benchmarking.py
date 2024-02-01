@@ -16,6 +16,11 @@ DATASET_ORDER = [
     "etl", "predict", "stats", "train",
 ]
 
+SCHEDULER_RENAMES = {
+    "Cpop": "CPoP",
+    "Heft": "HEFT",
+}
+
 def load_data(resultsdir, glob: str = None) -> pd.DataFrame:
     data = None
     glob = glob or "*.csv"
@@ -42,6 +47,8 @@ def run(resultsdir: pathlib.Path,
         logging.info("No data found. Skipping.")
         return
     data["scheduler"] = data["scheduler"].str.replace("Scheduler", "")
+    data["scheduler"] = data["scheduler"].replace(SCHEDULER_RENAMES)
+
     ax = gradient_heatmap(
         data,
         x="scheduler",

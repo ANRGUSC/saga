@@ -1,58 +1,49 @@
 import logging
 import pathlib
 import random
-from typing import List, Optional
+from typing import Callable, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 
 from prepare_datasets import load_dataset
 from saga.data import Dataset
 
 import saga.schedulers as saga_schedulers
 from saga.scheduler import Scheduler
+from saga.schedulers.stochastic.determinizer import Determinizer
+from saga.utils.random_variable import RandomVariable
+from exp_benchmarking import get_schedulers, exclude_schedulers, TrimmedDataset
 
-exclude_schedulers = [ # exclude optimal schedulers
-    saga_schedulers.BruteForceScheduler,
-    saga_schedulers.SMTScheduler,
-    saga_schedulers.HybridScheduler,
-]
+determinizers: Dict[str, Callable[[RandomVariable], float]] = {
+    "mean": lambda rv: rv.mean(),
+    "mean+std": lambda rv: rv.mean() + rv.std(),
+    "SHEFT": lambda rv: rv.mean() + rv.std() if rv.var()/(rv.mean()**2) <= 1 else rv.mean()*(1+1/rv.std())
+}
 
-def get_schedulers() -> List[Scheduler]:
-    """Get a list of all schedulers.
+def determinize_schedulers(schedulers: List[Scheduler]) -> List[Scheduler]:
+    """Determinize the schedulers.
+    
+    Args:
+        schedulers (List[Scheduler]): The schedulers.
     
     Returns:
-        List[Scheduler]: list of schedulers
+        List[Scheduler]: The determinized schedulers.
     """
-    schedulers = []
-    for item in saga_schedulers.__dict__.values():
-        if (isinstance(item, type) and issubclass(item, Scheduler) and item is not Scheduler):
-            if item not in exclude_schedulers:
-                try:
-                    schedulers.append(item())
-                except TypeError:
-                    logging.warning("Could not instantiate %s with default arguments.", item.__name__)
-    return schedulers
-
-class TrimmedDataset(Dataset):
-    def __init__(self, dataset: Dataset, max_instances: int):
-        super().__init__(dataset.name)
-        self.dataset = dataset
-        self.max_instances = max_instances
-
-    def __len__(self):
-        return min(len(self.dataset), self.max_instances)
-    
-    def __getitem__(self, index):
-        if index >= len(self):
-            raise IndexError
-        return self.dataset[index]
+    determinized_schedulers = []
+    for scheduler in schedulers:
+        for determize_name, determinize in determinizers.items():
+            determinized_scheduler = Determinizer(scheduler=scheduler, determinize=determinize)
+            determinized_scheduler.name = f"{scheduler.__name__}[{determize_name}]"
+            determinized_schedulers.append(determinized_scheduler)
+    return determinized_schedulers
 
 def evaluate_dataset(datadir: pathlib.Path,
                      resultsdir: pathlib.Path,
                      dataset_name: str,
+                     schedulers: List[Scheduler],
                      max_instances: int = 0,
                      num_jobs: int = 1,
-                     schedulers: Optional[List[Scheduler]] = None,
                      overwrite: bool = False):
     """Evaluate a dataset.
     
@@ -60,16 +51,26 @@ def evaluate_dataset(datadir: pathlib.Path,
         datadir (pathlib.Path): The directory containing the dataset.
         resultsdir (pathlib.Path): The directory to save the results.
         dataset_name (str): The name of the dataset.
+        schedulers (List[Scheduler]): The schedulers to evaluate.
         max_instances (int, optional): Maximum number of instances to evaluate. Defaults to 0 (no trimming).
         num_jobs (int, optional): The number of jobs to run in parallel. Defaults to 1.
-        schedulers (Optional[List[Scheduler]], optional): The schedulers to evaluate. Defaults to None (all schedulers).
         overwrite (bool, optional): Whether to overwrite existing results. Defaults to False.
     """
     logging.info("Evaluating dataset %s.", dataset_name)
     savepath = resultsdir.joinpath(f"{dataset_name}.csv")
-    if savepath.exists() and not overwrite:
-        logging.info("Results already exist. Skipping.")
-        return
+    df_existing = None
+    if savepath.exists():
+        if not overwrite:
+            # load schedulers that have already been evaluated
+            df_existing = pd.read_csv(savepath, index_col=0)
+            evaluated_schedulers = set(df_existing["scheduler"].unique())
+            logging.info(f"Skipping {len(evaluated_schedulers)} already evaluated schedulers: {evaluated_schedulers}")
+            schedulers = [scheduler for scheduler in schedulers if scheduler.__name__ not in evaluated_schedulers]
+            logging.info(f"Evaluating remaining schedulers: {[scheduler.__name__ for scheduler in schedulers]}")
+        else:
+            logging.info("Results already exist. Skipping.")
+            return
+    
     dataset = load_dataset(datadir, dataset_name)
     if max_instances > 0 and len(dataset) > max_instances:
         dataset = TrimmedDataset(dataset, max_instances)
@@ -79,6 +80,8 @@ def evaluate_dataset(datadir: pathlib.Path,
 
     logging.info("Saving results.")
     df_comp = comparison.to_df()
+    if df_existing is not None:
+        df_comp = pd.concat([df_existing, df_comp])
     df_comp.to_csv(savepath)
     logging.info("Saved results to %s.", savepath)
 
@@ -103,7 +106,7 @@ def run(datadir: pathlib.Path,
     np.random.seed(0) # For reproducibility
     resultsdir.mkdir(parents=True, exist_ok=True)
 
-    schedulers = schedulers if schedulers else get_schedulers()
+    schedulers = determinize_schedulers(schedulers if schedulers else get_schedulers())
 
     default_datasets = [path.stem for path in datadir.glob("*.json")]
     dataset_names = [dataset] if dataset else default_datasets
@@ -112,8 +115,8 @@ def run(datadir: pathlib.Path,
             datadir=datadir,
             resultsdir=resultsdir,
             dataset_name=dataset_name,
+            schedulers=schedulers,
             max_instances=trim,
             num_jobs=num_jobs,
-            schedulers=schedulers,
             overwrite=overwrite
         )

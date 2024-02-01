@@ -8,9 +8,12 @@ import pandas as pd
 import exp_benchmarking
 import exp_compare_all
 import exp_wfcommons
+import exp_stochastic_benchmarking
 import post_benchmarking
 import post_compare_all
 import prepare_datasets
+import prepare_stochastic_datasets
+import logging
 
 from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
                              ETFScheduler, FastestNodeScheduler, FCPScheduler,
@@ -19,6 +22,7 @@ from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
                              MinMinScheduler, OLBScheduler, WBAScheduler)
 
 thisdir = pathlib.Path(__file__).parent.absolute()
+logging.basicConfig(level=logging.INFO)
 
 def chain(funcs):
     """Chain multiple functions together."""
@@ -201,6 +205,31 @@ experiments = {
                 for p in thisdir.joinpath("datasets", "benchmarking_wfcommons_ccr").glob("*.json")
             ]
         ),
+    },
+    "stochastic_benchmarking": {
+        "prepare": partial(
+            prepare_stochastic_datasets.run,
+            savedir=thisdir.joinpath("datasets", "stochastic_benchmarking"),
+        ),
+        "run": partial(
+            exp_stochastic_benchmarking.run,
+            datadir=thisdir.joinpath("datasets", "stochastic_benchmarking"),
+            resultsdir=thisdir.joinpath("results", "stochastic_benchmarking"),
+            trim=0,
+            schedulers=[
+                CpopScheduler(),
+                FastestNodeScheduler(),
+                HeftScheduler(),
+                MaxMinScheduler(),
+                MinMinScheduler(),
+                WBAScheduler(),
+            ]
+        ),
+        "plot": partial(
+            post_benchmarking.run,
+            resultsdir=thisdir.joinpath("results", "stochastic_benchmarking"),
+            outputdir=thisdir.joinpath("output", "stochastic_benchmarking"),
+        )
     },
 }
         

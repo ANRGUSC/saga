@@ -35,4 +35,6 @@ class Scheduler(ABC): # pylint: disable=too-few-public-methods
         Returns:
             str: The name of the scheduler.
         """
+        if hasattr(self, "name"):
+            return self.name
         return self.__class__.__name__

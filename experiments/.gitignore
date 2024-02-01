@@ -1,6 +1,7 @@
 output
 results
 datasets
+stochastic_datasets
 *.png
 *.pdf
 

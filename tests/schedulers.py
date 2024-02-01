@@ -314,8 +314,8 @@ def test_stochastic_schedulers():
 
 def test_all():
     """Runs all tests."""
-    test_common_schedulers()
-    # test_reweighting_stochastic_schedulers()
+    # test_common_schedulers()
+    test_reweighting_stochastic_schedulers()
     # test_stochastic_schedulers()
 
 

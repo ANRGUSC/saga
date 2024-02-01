@@ -19,22 +19,22 @@ def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
     """
     for node in network.nodes:
         if not isinstance(network.nodes[node]["weight"], (int, float)):
-            raise ValueError(f"Node {node} has non-numeric weight.")
+            raise ValueError(f"Node {node} has non-numeric weight (type({network.nodes[node]['weight']}).")
         if network.nodes[node]["weight"] <= 0 or 1/network.nodes[node]["weight"] <= 0:
             raise ValueError(f"Node {node} has zero, negative, or infinite weight.")
     for edge in network.edges:
         if not isinstance(network.edges[edge]["weight"], (int, float)):
-            raise ValueError(f"Edge {edge} has non-numeric weight.")
+            raise ValueError(f"Edge {edge} has non-numeric weight (type({network.edges[edge]['weight']}).")
         if network.edges[edge]["weight"] <= 0 or 1/network.edges[edge]["weight"] <= 0:
             raise ValueError(f"Edge {edge} has zero, negative, or infinite weight.")
     for node in task_graph.nodes:
         if not isinstance(task_graph.nodes[node]["weight"], (int, float)):
-            raise ValueError(f"Node {node} has non-numeric weight.")
+            raise ValueError(f"Node {node} has non-numeric weight (type({task_graph.nodes[node]['weight']}).")
         if task_graph.nodes[node]["weight"] <= 0 or 1/task_graph.nodes[node]["weight"] <= 0:
             raise ValueError(f"Node {node} has zero, negative, or infinite weight.")
     for edge in task_graph.edges:
         if not isinstance(task_graph.edges[edge]["weight"], (int, float)):
-            raise ValueError(f"Edge {edge} has non-numeric weight.")
+            raise ValueError(f"Edge {edge} has non-numeric weight (type({task_graph.edges[edge]['weight']}).")
         if task_graph.edges[edge]["weight"] <= 0 or 1/task_graph.edges[edge]["weight"] <= 0:
             raise ValueError(f"Edge {edge} has zero, negative, or infinite weight.")
     

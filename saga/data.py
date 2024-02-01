@@ -3,15 +3,155 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Iterator, List, Optional, Tuple
+from typing import Dict, Hashable, Iterator, List, Optional, Tuple, Union
 
 import networkx as nx
 import pandas as pd
 from joblib import Parallel, delayed
 
-from .scheduler import Scheduler
+from .scheduler import Scheduler, Task
 from .utils.tools import standardize_task_graph, validate_simple_schedule
+from .utils.random_variable import RandomVariable
 
+def isinstance_stochastic(network: nx.Graph, task_graph: nx.DiGraph) -> bool:
+    """Check if the network and task graph are stochastic.
+
+    Args:
+        network (nx.Graph): The network.
+        task_graph (nx.DiGraph): The task graph.
+
+    Returns:
+        bool: Whether the network and task graph are stochastic.
+    """
+    return any(isinstance(node["weight"], RandomVariable) for node in network.nodes.values()) or \
+           any(isinstance(edge["weight"], RandomVariable) for edge in network.edges.values()) or \
+           any(isinstance(task["weight"], RandomVariable) for task in task_graph.nodes.values()) or \
+           any(isinstance(dep["weight"], RandomVariable) for dep in task_graph.edges.values())
+
+def get_deterministic_makespan(schedule: Dict[Hashable, List[Task]]) -> float:
+    """Get the makespan of the schedule.
+
+    Args:
+        schedule (Dict[Hashable, List[Task]]): A schedule mapping nodes to a list of tasks.
+
+    Returns:
+        float: The makespan of the schedule.
+    """
+    return max((max(task.end for task in tasks) for tasks in schedule.values()))
+
+def determinize_solution(network: nx.Graph,
+                         task_graph: nx.DiGraph,
+                         schedule: Dict[Hashable, List[Task]]) -> Tuple[nx.Graph, nx.DiGraph, Dict[Hashable, List[Task]]]:
+    """Determinize the problem instance and solution.
+
+    Args:
+        network (nx.Graph): The network.
+        task_graph (nx.DiGraph): The task graph.
+        schedule (Dict[Hashable, List[Task]]): A schedule mapping nodes to a list of tasks.
+
+    Returns:
+        Tuple[nx.Graph, nx.DiGraph, Dict[Hashable, List[Task]]]: The determinized network, task graph, and schedule.
+    """
+    # determinize network
+    new_network = nx.Graph()
+    for node, node_data in network.nodes.items():
+        weight = node_data["weight"]
+        if isinstance(weight, RandomVariable):
+            new_network.add_node(node, weight=max(1e-9, weight.sample()))
+        else:
+            new_network.add_node(node, weight=weight)
+
+    for edge, edge_data in network.edges.items():
+        weight = edge_data["weight"]
+        if isinstance(weight, RandomVariable):
+            new_network.add_edge(edge[0], edge[1], weight=max(1e-9, weight.sample()))
+        else:
+            new_network.add_edge(edge[0], edge[1], weight=weight)
+
+    # determinize task graph
+    new_task_graph = nx.DiGraph()
+    for task, task_data in task_graph.nodes.items():
+        weight = task_data["weight"]
+        if isinstance(weight, RandomVariable):
+            new_task_graph.add_node(task, weight=max(1e-9, weight.sample()))
+        else:
+            new_task_graph.add_node(task, weight=weight)
+
+    for dep, dep_data in task_graph.edges.items():
+        weight = dep_data["weight"]
+        if isinstance(weight, RandomVariable):
+            new_task_graph.add_edge(dep[0], dep[1], weight=max(1e-9, weight.sample()))
+        else:
+            new_task_graph.add_edge(dep[0], dep[1], weight=weight)
+
+    task_map = {}
+    for node, tasks in schedule.items():
+        for task in tasks:
+            task_map[task.name] = task
+
+    task_order = sorted(task_map.values(), key=lambda task: task.start)
+    new_schedule: Dict[Hashable, List[Task]] = {node: [] for node in new_network.nodes}
+    new_task_map: Dict[str, Task] = {}
+    for task in task_order:
+        node = task.node
+        # compute time to get data from dependencies
+        data_available_time = max(
+            [
+                new_task_map[dep[0]].end + new_task_graph.edges[dep]["weight"] / new_network.edges[new_task_map[dep[0]].node, node]["weight"]
+                for dep in new_task_graph.in_edges(task.name)
+            ],
+            default=0
+        )
+        start_time = data_available_time if not new_schedule[node] else max(data_available_time, new_schedule[node][-1].end)
+        new_task = Task(node, task.name, start_time, start_time + new_task_graph.nodes[task.name]["weight"] / new_network.nodes[node]["weight"])
+        new_schedule[node].append(new_task)
+        new_task_map[task.name] = new_task
+
+
+    return new_network, new_task_graph, new_schedule
+
+def serialize_graph(graph: Union[nx.Graph, nx.DiGraph]):
+    """Serialize a task graph or network.
+
+    Args:
+        graph (nx.Graph): The task graph or network.
+
+    Returns:
+        Dict: The serialized network.
+    """
+    link_data = nx.node_link_data(graph)
+    # check if weights are random variables
+    for resource in [*link_data["nodes"], *link_data["links"]]:
+        if isinstance(resource["weight"], RandomVariable):
+            resource["weight"] = {
+                "type": "random_variable",
+                "samples": resource["weight"].samples.tolist(),
+            }
+        else:
+            resource["weight"] = {
+                "type": "float",
+                "value": resource["weight"],
+            }
+
+    return link_data
+
+def deserialize_graph(graph_data: Dict) -> Union[nx.Graph, nx.DiGraph]:
+    """Deserialize a task graph or network.
+
+    Args:
+        graph_data (Dict): The serialized network or task graph.
+
+    Returns:
+        Union[nx.Graph, nx.DiGraph]: The task graph or network.
+    """
+    # check if weights are random variables
+    for resource in [*graph_data["nodes"], *graph_data["links"]]:
+        if resource["weight"]["type"] == "random_variable":
+            resource["weight"] = RandomVariable(samples=resource["weight"]["samples"])
+        else:
+            resource["weight"] = resource["weight"]["value"]
+
+    return nx.node_link_graph(graph_data)
 
 @dataclass
 class Evaluation:
@@ -345,14 +485,16 @@ class Dataset(ABC):
             try:
                 task_graph = standardize_task_graph(task_graph)
                 schedule = scheduler.schedule(network, task_graph)
-                validate_simple_schedule(network, task_graph, schedule)
-                makespan = max(task.end for _, tasks in schedule.items() for task in tasks)
+                if isinstance_stochastic(network, task_graph):
+                    for i in range(10): # TODO: make this a parameter
+                        new_network, new_task_graph, new_schedule = determinize_solution(network, task_graph, schedule)
+                        validate_simple_schedule(new_network, new_task_graph, new_schedule)
+                        makespans.append(max(task.end for tasks in new_schedule.values() for task in tasks))
             except Exception as exception: # pylint: disable=broad-except
                 if ignore_errors:
-                    makespan = float("inf")
+                    makespans.append(float("inf"))
                 else:
                     raise exception
-            makespans.append(makespan)
         return Evaluation(self, scheduler, makespans)
 
     def compare(self,
@@ -518,13 +660,10 @@ class PairsDataset(Dataset):
         Returns:
             Dict[str, Union[List[str], List[List[str]]]]: The JSON object.
         """
-        data = {
-            "name": self.name,
-            "pairs": [
-                [nx.node_link_data(network), nx.node_link_data(task_graph)]
-                for network, task_graph in self.pairs
-            ]
-        }
+        pairs = []
+        for network, task_graph in self.pairs:
+            pairs.append([serialize_graph(network), serialize_graph(task_graph)])
+        data = {"name": self.name, "pairs": pairs}
         return json.dumps(data, *args, **kwargs)
 
     @classmethod
@@ -541,13 +680,19 @@ class PairsDataset(Dataset):
         if isinstance(data, dict):
             name = data.get("name") or None
             pairs = [
-                (nx.node_link_graph(network_data), nx.node_link_graph(task_graph_data))
+                (
+                    deserialize_graph(network_data),
+                    deserialize_graph(task_graph_data),
+                )
                 for network_data, task_graph_data in data["pairs"]
             ]
         else: # TODO: For backwards compatibility, remove in future
             name = None
             pairs = [
-                (nx.node_link_graph(network_data), nx.node_link_graph(task_graph_data))
+                (
+                    deserialize_graph(network_data),
+                    deserialize_graph(task_graph_data),
+                )
                 for network_data, task_graph_data in data
             ]
         return cls(pairs, name=name)
