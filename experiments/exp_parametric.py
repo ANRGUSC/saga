@@ -333,8 +333,8 @@ def main():
     )
     test_scheduler_equivalence(etf, etf_parametric)
     
-    # # Test all schedulers
-    # test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
+    # Test all schedulers
+    test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
 
 if __name__ == "__main__":
     main()
