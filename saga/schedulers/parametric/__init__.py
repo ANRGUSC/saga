@@ -94,11 +94,11 @@ class ParametricScheduler(Scheduler):
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
         scheduled_tasks: Dict[Hashable, Task] = {}
         while queue:
+            queue = self.update_priority(network, task_graph, schedule, queue)
             task_name = queue.pop(0)
             task = self.insert_task(network, task_graph, schedule, task_name)
             logging.debug("Inserted task %s on node %s at time %s.", task.name, task.node, task.start)
             scheduled_tasks[task.name] = task
-            queue = self.update_priority(network, task_graph, schedule, queue)
         return schedule
 
 class ParametricKDepthScheduler(Scheduler):
