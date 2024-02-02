@@ -297,41 +297,41 @@ def main():
     #         stop_on_error=True
     #     )
 
-    # # Test equivalence of HEFT and Parametric HEFT
-    # from saga.schedulers.heft import HeftScheduler
-    # heft = HeftScheduler()
-    # heft_parametric = ParametricScheduler(
-    #     initial_priority=UpwardRanking(),
-    #     update_priority=NoUpdate(),
-    #     insert_task=GreedyInsert(
-    #         append_only=False,
-    #         compare=compare_funcs["EFT"]
-    #     )
-    # )
-    # test_scheduler_equivalence(heft, heft_parametric)
+    # Test equivalence of HEFT and Parametric HEFT
+    from saga.schedulers.heft import HeftScheduler
+    heft = HeftScheduler()
+    heft_parametric = ParametricScheduler(
+        initial_priority=UpwardRanking(),
+        update_priority=NoUpdate(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare=compare_funcs["EFT"]
+        )
+    )
+    test_scheduler_equivalence(heft, heft_parametric)
 
-    # # Test equivalence of CPOP and Parametric CPOP
-    # from saga.schedulers.cpop import CpopScheduler
-    # cpop = CpopScheduler()
-    # cpop_parametric = ParametricScheduler(
-    #     initial_priority=CPoPRanking(),
-    #     update_priority=NoUpdate(),
-    #     insert_task=CriticalPathGreedyInsert(
-    #         append_only=False,
-    #         compare=compare_funcs["EFT"]
-    #     )
-    # )
-    # test_scheduler_equivalence(cpop, cpop_parametric)
+    # Test equivalence of CPOP and Parametric CPOP
+    from saga.schedulers.cpop import CpopScheduler
+    cpop = CpopScheduler()
+    cpop_parametric = ParametricScheduler(
+        initial_priority=CPoPRanking(),
+        update_priority=NoUpdate(),
+        insert_task=CriticalPathGreedyInsert(
+            append_only=False,
+            compare=compare_funcs["EFT"]
+        )
+    )
+    test_scheduler_equivalence(cpop, cpop_parametric)
 
-    # # Test equivalence of Suffrage and Parametric Suffrage
-    # from saga.schedulers.sufferage import SufferageScheduler
-    # etf = SufferageScheduler()
-    # etf_parametric = ParametricScheduler(
-    #     initial_priority=ArbitraryTopological(),
-    #     update_priority=SufferageUpdatePriority(insert_funcs["EFT_Insert"]),
-    #     insert_task=insert_funcs["EFT_Insert"]
-    # )
-    # test_scheduler_equivalence(etf, etf_parametric)
+    # Test equivalence of Suffrage and Parametric Suffrage
+    from saga.schedulers.sufferage import SufferageScheduler
+    etf = SufferageScheduler()
+    etf_parametric = ParametricScheduler(
+        initial_priority=ArbitraryTopological(),
+        update_priority=SufferageUpdatePriority(insert_funcs["EFT_Insert"]),
+        insert_task=insert_funcs["EFT_Insert"]
+    )
+    test_scheduler_equivalence(etf, etf_parametric)
     
     # Test all schedulers
     test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
