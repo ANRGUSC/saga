@@ -67,7 +67,7 @@ def get_insert_loc(schedule: List[Task],
         exec_time (float): The execution time of the task.
         
     Returns:
-        int: The index where the task should be inserted.
+        Tuple[int, float]: The index and start time of the task.
     """
     if not schedule or min_start_time + exec_time < schedule[0].start:
         return 0, min_start_time
