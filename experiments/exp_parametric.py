@@ -1,3 +1,4 @@
+import argparse
 from copy import deepcopy
 from functools import lru_cache
 import heapq
@@ -213,8 +214,8 @@ class SufferageUpdatePriority(UpdatePriority):
 
 
 compare_funcs = {
-    # "EFT": lambda new, cur: new.end - cur.end,
-    # "EST": lambda new, cur: new.start - cur.start,
+    "EFT": lambda new, cur: new.end - cur.end,
+    "EST": lambda new, cur: new.start - cur.start,
     "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start),
 }
 insert_funcs = {}
@@ -277,7 +278,7 @@ def test_scheduler_equivalence(scheduler, base_scheduler):
     logging.info(f"PASSED: Schedulers {scheduler.__name__} and {base_scheduler.__name__} are equivalent.")
 
 
-def main():
+def test():
     logging.basicConfig(level=logging.DEBUG)
 
     thisdir = pathlib.Path(__file__).parent.resolve()
@@ -335,6 +336,35 @@ def main():
     
     # Test all schedulers
     test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
+
+
+def main():
+    from exp_benchmarking import evaluate_dataset
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
+    parser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
+    parser.add_argument("--num", type=int, required=True, help="Scheduler number to benchmark.")
+    args = parser.parse_args()
+
+    if args.num < 0 or args.num >= len(schedulers):
+        raise ValueError(f"Invalid scheduler number {args.num}. Must be between 0 and {len(schedulers) - 1}.")
+
+    datadir = pathlib.Path(args.datadir).resolve(strict=True)
+    resultsdir = pathlib.Path(args.resultsdir).resolve(strict=False)
+    scheduler_name = list(schedulers.keys())[args.num]
+    scheduler = schedulers[scheduler_name]
+    default_datasets = [path.stem for path in datadir.glob("*.json")]
+    for dataset_name in default_datasets:
+        evaluate_dataset(
+            datadir=datadir,
+            resultsdir=resultsdir / scheduler_name,
+            dataset_name=dataset_name,
+            max_instances=0, # No trimming
+            num_jobs=1,
+            schedulers=[scheduler],
+            overwrite=True
+        )
 
 if __name__ == "__main__":
     main()
