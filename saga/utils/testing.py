@@ -180,7 +180,7 @@ def test_schedulers(schedulers: Dict[str, Scheduler],
     network = add_random_weights(get_network())
 
     for i, (scheduler_name, scheduler) in enumerate(schedulers.items()):
-        logging.info(f"Testing scheduler {i}: {scheduler_name}")
+        logging.info(f"Testing scheduler {i}/{len(schedulers)}: {scheduler_name}")
         for task_graph_name, task_graph in task_graphs.items():
             test_name = f"schedulers/{task_graph_name}/{scheduler_name}"
             logging.info(f"Testing {test_name}")

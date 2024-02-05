@@ -146,10 +146,11 @@ def deserialize_graph(graph_data: Dict) -> Union[nx.Graph, nx.DiGraph]:
     """
     # check if weights are random variables
     for resource in [*graph_data["nodes"], *graph_data["links"]]:
-        if resource["weight"]["type"] == "random_variable":
-            resource["weight"] = RandomVariable(samples=resource["weight"]["samples"])
-        else:
-            resource["weight"] = resource["weight"]["value"]
+        if isinstance(resource["weight"], dict):
+            if resource["weight"]["type"] == "random_variable":
+                resource["weight"] = RandomVariable(samples=resource["weight"]["samples"])
+            else:
+                resource["weight"] = resource["weight"]["value"]
 
     return nx.node_link_graph(graph_data)
 
@@ -459,7 +460,7 @@ class Dataset(ABC):
         """
         raise NotImplementedError
 
-    def __iter__(self) -> "Iterator[Tuple[nx.Graph, nx.DiGraph]]":
+    def __iter__(self) -> Iterator[Tuple[nx.Graph, nx.DiGraph]]:
         """Get an iterator over the networks and task graphs.
 
         Returns:
@@ -490,6 +491,8 @@ class Dataset(ABC):
                         new_network, new_task_graph, new_schedule = determinize_solution(network, task_graph, schedule)
                         validate_simple_schedule(new_network, new_task_graph, new_schedule)
                         makespans.append(max(task.end for tasks in new_schedule.values() for task in tasks))
+                else:
+                    makespans.append(max(task.end for tasks in schedule.values() for task in tasks))
             except Exception as exception: # pylint: disable=broad-except
                 if ignore_errors:
                     makespans.append(float("inf"))
