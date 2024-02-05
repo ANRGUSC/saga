@@ -28,7 +28,7 @@ setup(
     install_requires=[
         'networkx',
         'numpy',
-        'pygraphviz',
+#         'pygraphviz',
         'matplotlib',
         'scipy',
         'pandas',
