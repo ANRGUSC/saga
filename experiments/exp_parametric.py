@@ -402,7 +402,7 @@ def main():
             num = int(args.scheduler)
             if num < 0 or num >= len(schedulers):
                 raise ValueError(f"Invalid scheduler number {num}. Must be between 0 and {len(schedulers) - 1}.")
-            scheduler_name = list(schedulers.keys())[args.num]
+            scheduler_name = list(schedulers.keys())[num]
         except ValueError:
             if args.scheduler not in schedulers:
                 raise ValueError(f"Invalid scheduler name {args.scheduler}. Must be one of {list(schedulers.keys())}.")

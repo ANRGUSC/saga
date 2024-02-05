@@ -4,6 +4,7 @@ datasets
 stochastic_datasets
 *.png
 *.pdf
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
