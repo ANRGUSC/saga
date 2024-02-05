@@ -6,9 +6,14 @@ import logging
 import pathlib
 from pprint import pformat
 import shutil
+import time
 
 import numpy as np
-from saga.scheduler import Task
+import pandas as pd
+from experiments.exp_benchmarking import TrimmedDataset
+from experiments.prepare_datasets import load_dataset
+from saga.data import Dataset
+from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import IntialPriority, ScheduleType, UpdatePriority, InsertTask, ParametricScheduler, ParametricKDepthScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
@@ -18,6 +23,7 @@ from typing import Callable, Dict, List, Hashable
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
 
 from saga.utils.testing import test_schedulers
+from saga.utils.tools import standardize_task_graph
 
 # Initial Priority functions
 class UpwardRanking(IntialPriority):
@@ -179,8 +185,9 @@ class NoUpdate(UpdatePriority):
         return queue
 
 class SufferageUpdatePriority(UpdatePriority):
-    def __init__(self, insert_task: GreedyInsert):
+    def __init__(self, insert_task: GreedyInsert, top_n: int = None):
         self.insert_task = insert_task
+        self.top_n = top_n
 
     def __call__(self,
                  network: nx.Graph,
@@ -193,7 +200,8 @@ class SufferageUpdatePriority(UpdatePriority):
             for node, tasks in schedule.items()
             for task in tasks
         }
-        for task in queue:
+        top_n = self.top_n if self.top_n is not None else len(queue)
+        for task in queue[:top_n]:
             if not all(pred in scheduled_tasks for pred in task_graph.predecessors(task)):
                 sufferages[task] = -np.inf
                 continue
@@ -210,7 +218,8 @@ class SufferageUpdatePriority(UpdatePriority):
             sufferages[task] = self.insert_task.compare(second_best_task, best_task)
             # if sufferages[task] < 0:
             #     raise ValueError(f"Task {task} has negative sufferage {sufferages[task]}")
-        return sorted(queue, key=sufferages.get, reverse=True)
+        new_order = sorted(sufferages.keys(), key=sufferages.get, reverse=True)
+        return new_order + queue[top_n:]
 
 
 compare_funcs = {
@@ -233,25 +242,21 @@ initial_priority_funcs = {
 
 schedulers = {}
 for name, insert_func in insert_funcs.items():
+    schedulers[f"{name}_Sufferage"] = ParametricScheduler(
+        initial_priority=ArbitraryTopological(), # Doesn't matter
+        insert_task=insert_func,
+        update_priority=SufferageUpdatePriority(insert_func, top_n=2)
+    )
     for intial_priority_name, initial_priority_func in initial_priority_funcs.items():
         schedulers[f"{name}_{intial_priority_name}"] = ParametricScheduler(
             initial_priority=initial_priority_func,
             insert_task=insert_func,
             update_priority=NoUpdate()
         )
-        schedulers[f"{name}_Sufferage_{intial_priority_name}"] = ParametricScheduler(
-            initial_priority=initial_priority_func,
-            insert_task=insert_func,
-            update_priority=SufferageUpdatePriority(insert_func)
-        )
 
         for k in range(1, 4):
             schedulers[f"{name}_{intial_priority_name}_K{k}"] = ParametricKDepthScheduler(
                 scheduler=schedulers[f"{name}_{intial_priority_name}"],
-                k_depth=k
-            )
-            schedulers[f"{name}_Sufferage_{intial_priority_name}_K{k}"] = ParametricKDepthScheduler(
-                scheduler=schedulers[f"{name}_Sufferage_{intial_priority_name}"],
                 k_depth=k
             )
 
@@ -329,7 +334,7 @@ def test():
     etf = SufferageScheduler()
     etf_parametric = ParametricScheduler(
         initial_priority=ArbitraryTopological(),
-        update_priority=SufferageUpdatePriority(insert_funcs["EFT_Insert"]),
+        update_priority=SufferageUpdatePriority(insert_funcs["EFT_Insert"], top_n=2),
         insert_task=insert_funcs["EFT_Insert"]
     )
     test_scheduler_equivalence(etf, etf_parametric)
@@ -337,34 +342,80 @@ def test():
     # Test all schedulers
     test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
 
+def print_schedulers():
+    for i, (name, scheduler) in enumerate(schedulers.items()):
+        print(f"{i}: {name}")
+
+def evaluate_scheduler(scheduler_name: str,
+                       datadir: pathlib.Path,
+                       resultsdir: pathlib.Path,
+                       trim: int = 0,
+                       overwrite: bool = False):
+    datadir = datadir.resolve(strict=True)
+    resultsdir = resultsdir.resolve(strict=False)
+    default_datasets = [path.stem for path in datadir.glob("*.json")]
+    default_datasets = ["chains", "in_trees", "out_trees"]
+    scheduler = schedulers[scheduler_name]
+    scheduler.name = scheduler_name
+    for dataset_name in default_datasets:
+        savepath = resultsdir / scheduler_name / f"{dataset_name}.csv"
+        if savepath.exists() and not overwrite:
+            print(f"Results already exist for {scheduler_name} on {dataset_name}. Skipping.")
+            continue
+        print(f"Evaluating {scheduler_name} on {dataset_name}")
+        dataset = load_dataset(datadir, dataset_name)
+        if trim > 0:
+            dataset = TrimmedDataset(dataset, max_instances=5)
+        rows = []
+        for i, (network, task_graph) in enumerate(dataset):
+            print(f"  Instance {i}/{len(dataset)}", end="\r")
+            task_graph = standardize_task_graph(task_graph)
+            t0 = time.time()
+            schedule = scheduler.schedule(network, task_graph)
+            dt = time.time() - t0
+            makespan = max(task.end for tasks in schedule.values() for task in tasks)
+            rows.append([scheduler_name, dataset_name, i, makespan, dt])
+    
+        df = pd.DataFrame(rows, columns=["scheduler", "dataset", "instance", "makespan", "runtime"])
+        savepath.parent.mkdir(exist_ok=True, parents=True)
+        df.to_csv(savepath)
+        print(f"  saved results to {savepath}")
 
 def main():
-    from exp_benchmarking import evaluate_dataset
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
     parser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
-    parser.add_argument("--num", type=int, required=True, help="Scheduler number to benchmark.")
+    parser.add_argument("--scheduler", required=True, help="Scheduler to benchmark. Can be a number or a name.")
+    parser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
     args = parser.parse_args()
 
-    if args.num < 0 or args.num >= len(schedulers):
-        raise ValueError(f"Invalid scheduler number {args.num}. Must be between 0 and {len(schedulers) - 1}.")
+    if args.scheduler == "all":
+        for scheduler_name in schedulers:
+            evaluate_scheduler(
+                scheduler_name,
+                pathlib.Path(args.datadir),
+                pathlib.Path(args.resultsdir),
+                trim=args.trim
+            )
+    else:
+        try:
+            num = int(args.scheduler)
+            if num < 0 or num >= len(schedulers):
+                raise ValueError(f"Invalid scheduler number {num}. Must be between 0 and {len(schedulers) - 1}.")
+            scheduler_name = list(schedulers.keys())[args.num]
+        except ValueError:
+            if args.scheduler not in schedulers:
+                raise ValueError(f"Invalid scheduler name {args.scheduler}. Must be one of {list(schedulers.keys())}.")
+            scheduler_name = args.scheduler
 
-    datadir = pathlib.Path(args.datadir).resolve(strict=True)
-    resultsdir = pathlib.Path(args.resultsdir).resolve(strict=False)
-    scheduler_name = list(schedulers.keys())[args.num]
-    scheduler = schedulers[scheduler_name]
-    default_datasets = [path.stem for path in datadir.glob("*.json")]
-    for dataset_name in default_datasets:
-        evaluate_dataset(
-            datadir=datadir,
-            resultsdir=resultsdir / scheduler_name,
-            dataset_name=dataset_name,
-            max_instances=0, # No trimming
-            num_jobs=1,
-            schedulers=[scheduler],
-            overwrite=True
+        evaluate_scheduler(
+            scheduler_name,
+            pathlib.Path(args.datadir),
+            pathlib.Path(args.resultsdir),
+            trim=args.trim
         )
 
 if __name__ == "__main__":
+    # test()
+    # print_schedulers()
     main()
