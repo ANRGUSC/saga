@@ -79,6 +79,7 @@ def evaluate_dataset(datadir: pathlib.Path,
 
     logging.info("Saving results.")
     df_comp = comparison.to_df()
+    savepath.parent.mkdir(exist_ok=True, parents=True)
     df_comp.to_csv(savepath)
     logging.info("Saved results to %s.", savepath)
 
