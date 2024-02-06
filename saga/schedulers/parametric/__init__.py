@@ -3,9 +3,9 @@ from copy import deepcopy
 import logging
 from typing import Any, Dict, Hashable, List, Optional, Tuple
 import networkx as nx
+from sympy import Symbol
 
 from saga.scheduler import Scheduler, Task
-
 
 class IntialPriority(ABC):
     @abstractmethod
@@ -22,6 +22,48 @@ class IntialPriority(ABC):
             List[Hashable]: The initial priority of the tasks.
         """
         pass
+
+    @abstractmethod
+    def serialize(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the initial priority.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the initial priority.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def deserialize(self, data: Dict[str, Any]) -> "IntialPriority":
+        """Return a new instance of the initial priority from the serialized data.
+        
+        Args:
+            data (Dict[str, Any]): The serialized data.
+
+        Returns:
+            IntialPriority: A new instance of the initial priority.
+        """
+        pass
+    
+    @abstractmethod
+    def runtime(self,
+                num_tasks: Symbol,
+                num_dependencies: Symbol,
+                num_nodes: Symbol,
+                num_edges: Symbol) -> Symbol:
+        """Return the runtime of the initial priority.
+
+        Args:
+            num_tasks (Symbol): The number of tasks.
+            num_dependencies (Symbol): The number of dependencies.
+            num_nodes (Symbol): The number of nodes.
+            num_edges (Symbol): The number of edges.
+
+        Returns:
+            Symbol: The runtime of the initial priority.
+        """
+        pass
+
 
 ScheduleType = Dict[Hashable, List[Task]]
 
@@ -45,6 +87,47 @@ class UpdatePriority(ABC):
         """
         pass
 
+    @abstractmethod
+    def serialize(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the initial priority.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the initial priority.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def deserialize(self, data: Dict[str, Any]) -> "UpdatePriority":
+        """Return a new instance of the initial priority from the serialized data.
+        
+        Args:
+            data (Dict[str, Any]): The serialized data.
+
+        Returns:
+            UpdatePriority: A new instance of the initial priority.
+        """
+        pass
+    
+    @abstractmethod
+    def runtime(self,
+                num_tasks: Symbol,
+                num_dependencies: Symbol,
+                num_nodes: Symbol,
+                num_edges: Symbol) -> Symbol:
+        """Return the runtime of the update priority.
+
+        Args:
+            num_tasks (Symbol): The number of tasks.
+            num_dependencies (Symbol): The number of dependencies.
+            num_nodes (Symbol): The number of nodes.
+            num_edges (Symbol): The number of edges.
+
+        Returns:
+            Symbol: The runtime of the update priority.
+        """
+        pass
+
 class InsertTask(ABC):
     @abstractmethod
     def __call__(self,
@@ -62,6 +145,47 @@ class InsertTask(ABC):
 
         Returns:
             Task: The inserted task
+        """
+        pass
+
+    @abstractmethod
+    def serialize(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the initial priority.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the initial priority.
+        """
+        pass
+
+    @classmethod
+    @abstractmethod
+    def deserialize(self, data: Dict[str, Any]) -> "InsertTask":
+        """Return a new instance of the initial priority from the serialized data.
+        
+        Args:
+            data (Dict[str, Any]): The serialized data.
+
+        Returns:
+            InsertTask: A new instance of the initial priority.
+        """
+        pass
+    
+    @abstractmethod
+    def runtime(self,
+                num_tasks: Symbol,
+                num_dependencies: Symbol,
+                num_nodes: Symbol,
+                num_edges: Symbol) -> Symbol:
+        """Return the runtime to insert task.
+
+        Args:
+            num_tasks (Symbol): The number of tasks.
+            num_dependencies (Symbol): The number of dependencies.
+            num_nodes (Symbol): The number of nodes.
+            num_edges (Symbol): The number of edges.
+
+        Returns:
+            Symbol: The runtime to insert task.
         """
         pass
 
@@ -100,6 +224,73 @@ class ParametricScheduler(Scheduler):
             logging.debug("Inserted task %s on node %s at time %s.", task.name, task.node, task.start)
             scheduled_tasks[task.name] = task
         return schedule
+
+    def serialize(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the initial priority.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the initial priority.
+        """
+        return {
+            "name": "ParametricScheduler",
+            "initial_priority": self.initial_priority.serialize(),
+            "update_priority": self.update_priority.serialize(),
+            "insert_task": self.insert_task.serialize(),
+            "k_depth": 0
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "ParametricScheduler":
+        """Return a new instance of the initial priority from the serialized data.
+        
+        Args:
+            data (Dict[str, Any]): The serialized data.
+
+        Returns:
+            ParametricScheduler: A new instance of the initial priority.
+        """
+        return cls(
+            initial_priority=IntialPriority.deserialize(data["initial_priority"]),
+            update_priority=UpdatePriority.deserialize(data["update_priority"]),
+            insert_task=InsertTask.deserialize(data["insert_task"])
+        )
+    
+    def runtime(self,
+                num_tasks: Symbol,
+                num_dependencies: Symbol,
+                num_nodes: Symbol,
+                num_edges: Symbol) -> Symbol:
+        """Return the runtime of the scheduler.
+
+        Args:
+            num_tasks (Symbol): The number of tasks.
+            num_dependencies (Symbol): The number of dependencies.
+            num_nodes (Symbol): The number of nodes.
+            num_edges (Symbol): The number of edges.
+
+        Returns:
+            Symbol: The runtime of the scheduler.
+        """
+        runtime_initial_priority = self.initial_priority.runtime(
+            num_tasks=num_tasks,
+            num_dependencies=num_dependencies,
+            num_nodes=num_nodes,
+            num_edges=num_edges
+        )
+        runtime_update_priority = self.update_priority.runtime(
+            num_tasks=num_tasks,
+            num_dependencies=num_dependencies,
+            num_nodes=num_nodes,
+            num_edges=num_edges
+        )
+        runtime_insert_task = self.insert_task.runtime(
+            num_tasks=num_tasks,
+            num_dependencies=num_dependencies,
+            num_nodes=num_nodes,
+            num_edges=num_edges
+        )
+
+        return runtime_initial_priority + num_tasks * (runtime_update_priority + runtime_insert_task)
 
 class ParametricKDepthScheduler(Scheduler):
     def __init__(self,
@@ -166,3 +357,53 @@ class ParametricKDepthScheduler(Scheduler):
             }
 
         return schedule
+
+    def serialize(self) -> Dict[str, Any]:
+        """Return a dictionary representation of the initial priority.
+        
+        Returns:
+            Dict[str, Any]: A dictionary representation of the initial priority.
+        """
+        return {
+            **self.scheduler.serialize(),
+            "name": "ParametricKDepthScheduler",
+            "k_depth": self.k_depth
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "ParametricKDepthScheduler":
+        """Return a new instance of the initial priority from the serialized data.
+        
+        Args:
+            data (Dict[str, Any]): The serialized data.
+
+        Returns:
+            ParametricKDepthScheduler: A new instance of the initial priority.
+        """
+        return cls(
+            scheduler=ParametricScheduler.deserialize(data),
+            k_depth=data["k_depth"]
+        )
+
+    def runtime(self,
+                num_tasks: Symbol,
+                num_dependencies: Symbol,
+                num_nodes: Symbol,
+                num_edges: Symbol) -> Symbol:
+        """Return the runtime of the scheduler.
+
+        Args:
+            num_tasks (Symbol): The number of tasks.
+            num_dependencies (Symbol): The number of dependencies.
+            num_nodes (Symbol): The number of nodes.
+            num_edges (Symbol): The number of edges.
+
+        Returns:
+            Symbol: The runtime of the scheduler.
+        """
+        return self.k_depth * self.scheduler.runtime(
+            num_tasks=num_tasks,
+            num_dependencies=num_dependencies,
+            num_nodes=num_nodes,
+            num_edges=num_edges
+        )

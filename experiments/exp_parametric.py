@@ -7,9 +7,11 @@ import pathlib
 from pprint import pformat
 import shutil
 import time
+import sympy as sp
 
 import numpy as np
 import pandas as pd
+from sympy import Symbol
 from experiments.exp_benchmarking import TrimmedDataset
 from experiments.prepare_datasets import load_dataset
 from saga.data import Dataset
@@ -19,7 +21,7 @@ from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
 
 import networkx as nx
-from typing import Callable, Dict, List, Hashable
+from typing import Any, Callable, Dict, List, Hashable
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
 
 from saga.utils.testing import test_schedulers
@@ -31,6 +33,25 @@ class UpwardRanking(IntialPriority):
                  network: nx.Graph,
                  task_graph: nx.DiGraph) -> List[Hashable]:
         return heft_rank_sort(network, task_graph)
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {"name": "UpwardRanking"}
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "UpwardRanking":
+        return cls()
+    
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return (
+            num_tasks * num_nodes +         # avg task runtimes
+            num_dependencies * num_edges +  # avg comm times
+            (num_tasks + num_edges) +       # topological sort
+            (num_tasks * sp.log(num_tasks)) # sort ranks
+        )
 
 class CPoPRanking(IntialPriority):
     def __call__(self,
@@ -55,28 +76,66 @@ class CPoPRanking(IntialPriority):
                 heapq.heappush(pq, (-ranks[ready_task], ready_task))
         
         return queue
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {"name": "CPoPRanking"}
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "CPoPRanking":
+        return cls()
+    
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return (
+            num_tasks * num_nodes +         # avg task runtimes
+            num_dependencies * num_edges +  # avg comm times
+            2*(num_tasks + num_edges) +     # two topological traversals
+            (num_tasks * sp.log(num_tasks)) # sort ranks
+        )
 
 class ArbitraryTopological(IntialPriority):
     def __call__(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph) -> List[Hashable]:
         return list(nx.topological_sort(task_graph))
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {"name": "ArbitraryTopological"}
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "ArbitraryTopological":
+        return cls()
 
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return num_tasks + num_edges
+
+GREEDY_INSERT_COMPARE_FUNCS = {
+    "EFT": lambda new, cur: new.end - cur.end,
+    "EST": lambda new, cur: new.start - cur.start,
+    "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start),
+}
 # Insert Task functions
 class GreedyInsert(InsertTask):
     def __init__(self,
                  append_only: bool = False,
-                 compare: Callable[[Task, Task], float] = lambda new, cur: new.end - cur.end):
+                 compare: str = "EFT"):
         """Initialize the GreedyInsert class.
         
         Args:
             append_only (bool, optional): Whether to only append the task to the schedule. Defaults to False.
-            compare (Callable[[Task, Task], float], optional): The comparison function. Defaults to lambda new, cur: new.end - cur.end.
-                The comparison function should return a negative number if the first task is better than the second task, a positive number
-                if the second task is better than the first task, and 0 if the tasks are equally good.
+            compare (Callable[[Task, Task], float], optional): The comparison function to use. Defaults to lambda new, cur: new.end - cur.end.
+                Must be one of "EFT", "EST", or "Quickest".
         """
         self.append_only = append_only
         self.compare = compare
+        self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
 
     def __call__(self,
                  network: nx.Graph,
@@ -114,11 +173,39 @@ class GreedyInsert(InsertTask):
                 insert_loc, start_time  = get_insert_loc(schedule[node], min_start_time, exec_time)
 
             new_task = Task(node, task, start_time, start_time + exec_time)
-            if best_task is None or self.compare(new_task, best_task) < 0:
+            if best_task is None or self._compare(new_task, best_task) < 0:
                 best_insert_loc, best_task = insert_loc, new_task
 
         schedule[best_task.node].insert(best_insert_loc, best_task)
         return best_task
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {
+            "name": "GreedyInsert",
+            "append_only": self.append_only,
+            "compare": self.compare,
+            "critical_path": False
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "GreedyInsert":
+        return cls(
+            append_only=data["append_only"],
+            compare=data["compare"]
+        )
+    
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return (
+            num_tasks +         # compute task map (this wouldn't be necessary in an optimized implementation)
+            num_nodes * (
+                num_tasks +     # a tighter bound would be the max in-degree of the task graph
+                num_tasks if self.append_only else 1 # getting insert location if not append only
+            )
+        )
 
 class CriticalPathGreedyInsert(GreedyInsert):
     def __init__(self, append_only: bool = False, compare: Callable[[Task, Task], float] = lambda new, cur: new.end - cur.end):
@@ -174,6 +261,21 @@ class CriticalPathGreedyInsert(GreedyInsert):
             return new_task
         else:
             return super().__call__(network, task_graph, schedule, task)
+        
+    def serialize(self) -> Dict[str, Any]:
+        return {
+            "name": "CriticalPathGreedyInsert",
+            "append_only": self.append_only,
+            "compare": self.compare,
+            "critical_path": True
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "CriticalPathGreedyInsert":
+        return cls(
+            append_only=data["append_only"],
+            compare=data["compare"]
+        )
 
 # Update Priority functions
 class NoUpdate(UpdatePriority):
@@ -183,6 +285,20 @@ class NoUpdate(UpdatePriority):
                  schedule: ScheduleType,
                  queue: List[Hashable]) -> List[Hashable]:
         return queue
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {"name": "NoUpdate"}
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "NoUpdate":
+        return cls()
+    
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return 1
 
 class SufferageUpdatePriority(UpdatePriority):
     def __init__(self, insert_task: GreedyInsert, top_n: int = None):
@@ -215,24 +331,41 @@ class SufferageUpdatePriority(UpdatePriority):
                 deepcopy(schedule),
                 task
             )
-            sufferages[task] = self.insert_task.compare(second_best_task, best_task)
+            sufferages[task] = self.insert_task._compare(second_best_task, best_task)
             # if sufferages[task] < 0:
             #     raise ValueError(f"Task {task} has negative sufferage {sufferages[task]}")
         new_order = sorted(sufferages.keys(), key=sufferages.get, reverse=True)
         return new_order + queue[top_n:]
+    
+    def serialize(self) -> Dict[str, Any]:
+        return {
+            "name": "SufferageUpdatePriority",
+            "insert_task": self.insert_task.serialize(),
+            "top_n": self.top_n
+        }
+    
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "SufferageUpdatePriority":
+        return cls(
+            insert_task=InsertTask.deserialize(data["insert_task"]),
+            top_n=data["top_n"]
+        )
+    
+    def runtime(self,
+                num_tasks: sp.Symbol,
+                num_dependencies: sp.Symbol,
+                num_nodes: sp.Symbol,
+                num_edges: sp.Symbol) -> sp.Symbol:
+        return (
+            2 * num_nodes * num_tasks # time to compute sufferages for each task
+        )
 
-
-compare_funcs = {
-    "EFT": lambda new, cur: new.end - cur.end,
-    "EST": lambda new, cur: new.start - cur.start,
-    "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start),
-}
-insert_funcs = {}
-for name, compare_func in compare_funcs.items():
-    insert_funcs[f"{name}_Append"] = GreedyInsert(append_only=True, compare=compare_func)
-    insert_funcs[f"{name}_Insert"] = GreedyInsert(append_only=False, compare=compare_func)
-    insert_funcs[f"{name}_Append_CP"] = CriticalPathGreedyInsert(append_only=True, compare=compare_func)
-    insert_funcs[f"{name}_Insert_CP"] = CriticalPathGreedyInsert(append_only=False, compare=compare_func)
+insert_funcs: Dict[str, GreedyInsert] = {}
+for compare_func_name in GREEDY_INSERT_COMPARE_FUNCS.keys():
+    insert_funcs[f"{compare_func_name}_Append"] = GreedyInsert(append_only=True, compare=compare_func_name)
+    insert_funcs[f"{compare_func_name}_Insert"] = GreedyInsert(append_only=False, compare=compare_func_name)
+    insert_funcs[f"{compare_func_name}_Append_CP"] = CriticalPathGreedyInsert(append_only=True, compare=compare_func_name)
+    insert_funcs[f"{compare_func_name}_Insert_CP"] = CriticalPathGreedyInsert(append_only=False, compare=compare_func_name)
 
 initial_priority_funcs = {
     "UpwardRanking": UpwardRanking(),
@@ -240,7 +373,7 @@ initial_priority_funcs = {
     "ArbitraryTopological": ArbitraryTopological()
 }
 
-schedulers = {}
+schedulers: Dict[str, ParametricScheduler] = {}
 for name, insert_func in insert_funcs.items():
     schedulers[f"{name}_Sufferage"] = ParametricScheduler(
         initial_priority=ArbitraryTopological(), # Doesn't matter
@@ -311,7 +444,7 @@ def test():
         update_priority=NoUpdate(),
         insert_task=GreedyInsert(
             append_only=False,
-            compare=compare_funcs["EFT"]
+            compare=GREEDY_INSERT_COMPARE_FUNCS["EFT"]
         )
     )
     test_scheduler_equivalence(heft, heft_parametric)
@@ -324,7 +457,7 @@ def test():
         update_priority=NoUpdate(),
         insert_task=CriticalPathGreedyInsert(
             append_only=False,
-            compare=compare_funcs["EFT"]
+            compare=GREEDY_INSERT_COMPARE_FUNCS["EFT"]
         )
     )
     test_scheduler_equivalence(cpop, cpop_parametric)
@@ -417,5 +550,5 @@ def main():
 
 if __name__ == "__main__":
     # test()
-    # print_schedulers()
-    main()
+    print_schedulers()
+    # main()
