@@ -3,7 +3,6 @@ from copy import deepcopy
 import logging
 from typing import Any, Dict, Hashable, List, Optional, Tuple
 import networkx as nx
-from sympy import Symbol
 
 from saga.scheduler import Scheduler, Task
 
@@ -44,97 +43,16 @@ class IntialPriority(ABC):
             IntialPriority: A new instance of the initial priority.
         """
         pass
-    
-    @abstractmethod
-    def runtime(self,
-                num_tasks: Symbol,
-                num_dependencies: Symbol,
-                num_nodes: Symbol,
-                num_edges: Symbol) -> Symbol:
-        """Return the runtime of the initial priority.
-
-        Args:
-            num_tasks (Symbol): The number of tasks.
-            num_dependencies (Symbol): The number of dependencies.
-            num_nodes (Symbol): The number of nodes.
-            num_edges (Symbol): The number of edges.
-
-        Returns:
-            Symbol: The runtime of the initial priority.
-        """
-        pass
-
 
 ScheduleType = Dict[Hashable, List[Task]]
-
-class UpdatePriority(ABC):
-    @abstractmethod
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: ScheduleType,
-                 priority: List[Hashable]) -> List[Hashable]:
-        """Return the updated priority of the tasks.
-        
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (ScheduleType): The schedule.
-            priority (List[Hashable]): The current priority of the tasks.
-
-        Returns:
-            List[Hashable]: The updated priority of the tasks.
-        """
-        pass
-
-    @abstractmethod
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def deserialize(self, data: Dict[str, Any]) -> "UpdatePriority":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
-
-        Returns:
-            UpdatePriority: A new instance of the initial priority.
-        """
-        pass
-    
-    @abstractmethod
-    def runtime(self,
-                num_tasks: Symbol,
-                num_dependencies: Symbol,
-                num_nodes: Symbol,
-                num_edges: Symbol) -> Symbol:
-        """Return the runtime of the update priority.
-
-        Args:
-            num_tasks (Symbol): The number of tasks.
-            num_dependencies (Symbol): The number of dependencies.
-            num_nodes (Symbol): The number of nodes.
-            num_edges (Symbol): The number of edges.
-
-        Returns:
-            Symbol: The runtime of the update priority.
-        """
-        pass
-
 class InsertTask(ABC):
     @abstractmethod
     def __call__(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  schedule: ScheduleType,
-                 task: Hashable) -> Task:
+                 task: Hashable,
+                 node: Optional[Hashable] = None) -> Task:
         """Insert a task into the schedule.
 
         Args:
@@ -142,6 +60,7 @@ class InsertTask(ABC):
             task_graph (nx.DiGraph): The task graph.
             schedule (ScheduleType): The schedule.
             task (Hashable): The task.  
+            node (Optional[Hashable]): The node to insert the task onto. If None, the node is chosen by the algorithm.
 
         Returns:
             Task: The inserted task
@@ -169,35 +88,13 @@ class InsertTask(ABC):
             InsertTask: A new instance of the initial priority.
         """
         pass
-    
-    @abstractmethod
-    def runtime(self,
-                num_tasks: Symbol,
-                num_dependencies: Symbol,
-                num_nodes: Symbol,
-                num_edges: Symbol) -> Symbol:
-        """Return the runtime to insert task.
-
-        Args:
-            num_tasks (Symbol): The number of tasks.
-            num_dependencies (Symbol): The number of dependencies.
-            num_nodes (Symbol): The number of nodes.
-            num_edges (Symbol): The number of edges.
-
-        Returns:
-            Symbol: The runtime to insert task.
-        """
-        pass
-
 
 class ParametricScheduler(Scheduler):
     def __init__(self,
                  initial_priority: IntialPriority,
-                 update_priority: UpdatePriority,
                  insert_task: InsertTask) -> None:
             super().__init__()
             self.initial_priority = initial_priority
-            self.update_priority = update_priority
             self.insert_task = insert_task
     
     def schedule(self,
@@ -218,10 +115,8 @@ class ParametricScheduler(Scheduler):
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
         scheduled_tasks: Dict[Hashable, Task] = {}
         while queue:
-            queue = self.update_priority(network, task_graph, schedule, queue)
             task_name = queue.pop(0)
             task = self.insert_task(network, task_graph, schedule, task_name)
-            logging.debug("Inserted task %s on node %s at time %s.", task.name, task.node, task.start)
             scheduled_tasks[task.name] = task
         return schedule
 
@@ -234,7 +129,6 @@ class ParametricScheduler(Scheduler):
         return {
             "name": "ParametricScheduler",
             "initial_priority": self.initial_priority.serialize(),
-            "update_priority": self.update_priority.serialize(),
             "insert_task": self.insert_task.serialize(),
             "k_depth": 0
         }
@@ -251,159 +145,5 @@ class ParametricScheduler(Scheduler):
         """
         return cls(
             initial_priority=IntialPriority.deserialize(data["initial_priority"]),
-            update_priority=UpdatePriority.deserialize(data["update_priority"]),
             insert_task=InsertTask.deserialize(data["insert_task"])
-        )
-    
-    def runtime(self,
-                num_tasks: Symbol,
-                num_dependencies: Symbol,
-                num_nodes: Symbol,
-                num_edges: Symbol) -> Symbol:
-        """Return the runtime of the scheduler.
-
-        Args:
-            num_tasks (Symbol): The number of tasks.
-            num_dependencies (Symbol): The number of dependencies.
-            num_nodes (Symbol): The number of nodes.
-            num_edges (Symbol): The number of edges.
-
-        Returns:
-            Symbol: The runtime of the scheduler.
-        """
-        runtime_initial_priority = self.initial_priority.runtime(
-            num_tasks=num_tasks,
-            num_dependencies=num_dependencies,
-            num_nodes=num_nodes,
-            num_edges=num_edges
-        )
-        runtime_update_priority = self.update_priority.runtime(
-            num_tasks=num_tasks,
-            num_dependencies=num_dependencies,
-            num_nodes=num_nodes,
-            num_edges=num_edges
-        )
-        runtime_insert_task = self.insert_task.runtime(
-            num_tasks=num_tasks,
-            num_dependencies=num_dependencies,
-            num_nodes=num_nodes,
-            num_edges=num_edges
-        )
-
-        return runtime_initial_priority + num_tasks * (runtime_update_priority + runtime_insert_task)
-
-class ParametricKDepthScheduler(Scheduler):
-    def __init__(self,
-                 scheduler: ParametricScheduler,
-                 k_depth: int) -> None:
-            super().__init__()
-            self.scheduler = scheduler
-            self.k_depth = k_depth
-    
-    def schedule(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
-        """Schedule the tasks on the network.
-        
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (Optional[ScheduleType]): The current schedule.
-
-        Returns:
-            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
-        """
-        schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        scheduled_tasks: Dict[Hashable, Task] = {
-            task.name: task
-            for node, tasks in schedule.items()
-            for task in tasks
-        }
-
-        ready_tasks = {
-            task for task in task_graph.nodes
-            if all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
-        }
-        while ready_tasks:
-            scores = {}
-            for task in ready_tasks:
-                # get sub task graph with all previously scheduled tasks,
-                # the current task and its k_depth successors
-                k_depth_successors = nx.single_source_shortest_path_length(
-                    G=task_graph,
-                    source=task,
-                    cutoff=self.k_depth
-                )
-                sub_task_graph = task_graph.subgraph(
-                    set(scheduled_tasks.keys()) | set(k_depth_successors.keys()) | {task}
-                )
-                sub_schedule = self.scheduler.schedule(network, sub_task_graph, deepcopy(schedule))
-                sub_schedule_makespan = max(
-                    task.end for tasks in sub_schedule.values() for task in tasks
-                )
-                scores[task] = sub_schedule_makespan
-            
-            best_task = min(scores, key=scores.get)
-            new_task = self.scheduler.insert_task(network, task_graph, schedule, best_task)
-            scheduled_tasks[new_task.name] = new_task
-
-            ready_tasks = {
-                task for task in task_graph.nodes
-                if (
-                    all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
-                    and task not in scheduled_tasks
-                )
-            }
-
-        return schedule
-
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        return {
-            **self.scheduler.serialize(),
-            "name": "ParametricKDepthScheduler",
-            "k_depth": self.k_depth
-        }
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "ParametricKDepthScheduler":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
-
-        Returns:
-            ParametricKDepthScheduler: A new instance of the initial priority.
-        """
-        return cls(
-            scheduler=ParametricScheduler.deserialize(data),
-            k_depth=data["k_depth"]
-        )
-
-    def runtime(self,
-                num_tasks: Symbol,
-                num_dependencies: Symbol,
-                num_nodes: Symbol,
-                num_edges: Symbol) -> Symbol:
-        """Return the runtime of the scheduler.
-
-        Args:
-            num_tasks (Symbol): The number of tasks.
-            num_dependencies (Symbol): The number of dependencies.
-            num_nodes (Symbol): The number of nodes.
-            num_edges (Symbol): The number of edges.
-
-        Returns:
-            Symbol: The runtime of the scheduler.
-        """
-        return self.k_depth * self.scheduler.runtime(
-            num_tasks=num_tasks,
-            num_dependencies=num_dependencies,
-            num_nodes=num_nodes,
-            num_edges=num_edges
         )

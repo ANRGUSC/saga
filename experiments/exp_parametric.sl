@@ -2,7 +2,7 @@
 
 #SBATCH --job-name=array_job
 #SBATCH --output=/scratch1/jaredcol/slurm-output/%A/output_%A_%a.out   # %A is job ID, %a is array index
-#SBATCH --array=0-155               # Create 4800 tasks, add %100 limit concurrent tasks to 100
+#SBATCH --array=0-287               # Create 4800 tasks, add %100 limit concurrent tasks to 100
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
 

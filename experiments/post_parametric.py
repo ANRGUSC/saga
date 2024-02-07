@@ -49,7 +49,7 @@ def find_asymptotic_expr(expr, vars):
     return asymptotic_expr
 
 
-PARAM_NAMES = ['initial_priority', 'update_priority', 'append_only', 'compare', 'critical_path']
+PARAM_NAMES = ['initial_priority', 'update_priority', 'append_only', 'compare', 'critical_path', 'k_depth']
 def load_data() -> pd.DataFrame:
     scheduler_params = {}
     for scheduler_name, scheduler in schedulers.items():
@@ -59,7 +59,8 @@ def load_data() -> pd.DataFrame:
             "update_priority": details["update_priority"]["name"],
             "append_only": details["insert_task"]["append_only"],
             "compare": details["insert_task"]["compare"],
-            "critical_path": details["insert_task"].get("critical_path", False)
+            "critical_path": details["insert_task"].get("critical_path", False),
+            "k_depth": details["k_depth"],
         }
 
     resultsdir = thisdir / "results" / "parametric"
@@ -98,12 +99,14 @@ def ols_fit():
         df_dataset = df_dataset.groupby(by=PARAM_NAMES).mean().reset_index()
 
         df_with_dummies = pd.get_dummies(df_dataset, columns=PARAM_NAMES, drop_first=False)
+        print(df_with_dummies.columns)
         ref_categories = {
             'initial_priority': 'initial_priority_ArbitraryTopological',
             'update_priority': 'update_priority_NoUpdate',
             'append_only': 'append_only_True',  # Assuming the original value is a boolean, adjust if it's actually a string
             'compare': 'compare_EST',
-            'critical_path': 'critical_path_False'
+            'critical_path': 'critical_path_False',
+            "k_depth": "k_depth_0",
         }
         excluded_vars = list(ref_categories.values())
 
@@ -156,8 +159,8 @@ def plot_results():
         fig.write_html(savedir / f"{dataset}.html")
 
 def main():
-    print_scheduler_info()
-    # ols_fit()
+    # print_scheduler_info()
+    ols_fit()
     # plot_results()
 
 if __name__ == '__main__':
