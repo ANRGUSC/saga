@@ -561,7 +561,10 @@ def evaluate_instance(scheduler: Scheduler,
     schedule = scheduler.schedule(network, task_graph)
     dt = time.time() - t0
     makespan = max(task.end for tasks in schedule.values() for task in tasks)
-    df = pd.DataFrame([[makespan, dt]], columns=["makespan", "runtime"])
+    df = pd.DataFrame(
+        [[scheduler.__name__, dataset_name, instance_num, makespan, dt]],
+        columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
+    )
     savepath.parent.mkdir(exist_ok=True, parents=True)
     df.to_csv(savepath)
     print(f"  saved results to {savepath}")
