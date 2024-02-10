@@ -1,3 +1,4 @@
+from functools import lru_cache
 import json
 import logging
 import pathlib
@@ -28,6 +29,7 @@ def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:
     logging.info("Saved dataset to %s.", dataset_file)
     return dataset_file
 
+@lru_cache(maxsize=None)
 def load_dataset(datadir: pathlib.Path, name: str) -> Dataset:
     """Load the dataset from disk."""
     if datadir.joinpath(name).is_dir():

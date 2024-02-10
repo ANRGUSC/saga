@@ -19,7 +19,7 @@ from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
 
 import networkx as nx
-from typing import Any, Callable, Dict, List, Hashable, Optional
+from typing import Any, Callable, Dict, List, Hashable, Optional, Tuple
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
 
 from saga.utils.testing import test_schedulers
@@ -575,7 +575,7 @@ def main():
     run_subparser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
     run_subparser.add_argument("--scheduler", required=True, help="Scheduler to benchmark. Can be a number or a name.")
     run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
-    run_subparser.add_argument("--single", action="store_true", help="Evaluate a single instance.")
+    run_subparser.add_argument("--batch", action="store_true", help="Evaluate a batch instance.")
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
@@ -596,7 +596,7 @@ def main():
                     pathlib.Path(args.resultsdir),
                     trim=args.trim
                 )
-        elif args.single:
+        elif args.batch:
             datadir = pathlib.Path(args.datadir)
             datasets = {
                 dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
@@ -608,15 +608,34 @@ def main():
                 for dataset_name, dataset_size in datasets.items()
                 for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
             ]
-            print(f"Total instances: {len(instances)}")
-            scheduler, dataset_name, instance_num = instances[int(args.scheduler)]
-            evaluate_instance(
-                scheduler,
-                datadir,
-                dataset_name,
-                instance_num,
-                pathlib.Path(args.resultsdir)
-            )
+
+            # group to 5000 roughly equal sized sets of instances
+            num_batches = 5000
+            batches = [[] for _ in range(num_batches)]
+            for i, instance in enumerate(instances):
+                batches[i % num_batches].append(instance)
+
+            # print batch sizes:
+            batch = batches[int(args.scheduler)]
+            print(f"Batch {args.scheduler} has {len(batch)} instances.")
+            for scheduler, dataset_name, instance_num in batch:
+                evaluate_instance(
+                    scheduler,
+                    datadir,
+                    dataset_name,
+                    instance_num,
+                    pathlib.Path(args.resultsdir)
+                )
+
+            # print(f"Total instances: {len(instances)}")
+            # scheduler, dataset_name, instance_num = instances[int(args.scheduler)]
+            # evaluate_instance(
+            #     scheduler,
+            #     datadir,
+            #     dataset_name,
+            #     instance_num,
+            #     pathlib.Path(args.resultsdir)
+            # )
         else:
             try:
                 num = int(args.scheduler)
