@@ -6,61 +6,25 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 import numpy as np
 import plotly.express as px
-from sympy import Symbol, symbols, expand, log, S, Mul, Add, Poly
 import pandas as pd
+from itertools import product
 
 from exp_parametric import schedulers
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
-
-def find_asymptotic_expr(expr, vars):
-    expanded_expr = expand(expr)
-    terms = expanded_expr.as_coefficients_dict().keys()
-
-    # Function to evaluate the effective degree of a term
-    # Polynomials get their total degree, log gets a special treatment
-    def eval_degree(term, var):
-        if term.has(log):
-            # Remove log part and evaluate the degree of the rest
-            return None
-
-        return Poly(term, var).total_degree() if term.has(var) else S(0)
-    
-    all_degrees = {}
-    for term in terms:
-        degrees = {}  # degrees of each variable in the term
-        for var in vars:
-            degrees[var] = eval_degree(term, var)
-        all_degrees[term] = degrees
-
-    dominated_terms = set()
-    for term, degrees in all_degrees.items():
-        if term.has(log):
-            continue
-        for other_term, other_degrees in all_degrees.items():
-            if term == other_term or other_term.has(log):
-                continue
-            if all(degrees[var] >= other_degrees[var] for var in vars):
-                dominated_terms.add(other_term)
-    
-    dominating_terms = [term for term in terms if term not in dominated_terms]
-    asymptotic_expr = Add(*dominating_terms)
-    return asymptotic_expr
-
-
-PARAM_NAMES = ['initial_priority', 'update_priority', 'append_only', 'compare', 'critical_path', 'k_depth']
+PARAM_NAMES = ['initial_priority', 'append_only', 'compare', 'critical_path', 'k_depth', 'sufferage']
 def load_data() -> pd.DataFrame:
     scheduler_params = {}
     for scheduler_name, scheduler in schedulers.items():
         details = scheduler.serialize()
         scheduler_params[scheduler_name] = {
             "initial_priority": details["initial_priority"]["name"],
-            "update_priority": details["update_priority"]["name"],
             "append_only": details["insert_task"]["append_only"],
             "compare": details["insert_task"]["compare"],
             "critical_path": details["insert_task"].get("critical_path", False),
             "k_depth": details["k_depth"],
+            "sufferage": 'sufferage_top_n' in details,
         }
 
     resultsdir = thisdir / "results" / "parametric"
@@ -83,13 +47,44 @@ def load_data() -> pd.DataFrame:
     df["makespan_ratio"] = df["makespan"] / df["best_makespan"]
     return df
 
+def get_missing_combos(df: pd.DataFrame) -> list[dict[str, str]]:
+    param_values = {
+        **{param: df[param].unique() for param in PARAM_NAMES},
+        'dataset': df['dataset'].unique(),
+    }
+    missing_combos: list[dict[str, str]] = []
+    for combo in product(*param_values.values()):
+        combo = dict(zip(param_values.keys(), combo))
+        # print("combo", combo)
+        if not df[(df[list(combo)] == pd.Series(combo)).all(axis=1)].empty:
+            continue
+        missing_combos.append(combo)
+    return missing_combos
+
 def print_scheduler_info():
     for scheduler_name, scheduler in schedulers.items():
         print(f"# {scheduler_name}")
         print(scheduler.serialize())
-        n, m, p = symbols('n m p')
-        print(find_asymptotic_expr(scheduler.runtime(m, p, n, n**2), [n, m, p]))
         print()
+
+def print_data_info():
+    df = load_data()
+    # Check if there are combinations of parameter values that are not present in the data
+    missing_combos = get_missing_combos(df)
+    print(f"Missing combinations: {len(missing_combos)}")
+
+    missing_combos = get_missing_combos(df[df["k_depth"] <= 1])
+    print(f"Missing combinations (k_depth <= 1): {len(missing_combos)}")
+
+    missing_combos = get_missing_combos(df[df["k_depth"] == 0])
+    print(f"Missing combinations (k_depth == 0): {len(missing_combos)}")
+    
+    missing_combos = get_missing_combos(df[df["dataset"] == "chains"])
+    print(f"Missing combinations (dataset == chains): {len(missing_combos)}")
+    
+    missing_combos = get_missing_combos(df[df["sufferage"] == False])
+    print(f"Missing combinations (sufferage == False): {len(missing_combos)}")
+
 
 def ols_fit():
     df = load_data()
@@ -102,7 +97,6 @@ def ols_fit():
         print(df_with_dummies.columns)
         ref_categories = {
             'initial_priority': 'initial_priority_ArbitraryTopological',
-            'update_priority': 'update_priority_NoUpdate',
             'append_only': 'append_only_True',  # Assuming the original value is a boolean, adjust if it's actually a string
             'compare': 'compare_EST',
             'critical_path': 'critical_path_False',
@@ -123,6 +117,33 @@ def ols_fit():
         print(f"# {dataset}")
         print(model.summary())
         print()
+
+def plot_runtime_by_makespan_ratio():
+    """Plot runtime by makespan ratio for each scheduler/dataset
+    
+    The marker size represents the variance of the makespan ratio for each scheduler
+    """
+
+    df = load_data()
+    df = df.groupby(by=["scheduler", "dataset"]).agg({"runtime": "max", "makespan_ratio": ["mean", "std"]}).reset_index()
+    df.columns = ["scheduler", "dataset", "runtime", "makespan_ratio_mean", "makespan_ratio_std"]
+    
+    # get max across datasets
+    df = df.groupby(by=["scheduler"]).agg({"runtime": "max", "makespan_ratio_mean": "max", "makespan_ratio_std": "max"}).reset_index()
+    print(df)
+
+    fig = px.scatter(
+        df,
+        x="runtime",
+        y="makespan_ratio_mean",
+        color="scheduler",
+        # symbol="dataset",
+        size="makespan_ratio_std",
+        title="Runtime by Makespan Ratio",
+        template="plotly_white",
+    )
+    fig.write_html(thisdir / "output" / "parametric" / "runtime_by_makespan_ratio.html")
+
 
 def plot_results():
     savedir = thisdir / "output" / "parametric"
@@ -160,8 +181,10 @@ def plot_results():
 
 def main():
     # print_scheduler_info()
-    ols_fit()
+    # print_data_info()
+    # ols_fit()
     # plot_results()
+    plot_runtime_by_makespan_ratio()
 
 if __name__ == '__main__':
     main()

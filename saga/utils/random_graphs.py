@@ -88,12 +88,12 @@ def add_random_weights(graph: T, weight_range: Tuple[float, float] = (0, 1)) -> 
             graph.edges[edge]["weight"] = np.random.uniform(*weight_range)
     return graph
 
-def add_rv_weights(graph: T) -> T:
+def add_rv_weights(graph: T, num_samples: int = 100) -> T:
     """Adds random variable weights to the DAG."""
     def get_rv():
         std = np.random.uniform(1e-9, 0.01)
         loc = np.random.uniform(0.5)
-        x_vals = np.linspace(1e-9, 1, 1000)
+        x_vals = np.linspace(1e-9, 1, num_samples)
         pdf = norm.pdf(x_vals, loc, std)
         return RandomVariable.from_pdf(x_vals, pdf)
 

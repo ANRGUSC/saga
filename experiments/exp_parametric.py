@@ -327,9 +327,9 @@ class ParametricSufferageScheduler(ParametricScheduler):
 
     def serialize(self) -> Dict[str, Any]:
         return {
+            **self.scheduler.serialize(),
             "name": "ParametricSufferageScheduler",
-            "scheduler": self.scheduler.serialize(),
-            "top_n": self.top_n
+            "sufferage_top_n": self.top_n
         }
     
     @classmethod
@@ -359,6 +359,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
                 if all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
+            # print(ready_tasks)
             for task in ready_tasks[:self.top_n]:
                 best_task = self.insert_task(network, task_graph, deepcopy(schedule), task)
                 _network = network.copy()
@@ -368,6 +369,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
 
+            # print(f"Scheduling {max_sufferage_task.name} on {max_sufferage_task.node}")
             new_task = self.insert_task(network, task_graph, schedule, max_sufferage_task.name, max_sufferage_task.node)
             scheduled_tasks[new_task.name] = new_task
             queue.remove(new_task.name)
@@ -406,14 +408,15 @@ for name, insert_func in insert_funcs.items():
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
-        for scheduler in [sufferage_scheduler, reg_scheduler]:
-            for k in range(1, 4):
-                k_depth_scheduler = ParametricKDepthScheduler(
-                    scheduler=scheduler,
-                    k_depth=k
-                )
-                k_depth_scheduler.name = f"{scheduler.name}_K{k}"
-                schedulers[k_depth_scheduler.name] = k_depth_scheduler
+        # for scheduler in [sufferage_scheduler, reg_scheduler]:
+        #     for k in range(1, 4):
+        #         k_depth_scheduler = ParametricKDepthScheduler(
+        #             scheduler=scheduler,
+        #             k_depth=k
+        #         )
+        #         k_depth_scheduler.name = f"{scheduler.name}_K{k}"
+        #         if k == 3:
+        #             schedulers[k_depth_scheduler.name] = k_depth_scheduler
 
 def test_scheduler_equivalence(scheduler, base_scheduler):
     task_graphs = {
@@ -495,6 +498,16 @@ def print_schedulers():
     for i, (name, scheduler) in enumerate(schedulers.items(), start=1):
         print(f"{i}: {name}")
 
+def print_datasets(datadir: pathlib.Path):
+    for i, dataset_path in enumerate(datadir.glob("*.json"), start=1):
+        dataset = load_dataset(datadir, dataset_path.stem)
+        print(f"{i}: {dataset_path.stem} ({len(dataset)} instances)")
+
+DEFAULT_DATASETS = [
+    f"{name}_ccr_{ccr}"
+    for name in ['chains', 'in_trees', 'out_trees']
+    for ccr in [0.2, 0.5, 1, 2, 5]
+]
 def evaluate_scheduler(scheduler_name: str,
                        datadir: pathlib.Path,
                        resultsdir: pathlib.Path,
@@ -502,11 +515,9 @@ def evaluate_scheduler(scheduler_name: str,
                        overwrite: bool = False):
     datadir = datadir.resolve(strict=True)
     resultsdir = resultsdir.resolve(strict=False)
-    default_datasets = [path.stem for path in datadir.glob("*.json")]
-    default_datasets = ["chains", "in_trees", "out_trees"]
     scheduler = schedulers[scheduler_name]
     scheduler.name = scheduler_name
-    for dataset_name in default_datasets:
+    for dataset_name in DEFAULT_DATASETS:
         savepath = resultsdir / scheduler_name / f"{dataset_name}.csv"
         if savepath.exists() and not overwrite:
             print(f"Results already exist for {scheduler_name} on {dataset_name}. Skipping.")
@@ -514,10 +525,10 @@ def evaluate_scheduler(scheduler_name: str,
         print(f"Evaluating {scheduler_name} on {dataset_name}")
         dataset = load_dataset(datadir, dataset_name)
         if trim > 0:
-            dataset = TrimmedDataset(dataset, max_instances=5)
+            dataset = TrimmedDataset(dataset, max_instances=trim)
         rows = []
         for i, (network, task_graph) in enumerate(dataset):
-            print(f"  Instance {i}/{len(dataset)}", end="\r")
+            print(f"  Instance {i+1}/{len(dataset)} {network.order()} {task_graph.order()}") #, end="\r")
             task_graph = standardize_task_graph(task_graph)
             t0 = time.time()
             schedule = scheduler.schedule(network, task_graph)
@@ -530,41 +541,102 @@ def evaluate_scheduler(scheduler_name: str,
         df.to_csv(savepath)
         print(f"  saved results to {savepath}")
 
+def evaluate_instance(scheduler: Scheduler,
+                      datadir: pathlib.Path,
+                      dataset_name: str,
+                      instance_num: int,
+                      resultsdir: pathlib.Path,
+                      overwrite: bool = False):
+    datadir = datadir.resolve(strict=True)
+    resultsdir = resultsdir.resolve(strict=False)
+    dataset = load_dataset(datadir, dataset_name)
+    network, task_graph = dataset[instance_num]
+    savepath = resultsdir / scheduler.__name__ / f"{dataset_name}_{instance_num}.csv"
+    if savepath.exists() and not overwrite:
+        print(f"Results already exist for {scheduler.__name__} on {dataset_name} instance {instance_num}. Skipping.")
+        return
+    print(f"Evaluating {scheduler.__name__} on {dataset_name} instance {instance_num}")
+    task_graph = standardize_task_graph(task_graph)
+    t0 = time.time()
+    schedule = scheduler.schedule(network, task_graph)
+    dt = time.time() - t0
+    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+    df = pd.DataFrame([[makespan, dt]], columns=["makespan", "runtime"])
+    savepath.parent.mkdir(exist_ok=True, parents=True)
+    df.to_csv(savepath)
+    print(f"  saved results to {savepath}")
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
-    parser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
-    parser.add_argument("--scheduler", required=True, help="Scheduler to benchmark. Can be a number or a name.")
-    parser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
+
+    subparsers = parser.add_subparsers(dest="command")
+    run_subparser = subparsers.add_parser("run", help="Run the benchmarking.")
+    run_subparser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
+    run_subparser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
+    run_subparser.add_argument("--scheduler", required=True, help="Scheduler to benchmark. Can be a number or a name.")
+    run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
+    run_subparser.add_argument("--single", action="store_true", help="Evaluate a single instance.")
+
+    list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
+
+    test_subparser = subparsers.add_parser("test", help="Run the tests.")
+    test_subparser.add_argument("--scheduler", type=str, help="Test a specific scheduler.")
     args = parser.parse_args()
 
-    if args.scheduler == "all":
-        for scheduler_name in schedulers:
+    if args.command == "test":
+        test()
+    elif args.command == "list":
+        print_schedulers()
+    else:
+        if args.scheduler == "all":
+            for scheduler_name in schedulers:
+                evaluate_scheduler(
+                    scheduler_name,
+                    pathlib.Path(args.datadir),
+                    pathlib.Path(args.resultsdir),
+                    trim=args.trim
+                )
+        elif args.single:
+            datadir = pathlib.Path(args.datadir)
+            datasets = {
+                dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
+                for dataset_name in DEFAULT_DATASETS
+            }
+            instances = [
+                (scheduler, dataset_name, instance_num)
+                for scheduler in schedulers.values()
+                for dataset_name, dataset_size in datasets.items()
+                for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
+            ]
+            print(f"Total instances: {len(instances)}")
+            scheduler, dataset_name, instance_num = instances[int(args.scheduler)]
+            evaluate_instance(
+                scheduler,
+                datadir,
+                dataset_name,
+                instance_num,
+                pathlib.Path(args.resultsdir)
+            )
+        else:
+            try:
+                num = int(args.scheduler)
+                if num < 0 or num >= len(schedulers):
+                    raise ValueError(f"Invalid scheduler number {num}. Must be between 0 and {len(schedulers) - 1}.")
+                scheduler_name = list(schedulers.keys())[num]
+            except ValueError:
+                if args.scheduler not in schedulers:
+                    raise ValueError(f"Invalid scheduler name {args.scheduler}. Must be one of {list(schedulers.keys())}.")
+                scheduler_name = args.scheduler
+                
             evaluate_scheduler(
                 scheduler_name,
                 pathlib.Path(args.datadir),
                 pathlib.Path(args.resultsdir),
                 trim=args.trim
             )
-    else:
-        try:
-            num = int(args.scheduler)
-            if num < 0 or num >= len(schedulers):
-                raise ValueError(f"Invalid scheduler number {num}. Must be between 0 and {len(schedulers) - 1}.")
-            scheduler_name = list(schedulers.keys())[num]
-        except ValueError:
-            if args.scheduler not in schedulers:
-                raise ValueError(f"Invalid scheduler name {args.scheduler}. Must be one of {list(schedulers.keys())}.")
-            scheduler_name = args.scheduler
-
-        evaluate_scheduler(
-            scheduler_name,
-            pathlib.Path(args.datadir),
-            pathlib.Path(args.resultsdir),
-            trim=args.trim
-        )
 
 if __name__ == "__main__":
     # test()
-    print_schedulers()
-    # main()
+    # print_schedulers()
+    # print_datasets(pathlib.Path(__file__).parent / "datasets" / "benchmarking")
+    main()

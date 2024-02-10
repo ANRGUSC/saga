@@ -23,6 +23,7 @@ def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:
     """Save the dataset to disk."""
     dataset_file = savedir.joinpath(f"{dataset.name}.json")
     dataset_file.parent.mkdir(parents=True, exist_ok=True)
+    logging.info("Saving dataset to %s.", dataset_file)
     dataset_file.write_text(dataset.to_json(), encoding="utf-8")
     logging.info("Saved dataset to %s.", dataset_file)
     return dataset_file
@@ -94,7 +95,31 @@ class LargeDataset(Dataset):
             pathlib.Path(path): length for path, length in data["datasets"].items()
         }, data["name"])
 
-def in_trees_dataset() -> Dataset:
+def scale_ccr(task_graph: nx.DiGraph, network: nx.DiGraph, ccr: float) -> None:
+    """Scale the edge weights of the network so that the CCR is equal to the given value."""
+    if ccr is None:
+        return
+    avg_node_speed = np.mean([
+        network.nodes[node]["weight"]
+        for node in network.nodes
+    ])
+    avg_task_cost = np.mean([
+        task_graph.nodes[node]["weight"]
+        for node in task_graph.nodes
+    ])
+    avg_data_size = np.mean([
+        task_graph.edges[(src, dst)]["weight"]
+        for src, dst in task_graph.edges
+        if src != dst
+    ])
+    avg_comp_time = avg_task_cost / avg_node_speed
+    link_strength = avg_data_size / (ccr * avg_comp_time)
+    for src, dst in network.edges:
+        if src == dst:
+            continue
+        network.edges[src, dst]["weight"] = link_strength
+
+def in_trees_dataset(ccr: float = None) -> Dataset:
     """Generate the in_trees dataset."""
     num_instances = 1000
     min_levels, max_levels = 2, 4
@@ -111,10 +136,10 @@ def in_trees_dataset() -> Dataset:
             num_levels=random.randint(min_levels, max_levels),
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
-        pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="in_trees")
+        scale_ccr(task_graph, network, ccr)
+    return PairsDataset(pairs, name="in_trees" if ccr is None else f"in_trees_ccr_{ccr}")
 
-def out_trees_dataset() -> Dataset:
+def out_trees_dataset(ccr: float = None) -> Dataset:
     """Generate the out_trees dataset."""
     num_instances = 1000
     min_levels, max_levels = 2, 4
@@ -131,11 +156,12 @@ def out_trees_dataset() -> Dataset:
             num_levels=random.randint(min_levels, max_levels),
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
+        scale_ccr(task_graph, network, ccr)
         pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="out_trees")
+    return PairsDataset(pairs, name="out_trees" if ccr is None else f"out_trees_ccr_{ccr}")
 
 
-def chains_dataset() -> Dataset:
+def chains_dataset(ccr: float = None) -> Dataset:
     """Generate the chains dataset."""
     num_instances = 1000
     min_chains, max_chains = 2, 5
@@ -152,8 +178,9 @@ def chains_dataset() -> Dataset:
             num_chains=random.randint(min_chains, max_chains),
             chain_length=random.randint(min_chain_length, max_chain_length)
         )[0]
+        scale_ccr(task_graph, network, ccr)
         pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="chains")
+    return PairsDataset(pairs, name="chains" if ccr is None else f"chains_ccr_{ccr}")
 
 def wfcommons_dataset(recipe_name: str,
                       ccr: float = 1.0,
@@ -266,3 +293,16 @@ def run_wfcommons_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
             if not savedir.joinpath(f"{recipe_name}_ccr_{ccr}.json").exists() or not skip_existing:
                 # wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}")
                 save_dataset(savedir, wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}"))
+
+def run_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
+    """Generate the datasets."""
+    random.seed(0) # For reproducibility
+    np.random.seed(0)
+    savedir.mkdir(parents=True, exist_ok=True)
+
+    dataset_names = {'chains': chains_dataset, 'in_trees': in_trees_dataset, 'out_trees': out_trees_dataset}
+    ccrs = [1/5, 1/2, 1, 2, 5]
+    for ccr in ccrs:
+        for name in dataset_names:
+            if not savedir.joinpath(f"{name}_ccr_{ccr}.json").exists() or not skip_existing:
+                save_dataset(savedir, dataset_names[name](ccr=ccr))

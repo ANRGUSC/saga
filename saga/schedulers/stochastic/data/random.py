@@ -18,7 +18,7 @@ def _default_task_weight(task: Hashable) -> float: # pylint: disable=unused-argu
         float: The task weight.
     """
     # return max(min(1e-9, random.gauss(1, 1/3)), 2)
-    samples = np.random.normal(1, 1/3, 1000)
+    samples = np.random.normal(1, 1/3, 100)
     samples = np.clip(samples, 1e-9, 2)
     return RandomVariable(samples=samples)
 

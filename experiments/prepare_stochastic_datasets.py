@@ -24,12 +24,13 @@ from prepare_datasets import save_dataset, load_dataset, LargeDataset
 
 def in_trees_dataset() -> Dataset:
     """Generate the in_trees dataset."""
-    num_instances = 1000
+    num_instances = 100
     min_levels, max_levels = 2, 4
     min_branching, max_branching = 2, 3
     min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
+        print(f"Generating in-trees {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -44,12 +45,13 @@ def in_trees_dataset() -> Dataset:
 
 def out_trees_dataset() -> Dataset:
     """Generate the out_trees dataset."""
-    num_instances = 1000
+    num_instances = 100
     min_levels, max_levels = 2, 4
     min_branching, max_branching = 2, 3
     min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
+        print(f"Generating out_trees {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -64,12 +66,13 @@ def out_trees_dataset() -> Dataset:
 
 def chains_dataset() -> Dataset:
     """Generate the chains dataset."""
-    num_instances = 1000
+    num_instances = 1
     min_chains, max_chains = 2, 5
     min_chain_length, max_chain_length = 2, 5
     min_nodes, max_nodes = 3, 5
     pairs = []
     for _ in range(num_instances):
+        print(f"Generating chains {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -81,7 +84,6 @@ def chains_dataset() -> Dataset:
         )[0]
         pairs.append((network, task_graph))
     return PairsDataset(pairs, name="chains")
-
 
 def wfcommons_dataset(recipe_name: str,
                       ccr: float = 1.0,
@@ -130,6 +132,8 @@ def run(savedir: pathlib.Path, skip_existing: bool = True):
     np.random.seed(0)
     savedir.mkdir(parents=True, exist_ok=True)
 
+    print("Generating datasets", skip_existing, not savedir.joinpath("in_trees.json").exists() or not skip_existing)
+
     # Random Graphs
     if not savedir.joinpath("in_trees.json").exists() or not skip_existing:
         save_dataset(savedir, in_trees_dataset())
@@ -154,8 +158,8 @@ def run(savedir: pathlib.Path, skip_existing: bool = True):
     #     # riotbench_dataset(get_train_task_graphs, name="train")
     #     save_dataset(savedir, riotbench_dataset(get_train_task_graphs, name="train"))
 
-    # # Wfcommons
-    for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
-        if not savedir.joinpath(f"{recipe_name}.json").exists() or not skip_existing:
-            print(f"Generating {recipe_name}")
-            save_dataset(savedir, wfcommons_dataset(recipe_name))
+    # # # Wfcommons
+    # for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
+    #     if not savedir.joinpath(f"{recipe_name}.json").exists() or not skip_existing:
+    #         print(f"Generating {recipe_name}")
+    #         save_dataset(savedir, wfcommons_dataset(recipe_name))

@@ -10,14 +10,14 @@ class RandomVariable:
     provides methods for sampling from the random variable and computing its
     probability density function.
     """
-    DEFAULT_NUM_SAMPLES = 100000
+    DEFAULT_NUM_SAMPLES = 100
     def __init__(self, samples: np.ndarray) -> None:
         """Initialize a random variable.
 
         Args:
             samples (np.ndarray): The samples.
         """
-        self.samples = samples
+        self.samples = np.array(samples)
 
     def __format__(self, format_spec: str) -> str:
         """Format the random variable.

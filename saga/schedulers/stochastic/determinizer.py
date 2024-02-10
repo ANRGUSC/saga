@@ -35,17 +35,27 @@ class Determinizer(Scheduler):
 
         for node in det_network.nodes:
             det_network.nodes[node]["weight"] = self.determinize(network.nodes[node]["weight"])
-            det_network.nodes[node]["weight"] = self.determinize(network.nodes[node]["weight"])
+            if det_network.nodes[node]["weight"] != det_network.nodes[node]["weight"]:
+                raise ValueError("Node weight is nan")
         for edge in det_network.edges:
             det_network.edges[edge]["weight"] = self.determinize(network.edges[edge]["weight"])
-            det_network.edges[edge]["weight"] = self.determinize(network.edges[edge]["weight"])
+            if det_network.edges[edge]["weight"] != det_network.edges[edge]["weight"]:
+                raise ValueError("Edge weight is nan")
 
         det_task_graph = nx.DiGraph()
         det_task_graph.add_nodes_from(task_graph.nodes)
         det_task_graph.add_edges_from(task_graph.edges)
         for task in det_task_graph.nodes:
+            # print(task, task_graph.nodes[task]["weight"], task_graph.out_degree(task), task_graph.in_degree(task))
+            # if isinstance(task_graph.nodes[task]["weight"], RandomVariable):
+                # print("samples:", task_graph.nodes[task]["weight"].samples)
             det_task_graph.nodes[task]["weight"] = self.determinize(task_graph.nodes[task]["weight"])
+            if det_task_graph.nodes[task]["weight"] != det_task_graph.nodes[task]["weight"]:
+                raise ValueError("Task weight is nan")
         for edge in det_task_graph.edges:
             det_task_graph.edges[edge]["weight"] = self.determinize(task_graph.edges[edge]["weight"])
+            if det_task_graph.edges[edge]["weight"] != det_task_graph.edges[edge]["weight"]:
+                raise ValueError("Edge weight is nan")
+
 
         return self.scheduler.schedule(det_network, det_task_graph)

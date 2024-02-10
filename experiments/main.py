@@ -231,6 +231,12 @@ experiments = {
             outputdir=thisdir.joinpath("output", "stochastic_benchmarking"),
         )
     },
+    "parametric_benchmarking": {   
+        "prepare": partial(
+            prepare_datasets.run_ccrs,
+            savedir=thisdir.joinpath("datasets", "parametric_benchmarking"),
+        ),
+    }
 }
         
 def get_parser():
