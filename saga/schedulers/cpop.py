@@ -21,7 +21,7 @@ def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, flo
         return np.mean([ # average communication time for output data of predecessor
             task_graph.edges[parent, child]['weight'] / network.edges[src, dst]['weight']
             for src, dst in network.edges
-            if not np.isclose(network.edges[src, dst]['weight'], 0)
+            if not np.isclose(1/network.edges[src, dst]['weight'], 0)
         ])
 
     def avg_comp_time(task: Hashable) -> float:
@@ -32,7 +32,7 @@ def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, flo
             for node in network.nodes
             if not np.isclose(network.nodes[node]['weight'], 0)
         ])
-
+    
     for task_name in reversed(list(nx.topological_sort(task_graph))):
         max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
             (

@@ -202,7 +202,8 @@ def draw_network(network: nx.Graph,
     for node in network.nodes:
         if draw_node_labels:
             label = network.nodes[node].get("label", node)
-            if isinstance(label, (int, float)) and use_latex:
+            # if isinstance(label, (int, float)) and use_latex:
+            if use_latex:
                 label = r"$%s$" % node
             node_labels[node] = label
         if draw_node_weights:
