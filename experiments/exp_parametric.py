@@ -3,10 +3,13 @@ from copy import deepcopy
 from functools import lru_cache
 import heapq
 import logging
+import os
 import pathlib
 from pprint import pformat
 import shutil
+import tempfile
 import time
+from filelock import FileLock
 
 import numpy as np
 import pandas as pd
@@ -503,58 +506,28 @@ def print_datasets(datadir: pathlib.Path):
         dataset = load_dataset(datadir, dataset_path.stem)
         print(f"{i}: {dataset_path.stem} ({len(dataset)} instances)")
 
+def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
+    lock_path = savepath.with_suffix(f"{savepath.suffix}.lock")
+    with FileLock(lock_path):
+        if savepath.exists(): # write with the header if the file already exists
+            df.to_csv(savepath, mode='a', header=False, index=False)
+        else: # write without the header if the file does not exist
+            df.to_csv(savepath, index=False)
+
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
     for name in ['chains', 'in_trees', 'out_trees']
     for ccr in [0.2, 0.5, 1, 2, 5]
 ]
-def evaluate_scheduler(scheduler_name: str,
-                       datadir: pathlib.Path,
-                       resultsdir: pathlib.Path,
-                       trim: int = 0,
-                       overwrite: bool = False):
-    datadir = datadir.resolve(strict=True)
-    resultsdir = resultsdir.resolve(strict=False)
-    scheduler = schedulers[scheduler_name]
-    scheduler.name = scheduler_name
-    for dataset_name in DEFAULT_DATASETS:
-        savepath = resultsdir / scheduler_name / f"{dataset_name}.csv"
-        if savepath.exists() and not overwrite:
-            print(f"Results already exist for {scheduler_name} on {dataset_name}. Skipping.")
-            continue
-        print(f"Evaluating {scheduler_name} on {dataset_name}")
-        dataset = load_dataset(datadir, dataset_name)
-        if trim > 0:
-            dataset = TrimmedDataset(dataset, max_instances=trim)
-        rows = []
-        for i, (network, task_graph) in enumerate(dataset):
-            print(f"  Instance {i+1}/{len(dataset)} {network.order()} {task_graph.order()}") #, end="\r")
-            task_graph = standardize_task_graph(task_graph)
-            t0 = time.time()
-            schedule = scheduler.schedule(network, task_graph)
-            dt = time.time() - t0
-            makespan = max(task.end for tasks in schedule.values() for task in tasks)
-            rows.append([scheduler_name, dataset_name, i, makespan, dt])
-    
-        df = pd.DataFrame(rows, columns=["scheduler", "dataset", "instance", "makespan", "runtime"])
-        savepath.parent.mkdir(exist_ok=True, parents=True)
-        df.to_csv(savepath)
-        print(f"  saved results to {savepath}")
-
 def evaluate_instance(scheduler: Scheduler,
                       datadir: pathlib.Path,
                       dataset_name: str,
                       instance_num: int,
-                      resultsdir: pathlib.Path,
-                      overwrite: bool = False):
+                      savepath: pathlib.Path):
     datadir = datadir.resolve(strict=True)
-    resultsdir = resultsdir.resolve(strict=False)
     dataset = load_dataset(datadir, dataset_name)
     network, task_graph = dataset[instance_num]
-    savepath = resultsdir / scheduler.__name__ / f"{dataset_name}_{instance_num}.csv"
-    if savepath.exists() and not overwrite:
-        print(f"Results already exist for {scheduler.__name__} on {dataset_name} instance {instance_num}. Skipping.")
-        return
+    # savepath = resultsdir / scheduler.__name__ / f"{dataset_name}_{instance_num}.csv"
     print(f"Evaluating {scheduler.__name__} on {dataset_name} instance {instance_num}")
     task_graph = standardize_task_graph(task_graph)
     t0 = time.time()
@@ -566,7 +539,7 @@ def evaluate_instance(scheduler: Scheduler,
         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
     )
     savepath.parent.mkdir(exist_ok=True, parents=True)
-    df.to_csv(savepath)
+    append_df_to_csv_with_lock(df, savepath)
     print(f"  saved results to {savepath}")
 
 def main():
@@ -575,15 +548,13 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     run_subparser = subparsers.add_parser("run", help="Run the benchmarking.")
     run_subparser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
-    run_subparser.add_argument("--resultsdir", type=str, required=True, help="Directory to save the results.")
-    run_subparser.add_argument("--scheduler", required=True, help="Scheduler to benchmark. Can be a number or a name.")
+    run_subparser.add_argument("--out", type=str, required=True, help="Directory to save the results.")
     run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
-    run_subparser.add_argument("--batch", action="store_true", help="Evaluate a batch instance.")
+    run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
     test_subparser = subparsers.add_parser("test", help="Run the tests.")
-    test_subparser.add_argument("--scheduler", type=str, help="Test a specific scheduler.")
     args = parser.parse_args()
 
     if args.command == "test":
@@ -591,70 +562,35 @@ def main():
     elif args.command == "list":
         print_schedulers()
     else:
-        if args.scheduler == "all":
-            for scheduler_name in schedulers:
-                evaluate_scheduler(
-                    scheduler_name,
-                    pathlib.Path(args.datadir),
-                    pathlib.Path(args.resultsdir),
-                    trim=args.trim
-                )
-        elif args.batch:
-            datadir = pathlib.Path(args.datadir)
-            datasets = {
-                dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
-                for dataset_name in DEFAULT_DATASETS
-            }
-            instances = [
-                (scheduler, dataset_name, instance_num)
-                for scheduler in schedulers.values()
-                for dataset_name, dataset_size in datasets.items()
-                for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
-            ]
+        datadir = pathlib.Path(args.datadir)
+        datasets = {
+            dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
+            for dataset_name in DEFAULT_DATASETS
+        }
+        instances = [
+            (scheduler, dataset_name, instance_num)
+            for scheduler in schedulers.values()
+            for dataset_name, dataset_size in datasets.items()
+            for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
+        ]
 
-            # group to 5000 roughly equal sized sets of instances
-            num_batches = 5000
-            batches = [[] for _ in range(num_batches)]
-            for i, instance in enumerate(instances):
-                batches[i % num_batches].append(instance)
+        # group to 5000 roughly equal sized sets of instances
+        num_batches = 5000
+        batches = [[] for _ in range(num_batches)]
+        for i, instance in enumerate(instances):
+            batches[i % num_batches].append(instance)
 
-            # print batch sizes:
-            batch = batches[int(args.scheduler)]
-            print(f"Batch {args.scheduler} has {len(batch)} instances.")
-            for scheduler, dataset_name, instance_num in batch:
-                evaluate_instance(
-                    scheduler,
-                    datadir,
-                    dataset_name,
-                    instance_num,
-                    pathlib.Path(args.resultsdir)
-                )
-
-            # print(f"Total instances: {len(instances)}")
-            # scheduler, dataset_name, instance_num = instances[int(args.scheduler)]
-            # evaluate_instance(
-            #     scheduler,
-            #     datadir,
-            #     dataset_name,
-            #     instance_num,
-            #     pathlib.Path(args.resultsdir)
-            # )
-        else:
-            try:
-                num = int(args.scheduler)
-                if num < 0 or num >= len(schedulers):
-                    raise ValueError(f"Invalid scheduler number {num}. Must be between 0 and {len(schedulers) - 1}.")
-                scheduler_name = list(schedulers.keys())[num]
-            except ValueError:
-                if args.scheduler not in schedulers:
-                    raise ValueError(f"Invalid scheduler name {args.scheduler}. Must be one of {list(schedulers.keys())}.")
-                scheduler_name = args.scheduler
-                
-            evaluate_scheduler(
-                scheduler_name,
-                pathlib.Path(args.datadir),
-                pathlib.Path(args.resultsdir),
-                trim=args.trim
+        if args.batch < 0 or args.batch >= num_batches:
+            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
+        batch = batches[args.batch]
+        print(f"Batch {args.batch} has {len(batch)} instances.")
+        for scheduler, dataset_name, instance_num in batch:
+            evaluate_instance(
+                scheduler,
+                datadir,
+                dataset_name,
+                instance_num,
+                pathlib.Path(args.out)
             )
 
 if __name__ == "__main__":
