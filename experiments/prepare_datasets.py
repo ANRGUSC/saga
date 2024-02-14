@@ -139,6 +139,7 @@ def in_trees_dataset(ccr: float = None) -> Dataset:
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
         scale_ccr(task_graph, network, ccr)
+        pairs.append((network, task_graph))
     return PairsDataset(pairs, name="in_trees" if ccr is None else f"in_trees_ccr_{ccr}")
 
 def out_trees_dataset(ccr: float = None) -> Dataset:
@@ -302,7 +303,11 @@ def run_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
     np.random.seed(0)
     savedir.mkdir(parents=True, exist_ok=True)
 
-    dataset_names = {'chains': chains_dataset, 'in_trees': in_trees_dataset, 'out_trees': out_trees_dataset}
+    dataset_names = {
+        # 'chains': chains_dataset,
+        'in_trees': in_trees_dataset,
+        # 'out_trees': out_trees_dataset
+    }
     ccrs = [1/5, 1/2, 1, 2, 5]
     for ccr in ccrs:
         for name in dataset_names:

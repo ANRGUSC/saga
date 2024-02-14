@@ -1,9 +1,6 @@
 import pathlib
-from matplotlib import pyplot as plt
-import seaborn as sns
+from typing import Set
 import statsmodels.api as sm
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
 import numpy as np
 import plotly.express as px
 import pandas as pd
@@ -27,24 +24,22 @@ def load_data() -> pd.DataFrame:
             "sufferage": 'sufferage_top_n' in details,
         }
 
-    resultsdir = thisdir / "results" / "parametric"
-    dfs = []
-    for data in resultsdir.glob("*/*.csv"):
-        dataset_name = data.stem
-        scheduler_name = data.parent.stem
-        df = pd.read_csv(data, index_col=0)
-        # df.drop(columns=["scheduler"], inplace=True)
-        df["dataset"] = dataset_name
-        for param, value in scheduler_params[scheduler_name].items():
-            df[param] = value
-        dfs.append(df)
-    df = pd.concat(dfs, ignore_index=True)
+    resultspath = thisdir / "results" / "parametric.csv"
+    df = pd.read_csv(resultspath)
+
+    for scheduler_name in df["scheduler"].unique():
+        for key, value in scheduler_params[scheduler_name].items():
+            df.loc[df["scheduler"] == scheduler_name, key] = value
     
-    df.to_csv(thisdir / "results" / "parametric" / "makespan_ratio.csv", index=False)
-    
+    # Compute makespan ratio
     best_makespan = df.groupby(["dataset", "instance"]).agg({"makespan": "min"}).rename(columns={"makespan": "best_makespan"})
     df = df.join(best_makespan, on=["dataset", "instance"])
     df["makespan_ratio"] = df["makespan"] / df["best_makespan"]
+
+    # Compute Runtime Ratio
+    best_runtime = df.groupby(["dataset", "instance"]).agg({"runtime": "min"}).rename(columns={"runtime": "best_runtime"})
+    df = df.join(best_runtime, on=["dataset", "instance"])
+    df["runtime_ratio"] = df["runtime"] / df["best_runtime"]
     return df
 
 def get_missing_combos(df: pd.DataFrame) -> list[dict[str, str]]:
@@ -69,6 +64,8 @@ def print_scheduler_info():
 
 def print_data_info():
     df = load_data()
+    print(df)
+
     # Check if there are combinations of parameter values that are not present in the data
     missing_combos = get_missing_combos(df)
     print(f"Missing combinations: {len(missing_combos)}")
@@ -94,13 +91,12 @@ def ols_fit():
         df_dataset = df_dataset.groupby(by=PARAM_NAMES).mean().reset_index()
 
         df_with_dummies = pd.get_dummies(df_dataset, columns=PARAM_NAMES, drop_first=False)
-        print(df_with_dummies.columns)
         ref_categories = {
             'initial_priority': 'initial_priority_ArbitraryTopological',
             'append_only': 'append_only_True',  # Assuming the original value is a boolean, adjust if it's actually a string
             'compare': 'compare_EST',
             'critical_path': 'critical_path_False',
-            "k_depth": "k_depth_0",
+            'sufferage': 'sufferage_False',
         }
         excluded_vars = list(ref_categories.values())
 
@@ -114,9 +110,9 @@ def ols_fit():
         X = sm.add_constant(X)
         model = sm.OLS(y, X.astype(float)).fit()
 
-        print(f"# {dataset}")
-        print(model.summary())
-        print()
+        savepath = thisdir / "output" / "parametric" / "ols" / f"{dataset}.txt"
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+        savepath.write_text(model.summary().as_text())
 
 def plot_runtime_by_makespan_ratio():
     """Plot runtime by makespan ratio for each scheduler/dataset
@@ -125,24 +121,44 @@ def plot_runtime_by_makespan_ratio():
     """
 
     df = load_data()
-    df = df.groupby(by=["scheduler", "dataset"]).agg({"runtime": "max", "makespan_ratio": ["mean", "std"]}).reset_index()
-    df.columns = ["scheduler", "dataset", "runtime", "makespan_ratio_mean", "makespan_ratio_std"]
-    
-    # get max across datasets
-    df = df.groupby(by=["scheduler"]).agg({"runtime": "max", "makespan_ratio_mean": "max", "makespan_ratio_std": "max"}).reset_index()
-    print(df)
+    # do .split('_ccr_')[0] to get dataset name
+    df["dataset"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
 
+    df = df.groupby(by=["scheduler", "dataset", "ccr"]).agg({"runtime_ratio": "max", "makespan_ratio": ["max"]}).reset_index()
+    df.columns = ["scheduler", "dataset", "ccr", "runtime_ratio_max", "makespan_ratio_max"]
+    
+    # Keep only schedulers that are pareto-optimal in at least one dataset/ccr combination
+    # pareto optimality w.r.t. runtime_ratio_max and makespan_ratio_max
+    df["pareto"] = False
+    pareto_optimal_schedules: Set[str] = set()
+    for dataset, ccr in df[["dataset", "ccr"]].drop_duplicates().values:
+        df_dataset = df[(df["dataset"] == dataset) & (df["ccr"] == ccr)]
+        for scheduler in df_dataset["scheduler"].unique():
+            df_scheduler = df_dataset[df_dataset["scheduler"] == scheduler]
+            runtime_ratio_max = df_scheduler["runtime_ratio_max"].values[0]
+            makespan_ratio_max = df_scheduler["makespan_ratio_max"].values[0]
+            is_dominated = lambda rt1, mr1, rt2, mr2: (rt1 > rt2 and mr1 >= mr2) or (rt1 >= rt2 and mr1 > mr2)
+            if not any(is_dominated(runtime_ratio_max, makespan_ratio_max, rt, mr) for rt, mr in zip(df_dataset["runtime_ratio_max"], df_dataset["makespan_ratio_max"])):
+                # set "pareto" column to True for scheduler/dataset/ccr combo in original df
+                df.loc[(df["dataset"] == dataset) & (df["ccr"] == ccr) & (df["scheduler"] == scheduler), "pareto"] = True
+                pareto_optimal_schedules.add(scheduler)
+
+    df = df[df["scheduler"].isin(pareto_optimal_schedules)]    
+    df['marker_size'] = df['pareto'].apply(lambda x: 5 if x else 1)
     fig = px.scatter(
         df,
-        x="runtime",
-        y="makespan_ratio_mean",
+        x="runtime_ratio_max",
+        y="makespan_ratio_max",
         color="scheduler",
-        # symbol="dataset",
-        size="makespan_ratio_std",
+        facet_col="ccr",
+        facet_row="dataset",
+        size="marker_size",
         title="Runtime by Makespan Ratio",
         template="plotly_white",
+        hover_data=["scheduler", "dataset", "ccr", "runtime_ratio_max"],
     )
     fig.write_html(thisdir / "output" / "parametric" / "runtime_by_makespan_ratio.html")
+    print(f"Saved to {thisdir / 'output' / 'parametric' / 'runtime_by_makespan_ratio.html'}")
 
 
 def plot_results():
