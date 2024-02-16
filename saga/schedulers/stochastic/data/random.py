@@ -17,8 +17,7 @@ def _default_task_weight(task: Hashable) -> float: # pylint: disable=unused-argu
     Returns:
         float: The task weight.
     """
-    # return max(min(1e-9, random.gauss(1, 1/3)), 2)
-    samples = np.random.normal(1, 1/3, 100)
+    samples = np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
     samples = np.clip(samples, 1e-9, 2)
     return RandomVariable(samples=samples)
 
@@ -32,8 +31,7 @@ def _default_dependency_weight(src: Hashable, dst: Hashable) -> float: # pylint:
     Returns:
         float: The dependency weight.
     """
-    # return max(min(1e-9, random.gauss(1, 1/3)), 2)
-    samples = np.random.normal(1, 1/3, 100)
+    samples = np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
     samples = np.clip(samples, 1e-9, 2)
     return RandomVariable(samples=samples)
 

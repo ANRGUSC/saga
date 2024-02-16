@@ -68,7 +68,7 @@ def get_networks(num: int,
     for num_nodes in all_num_nodes:
         network = nx.Graph()
         for i in range(num_nodes):
-            network.add_node(i, weight=RandomVariable(samples=np.clip(get_node_speed(100), 1e-9, 1e9)))
+            network.add_node(i, weight=RandomVariable(samples=np.clip(get_node_speed(RandomVariable.DEFAULT_NUM_SAMPLES), 1e-9, 1e9)))
 
         for (src, dst) in product(network.nodes, network.nodes):
             network.add_edge(src, dst, weight=network_speed if src != dst else 1e9)
@@ -95,7 +95,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
         task_info = task_type_info[task_type]
 
         params = task_info['runtime']['distribution']['params']
-        samples = getattr(stats, task_info['runtime']['distribution']['name']).rvs(size=100, *params)
+        samples = getattr(stats, task_info['runtime']['distribution']['name']).rvs(size=RandomVariable.DEFAULT_NUM_SAMPLES, *params)
         samples = np.clip(samples, task_info['runtime']['min'], task_info['runtime']['max'])
         task['runtime'] = RandomVariable(samples=samples)
 
@@ -106,7 +106,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
             # print(task['name'], task_type, link_type, file_type, file_name)
             io_info = task_info[link_type].get(file_type)
             if io_info and io_info['distribution']:
-                samples = getattr(stats, io_info['distribution']['name']).rvs(size=100, *io_info['distribution']['params'])
+                samples = getattr(stats, io_info['distribution']['name']).rvs(size=RandomVariable.DEFAULT_NUM_SAMPLES, *io_info['distribution']['params'])
                 samples = np.clip(samples, io_info['min'], io_info['max'])
                 io_file['size'] = RandomVariable(samples=samples)
             else:

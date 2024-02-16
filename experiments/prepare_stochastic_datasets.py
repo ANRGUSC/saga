@@ -2,7 +2,7 @@ import json
 import logging
 import pathlib
 import random
-from typing import Callable, Dict, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -21,9 +21,11 @@ from saga.schedulers.stochastic.data.wfcommons import (
 )
 
 from prepare_datasets import save_dataset, load_dataset, LargeDataset
+from saga.utils.random_variable import RandomVariable
 
-def in_trees_dataset() -> Dataset:
+def in_trees_dataset(comm_mean: float = 1, comm_std=1/3) -> Dataset:
     """Generate the in_trees dataset."""
+    assert (comm_mean >= 3*comm_std), "Mean should be at least 3 times the standard deviation"
     num_instances = 100
     min_levels, max_levels = 2, 4
     min_branching, max_branching = 2, 3
@@ -33,17 +35,29 @@ def in_trees_dataset() -> Dataset:
         print(f"Generating in-trees {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
-            num_nodes=random.randint(min_nodes, max_nodes)
+            num_nodes=random.randint(min_nodes, max_nodes),
+            get_node_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_edge_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(comm_mean, comm_std, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         task_graph = gen_in_trees(
             num=1,
             num_levels=random.randint(min_levels, max_levels),
-            branching_factor=random.randint(min_branching, max_branching)
+            branching_factor=random.randint(min_branching, max_branching),
+            get_task_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_dependency_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="in_trees")
+    return PairsDataset(pairs, name=f"in_trees_ccr_{comm_mean}_std_{comm_std}")
 
-def out_trees_dataset() -> Dataset:
+def out_trees_dataset(comm_mean: float = 1, comm_std=1/3) -> Dataset:
     """Generate the out_trees dataset."""
     num_instances = 100
     min_levels, max_levels = 2, 4
@@ -54,17 +68,29 @@ def out_trees_dataset() -> Dataset:
         print(f"Generating out_trees {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
-            num_nodes=random.randint(min_nodes, max_nodes)
+            num_nodes=random.randint(min_nodes, max_nodes),
+            get_node_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_edge_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(comm_mean, comm_std, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         task_graph = gen_out_trees(
             num=1,
             num_levels=random.randint(min_levels, max_levels),
-            branching_factor=random.randint(min_branching, max_branching)
+            branching_factor=random.randint(min_branching, max_branching),
+            get_task_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_dependency_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="out_trees")
+    return PairsDataset(pairs, name=f"out_trees_ccr_{comm_mean}_std_{comm_std}")
 
-def chains_dataset() -> Dataset:
+def chains_dataset(comm_mean: float = 1, comm_std=1/3) -> Dataset:
     """Generate the chains dataset."""
     num_instances = 1
     min_chains, max_chains = 2, 5
@@ -75,15 +101,27 @@ def chains_dataset() -> Dataset:
         print(f"Generating chains {len(pairs)+1}/{num_instances}")
         network = gen_random_networks(
             num=1,
-            num_nodes=random.randint(min_nodes, max_nodes)
+            num_nodes=random.randint(min_nodes, max_nodes),
+            get_node_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_edge_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(comm_mean, comm_std, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         task_graph = gen_parallel_chains(
             num=1,
             num_chains=random.randint(min_chains, max_chains),
-            chain_length=random.randint(min_chain_length, max_chain_length)
+            chain_length=random.randint(min_chain_length, max_chain_length),
+            get_task_weight=lambda _: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            ),
+            get_dependency_weight=lambda _, __: RandomVariable(
+                samples=np.random.normal(1, 1/3, RandomVariable.DEFAULT_NUM_SAMPLES)
+            )
         )[0]
         pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="chains")
+    return PairsDataset(pairs, name=f"chains_ccr_{comm_mean}_std_{comm_std}")
 
 def wfcommons_dataset(recipe_name: str,
                       ccr: float = 1.0,
@@ -134,15 +172,17 @@ def run(savedir: pathlib.Path, skip_existing: bool = True):
 
     print("Generating datasets", skip_existing, not savedir.joinpath("in_trees.json").exists() or not skip_existing)
 
-    # Random Graphs
-    if not savedir.joinpath("in_trees.json").exists() or not skip_existing:
-        save_dataset(savedir, in_trees_dataset())
-    
-    if not savedir.joinpath("out_trees.json").exists() or not skip_existing:
-        save_dataset(savedir, out_trees_dataset())
+    ccrs: List[Tuple[float, float]] = [
+        (1, 1/3), # normal case, CCR=1
+        (5, 1/3), # low CCR same standard deviation
+        (5, 5*1/3), # low CCR high standard deviation
+        (1/5, 1/5*1/3), # high CCR low standard deviation
+    ]
 
-    if not savedir.joinpath("chains.json").exists() or not skip_existing:
-        save_dataset(savedir, chains_dataset())
+    for ccr_mean, ccr_std in ccrs:
+        save_dataset(savedir, in_trees_dataset(comm_mean=ccr_mean, comm_std=ccr_std))        
+        save_dataset(savedir, out_trees_dataset(comm_mean=ccr_mean, comm_std=ccr_std))
+        save_dataset(savedir, chains_dataset(comm_mean=ccr_mean, comm_std=ccr_std))
 
     # # # Riotbench
     # if not savedir.joinpath("etl.json").exists() or not skip_existing:

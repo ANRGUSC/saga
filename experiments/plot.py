@@ -1,4 +1,4 @@
-from typing import Callable, Iterable, List, Union
+from typing import Callable, Iterable, List, Tuple, Union
 
 import matplotlib
 
@@ -24,7 +24,8 @@ def gradient_heatmap(data: pd.DataFrame,
                      xorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
                      yorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
                      ax: plt.Axes = None,
-                     font_size: float = 20.0) -> plt.Axes: # pylint: disable=invalid-name
+                     font_size: float = 20.0,
+                     figsize: Tuple[float, float] = (12, 8)) -> plt.Axes:
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -42,6 +43,8 @@ def gradient_heatmap(data: pd.DataFrame,
         xorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order x-axis. Defaults to None.
         yorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order y-axis. Defaults to None.
         ax (plt.Axes, optional): matplotlib axes. Defaults to None.
+        font_size (float, optional): font size. Defaults to 20.0.
+        figsize (Tuple[float, float], optional): figure size. Defaults to (12, 8).
 
     Returns:
         plt.Axes: matplotlib axes
@@ -93,7 +96,7 @@ def gradient_heatmap(data: pd.DataFrame,
     global_max = min(data[color].max(), upper_threshold)
 
     if ax is None:
-        _, ax = plt.subplots(figsize=(12, 8))
+        _, ax = plt.subplots(figsize=figsize)
 
     # Get unique values for x and y in the correct order (by category)
     xvals = data[x].drop_duplicates().sort_values()

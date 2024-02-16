@@ -10,7 +10,7 @@ class RandomVariable:
     provides methods for sampling from the random variable and computing its
     probability density function.
     """
-    DEFAULT_NUM_SAMPLES = 100
+    DEFAULT_NUM_SAMPLES = 1000
     def __init__(self, samples: np.ndarray) -> None:
         """Initialize a random variable.
 
@@ -214,7 +214,10 @@ class RandomVariable:
             missing_samples = other_num_samples - self_num_samples
             self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
+        print(self_samples)
+        print(other_samples)
         samples = self_samples / other_samples
+        print(samples)
         return RandomVariable(samples)
 
     def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":

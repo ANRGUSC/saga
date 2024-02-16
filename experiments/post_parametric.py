@@ -1,10 +1,15 @@
+import json
+from math import factorial
 import pathlib
-from typing import Set
+from typing import Any, Dict, Iterable, List, Set
+from matplotlib import pyplot as plt
 import statsmodels.api as sm
 import numpy as np
 import plotly.express as px
 import pandas as pd
-from itertools import product
+from itertools import combinations, product
+
+import yaml
 
 from exp_parametric import schedulers
 
@@ -25,7 +30,7 @@ def load_data() -> pd.DataFrame:
         }
 
     resultspath = thisdir / "results" / "parametric.csv"
-    df = pd.read_csv(resultspath)
+    df = pd.read_csv(resultspath, index_col=0)
 
     for scheduler_name in df["scheduler"].unique():
         for key, value in scheduler_params[scheduler_name].items():
@@ -85,19 +90,27 @@ def print_data_info():
 
 def ols_fit():
     df = load_data()
+    # drop all columns in PARAM_NAMES that only have a single unique value
+    for param in PARAM_NAMES:
+        if len(df[param].unique()) == 1:
+            df = df.drop(columns=[param])
+
+    relevant_param_names = [param for param in PARAM_NAMES if param in df.columns]
     for dataset in df["dataset"].unique():
         df_dataset = df[df["dataset"] == dataset]
-        df_dataset = df_dataset[[*PARAM_NAMES, "makespan_ratio"]]
-        df_dataset = df_dataset.groupby(by=PARAM_NAMES).mean().reset_index()
+        df_dataset = df_dataset[[*relevant_param_names, "makespan_ratio"]]
+        df_dataset = df_dataset.groupby(by=relevant_param_names).mean().reset_index()
 
-        df_with_dummies = pd.get_dummies(df_dataset, columns=PARAM_NAMES, drop_first=False)
+        df_with_dummies = pd.get_dummies(df_dataset, columns=relevant_param_names, drop_first=False)
         ref_categories = {
             'initial_priority': 'initial_priority_ArbitraryTopological',
             'append_only': 'append_only_True',  # Assuming the original value is a boolean, adjust if it's actually a string
             'compare': 'compare_EST',
             'critical_path': 'critical_path_False',
             'sufferage': 'sufferage_False',
+            'k_depth': 'k_depth_0',
         }
+        ref_categories = {k: v for k, v in ref_categories.items() if k in relevant_param_names}
         excluded_vars = list(ref_categories.values())
 
         # Interactions
@@ -108,11 +121,86 @@ def ols_fit():
         X = df_with_dummies.drop(excluded_vars, axis=1).drop(columns=["makespan_ratio"])
         y = df_with_dummies['makespan_ratio']
         X = sm.add_constant(X)
-        model = sm.OLS(y, X.astype(float)).fit()
+        model = sm.GLS(y, X.astype(float)).fit()
 
         savepath = thisdir / "output" / "parametric" / "ols" / f"{dataset}.txt"
         savepath.parent.mkdir(parents=True, exist_ok=True)
         savepath.write_text(model.summary().as_text())
+
+def calc_shap_values(df: pd.DataFrame) -> Dict[str, float]:
+    param_values: Dict[str, Set[Any]] = {}
+    for param in PARAM_NAMES:
+        if len(df[param].unique()) == 1:
+            df = df.drop(columns=[param])
+        else:
+            param_values[param] = set(df[param].unique())
+
+    # each coalition has a value for each parameter in param_values
+    all_coalitions = list(product(*[[(param, value) for value in values] for param, values in param_values.items()]))
+
+    all_participants = [(param, value) for param, values in param_values.items() for value in values]
+
+    marginal_contributions = {participant: 0 for participant in all_participants}
+    shapley_values = {participant: 0 for participant in all_participants}
+    for participant in all_participants:
+        coalitions_with_participant = [
+            coalition for coalition in all_coalitions if participant in coalition
+        ]
+        for coalition in coalitions_with_participant:
+            coalition = dict(coalition)
+            # Get makespan_ratios for this coalition
+            conditions = [df[key] == value for key, value in coalition.items()]
+            makespan_ratios = df[np.logical_and.reduce(conditions)]["makespan_ratio"]
+            coalition_value = makespan_ratios.mean() # This really just converts the series to a scalar
+
+            participant_key, participant_value = participant
+            other_values = [value for value in param_values[participant_key] if value != participant_value]
+            _contributions = []
+            for value in other_values:
+                # now switch the participant key's value to the participant's value
+                coalition[participant_key] = value
+                conditions = [df[key] == value for key, value in coalition.items()]
+                participant_makespan_ratios = df[np.logical_and.reduce(conditions)]["makespan_ratio"]
+
+                participant_coalition_value = participant_makespan_ratios.mean()
+
+                marginal_contribution = coalition_value - participant_coalition_value
+                _contributions.append(marginal_contribution)
+
+            marginal_contribution = sum(_contributions) / len(other_values)
+            marginal_contributions[participant] += marginal_contribution / (len(all_coalitions) - len(coalitions_with_participant))
+            
+        shapley_values[participant] = 1/len(param_values) * marginal_contributions[participant]
+                
+    return shapley_values
+
+def shap_analysis():
+    for agg_mode in ["mean", "max"]:
+        df = load_data()
+        df = df.groupby(by=[*PARAM_NAMES, 'dataset']).agg({"makespan_ratio": agg_mode}).reset_index()
+        # return
+        for dataset in df["dataset"].unique():
+            df_dataset = df[df["dataset"] == dataset]
+            shapley_values = calc_shap_values(df_dataset) 
+
+            # Save shapley values to file
+            savepath = thisdir / "output" / "parametric" / "shap" / f"{dataset}_{agg_mode}.txt"
+            savepath.parent.mkdir(parents=True, exist_ok=True)
+            savepath.write_text(json.dumps({f"/".join(map(str, key)): value for key, value in shapley_values.items()}, indent=4))
+            print(f"Saved to {savepath}")
+        
+        # compute dataset-generic shapley values
+        df = df.groupby(by=[*PARAM_NAMES]).agg({"makespan_ratio": agg_mode}).reset_index()
+        shapley_values = calc_shap_values(df)
+        savepath = thisdir / "output" / "parametric" / "shap" / f"all_datasets_{agg_mode}.txt"
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+        savepath.write_text(json.dumps({f"/".join(map(str, key)): value for key, value in shapley_values.items()}, indent=4))
+        print(f"Saved to {savepath}")
+    
+        print(f"Average Makespan Ratio: {df['makespan_ratio'].mean()}")
+        print(f"Max Makespan Ratio: {df['makespan_ratio'].max()}")
+        print(df)
+
 
 def plot_runtime_by_makespan_ratio():
     """Plot runtime by makespan ratio for each scheduler/dataset
@@ -199,8 +287,9 @@ def main():
     # print_scheduler_info()
     # print_data_info()
     # ols_fit()
+    shap_analysis()
     # plot_results()
-    plot_runtime_by_makespan_ratio()
+    # plot_runtime_by_makespan_ratio()
 
 if __name__ == '__main__':
     main()
