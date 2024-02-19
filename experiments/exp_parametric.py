@@ -548,7 +548,10 @@ def evaluate_instance(scheduler: Scheduler,
     if do_filelock:
         append_df_to_csv_with_lock(df, savepath)
     else:
-        df.to_csv(savepath, index=False)
+        if savepath.exists():
+            df.to_csv(savepath, mode='a', header=False, index=False)
+        else:
+            df.to_csv(savepath, index=False)
     print(f"  saved results to {savepath}")
 
 def main():
@@ -642,5 +645,5 @@ if __name__ == "__main__":
     # test()
     # print_schedulers()
     # print_datasets(pathlib.Path(__file__).parent / "datasets" / "benchmarking")
-    # main()
-    test_filelock()
+    main()
+    # test_filelock()
