@@ -13,4 +13,7 @@ module load gcc/11.3.0
 module load git
 module load conda
 
-conda run -n saga PYTHONUNBUFFERED=x python exp_parametric.py run --datadir "/scratch1/jaredcol/datasets/parametric_benchmarking" --out "/scratch1/jaredcol/results/parametric.csv" --trim 100 --batch $SLURM_ARRAY_TASK_ID --batches 500
+conda run -n saga PYTHONUNBUFFERED=x python exp_parametric.py run \
+    --datadir "/scratch1/jaredcol/datasets/parametric_benchmarking" \
+    --out "/scratch1/jaredcol/results/parametric/parametric_%A" \
+    --trim 100 --batch $SLURM_ARRAY_TASK_ID --batches 500

@@ -508,13 +508,16 @@ def print_datasets(datadir: pathlib.Path):
 
 def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
     lock_path = savepath.with_suffix(f"{savepath.suffix}.lock")
-    with open(lock_path, 'w') as lock_file:
-        fcntl.flock(lock_file, fcntl.LOCK_EX)
-        if savepath.exists():
-            df.to_csv(savepath, mode='a', header=False, index=False)
-        else:
-            df.to_csv(savepath, index=False)
-        fcntl.flock(lock_file, fcntl.LOCK_UN)
+    with open(lock_path, 'a+') as lock_file:  # Change 'w' to 'a+' to avoid truncating the file
+        try:
+            fcntl.flock(lock_file, fcntl.LOCK_EX)
+            if savepath.exists():
+                df.to_csv(savepath, mode='a', header=False, index=False, flush=True)
+            else:
+                df.to_csv(savepath, index=False, flush=True)
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+            lock_file.close()
 
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
@@ -525,7 +528,8 @@ def evaluate_instance(scheduler: Scheduler,
                       datadir: pathlib.Path,
                       dataset_name: str,
                       instance_num: int,
-                      savepath: pathlib.Path):
+                      savepath: pathlib.Path,
+                      do_filelock: bool = True):
     datadir = datadir.resolve(strict=True)
     dataset = load_dataset(datadir, dataset_name)
     network, task_graph = dataset[instance_num]
@@ -541,7 +545,10 @@ def evaluate_instance(scheduler: Scheduler,
         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
     )
     savepath.parent.mkdir(exist_ok=True, parents=True)
-    append_df_to_csv_with_lock(df, savepath)
+    if do_filelock:
+        append_df_to_csv_with_lock(df, savepath)
+    else:
+        df.to_csv(savepath, index=False)
     print(f"  saved results to {savepath}")
 
 def main():
@@ -554,6 +561,7 @@ def main():
     run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
     run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
     run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
+    run_subparser.add_argument("--filelock", action="store_true", help="Use file locking to write to the results file.")
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
@@ -591,7 +599,8 @@ def main():
                 datadir,
                 dataset_name,
                 instance_num,
-                pathlib.Path(args.out)
+                pathlib.Path(args.out),
+                do_filelock=args.filelock
             )
 
 def test_filelock():
