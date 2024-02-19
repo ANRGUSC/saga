@@ -6,6 +6,7 @@ import logging
 import os
 import pathlib
 from pprint import pformat
+import random
 import shutil
 import tempfile
 import time
@@ -20,6 +21,8 @@ from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
+import concurrent.futures
+
 
 import networkx as nx
 from typing import Any, Callable, Dict, List, Hashable, Optional, Tuple
@@ -565,6 +568,7 @@ def main():
     run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
     run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
     run_subparser.add_argument("--filelock", action="store_true", help="Use file locking to write to the results file.")
+    run_subparser.add_argument("--timeout", type=float, default=0, help="Timeout for each instance in seconds. Default is 0, which means no timeout.")
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
@@ -588,6 +592,12 @@ def main():
             for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
         ]
 
+        # set seeds for reproducibility
+        np.random.seed(0)
+        random.seed(0)
+        # shuffle the instances
+        np.random.shuffle(instances)
+
         batches = [[] for _ in range(args.batches)]
         for i, instance in enumerate(instances):
             batches[i % args.batches].append(instance)
@@ -597,14 +607,42 @@ def main():
         batch = batches[args.batch]
         print(f"Batch {args.batch} has {len(batch)} instances.")
         for scheduler, dataset_name, instance_num in batch:
-            evaluate_instance(
-                scheduler,
-                datadir,
-                dataset_name,
-                instance_num,
-                pathlib.Path(args.out),
-                do_filelock=args.filelock
-            )
+            if not args.timeout:
+                evaluate_instance(
+                    scheduler,
+                    datadir,
+                    dataset_name,
+                    instance_num,
+                    pathlib.Path(args.out),
+                    do_filelock=args.filelock
+                )
+            else:
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(
+                        evaluate_instance,
+                        scheduler,
+                        datadir,
+                        dataset_name,
+                        instance_num,
+                        pathlib.Path(args.out),
+                        args.filelock
+                    )
+                    try:
+                        future.result(args.timeout)
+                    except concurrent.futures.TimeoutError:
+                        print(f"Timed out {scheduler.__name__} on {dataset_name} instance {instance_num}.")
+                        # append Nones to the results file
+                        df = pd.DataFrame(
+                            [[scheduler.__name__, dataset_name, instance_num, np.nan, np.nan]],
+                            columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
+                        )
+                        if args.filelock:
+                            append_df_to_csv_with_lock(df, pathlib.Path(args.out))
+                        else:
+                            if pathlib.Path(args.out).exists():
+                                df.to_csv(pathlib.Path(args.out), mode='a', header=False, index=False)
+                            else:
+                                df.to_csv(pathlib.Path(args.out), index=False)
 
 def test_filelock():
     import multiprocessing
