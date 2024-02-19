@@ -9,7 +9,7 @@ from pprint import pformat
 import shutil
 import tempfile
 import time
-from filelock import FileLock
+import fcntl
 
 import numpy as np
 import pandas as pd
@@ -508,11 +508,13 @@ def print_datasets(datadir: pathlib.Path):
 
 def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
     lock_path = savepath.with_suffix(f"{savepath.suffix}.lock")
-    with FileLock(lock_path):
-        if savepath.exists(): # write with the header if the file already exists
+    with open(lock_path, 'w') as lock_file:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        if savepath.exists():
             df.to_csv(savepath, mode='a', header=False, index=False)
-        else: # write without the header if the file does not exist
+        else:
             df.to_csv(savepath, index=False)
+        fcntl.flock(lock_file, fcntl.LOCK_UN)
 
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
@@ -593,8 +595,44 @@ def main():
                 pathlib.Path(args.out)
             )
 
+def test_filelock():
+    import multiprocessing
+    import pathlib
+
+    thisdir = pathlib.Path(__file__).resolve().parent
+
+    start = time.time() + 5
+
+    def write_to_file(filename: pathlib.Path, text: str):
+        # sleep until the start time
+        time.sleep(max(0, start - time.time()))
+        for i in range(100):
+            rows = [
+                [0, 1, 2, 3, 4, 5]
+            ]
+            df = pd.DataFrame(rows, columns=["a", "b", "c", "d", "e", "f"])
+            append_df_to_csv_with_lock(df, filename)
+            # df.to_csv(filename, mode='a', header=False, index=False)
+
+    savepath = thisdir / "results" / "test.csv"
+    if savepath.exists():
+        savepath.unlink()
+    savepath.parent.mkdir(exist_ok=True, parents=True)
+    # create 100 processes to write to the file
+    processes = [
+        multiprocessing.Process(target=write_to_file, args=(savepath, f"Process {i}"))
+        for i in range(1000)
+    ]
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join()
+    print("Done.")
+
+
 if __name__ == "__main__":
     # test()
     # print_schedulers()
     # print_datasets(pathlib.Path(__file__).parent / "datasets" / "benchmarking")
-    main()
+    # main()
+    test_filelock()
