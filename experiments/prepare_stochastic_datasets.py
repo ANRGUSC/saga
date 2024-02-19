@@ -92,7 +92,7 @@ def out_trees_dataset(comm_mean: float = 1, comm_std=1/3) -> Dataset:
 
 def chains_dataset(comm_mean: float = 1, comm_std=1/3) -> Dataset:
     """Generate the chains dataset."""
-    num_instances = 1
+    num_instances = 100
     min_chains, max_chains = 2, 5
     min_chain_length, max_chain_length = 2, 5
     min_nodes, max_nodes = 3, 5

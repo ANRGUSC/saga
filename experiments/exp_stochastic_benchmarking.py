@@ -192,12 +192,12 @@ def run(datadir: pathlib.Path,
                 print("Evaluating", dataset_name, scheduler.__name__, instance_num)
                 schedule = scheduler.schedule(network, task_graph)
                 pred_makespan = max([task.end for tasks in schedule.values() for task in tasks])
-                print(f"  Predicted makespan: {pred_makespan}")
+                # print(f"  Predicted makespan: {pred_makespan}")
                 for _sample in range(num_samples):
                     determinized_network, determinized_task_graph, determinized_schedule = determinize_solution(network, task_graph, schedule)
                     makespan = max([task.end for tasks in determinized_schedule.values() for task in tasks])
                     rows.append([dataset_name, instance_num, scheduler.__name__, _sample, makespan])
-                    print(f"  Sample {_sample} makespan: {makespan}")
+                    # print(f"  Sample {_sample} makespan: {makespan}")
             
             df = pd.DataFrame(rows, columns=["dataset", "instance", "scheduler", "sample", "makespan"])
             df.to_csv(resultsdir.joinpath(f"results.csv"))

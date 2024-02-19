@@ -304,9 +304,9 @@ def run_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
     savedir.mkdir(parents=True, exist_ok=True)
 
     dataset_names = {
-        # 'chains': chains_dataset,
+        'chains': chains_dataset,
         'in_trees': in_trees_dataset,
-        # 'out_trees': out_trees_dataset
+        'out_trees': out_trees_dataset
     }
     ccrs = [1/5, 1/2, 1, 2, 5]
     for ccr in ccrs:
