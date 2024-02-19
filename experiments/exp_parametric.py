@@ -551,6 +551,7 @@ def main():
     run_subparser.add_argument("--out", type=str, required=True, help="Directory to save the results.")
     run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
     run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
+    run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
@@ -574,14 +575,12 @@ def main():
             for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
         ]
 
-        # group to 5000 roughly equal sized sets of instances
-        num_batches = 5000
-        batches = [[] for _ in range(num_batches)]
+        batches = [[] for _ in range(args.batches)]
         for i, instance in enumerate(instances):
-            batches[i % num_batches].append(instance)
+            batches[i % args.batches].append(instance)
 
-        if args.batch < 0 or args.batch >= num_batches:
-            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
+        if args.batch < 0 or args.batch >= args.batches:
+            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {args.batches-1} for this trim value ({args.trim}).")
         batch = batches[args.batch]
         print(f"Batch {args.batch} has {len(batch)} instances.")
         for scheduler, dataset_name, instance_num in batch:
