@@ -15,5 +15,5 @@ module load conda
 
 conda run -n saga PYTHONUNBUFFERED=x python exp_parametric.py run \
     --datadir "/scratch1/jaredcol/datasets/parametric_benchmarking" \
-    --out "/scratch1/jaredcol/results/parametric/parametric_%A.csv" \
+    --out "/scratch1/jaredcol/results/parametric/parametric_%a.csv" \
     --trim 100 --batch $SLURM_ARRAY_TASK_ID --batches 500
