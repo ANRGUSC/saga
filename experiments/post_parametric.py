@@ -1,19 +1,12 @@
 import json
 from math import factorial
 import pathlib
-import re
-from typing import Any, Dict, Iterable, List, Set
+from typing import Iterable, Set
 from matplotlib import pyplot as plt
-import statsmodels.api as sm
-import statsmodels.formula.api as ols
 from statsmodels.multivariate.manova import MANOVA
-import numpy as np
-import plotly.express as px
 import pandas as pd
 from itertools import combinations, product
 import seaborn as sns
-
-import yaml
 
 from exp_parametric import schedulers
 
@@ -91,111 +84,58 @@ def print_data_info():
     missing_combos = get_missing_combos(df[df["sufferage"] == False])
     print(f"Missing combinations (sufferage == False): {len(missing_combos)}")
 
-
-def ols_fit():
-    df = load_data()
-    # drop all columns in PARAM_NAMES that only have a single unique value
-    for param in PARAM_NAMES:
-        if len(df[param].unique()) == 1:
-            df = df.drop(columns=[param])
-
-    relevant_param_names = [param for param in PARAM_NAMES if param in df.columns]
-    for dataset in df["dataset"].unique():
-        df_dataset = df[df["dataset"] == dataset]
-        df_dataset = df_dataset[[*relevant_param_names, "makespan_ratio"]]
-        df_dataset = df_dataset.groupby(by=relevant_param_names).mean().reset_index()
-
-        df_with_dummies = pd.get_dummies(df_dataset, columns=relevant_param_names, drop_first=False)
-        ref_categories = {
-            'initial_priority': 'initial_priority_ArbitraryTopological',
-            'append_only': 'append_only_True',  # Assuming the original value is a boolean, adjust if it's actually a string
-            'compare': 'compare_EST',
-            'critical_path': 'critical_path_False',
-            'sufferage': 'sufferage_False',
-            'k_depth': 'k_depth_0',
-        }
-        ref_categories = {k: v for k, v in ref_categories.items() if k in relevant_param_names}
-        excluded_vars = list(ref_categories.values())
-
-        # Interactions
-        # df_with_dummies['sufferageXcritical'] = df_with_dummies['update_priority_SufferageUpdatePriority'] * df_with_dummies['critical_path_True']
-        # df_with_dummies['EFTxInsert'] = df_with_dummies['compare_EFT'] * df_with_dummies['append_only_False']
-        # df_with_dummies['HEFT'] = df_with_dummies['compare_EFT'] * df_with_dummies['append_only_False'] * df_with_dummies['initial_priority_UpwardRanking']
-
-        X = df_with_dummies.drop(excluded_vars, axis=1).drop(columns=["makespan_ratio"])
-        y = df_with_dummies['makespan_ratio']
-        X = sm.add_constant(X)
-        model = sm.OLS(y, X.astype(float)).fit()
-
-        savepath = thisdir / "output" / "parametric" / "ols" / f"{dataset}.txt"
-        savepath.parent.mkdir(parents=True, exist_ok=True)
-        savepath.write_text(model.summary().as_text())
-
-def anova():
-    df = load_data()
-    param_names = list(set(PARAM_NAMES) - {"k_depth"})
-    df = df[[*param_names, "makespan_ratio", "runtime_ratio"]]
-
-    # Prepare the formula for MANOVA, including all main effects and their interactions
-    formula = 'makespan_ratio + runtime_ratio ~ initial_priority * append_only * compare * critical_path * sufferage'
-
-    # Fit the MANOVA model
-    manova = MANOVA.from_formula(formula, data=df)
-
-    # Perform the MANOVA test and print the summary
-    print(manova.mv_test().summary())
-
-    # Write the summary to a file
-    savepath = thisdir / "output" / "parametric" / "anova" / "summary.txt"
-    savepath.parent.mkdir(parents=True, exist_ok=True)
-    savepath.write_text(manova.mv_test().summary().as_text())
-
+def generate_interaction_plots(df: pd.DataFrame,
+                               param_names: Iterable[str],
+                               savedir: pathlib.Path,
+                               showfliers: bool = False):
     # Set the aesthetic style of the plots
     sns.set_style("whitegrid")
 
-    # Data for plotting
-    # data_to_plot = df[['compare', 'critical_path', 'sufferage', 'makespan_ratio', 'runtime_ratio']]
+    markers = ['o', 's', 'D', 'v', '^', '<', '>', 'p', 'h', '8', '*', 'H', 'd', 'X']
+    linestyles = ["-", "--", "-.", ":", (0, (3, 5, 1, 5)), (0, (3, 5, 1, 5, 1, 5))]
+    for param in param_names:
+        print(f"Plotting main effects for {param}")
+        # Plotting
+        fig, axs = plt.subplots(1, 2, figsize=(18, 10))
 
-    markers = ['o', 's', 'D', 'v']
-    linestyles = ["-", "--", "-.", ":"]
+        # Boxplot for makespan_ratio by Compare
+        sns.boxplot(
+            x=param, y='makespan_ratio', data=df, ax=axs[0],
+            showfliers=showfliers
+        )
+        axs[0].set_title(f'Makespan Ratio by {param}')
+
+        # Boxplot for runtime_ratio by Compare
+        sns.boxplot(
+            x=param, y='runtime_ratio', data=df, ax=axs[1],
+            showfliers=showfliers
+        )
+        axs[1].set_title(f'Runtime Ratio by {param}')
+
+        plt.tight_layout()
+        savepath = savedir / "main_effects" / f"{param}.png"
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(savepath)
+        print(f"Saved to {savepath}")
+
+        plt.close()
 
     for param_1, param_2 in combinations(param_names, 2):
-        print(f"Plotting interaction between {param_1} and {param_2}")
-
-        # Plotting
+        # sort param_1 and param_2 so that the plot is consistent
+        param_1, param_2 = sorted([param_1, param_2])
         fig, axs = plt.subplots(3, 2, figsize=(14, 12))
 
-        # Boxplot for makespan_ratio by Compare
-        sns.boxplot(
-            x=param_1, y='makespan_ratio', data=df, ax=axs[0, 0],
-            showfliers=False
-        )
+        sns.boxplot(x=param_1, y='makespan_ratio', data=df, ax=axs[0, 0], showfliers=showfliers)
         axs[0, 0].set_title(f'Makespan Ratio by {param_1}')
-
-        # Boxplot for runtime_ratio by Compare
-        sns.boxplot(
-            x=param_1, y='runtime_ratio', data=df, ax=axs[0, 1],
-            showfliers=False
-        )
+        sns.boxplot(x=param_1, y='runtime_ratio', data=df, ax=axs[0, 1], showfliers=showfliers)
         axs[0, 1].set_title(f'Runtime Ratio by {param_1}')
 
-        
-        # Boxplot for makespan_ratio by Compare
-        sns.boxplot(
-            x=param_2, y='makespan_ratio', data=df, ax=axs[1, 0],
-            showfliers=False
-        )
+        sns.boxplot(x=param_2, y='makespan_ratio', data=df, ax=axs[1, 0], showfliers=showfliers)
         axs[1, 0].set_title(f'Makespan Ratio by {param_2}')
-
-        # Boxplot for runtime_ratio by Compare
-        sns.boxplot(
-            x=param_2, y='runtime_ratio', data=df, ax=axs[1, 1],
-            showfliers=False
-        )
+        sns.boxplot(x=param_2, y='runtime_ratio', data=df, ax=axs[1, 1], showfliers=showfliers)
         axs[1, 1].set_title(f'Runtime Ratio by {param_2}')
 
-
-        # Interaction Plot for Makespan Ratio by Compare and Sufferage
+        # Interaction Plots
         sns.pointplot(
             x=param_1, y='makespan_ratio', hue=param_2,
             data=df, dodge=True, 
@@ -204,8 +144,6 @@ def anova():
             ax=axs[2, 0]
         )
         axs[2, 0].set_title(f'Interaction: Makespan Ratio by {param_1} and {param_2}')
-
-        # Interaction Plot for Runtime Ratio by Critical Path and Sufferage
         sns.pointplot(
             x=param_1, y='runtime_ratio', hue=param_2,
             data=df, dodge=True,
@@ -216,182 +154,101 @@ def anova():
         axs[2, 1].set_title(f'Interaction: Runtime Ratio by {param_1} and {param_2}')
 
         plt.tight_layout()
-        # plt.show()
-        savepath = thisdir / "output" / "parametric" / "anova" / f"{param_1}:{param_2}.png"
+        savepath = savedir / "interactions" / f"{param_1}:{param_2}.png"
         savepath.parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(savepath)
-        print(f"Saved to {savepath}")
-
         plt.close()
 
+def generate_pareto_front_plot(df: pd.DataFrame,
+                               savedir: pathlib.Path,
+                               varx: str = "ccr",
+                               vary: str = "dataset_name"):
+    """Generate scatter plot of runtime_ratio vs makespan_ratio with pareto front highlighted
 
-
-def calc_shap_values(df: pd.DataFrame) -> Dict[str, float]:
-    param_values: Dict[str, Set[Any]] = {}
-    for param in PARAM_NAMES:
-        if len(df[param].unique()) == 1:
-            df = df.drop(columns=[param])
-        else:
-            param_values[param] = set(df[param].unique())
-
-    # each coalition has a value for each parameter in param_values
-    all_coalitions = list(product(*[[(param, value) for value in values] for param, values in param_values.items()]))
-
-    all_participants = [(param, value) for param, values in param_values.items() for value in values]
-
-    marginal_contributions = {participant: 0 for participant in all_participants}
-    shapley_values = {participant: 0 for participant in all_participants}
-    for participant in all_participants:
-        coalitions_with_participant = [
-            coalition for coalition in all_coalitions if participant in coalition
-        ]
-        for coalition in coalitions_with_participant:
-            coalition = dict(coalition)
-            # Get makespan_ratios for this coalition
-            conditions = [df[key] == value for key, value in coalition.items()]
-            makespan_ratios = df[np.logical_and.reduce(conditions)]["makespan_ratio"]
-            coalition_value = makespan_ratios.mean() # This really just converts the series to a scalar
-
-            participant_key, participant_value = participant
-            other_values = [value for value in param_values[participant_key] if value != participant_value]
-            _contributions = []
-            for value in other_values:
-                # now switch the participant key's value to the participant's value
-                coalition[participant_key] = value
-                conditions = [df[key] == value for key, value in coalition.items()]
-                participant_makespan_ratios = df[np.logical_and.reduce(conditions)]["makespan_ratio"]
-
-                participant_coalition_value = participant_makespan_ratios.mean()
-
-                marginal_contribution = coalition_value - participant_coalition_value
-                _contributions.append(marginal_contribution)
-
-            marginal_contribution = sum(_contributions) / len(other_values)
-            marginal_contributions[participant] += marginal_contribution / (len(all_coalitions) - len(coalitions_with_participant))
-            
-        shapley_values[participant] = 1/len(param_values) * marginal_contributions[participant]
-                
-    return shapley_values
-
-def shap_analysis():
-    for agg_mode in ["mean", "max"]:
-        df = load_data()
-        df = df.groupby(by=[*PARAM_NAMES, 'dataset']).agg({"makespan_ratio": agg_mode}).reset_index()
-        for dataset in df["dataset"].unique():
-            df_dataset = df[df["dataset"] == dataset]
-            shapley_values = calc_shap_values(df_dataset) 
-
-            # Save shapley values to file
-            savepath = thisdir / "output" / "parametric" / "shap" / f"{dataset}_{agg_mode}.txt"
-            savepath.parent.mkdir(parents=True, exist_ok=True)
-            savepath.write_text(json.dumps({f"/".join(map(str, key)): value for key, value in shapley_values.items()}, indent=4))
-            print(f"Saved to {savepath}")
-        
-        # compute dataset-generic shapley values
-        df = df.groupby(by=[*PARAM_NAMES]).agg({"makespan_ratio": agg_mode}).reset_index()
-        shapley_values = calc_shap_values(df)
-        savepath = thisdir / "output" / "parametric" / "shap" / f"all_datasets_{agg_mode}.txt"
-        savepath.parent.mkdir(parents=True, exist_ok=True)
-        savepath.write_text(json.dumps({f"/".join(map(str, key)): value for key, value in shapley_values.items()}, indent=4))
-        print(f"Saved to {savepath}")
+    Args:
+        df (pd.DataFrame): DataFrame with makespan_ratio, runtime_ratio, scheduler, dataset, and ccr columns
+        savedir (pathlib.Path): Directory to save the plot
+        varx (str, optional): subplot variable on x-axis. Defaults to "ccr".
+        vary (str, optional): subplot variable on y-axis. Defaults to "dataset".
     
-        print(f"Average Makespan Ratio: {df['makespan_ratio'].mean()}")
-        print(f"Max Makespan Ratio: {df['makespan_ratio'].max()}")
-        print(df)
-
-
-def plot_runtime_by_makespan_ratio():
-    """Plot runtime by makespan ratio for each scheduler/dataset
-    
-    The marker size represents the variance of the makespan ratio for each scheduler
     """
+    # aggregate makespan_ratio and runtime_ratio by scheduler
+    df = df.groupby(by=["scheduler", *PARAM_NAMES, varx, vary]).agg({"makespan_ratio": "mean", "runtime_ratio": "mean"}).reset_index()
 
-    df = load_data()
-    # scheduler is of form in_trees_ccr_5 <dataset>_ccr_<ccr>
-    # extract dataset and ccr to their own columns
-    df["ccr"] = df["dataset"].apply(lambda x: float(x.split('_ccr_')[1]))
-    df["dataset"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
-    
 
-    df = df.groupby(by=["scheduler", "dataset", "ccr"]).agg({"runtime_ratio": "max", "makespan_ratio": ["max"]}).reset_index()
-    df.columns = ["scheduler", "dataset", "ccr", "runtime_ratio_max", "makespan_ratio_max"]
-    
-    # Keep only schedulers that are pareto-optimal in at least one dataset/ccr combination
-    # pareto optimality w.r.t. runtime_ratio_max and makespan_ratio_max
-    df["pareto"] = False
+    # Set the aesthetic style of the plots
+    sns.set_style("whitegrid")
+
+    # Highlight pareto front
     pareto_optimal_schedules: Set[str] = set()
-    for dataset, ccr in df[["dataset", "ccr"]].drop_duplicates().values:
-        df_dataset = df[(df["dataset"] == dataset) & (df["ccr"] == ccr)]
-        for scheduler in df_dataset["scheduler"].unique():
-            df_scheduler = df_dataset[df_dataset["scheduler"] == scheduler]
-            runtime_ratio_max = df_scheduler["runtime_ratio_max"].values[0]
-            makespan_ratio_max = df_scheduler["makespan_ratio_max"].values[0]
+    for varx_values, vary_values in df[[varx, vary]].drop_duplicates().values:
+        df_x = df[(df[varx] == varx_values) & (df[vary] == vary_values)]
+        for scheduler in df_x["scheduler"].unique():
+            df_scheduler = df_x[df_x["scheduler"] == scheduler]
+            runtime_ratio_agg = df_scheduler["runtime_ratio"].values[0]
+            makespan_ratio_agg = df_scheduler["makespan_ratio"].values[0]
             is_dominated = lambda rt1, mr1, rt2, mr2: (rt1 > rt2 and mr1 >= mr2) or (rt1 >= rt2 and mr1 > mr2)
-            if not any(is_dominated(runtime_ratio_max, makespan_ratio_max, rt, mr) for rt, mr in zip(df_dataset["runtime_ratio_max"], df_dataset["makespan_ratio_max"])):
-                # set "pareto" column to True for scheduler/dataset/ccr combo in original df
-                df.loc[(df["dataset"] == dataset) & (df["ccr"] == ccr) & (df["scheduler"] == scheduler), "pareto"] = True
+            if not any(is_dominated(runtime_ratio_agg, makespan_ratio_agg, rt, mr) for rt, mr in zip(df_x["runtime_ratio"], df_x["makespan_ratio"])):
                 pareto_optimal_schedules.add(scheduler)
+                df.loc[(df[varx] == varx_values) & (df[vary] == vary_values) & (df["scheduler"] == scheduler), "pareto"] = True
 
-    df = df[df["scheduler"].isin(pareto_optimal_schedules)]    
-    df['marker_size'] = df['pareto'].apply(lambda x: 5 if x else 1)
-    fig = px.scatter(
-        df,
-        x="runtime_ratio_max",
-        y="makespan_ratio_max",
-        color="scheduler",
-        facet_col="ccr",
-        facet_row="dataset",
-        size="marker_size",
-        title="Runtime by Makespan Ratio",
-        template="plotly_white",
-        hover_data=["scheduler", "dataset", "ccr", "runtime_ratio_max"],
-    )
-    fig.write_html(thisdir / "output" / "parametric" / "runtime_by_makespan_ratio.html")
-    print(f"Saved to {thisdir / 'output' / 'parametric' / 'runtime_by_makespan_ratio.html'}")
+    df.loc[df["pareto"] != True, "pareto"] = False
 
+    # Sort dataframe by [varx, vary, "pareto"]
+    df = df.sort_values(by=["pareto"], ascending=[True], ignore_index=True)
+    
+    # drop all rows where scheduler is not in pareto_optimal_schedules
+    df = df[df["scheduler"].isin(pareto_optimal_schedules)]
+    print(df[[*PARAM_NAMES]].drop_duplicates(ignore_index=True))
 
-def plot_results():
-    savedir = thisdir / "output" / "parametric"
-    savedir.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(len(df[vary].unique()), len(df[varx].unique()), figsize=(18, 10))
+    for i, varx_value in enumerate(df[varx].unique()):
+        for j, vary_value in enumerate(df[vary].unique()):
+            df_subset = df[(df[varx] == varx_value) & (df[vary] == vary_value)]
+            ax[j,i].scatter(
+                df_subset["runtime_ratio"], df_subset["makespan_ratio"],
+                c=df_subset["pareto"].apply(lambda x: "blue" if x else "red"),
+                alpha=0.5
+            )
+            ax[j,i].set_title(f"{vary}={vary_value}, {varx}={varx_value}")
+            ax[j,i].set_xlabel("Runtime Ratio")
+            ax[j,i].set_ylabel("Makespan Ratio")
 
+    plt.tight_layout()
+    savepath = savedir / "pareto_front.png"
+    savepath.parent.mkdir(parents=True, exist_ok=True)
+    plt.savefig(savepath)
+    plt.close()
+    
+
+def anova():
     df = load_data()
+    # MANOVA Analysis
+    formula = 'makespan_ratio + runtime_ratio ~ initial_priority'
+    manova = MANOVA.from_formula(formula, data=df)
+    savepath = thisdir / "output" / "parametric" / "anova" / "summary.txt"
+    savepath.parent.mkdir(parents=True, exist_ok=True)
+    savepath.write_text(manova.mv_test().summary().as_text())
+
+def interactions():
+    df = load_data()
+    param_names = list(set(PARAM_NAMES) - {"k_depth"})
+    # df = df[["dataset", *param_names, "makespan_ratio", "runtime_ratio"]]
+    df["ccr"] = df["dataset"].apply(lambda x: float(x.split('_ccr_')[1]))
+    df["dataset_name"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
+
+    generate_interaction_plots(df, [*param_names, "dataset_name", "ccr"], thisdir / "output" / "parametric" , showfliers=False)
+    generate_pareto_front_plot(df, thisdir / "output" / "parametric")
     for dataset in df["dataset"].unique():
-        # get stats for each scheduler makespan ratio
-        # desc = df[["scheduler", "makespan_ratio"]].groupby(by=["scheduler"]).describe()
-        df_dataset = df[df["dataset"] == dataset]
-        desc = df_dataset[["scheduler", "makespan_ratio"]].groupby(by=["scheduler"]).describe()
-        # print(desc)
-
-        # print stats for standard deviation (mean, std, etc.)
-        # I want to know the std of the std
-        # print(desc["makespan_ratio"]["std"].describe())
-
-        # sort by makespan ratio and then plot 
-        df_dataset = df_dataset.sort_values(by="makespan_ratio")
-        x = np.arange(len(df_dataset))
-        
-        fig = px.scatter(
-            df_dataset,
-            x=x,
-            y="makespan_ratio",
-            color="critical_path",
-            symbol="append_only",
-            facet_col="initial_priority",
-            facet_row="update_priority",
-            title=f"{dataset} Makespan Ratio",
-            template="plotly_white",
-        )
-        
-        fig.write_html(savedir / f"{dataset}.html")
+        print(f"Generating interaction plots for {dataset}")
+        dataset_df = df[df["dataset"] == dataset]
+        generate_interaction_plots(dataset_df, param_names, thisdir / "output" / "parametric" / "dataset" / dataset, showfliers=False)
 
 def main():
     # print_scheduler_info()
     # print_data_info()
-    # ols_fit()
-    # shap_analysis()
-    # plot_results()
-    # plot_runtime_by_makespan_ratio()
-    anova()
+    # anova()
+    interactions()
 
 if __name__ == '__main__':
     main()
