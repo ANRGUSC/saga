@@ -113,11 +113,8 @@ class ParametricScheduler(Scheduler):
         """
         queue = self.initial_priority(network, task_graph)
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        scheduled_tasks: Dict[Hashable, Task] = {}
         while queue:
-            task_name = queue.pop(0)
-            task = self.insert_task(network, task_graph, schedule, task_name)
-            scheduled_tasks[task.name] = task
+            self.insert_task(network, task_graph, schedule, queue.pop(0))
         return schedule
 
     def serialize(self) -> Dict[str, Any]:
