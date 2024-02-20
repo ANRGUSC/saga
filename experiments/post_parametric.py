@@ -1,13 +1,17 @@
 import json
 from math import factorial
 import pathlib
+import re
 from typing import Any, Dict, Iterable, List, Set
 from matplotlib import pyplot as plt
 import statsmodels.api as sm
+import statsmodels.formula.api as ols
+from statsmodels.multivariate.manova import MANOVA
 import numpy as np
 import plotly.express as px
 import pandas as pd
 from itertools import combinations, product
+import seaborn as sns
 
 import yaml
 
@@ -121,11 +125,106 @@ def ols_fit():
         X = df_with_dummies.drop(excluded_vars, axis=1).drop(columns=["makespan_ratio"])
         y = df_with_dummies['makespan_ratio']
         X = sm.add_constant(X)
-        model = sm.GLS(y, X.astype(float)).fit()
+        model = sm.OLS(y, X.astype(float)).fit()
 
         savepath = thisdir / "output" / "parametric" / "ols" / f"{dataset}.txt"
         savepath.parent.mkdir(parents=True, exist_ok=True)
         savepath.write_text(model.summary().as_text())
+
+def anova():
+    df = load_data()
+    param_names = list(set(PARAM_NAMES) - {"k_depth"})
+    df = df[[*param_names, "makespan_ratio", "runtime_ratio"]]
+
+    # Prepare the formula for MANOVA, including all main effects and their interactions
+    formula = 'makespan_ratio + runtime_ratio ~ initial_priority * append_only * compare * critical_path * sufferage'
+
+    # Fit the MANOVA model
+    manova = MANOVA.from_formula(formula, data=df)
+
+    # Perform the MANOVA test and print the summary
+    print(manova.mv_test().summary())
+
+    # Write the summary to a file
+    savepath = thisdir / "output" / "parametric" / "anova" / "summary.txt"
+    savepath.parent.mkdir(parents=True, exist_ok=True)
+    savepath.write_text(manova.mv_test().summary().as_text())
+
+    # Set the aesthetic style of the plots
+    sns.set_style("whitegrid")
+
+    # Data for plotting
+    # data_to_plot = df[['compare', 'critical_path', 'sufferage', 'makespan_ratio', 'runtime_ratio']]
+
+    markers = ['o', 's', 'D', 'v']
+    linestyles = ["-", "--", "-.", ":"]
+
+    for param_1, param_2 in combinations(param_names, 2):
+        print(f"Plotting interaction between {param_1} and {param_2}")
+
+        # Plotting
+        fig, axs = plt.subplots(3, 2, figsize=(14, 12))
+
+        # Boxplot for makespan_ratio by Compare
+        sns.boxplot(
+            x=param_1, y='makespan_ratio', data=df, ax=axs[0, 0],
+            showfliers=False
+        )
+        axs[0, 0].set_title(f'Makespan Ratio by {param_1}')
+
+        # Boxplot for runtime_ratio by Compare
+        sns.boxplot(
+            x=param_1, y='runtime_ratio', data=df, ax=axs[0, 1],
+            showfliers=False
+        )
+        axs[0, 1].set_title(f'Runtime Ratio by {param_1}')
+
+        
+        # Boxplot for makespan_ratio by Compare
+        sns.boxplot(
+            x=param_2, y='makespan_ratio', data=df, ax=axs[1, 0],
+            showfliers=False
+        )
+        axs[1, 0].set_title(f'Makespan Ratio by {param_2}')
+
+        # Boxplot for runtime_ratio by Compare
+        sns.boxplot(
+            x=param_2, y='runtime_ratio', data=df, ax=axs[1, 1],
+            showfliers=False
+        )
+        axs[1, 1].set_title(f'Runtime Ratio by {param_2}')
+
+
+        # Interaction Plot for Makespan Ratio by Compare and Sufferage
+        sns.pointplot(
+            x=param_1, y='makespan_ratio', hue=param_2,
+            data=df, dodge=True, 
+            markers=markers[:len(df[param_2].unique())],
+            linestyles=linestyles[:len(df[param_2].unique())],
+            ax=axs[2, 0]
+        )
+        axs[2, 0].set_title(f'Interaction: Makespan Ratio by {param_1} and {param_2}')
+
+        # Interaction Plot for Runtime Ratio by Critical Path and Sufferage
+        sns.pointplot(
+            x=param_1, y='runtime_ratio', hue=param_2,
+            data=df, dodge=True,
+            markers=markers[:len(df[param_2].unique())],
+            linestyles=linestyles[:len(df[param_2].unique())],
+            ax=axs[2, 1]
+        )
+        axs[2, 1].set_title(f'Interaction: Runtime Ratio by {param_1} and {param_2}')
+
+        plt.tight_layout()
+        # plt.show()
+        savepath = thisdir / "output" / "parametric" / "anova" / f"{param_1}:{param_2}.png"
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(savepath)
+        print(f"Saved to {savepath}")
+
+        plt.close()
+
+
 
 def calc_shap_values(df: pd.DataFrame) -> Dict[str, float]:
     param_values: Dict[str, Set[Any]] = {}
@@ -178,7 +277,6 @@ def shap_analysis():
     for agg_mode in ["mean", "max"]:
         df = load_data()
         df = df.groupby(by=[*PARAM_NAMES, 'dataset']).agg({"makespan_ratio": agg_mode}).reset_index()
-        # return
         for dataset in df["dataset"].unique():
             df_dataset = df[df["dataset"] == dataset]
             shapley_values = calc_shap_values(df_dataset) 
@@ -209,8 +307,11 @@ def plot_runtime_by_makespan_ratio():
     """
 
     df = load_data()
-    # do .split('_ccr_')[0] to get dataset name
+    # scheduler is of form in_trees_ccr_5 <dataset>_ccr_<ccr>
+    # extract dataset and ccr to their own columns
+    df["ccr"] = df["dataset"].apply(lambda x: float(x.split('_ccr_')[1]))
     df["dataset"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
+    
 
     df = df.groupby(by=["scheduler", "dataset", "ccr"]).agg({"runtime_ratio": "max", "makespan_ratio": ["max"]}).reset_index()
     df.columns = ["scheduler", "dataset", "ccr", "runtime_ratio_max", "makespan_ratio_max"]
@@ -287,9 +388,10 @@ def main():
     # print_scheduler_info()
     # print_data_info()
     # ols_fit()
-    shap_analysis()
+    # shap_analysis()
     # plot_results()
     # plot_runtime_by_makespan_ratio()
+    anova()
 
 if __name__ == '__main__':
     main()

@@ -1,22 +1,17 @@
 import argparse
 from copy import deepcopy
-from functools import lru_cache
 import heapq
 import logging
-import os
 import pathlib
 from pprint import pformat
 import random
 import shutil
-import tempfile
 import time
 import fcntl
 
 import numpy as np
 import pandas as pd
-from experiments.exp_benchmarking import TrimmedDataset
 from experiments.prepare_datasets import load_dataset
-from saga.data import Dataset
 from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
@@ -98,43 +93,65 @@ GREEDY_INSERT_COMPARE_FUNCS = {
 class GreedyInsert(InsertTask):
     def __init__(self,
                  append_only: bool = False,
-                 compare: str = "EFT"):
+                 compare: str = "EFT",
+                 critical_path: bool = False):
         """Initialize the GreedyInsert class.
         
         Args:
             append_only (bool, optional): Whether to only append the task to the schedule. Defaults to False.
             compare (Callable[[Task, Task], float], optional): The comparison function to use. Defaults to lambda new, cur: new.end - cur.end.
                 Must be one of "EFT", "EST", or "Quickest".
+            critical_path (bool, optional): Whether to only schedule tasks on the critical path. Defaults to False.
         """
         self.append_only = append_only
         self.compare = compare
         self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
+        self.critical_path = critical_path
 
     def __call__(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  schedule: ScheduleType,
                  task: Hashable,
-                 node: Optional[Hashable] = None) -> Task:
+                 node: Optional[Hashable] = None,
+                 dry_run: bool = False) -> Task:
         best_insert_loc, best_task = None, None
+        # second_best_task = None
         # TODO: This is a bit inefficient adds O(n) per iteration,
         #       so it doesn't affect asymptotic complexity, but it's still bad
-        task_map = {
-            task.name: task
-            for _, tasks in schedule.items()
-            for task in tasks
-        }
+        if self.critical_path and node is None:
+            # if task_graph doesn't have critical_path attribute, then we need to calculate it
+            if task_graph.nodes[task].get("critical_path") is None:
+                ranks = cpop_ranks(network, task_graph)
+                critical_rank = max(ranks.values())
+                fastest_node = max(
+                    network.nodes,
+                    key=lambda node: network.nodes[node]['weight']
+                )
+                nx.set_node_attributes(
+                    task_graph,
+                    {
+                        task: fastest_node if np.isclose(rank, critical_rank) else None
+                     for task, rank in ranks.items()
+                    },
+                    "critical_path"
+                )
+
+            # if task is on the critical path, then we only consider the fastest node
+            node = task_graph.nodes[task]["critical_path"]
+
         considered_nodes = network.nodes if node is None else [node]
         for node in considered_nodes:
             exec_time = task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
 
             min_start_time = 0
             for parent in task_graph.predecessors(task):
-                parent_node = task_map[parent].node
+                parent_task: Task = task_graph.nodes[parent]['scheduled_task']
+                parent_node = parent_task.node
                 data_size = task_graph.edges[parent, task]["weight"]
                 comm_strength = network.edges[parent_node, node]["weight"]
                 comm_time = data_size / comm_strength
-                min_start_time = max(min_start_time, task_map[parent].end + comm_time)
+                min_start_time = max(min_start_time, parent_task.end + comm_time)
 
             if self.append_only:
                 start_time = max(
@@ -149,7 +166,9 @@ class GreedyInsert(InsertTask):
             if best_task is None or self._compare(new_task, best_task) < 0:
                 best_insert_loc, best_task = insert_loc, new_task
 
-        schedule[best_task.node].insert(best_insert_loc, best_task)
+        if not dry_run: # if not a dry run, then insert the task into the schedule
+            schedule[best_task.node].insert(best_insert_loc, best_task)
+            task_graph.nodes[task]['scheduled_task'] = best_task
         return best_task
     
     def serialize(self) -> Dict[str, Any]:
@@ -157,89 +176,15 @@ class GreedyInsert(InsertTask):
             "name": "GreedyInsert",
             "append_only": self.append_only,
             "compare": self.compare,
-            "critical_path": False
+            "critical_path": self.critical_path
         }
     
     @classmethod
     def deserialize(cls, data: Dict[str, Any]) -> "GreedyInsert":
         return cls(
             append_only=data["append_only"],
-            compare=data["compare"]
-        )
-
-class CriticalPathGreedyInsert(GreedyInsert):
-    def __init__(self, append_only: bool = False, compare: Callable[[Task, Task], float] = lambda new, cur: new.end - cur.end):
-        super().__init__(
-            append_only=append_only,
-            compare=compare
-        )
-
-    @lru_cache(maxsize=None)
-    def cpop_ranks(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
-        return cpop_ranks(network, task_graph)
-
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: ScheduleType,
-                 task: Hashable,
-                 node: Optional[Hashable] = None) -> Task:
-        # Same as GreedyInsert, but commits to scheduling nodes on the critical path to the fastest node.
-        ranks = self.cpop_ranks(network, task_graph)
-        critical_rank = max(ranks.values())
-        critical_tasks = {
-            task for task, rank in ranks.items()
-            if np.isclose(rank, critical_rank)
-        }
-        scheduled_tasks = {
-            task.name: task
-            for _, tasks in schedule.items()
-            for task in tasks
-        }
-
-        if task in critical_tasks and node is None:
-            # Assign to the node with the fastest critical path execution time
-            best_node = max(
-                network.nodes,
-                key=lambda node: network.nodes[node]['weight']
-            )
-            exec_time = task_graph.nodes[task]['weight'] / network.nodes[best_node]['weight']
-            min_start_time = 0
-            for parent in task_graph.predecessors(task):
-                parent_node = scheduled_tasks[parent].node
-                data_size = task_graph.edges[parent, task]["weight"]
-                comm_strength = network.edges[parent_node, best_node]["weight"]
-                comm_time = data_size / comm_strength
-                min_start_time = max(min_start_time, scheduled_tasks[parent].end + comm_time)
-            
-            if self.append_only:
-                start_time = max(
-                    min_start_time,
-                    0.0 if not schedule[best_node] else schedule[best_node][-1].end
-                )
-                insert_loc = len(schedule[best_node])
-            else:
-                insert_loc, start_time  = get_insert_loc(schedule[best_node], min_start_time, exec_time)
-
-            new_task = Task(best_node, task, start_time, start_time + exec_time)
-            schedule[best_node].insert(insert_loc, new_task)
-            return new_task
-        else:
-            return super().__call__(network, task_graph, schedule, task, node)
-        
-    def serialize(self) -> Dict[str, Any]:
-        return {
-            "name": "CriticalPathGreedyInsert",
-            "append_only": self.append_only,
-            "compare": self.compare,
-            "critical_path": True
-        }
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "CriticalPathGreedyInsert":
-        return cls(
-            append_only=data["append_only"],
-            compare=data["compare"]
+            compare=data["compare"],
+            critical_path=data["critical_path"],
         )
 
 class ParametricKDepthScheduler(Scheduler):
@@ -365,31 +310,31 @@ class ParametricSufferageScheduler(ParametricScheduler):
                 if all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
-            # print(ready_tasks)
             for task in ready_tasks[:self.top_n]:
-                best_task = self.insert_task(network, task_graph, deepcopy(schedule), task)
-                _network = network.copy()
-                _network.nodes[best_task.node]['weight'] = 1e-9
-                second_best_task = self.insert_task(_network, task_graph, deepcopy(schedule), task)
+                t00 = time.time()
+                best_task = self.insert_task(network, task_graph, schedule, task, dry_run=True)
+                node_weight = network.nodes[best_task.node]['weight']
+                try:
+                    network.nodes[best_task.node]['weight'] = 1e-9
+                    second_best_task = self.insert_task(network, task_graph, schedule, task, dry_run=True)
+                finally:
+                    network.nodes[best_task.node]['weight'] = node_weight
                 sufferage = self.insert_task._compare(second_best_task, best_task)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
-
-            # print(f"Scheduling {max_sufferage_task.name} on {max_sufferage_task.node}")
-            new_task = self.insert_task(network, task_graph, schedule, max_sufferage_task.name, max_sufferage_task.node)
+                dt = time.time() - t00
+            new_task = self.insert_task(network, task_graph, schedule, max_sufferage_task.name, node=max_sufferage_task.node)
             scheduled_tasks[new_task.name] = new_task
             queue.remove(new_task.name)
 
         return schedule
-        
-    
 
 insert_funcs: Dict[str, GreedyInsert] = {}
 for compare_func_name in GREEDY_INSERT_COMPARE_FUNCS.keys():
-    insert_funcs[f"{compare_func_name}_Append"] = GreedyInsert(append_only=True, compare=compare_func_name)
-    insert_funcs[f"{compare_func_name}_Insert"] = GreedyInsert(append_only=False, compare=compare_func_name)
-    insert_funcs[f"{compare_func_name}_Append_CP"] = CriticalPathGreedyInsert(append_only=True, compare=compare_func_name)
-    insert_funcs[f"{compare_func_name}_Insert_CP"] = CriticalPathGreedyInsert(append_only=False, compare=compare_func_name)
+    insert_funcs[f"{compare_func_name}_Append"] = GreedyInsert(append_only=True, compare=compare_func_name, critical_path=False)
+    insert_funcs[f"{compare_func_name}_Insert"] = GreedyInsert(append_only=False, compare=compare_func_name, critical_path=False)
+    insert_funcs[f"{compare_func_name}_Append_CP"] = GreedyInsert(append_only=True, compare=compare_func_name, critical_path=True)
+    insert_funcs[f"{compare_func_name}_Insert_CP"] = GreedyInsert(append_only=False, compare=compare_func_name, critical_path=True)
 
 initial_priority_funcs = {
     "UpwardRanking": UpwardRanking(),
@@ -409,7 +354,7 @@ for name, insert_func in insert_funcs.items():
 
         sufferage_scheduler = ParametricSufferageScheduler(
             scheduler=reg_scheduler,
-            top_n=None
+            top_n=2
         )
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
@@ -481,7 +426,7 @@ def test():
     cpop = CpopScheduler()
     cpop_parametric = ParametricScheduler(
         initial_priority=CPoPRanking(),
-        insert_task=CriticalPathGreedyInsert(append_only=False, compare="EFT")
+        insert_task=GreedyInsert(append_only=False, compare="EFT", critical_path=True)
     )
     test_scheduler_equivalence(cpop, cpop_parametric)
 
@@ -556,6 +501,35 @@ def evaluate_instance(scheduler: Scheduler,
         else:
             df.to_csv(savepath, index=False)
     print(f"  saved results to {savepath}")
+
+def test_run():
+    scheduler = schedulers["EST_Append_CP_CPoPRanking_Sufferage"]
+    no_suffix_scheduler = schedulers["EST_Append_CP_CPoPRanking"]
+    datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
+    dataset_name = "out_trees_ccr_2"
+    dataset = load_dataset(datadir, dataset_name)
+    start_instance = 26
+    for i, (network, task_graph) in enumerate(dataset):
+        if i < start_instance:
+            continue
+
+        print(f"Instance #{i} ({(i+1)/len(dataset)*100:.2f}%):")
+        task_graph = standardize_task_graph(task_graph)
+
+        t0 = time.time()
+        schedule = no_suffix_scheduler.schedule(network, task_graph)
+        dt = time.time() - t0
+        makespan = max(task.end for tasks in schedule.values() for task in tasks)
+        print(f"  No Sufferage Makespan: {makespan}")
+        print(f"  No Sufferage Runtime: {dt}")
+
+        t0 = time.time()
+        schedule = scheduler.schedule(network, task_graph)
+        dt = time.time() - t0
+        makespan = max(task.end for tasks in schedule.values() for task in tasks)
+        print(f"  Sufferage Makespan: {makespan}")
+        print(f"  Sufferage Runtime: {dt}")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -681,7 +655,8 @@ def test_filelock():
 
 if __name__ == "__main__":
     # test()
+    test_run()
     # print_schedulers()
     # print_datasets(pathlib.Path(__file__).parent / "datasets" / "benchmarking")
-    main()
+    # main()
     # test_filelock()
