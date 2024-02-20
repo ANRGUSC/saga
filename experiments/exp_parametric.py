@@ -226,8 +226,11 @@ class ParametricKDepthScheduler(Scheduler):
             best_node, best_makespan = None, float('inf')
             for node in network.nodes:
                 sub_schedule = deepcopy(schedule) # copy the schedule
-                self.scheduler.insert_task(network, task_graph, sub_schedule, task_name, node) # insert the task
-                sub_schedule = self.scheduler.schedule(network, sub_task_graph, sub_schedule)
+                _network = network.copy()
+                _task_graph = task_graph.copy()
+                _sub_task_graph = sub_task_graph.copy()
+                self.scheduler.insert_task(_network, _task_graph, sub_schedule, task_name, node) # insert the task
+                sub_schedule = self.scheduler.schedule(_network, _sub_task_graph, sub_schedule)
                 sub_schedule_makespan = max(
                     task.end for tasks in sub_schedule.values() for task in tasks
                 )
@@ -357,15 +360,14 @@ for name, insert_func in insert_funcs.items():
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
-        # for scheduler in [sufferage_scheduler, reg_scheduler]:
-        #     for k in range(1, 4):
-        #         k_depth_scheduler = ParametricKDepthScheduler(
-        #             scheduler=scheduler,
-        #             k_depth=k
-        #         )
-        #         k_depth_scheduler.name = f"{scheduler.name}_K{k}"
-        #         if k == 3:
-        #             schedulers[k_depth_scheduler.name] = k_depth_scheduler
+        for scheduler in [sufferage_scheduler, reg_scheduler]:
+            for k in range(1, 3):
+                k_depth_scheduler = ParametricKDepthScheduler(
+                    scheduler=scheduler,
+                    k_depth=k
+                )
+                k_depth_scheduler.name = f"{scheduler.name}_K{k}"
+                schedulers[k_depth_scheduler.name] = k_depth_scheduler
 
 def test_scheduler_equivalence(scheduler, base_scheduler):
     task_graphs = {
@@ -391,6 +393,9 @@ def test_scheduler_equivalence(scheduler, base_scheduler):
 
 
 def test():
+    import matplotlib
+    matplotlib.use('Agg')
+
     logging.basicConfig(level=logging.DEBUG)
 
     thisdir = pathlib.Path(__file__).parent.resolve()
@@ -428,8 +433,6 @@ def test():
     )
     test_scheduler_equivalence(cpop, cpop_parametric)
 
-    return
-
     # Test equivalence of Suffrage and Parametric Suffrage
     from saga.schedulers.sufferage import SufferageScheduler
     etf = SufferageScheduler()
@@ -443,7 +446,7 @@ def test():
     test_scheduler_equivalence(etf, etf_parametric)
     
     # # Test all schedulers
-    test_schedulers(schedulers, savedir=savedir, stop_on_error=True)
+    test_schedulers(schedulers, savedir=savedir, stop_on_error=True, save_passing=False)
 
 def print_schedulers():
     for i, (name, scheduler) in enumerate(schedulers.items(), start=1):
@@ -640,9 +643,4 @@ def test_filelock():
 
 
 if __name__ == "__main__":
-    # test()
-    test_run()
-    # print_schedulers()
-    # print_datasets(pathlib.Path(__file__).parent / "datasets" / "benchmarking")
-    # main()
-    # test_filelock()
+    main()
