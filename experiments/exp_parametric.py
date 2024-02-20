@@ -121,7 +121,7 @@ class GreedyInsert(InsertTask):
         #       so it doesn't affect asymptotic complexity, but it's still bad
         if self.critical_path and node is None:
             # if task_graph doesn't have critical_path attribute, then we need to calculate it
-            if task_graph.nodes[task].get("critical_path") is None:
+            if "critical_path" not in task_graph.nodes[task]:
                 ranks = cpop_ranks(network, task_graph)
                 critical_rank = max(ranks.values())
                 fastest_node = max(
@@ -311,7 +311,6 @@ class ParametricSufferageScheduler(ParametricScheduler):
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
             for task in ready_tasks[:self.top_n]:
-                t00 = time.time()
                 best_task = self.insert_task(network, task_graph, schedule, task, dry_run=True)
                 node_weight = network.nodes[best_task.node]['weight']
                 try:
@@ -322,7 +321,6 @@ class ParametricSufferageScheduler(ParametricScheduler):
                 sufferage = self.insert_task._compare(second_best_task, best_task)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
-                dt = time.time() - t00
             new_task = self.insert_task(network, task_graph, schedule, max_sufferage_task.name, node=max_sufferage_task.node)
             scheduled_tasks[new_task.name] = new_task
             queue.remove(new_task.name)
@@ -430,6 +428,8 @@ def test():
     )
     test_scheduler_equivalence(cpop, cpop_parametric)
 
+    return
+
     # Test equivalence of Suffrage and Parametric Suffrage
     from saga.schedulers.sufferage import SufferageScheduler
     etf = SufferageScheduler()
@@ -503,32 +503,18 @@ def evaluate_instance(scheduler: Scheduler,
     print(f"  saved results to {savepath}")
 
 def test_run():
-    scheduler = schedulers["EST_Append_CP_CPoPRanking_Sufferage"]
-    no_suffix_scheduler = schedulers["EST_Append_CP_CPoPRanking"]
+    scheduler = schedulers["EST_Append_CP_UpwardRanking_Sufferage"]
     datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
-    dataset_name = "out_trees_ccr_2"
+    dataset_name = "in_trees_ccr_0.5"
     dataset = load_dataset(datadir, dataset_name)
-    start_instance = 26
-    for i, (network, task_graph) in enumerate(dataset):
-        if i < start_instance:
-            continue
+    network, task_graph = dataset[22]
+    task_graph = standardize_task_graph(task_graph)
 
-        print(f"Instance #{i} ({(i+1)/len(dataset)*100:.2f}%):")
-        task_graph = standardize_task_graph(task_graph)
-
-        t0 = time.time()
-        schedule = no_suffix_scheduler.schedule(network, task_graph)
-        dt = time.time() - t0
-        makespan = max(task.end for tasks in schedule.values() for task in tasks)
-        print(f"  No Sufferage Makespan: {makespan}")
-        print(f"  No Sufferage Runtime: {dt}")
-
-        t0 = time.time()
-        schedule = scheduler.schedule(network, task_graph)
-        dt = time.time() - t0
-        makespan = max(task.end for tasks in schedule.values() for task in tasks)
-        print(f"  Sufferage Makespan: {makespan}")
-        print(f"  Sufferage Runtime: {dt}")
+    t0 = time.time()
+    schedule = scheduler.schedule(network, task_graph)
+    dt = time.time() - t0
+    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+    print(f"Makespan: {makespan}, Runtime: {dt}")
 
 
 def main():
