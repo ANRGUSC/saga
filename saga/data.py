@@ -161,12 +161,18 @@ class Evaluation:
     schedulers: List[Scheduler]
     makespans: List[float]
 
-    def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, float]:
-        if index < 0 or index >= len(self):
-            raise IndexError(f"Index {index} out of range")
-        network, task_graph = self.dataset[index]
-        makespan = self.makespans[index]
-        return network, task_graph, makespan
+    def __getitem__(self, index: Union[int, slice]) -> Union[Tuple[nx.Graph, nx.DiGraph, float], "Evaluation"]:
+        if isinstance(index, int):
+            if index < 0 or index >= len(self):
+                raise IndexError(f"Index {index} out of range")
+            network, task_graph = self.dataset[index]
+            makespan = self.makespans[index]
+            return network, task_graph, makespan
+        elif isinstance(index, slice):
+            return Evaluation(self.dataset, self.schedulers, self.makespans[index])
+        else:
+            raise TypeError(f"Index {index} must be an int or slice")
+
 
     def __len__(self) -> int:
         """Get the number of networks and task graphs in the dataset.
@@ -266,16 +272,24 @@ class Comparison:
         # check that all evaluations are the same length
         if len(set(len(evaluation) for evaluation in self.evaluations.values())) != 1:
             raise ValueError("Evaluations must be the same length")
-
-    def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph, Dict[str, float]]:
-        if index < 0 or index >= len(self):
-            raise IndexError(f"Index {index} out of range")
-        makespans = {}
-        network, task_graph = None, None
-        for scheduler_name, evaluation in self.evaluations.items():
-            network, task_graph, makespan = evaluation[index]
-            makespans[scheduler_name] = makespan
-        return network, task_graph, makespans
+        
+    def __getitem__(self, index: Union[int, slice]) -> Union[Tuple[nx.Graph, nx.DiGraph, Dict[str, float]], "Comparison"]:
+        if isinstance(index, int):
+            if index < 0 or index >= len(self):
+                raise IndexError(f"Index {index} out of range")
+            makespans = {}
+            network, task_graph = None, None
+            for scheduler_name, evaluation in self.evaluations.items():
+                network, task_graph, makespan = evaluation[index]
+                makespans[scheduler_name] = makespan
+            return network, task_graph, makespans
+        elif isinstance(index, slice):
+            return Comparison({
+                scheduler_name: evaluation[index]
+                for scheduler_name, evaluation in self.evaluations.items()
+            })
+        else:
+            raise TypeError(f"Index {index} must be an int or slice")
 
     def __len__(self) -> int:
         """Get the number of schedulers in the comparison.
@@ -449,11 +463,11 @@ class Dataset(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph]:
+    def __getitem__(self, index: Union[int, slice]) -> Union[Tuple[nx.Graph, nx.DiGraph], "Dataset"]:
         """Get a network and a task graph.
 
         Args:
-            index (int): The index of the network and task graph.
+            index (Union[int, slice]): The index of the network and task graph.
 
         Returns:
             Tuple[nx.Graph, nx.DiGraph]: The network and task graph.
@@ -601,12 +615,17 @@ class AllPairsDataset(Dataset):
     def __len__(self) -> int:
         return len(self.networks) * len(self.task_graphs)
 
-    def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph]:
-        if index < 0 or index >= len(self):
-            raise IndexError(f"Index {index} out of range")
-        network_index = index // len(self.task_graphs)
-        task_graph_index = index % len(self.task_graphs)
-        return self.networks[network_index], self.task_graphs[task_graph_index]
+    def __getitem__(self, index: Union[int, slice]) -> Union[Tuple[nx.Graph, nx.DiGraph], "AllPairsDataset"]:
+        if isinstance(index, int):
+            if index < 0 or index >= len(self):
+                raise IndexError(f"Index {index} out of range")
+            network_index = index // len(self.task_graphs)
+            task_graph_index = index % len(self.task_graphs)
+            return self.networks[network_index], self.task_graphs[task_graph_index]
+        elif isinstance(index, slice):
+            return AllPairsDataset(self.networks[index], self.task_graphs[index], name=self.name)
+        else:
+            raise TypeError(f"Index {index} must be an int or slice")
 
     def to_json(self, *args, **kwargs) -> str:
         """Convert the dataset to a JSON object.
@@ -652,10 +671,15 @@ class PairsDataset(Dataset):
     def __len__(self) -> int:
         return len(self.pairs)
 
-    def __getitem__(self, index: int) -> Tuple[nx.Graph, nx.DiGraph]:
-        if index < 0 or index >= len(self):
-            raise IndexError
-        return self.pairs[index]
+    def __getitem__(self, index: Union[int, slice]) -> Union[Tuple[nx.Graph, nx.DiGraph], "PairsDataset"]:
+        if isinstance(index, int):
+            if index < 0 or index >= len(self):
+                raise IndexError(f"Index {index} out of range")
+            return self.pairs[index]
+        elif isinstance(index, slice):
+            return PairsDataset(self.pairs[index], name=self.name)
+        else:
+            raise TypeError(f"Index {index} must be an int or slice")
 
     def to_json(self, *args, **kwargs) -> str:
         """Convert the dataset to a JSON object.
