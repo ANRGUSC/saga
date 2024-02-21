@@ -116,7 +116,30 @@ def standardize_task_graph(task_graph: nx.DiGraph) -> nx.DiGraph:
         if task_graph.out_degree(node) == 0:
             task_graph.add_edge(node, sink, weight=1e-9)
 
+        task_graph.nodes[node]["weight"] = np.clip(task_graph.nodes[node]["weight"], 1e-9, 1e9)
+
+    for edge in task_graph.edges:
+        task_graph.edges[edge]["weight"] = np.clip(task_graph.edges[edge]["weight"], 1e-9, 1e9)
+
+
     return task_graph
+
+def standardize_network(network: nx.Graph) -> nx.Graph:
+    """Standardize a network graph.
+
+    Args:
+        network (nx.Graph): The network graph.
+
+    Returns:
+        nx.Graph: The standardized network graph.
+    """
+    network = network.copy()
+    for node in network.nodes:
+        network.nodes[node]["weight"] = np.clip(network.nodes[node]["weight"], 1e-9, 1e9)
+    for edge in network.edges:
+        network.edges[edge]["weight"] = np.clip(network.edges[edge]["weight"], 1e-9, 1e9)
+
+    return network
 
 def validate_simple_schedule(network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[Hashable, List[Task]]) -> None:
     """Validate a simple schedule.
