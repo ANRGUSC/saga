@@ -360,14 +360,14 @@ for name, insert_func in insert_funcs.items():
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
-        for scheduler in [sufferage_scheduler, reg_scheduler]:
-            for k in range(1, 3):
-                k_depth_scheduler = ParametricKDepthScheduler(
-                    scheduler=scheduler,
-                    k_depth=k
-                )
-                k_depth_scheduler.name = f"{scheduler.name}_K{k}"
-                schedulers[k_depth_scheduler.name] = k_depth_scheduler
+        # for scheduler in [sufferage_scheduler, reg_scheduler]:
+        #     for k in range(1, 3):
+        #         k_depth_scheduler = ParametricKDepthScheduler(
+        #             scheduler=scheduler,
+        #             k_depth=k
+        #         )
+        #         k_depth_scheduler.name = f"{scheduler.name}_K{k}"
+        #         schedulers[k_depth_scheduler.name] = k_depth_scheduler
 
 def test_scheduler_equivalence(scheduler, base_scheduler):
     task_graphs = {
@@ -472,7 +472,7 @@ def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
 
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
-    for name in ['chains', 'in_trees', 'out_trees']
+    for name in ['cycles'] #, 'chains', 'in_trees', 'out_trees']
     for ccr in [0.2, 0.5, 1, 2, 5]
 ]
 def evaluate_instance(scheduler: Scheduler,
@@ -506,19 +506,26 @@ def evaluate_instance(scheduler: Scheduler,
     print(f"  saved results to {savepath}")
 
 def test_run():
-    scheduler = schedulers["EST_Append_CP_UpwardRanking_Sufferage"]
+    scheduler = schedulers["EFT_Insert_CP_UpwardRanking_Sufferage"]
     datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
-    dataset_name = "in_trees_ccr_0.5"
+    dataset_name = "cycles_ccr_0.2"
     dataset = load_dataset(datadir, dataset_name)
-    network, task_graph = dataset[22]
-    task_graph = standardize_task_graph(task_graph)
 
-    t0 = time.time()
-    schedule = scheduler.schedule(network, task_graph)
-    dt = time.time() - t0
-    makespan = max(task.end for tasks in schedule.values() for task in tasks)
-    print(f"Makespan: {makespan}, Runtime: {dt}")
+    t00 = time.time()
+    for i, (network, task_graph) in enumerate(dataset):
+        if i > 20:
+            break
+        task_graph = standardize_task_graph(task_graph)
 
+        t0 = time.time()
+        schedule = scheduler.schedule(network, task_graph)
+        dt = time.time() - t0
+        makespan = max(task.end for tasks in schedule.values() for task in tasks)
+        print(f"Makespan: {makespan}, Runtime: {dt}")
+
+    dt = time.time() - t00
+    print(f"Total Runtime: {dt}")
+    print(f"Predicted Total Runtime: {dt * len(dataset) / 20}")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -644,3 +651,4 @@ def test_filelock():
 
 if __name__ == "__main__":
     main()
+    # test_run()
