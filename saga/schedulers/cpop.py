@@ -18,20 +18,26 @@ def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, flo
     def avg_comm_time(parent: Hashable, child: Hashable) -> float:
         if is_comm_zero:
             return 1e-9
-        return np.mean([ # average communication time for output data of predecessor
+        comm_times = [ # average communication time for output data of predecessor
             task_graph.edges[parent, child]['weight'] / network.edges[src, dst]['weight']
             for src, dst in network.edges
             if not np.isclose(1/network.edges[src, dst]['weight'], 0)
-        ])
+        ]
+        if not comm_times:
+            return 1e-9
+        return np.mean(comm_times)
 
     def avg_comp_time(task: Hashable) -> float:
         if is_comp_zero:
             return 1e-9
-        return np.mean([
+        comp_times = [
             task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
             for node in network.nodes
             if not np.isclose(network.nodes[node]['weight'], 0)
-        ])
+        ]
+        if not comp_times:
+            return 1e-9
+        return np.mean(comp_times)
     
     for task_name in reversed(list(nx.topological_sort(task_graph))):
         max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
@@ -42,6 +48,15 @@ def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, flo
             for succ in task_graph.successors(task_name)
         )
         ranks[task_name] = avg_comp_time(task_name) + max_comm
+        try:
+            assert ranks[task_name] == ranks[task_name]
+        except AssertionError:
+            print(f"Task {task_name} has rank {ranks[task_name]}")
+            print(f"Task {task_name} has avg_comp_time {avg_comp_time(task_name)}")
+            print(f"Task {task_name} has max_comm {max_comm}")
+            print(f"Task successor comm times: {[(succ, avg_comm_time(task_name, succ)) for succ in task_graph.successors(task_name)]}")
+            
+            raise
 
     return ranks
 
