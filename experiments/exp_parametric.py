@@ -24,7 +24,7 @@ from typing import Any, Callable, Dict, List, Hashable, Optional, Tuple
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
 
 from saga.utils.testing import test_schedulers
-from saga.utils.tools import standardize_task_graph
+from saga.utils.tools import standardize_network, standardize_task_graph
 
 # Initial Priority functions
 class UpwardRanking(IntialPriority):
@@ -487,6 +487,7 @@ def evaluate_instance(scheduler: Scheduler,
     # savepath = resultsdir / scheduler.__name__ / f"{dataset_name}_{instance_num}.csv"
     print(f"Evaluating {scheduler.__name__} on {dataset_name} instance {instance_num}")
     task_graph = standardize_task_graph(task_graph)
+    network = standardize_network(network)
     t0 = time.time()
     schedule = scheduler.schedule(network, task_graph)
     dt = time.time() - t0
@@ -506,16 +507,16 @@ def evaluate_instance(scheduler: Scheduler,
     print(f"  saved results to {savepath}")
 
 def test_run():
-    scheduler = schedulers["EFT_Insert_CP_UpwardRanking_Sufferage"]
+    # Evaluating EST_Append_CP_UpwardRanking on cycles_ccr_2 instance 56
+    scheduler = schedulers["EST_Append_CP_UpwardRanking"]
     datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
-    dataset_name = "cycles_ccr_0.2"
+    dataset_name = "cycles_ccr_2"
     dataset = load_dataset(datadir, dataset_name)
 
     t00 = time.time()
-    for i, (network, task_graph) in enumerate(dataset):
-        if i > 20:
-            break
+    for network, task_graph in dataset:
         task_graph = standardize_task_graph(task_graph)
+        network = standardize_network(network)
 
         t0 = time.time()
         schedule = scheduler.schedule(network, task_graph)
