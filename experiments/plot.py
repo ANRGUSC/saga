@@ -1,6 +1,7 @@
 from typing import Callable, Iterable, List, Tuple, Union
 
 import matplotlib
+from matplotlib import cm
 
 matplotlib.use("Agg")
 
@@ -20,12 +21,16 @@ def gradient_heatmap(data: pd.DataFrame,
                      x_label: str = None,
                      y_label: str = None,
                      color_label: str = None,
+                     cell_text: str = None,
                      cell_font_size: float = None,
                      xorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
                      yorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
                      ax: plt.Axes = None,
                      font_size: float = 20.0,
-                     figsize: Tuple[float, float] = (12, 8)) -> plt.Axes:
+                     figsize: Tuple[float, float] = (12, 8),
+                     linewidth: int = 1,
+                     cmap_lower: float = 0.0,
+                     cmap_upper: float = 1.0) -> plt.Axes:
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -39,12 +44,14 @@ def gradient_heatmap(data: pd.DataFrame,
         x_label (str, optional): x-axis label. Defaults to None.
         y_label (str, optional): y-axis label. Defaults to None.
         color_label (str, optional): colorbar label. Defaults to None.
+        cell_text (str, optional): indicates the column name to use for cell labels. None indicates no label. Default is None.
         cell_font_size (bool, optional): font size for makespan ratio cell labels. None indicates no label. Default is None.
         xorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order x-axis. Defaults to None.
         yorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order y-axis. Defaults to None.
         ax (plt.Axes, optional): matplotlib axes. Defaults to None.
         font_size (float, optional): font size. Defaults to 20.0.
         figsize (Tuple[float, float], optional): figure size. Defaults to (12, 8).
+        linewidth (int, optional): linewidth for cell borders. Defaults to 1.
 
     Returns:
         plt.Axes: matplotlib axes
@@ -98,6 +105,10 @@ def gradient_heatmap(data: pd.DataFrame,
     if ax is None:
         _, ax = plt.subplots(figsize=figsize)
 
+    _cmap = cm.get_cmap(cmap)
+    _cmap = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
+    cmap = matplotlib.colors.ListedColormap(_cmap)
+
     # Get unique values for x and y in the correct order (by category)
     xvals = data[x].drop_duplicates().sort_values()
     yvals = data[y].drop_duplicates().sort_values(ascending=False)
@@ -105,7 +116,7 @@ def gradient_heatmap(data: pd.DataFrame,
         for j, xval in enumerate(xvals):
             df_color = data.loc[(data[x] == xval) & (data[y] == yval), color].sort_values()
             if df_color.empty: # add a white cell if there is no data
-                rect = Rectangle((j, i), 1, 1, linewidth=1, edgecolor='black', facecolor='white')
+                rect = Rectangle((j, i), 1, 1, linewidth=linewidth, edgecolor='black', facecolor='white')
             else:
                 gradient = df_color.values.reshape(1, -1)
 
@@ -117,7 +128,12 @@ def gradient_heatmap(data: pd.DataFrame,
                     vmin=global_min,
                     vmax=global_max
                 )
-                rect = Rectangle((j, i), 1, 1, linewidth=1, edgecolor='black', facecolor='none')
+                rect = Rectangle(
+                    (j, i), 1, 1,
+                    linewidth=linewidth,
+                    edgecolor='black',
+                    facecolor='none'
+                )
             
             ax.add_patch(rect)
 
@@ -129,6 +145,8 @@ def gradient_heatmap(data: pd.DataFrame,
                     value = f'$>{1000}$'
                 elif value > upper_threshold:
                     value = f'$>{upper_threshold}$'
+                elif isinstance(value, int) or (isinstance(value, float) and value.is_integer()):
+                    value = f'${int(value)}$'
                 else:
                     value = f'${value:.2f}$'
                 ax.text(
@@ -143,6 +161,7 @@ def gradient_heatmap(data: pd.DataFrame,
     ax.set_yticks(np.arange(len(yvals)) + 0.5)    # Adjusted tick positions
     ax.set_xticklabels(xvals, rotation=90)      # Rotate x-axis labels
     ax.set_yticklabels(yvals)
+    ax.grid(False)
 
     ax.tick_params(axis='x', which='both', bottom=False, top=False)  # Optional: remove bottom ticks
     ax.tick_params(axis='y', which='both', left=False, right=False)  # Optional: remove left ticks
@@ -152,7 +171,8 @@ def gradient_heatmap(data: pd.DataFrame,
 
     # Add colorbar
     cbar = plt.colorbar(
-        im, ax=ax,
+        im, 
+        ax=ax,
         orientation='vertical',
         label=color_label if color_label else color
     )
