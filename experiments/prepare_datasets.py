@@ -306,7 +306,8 @@ def run_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
     dataset_names = {
         'chains': chains_dataset,
         'in_trees': in_trees_dataset,
-        'out_trees': out_trees_dataset
+        'out_trees': out_trees_dataset,
+        'cycles': lambda ccr: wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}"),
     }
     ccrs = [1/5, 1/2, 1, 2, 5]
     for ccr in ccrs:
