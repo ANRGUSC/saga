@@ -3,6 +3,7 @@ import pathlib
 import pprint
 import traceback
 from typing import Callable, Dict, List, Tuple
+import matplotlib
 
 import networkx as nx
 
@@ -169,7 +170,8 @@ class Test:
 
 def test_schedulers(schedulers: Dict[str, Scheduler],
                     savedir: pathlib.Path,
-                    stop_on_error: bool = False):
+                    stop_on_error: bool = False,
+                    save_passing: bool = False):
     """Tests schedulers schedulers on schedulers task graphs."""
     task_graphs = {
         "diamond": add_random_weights(get_diamond_dag()),
@@ -190,7 +192,7 @@ def test_schedulers(schedulers: Dict[str, Scheduler],
                 network=network.copy(),
                 task_graph=task_graph.copy(),
                 path=savedir / "output" / "schedulers",
-                save_passing=True,
+                save_passing=save_passing,
             )
             passed = test.run()
             logging.info(f"{test.name} passed: {passed}\n")
