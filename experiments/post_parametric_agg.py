@@ -8,17 +8,20 @@ thisdir = pathlib.Path(__file__).resolve().parent
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--resultsdir', type=str, required=True)
+    parser.add_argument('--resultsdir', type=str, required=True, nargs='+')
     parser.add_argument('-o', '--output', type=str, required=True)
 
     args = parser.parse_args()
-    resultsdir = pathlib.Path(args.resultsdir)
     savepath = pathlib.Path(args.output)
 
+    print(args.resultsdir)
+
     rows: List[List] = []
-    for path in resultsdir.glob("*.csv"):
-        _df = pd.read_csv(path)
-        rows.extend(_df.values.tolist())
+    for _dir in args.resultsdir:
+        _dir = pathlib.Path(_dir)
+        for path in _dir.glob("*.csv"):
+            _df = pd.read_csv(path)
+            rows.extend(_df.values.tolist())
 
     df = pd.DataFrame(rows, columns=['scheduler', 'dataset', 'instance', 'makespan', 'runtime'])
     df.to_csv(savepath)
