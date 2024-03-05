@@ -40,21 +40,21 @@ def main():
     schedule = scheduler.schedule(network, task_graph)
 
     ax_task_graph = draw_task_graph(task_graph, use_latex=True, figsize=(6, 8))
-    ax_task_graph.set_title('Task graph')
-    ax_task_graph.get_figure().savefig('task_graph.pdf')
-    ax_task_graph.get_figure().savefig('task_graph.png')
+    # ax_task_graph.set_title('Task graph')
+    ax_task_graph.get_figure().savefig('task_graph.pdf', bbox_inches='tight')
+    ax_task_graph.get_figure().savefig('task_graph.png', bbox_inches='tight')
     plt.close(ax_task_graph.get_figure())
 
     ax_network = draw_network(network, use_latex=True, draw_colors=False)
-    ax_network.set_title('``Worse" Network')
-    ax_network.get_figure().savefig('network_1.pdf')
-    ax_network.get_figure().savefig('network_1.png')
+    # ax_network.set_title('``Worse" Network')
+    ax_network.get_figure().savefig('network_1.pdf', bbox_inches='tight')
+    ax_network.get_figure().savefig('network_1.png', bbox_inches='tight')
     plt.close(ax_network.get_figure())
 
     ax_gantt = draw_gantt(schedule, use_latex=True, xmax=8)
-    ax_gantt.set_title('HEFT Schedule for ``Worse" Network')
-    ax_gantt.get_figure().savefig('gantt_1.pdf')
-    ax_gantt.get_figure().savefig('gantt_1.png')
+    # ax_gantt.set_title('HEFT Schedule for ``Worse" Network')
+    ax_gantt.get_figure().savefig('gantt_1.pdf', bbox_inches='tight')
+    ax_gantt.get_figure().savefig('gantt_1.png', bbox_inches='tight')
     plt.close(ax_gantt.get_figure())
 
 
@@ -64,15 +64,15 @@ def main():
     schedule = scheduler.schedule(network, task_graph)
 
     ax_network = draw_network(network, use_latex=True, draw_colors=False)
-    ax_network.set_title('``Better" Network')
-    ax_network.get_figure().savefig('network_2.pdf')
-    ax_network.get_figure().savefig('network_2.png')
+    # ax_network.set_title('``Better" Network')
+    ax_network.get_figure().savefig('network_2.pdf', bbox_inches='tight')
+    ax_network.get_figure().savefig('network_2.png', bbox_inches='tight')
     plt.close(ax_network.get_figure())
 
     ax_gantt = draw_gantt(schedule, use_latex=True)
     ax_gantt.set_title('HEFT Schedule for ``Better" Network')
-    ax_gantt.get_figure().savefig('gantt_2.pdf')
-    ax_gantt.get_figure().savefig('gantt_2.png')
+    ax_gantt.get_figure().savefig('gantt_2.pdf', bbox_inches='tight')
+    ax_gantt.get_figure().savefig('gantt_2.png', bbox_inches='tight')
     plt.close(ax_gantt.get_figure())        
 
 
