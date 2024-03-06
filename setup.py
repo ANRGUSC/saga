@@ -35,6 +35,7 @@ setup(
         'plotly',
         'kaleido',
         'pysmt',
+        'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
     ],
     python_requires='>=3.6',
 )

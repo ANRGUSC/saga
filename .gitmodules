@@ -1,4 +1,0 @@
-[submodule "wfcommons"]
-	path = wfcommons
-	url = git@github.com:jaredraycoleman/wfcommons.git
-	branch = bugfix/generate_rvs
