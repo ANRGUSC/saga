@@ -128,13 +128,24 @@ def main():
     #     3: {3}
     # }
     # don't allow any tasks to be scheduled on node 1
+    print(task_graph.nodes)
     schedule_restrictions = {
         task_name: {0, 1, 2}
         for task_name in task_graph.nodes
     }
+    def constrained_compare(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+        if new.node in schedule_restrictions[new.name]:
+            print(f"Preferring {cur} over {new}")
+            return 1e9
+        elif cur.node in schedule_restrictions[cur.name]:
+            print(f"Preferring {new} over {cur}")
+            return -1e9
+        print(f"Here: {new} {cur}")
+        return new.end - cur.end
+
     insert_task = ConstrainedGreedyInsert(
         append_only=True,
-        compare=lambda network, task_graph, schedule, new, cur: new.end - cur.end if new.name in schedule_restrictions[new.node] else 1e9,
+        compare=constrained_compare,
         critical_path=True
     )
 

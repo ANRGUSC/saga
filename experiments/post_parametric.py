@@ -1,7 +1,7 @@
 from functools import lru_cache
 import pathlib
 import re
-from typing import Iterable, Set
+from typing import Iterable, Set, Tuple
 from matplotlib import pyplot as plt
 from statsmodels.multivariate.manova import MANOVA
 import pandas as pd
@@ -29,7 +29,7 @@ SCHEDULER_RENAMES = {
     "UpwardRanking": "UR",
     "CPoPRanking": "CR",
     "Quickest": "Quick",
-    r"^EFT_Ins_CR$": "CPoP",
+    r"^EFT_Ins_CP_CR$": "CPoP",
     r"^EFT_Ins_UR$": "HEFT",
     r"^EFT_App_AT_Suf$": "Sufferage",
     r"^Quick_App_AT$": "MET",
@@ -125,6 +125,10 @@ def print_data_info():
     missing_combos = get_missing_combos(df[df["sufferage"] == False])
     print(f"Missing combinations (sufferage == False): {len(missing_combos)}")
 
+LABELS = {
+    'makespan_ratio': 'Makespan Ratio',
+}
+
 def generate_main_effect_plot(df: pd.DataFrame,
                               param_name: str,
                               metric: str,
@@ -133,11 +137,21 @@ def generate_main_effect_plot(df: pd.DataFrame,
     # Set the aesthetic style of the plots
     sns.set_style("whitegrid")
 
+    df = df.copy()
+
+    # rename UpwardRanking to UR, ArbitraryTopological to AT, and CriticalPath to CP
+    if param_name == "initial_priority":
+        df[param_name] = df[param_name].str.replace("UpwardRanking", "UR")
+        df[param_name] = df[param_name].str.replace("ArbitraryTopological", "AT")
+        df[param_name] = df[param_name].str.replace("CPoPRanking", "CR") 
+
     # Plotting
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(6, 6))
     sns.boxplot(
         x=param_name, y=metric, data=df, ax=ax,
-        showfliers=showfliers
+        showfliers=showfliers,
+        # make color white
+        boxprops=dict(facecolor=(1.0, 1.0, 1.0, 1.0))
     )
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
@@ -197,9 +211,11 @@ def generate_interaction_plots(df: pd.DataFrame,
 
 def generate_pareto_front_plot(df: pd.DataFrame,
                                savedir: pathlib.Path,
-                               varx: str = "ccr",
-                               vary: str = "dataset_type",
-                               filetype: str = "pdf"):
+                               varx: str = "dataset_type",
+                               vary: str = "ccr",
+                               filetype: str = "pdf",
+                               figsize_chart: Tuple[int, int] = (16, 10),
+                               figsize_scatter: Tuple[int, int] = (14, 12)):
     """Generate scatter plot of runtime_ratio vs makespan_ratio with pareto front highlighted
 
     Args:
@@ -207,6 +223,9 @@ def generate_pareto_front_plot(df: pd.DataFrame,
         savedir (pathlib.Path): Directory to save the plot
         varx (str, optional): subplot variable on x-axis. Defaults to "ccr".
         vary (str, optional): subplot variable on y-axis. Defaults to "dataset".
+        filetype (str, optional): Filetype to save the plot. Defaults to "pdf".
+        figsize_chart (Tuple[int, int], optional): Size of the chart. Defaults to (16, 10).
+        figsize_scatter (Tuple[int, int], optional): Size of the scatter plot. Defaults to (18, 10).
 
     """
     # aggregate makespan_ratio and runtime_ratio by scheduler
@@ -234,7 +253,7 @@ def generate_pareto_front_plot(df: pd.DataFrame,
     scheduler_table(df)
 
     df = df.sort_values(by=["pareto"], ascending=[True], ignore_index=True, na_position="first")
-    fig, ax = plt.subplots(len(vary_values), len(varx_values), figsize=(18, 10))
+    fig, ax = plt.subplots(len(vary_values), len(varx_values), figsize=figsize_scatter)
     for i, varx_value in enumerate(varx_values):
         for j, vary_value in enumerate(vary_values):
             df_subset = df[(df[varx] == varx_value) & (df[vary] == vary_value)]
@@ -244,8 +263,12 @@ def generate_pareto_front_plot(df: pd.DataFrame,
                 alpha=0.5
             )
             ax[j,i].set_title(f"{vary}={vary_value}, {varx}={varx_value}")
-            ax[j,i].set_xlabel("Runtime Ratio")
-            ax[j,i].set_ylabel("Makespan Ratio")
+            if i == 0:
+                ax[j,i].set_ylabel("Makespan Ratio")
+            if j == len(vary_values) - 1:
+                ax[j,i].set_xlabel("Runtime Ratio")
+            # ax[j,i].set_xlabel("Runtime Ratio")
+            # ax[j,i].set_ylabel("Makespan Ratio")
 
     plt.tight_layout()
     savepath = savedir / f"pareto_scatter.{filetype}"
@@ -267,7 +290,7 @@ def generate_pareto_front_plot(df: pd.DataFrame,
         x_label="Scheduler",
         y_label="Dataset",
         color_label="Order (Runtime Ratio)",
-        figsize=(16, 10),
+        figsize=figsize_chart,
         cell_font_size=15,
         cmap_lower=0.2,
         cmap_upper=0.8,
@@ -325,7 +348,7 @@ def anova():
     savepath.write_text(manova.mv_test().summary().as_text())
 
 def interactions():
-    filetype = "png"
+    filetype = "pdf"
     showfliers = False
 
     df = load_data()
@@ -334,6 +357,7 @@ def interactions():
     df["dataset_type"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
 
     generate_pareto_front_plot(df, thisdir / "output" / "parametric", filetype=filetype)
+    return
     generate_interaction_plots(df, [*param_names, "dataset_type", "ccr"], thisdir / "output" / "parametric" , showfliers=showfliers, filetype=filetype)
     for dataset in df["dataset"].unique():
         print(f"Generating interaction plots for {dataset}")
