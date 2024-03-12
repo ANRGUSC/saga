@@ -1,10 +1,10 @@
 from typing import Dict
 import numpy as np
-from saga.base import Scheduler
-from saga.stochastic.mean_heft import MeanHeftScheduler
-from saga.stochastic.sheft import SheftScheduler
-from saga.stochastic.improved_sheft import ImprovedSheftScheduler
-from saga.stochastic.stoch_heft import StochHeftScheduler
+from saga.scheduler import Scheduler
+from saga.schedulers.stochastic.mean_heft import MeanHeftScheduler
+from saga.schedulers.stochastic.sheft import SheftScheduler
+from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
+from saga.schedulers.stochastic.stoch_heft import StochHeftScheduler
 from saga.utils.simulator import Simulator
 import pandas as pd
 import pathlib
