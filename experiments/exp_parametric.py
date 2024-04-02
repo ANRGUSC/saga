@@ -2,6 +2,7 @@ import argparse
 from copy import deepcopy
 import heapq
 import logging
+import multiprocessing
 import pathlib
 from pprint import pformat
 import random
@@ -105,8 +106,11 @@ class GreedyInsert(InsertTask):
         """
         self.append_only = append_only
         self.compare = compare
-        self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
+        # self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
         self.critical_path = critical_path
+
+    def _compare(self, new: Task, cur: Task) -> float:
+        return GREEDY_INSERT_COMPARE_FUNCS[self.compare](new, cur)
 
     def __call__(self,
                  network: nx.Graph,
@@ -472,7 +476,7 @@ def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
 
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
-    for name in ['cycles'] #, 'chains', 'in_trees', 'out_trees']
+    for name in ['cycles', 'chains', 'in_trees', 'out_trees']
     for ccr in [0.2, 0.5, 1, 2, 5]
 ]
 def evaluate_instance(scheduler: Scheduler,
@@ -528,6 +532,50 @@ def test_run():
     print(f"Total Runtime: {dt}")
     print(f"Predicted Total Runtime: {dt * len(dataset) / 20}")
 
+def run_batch(batch: List[Tuple[Scheduler, str, int]],
+              datadir: pathlib.Path,
+              timeout: Optional[float] = None,
+              out: pathlib.Path = pathlib.Path("results.csv"),
+              filelock: bool = False):
+    print(f"Running batch of {len(batch)} instances.")
+    for scheduler, dataset_name, instance_num in batch:
+        if not timeout:
+            evaluate_instance(
+                scheduler,
+                datadir,
+                dataset_name,
+                instance_num,
+                pathlib.Path(out),
+                do_filelock=filelock
+            )
+        else:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(
+                    evaluate_instance,
+                    scheduler,
+                    datadir,
+                    dataset_name,
+                    instance_num,
+                    pathlib.Path(out),
+                    filelock
+                )
+                try:
+                    future.result(timeout)
+                except concurrent.futures.TimeoutError:
+                    print(f"Timed out {scheduler.__name__} on {dataset_name} instance {instance_num}.")
+                    # append Nones to the results file
+                    df = pd.DataFrame(
+                        [[scheduler.__name__, dataset_name, instance_num, np.nan, np.nan]],
+                        columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
+                    )
+                    if filelock:
+                        append_df_to_csv_with_lock(df, pathlib.Path(out))
+                    else:
+                        if pathlib.Path(out).exists():
+                            df.to_csv(pathlib.Path(out), mode='a', header=False, index=False)
+                        else:
+                            df.to_csv(pathlib.Path(out), index=False)
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -539,7 +587,7 @@ def main():
     run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
     run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
     run_subparser.add_argument("--filelock", action="store_true", help="Use file locking to write to the results file.")
-    run_subparser.add_argument("--timeout", type=float, default=0, help="Timeout for each instance in seconds. Default is 0, which means no timeout.")
+    run_subparser.add_argument("--timeout", type=float, default=0, help="Timeout for each instance in seconds. Default is 0, which means no timeout.")    
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
@@ -556,6 +604,7 @@ def main():
             dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
             for dataset_name in DEFAULT_DATASETS
         }
+        
         instances = [
             (scheduler, dataset_name, instance_num)
             for scheduler in schedulers.values()
@@ -569,51 +618,33 @@ def main():
         # shuffle the instances
         np.random.shuffle(instances)
 
-        batches = [[] for _ in range(args.batches)]
-        for i, instance in enumerate(instances):
-            batches[i % args.batches].append(instance)
+        print(f"Loaded {len(instances)} instances.")
+        num_batches = multiprocessing.cpu_count() if args.batches == -1 else args.batches
 
-        if args.batch < 0 or args.batch >= args.batches:
-            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {args.batches-1} for this trim value ({args.trim}).")
-        batch = batches[args.batch]
-        print(f"Batch {args.batch} has {len(batch)} instances.")
-        for scheduler, dataset_name, instance_num in batch:
-            if not args.timeout:
-                evaluate_instance(
-                    scheduler,
-                    datadir,
-                    dataset_name,
-                    instance_num,
-                    pathlib.Path(args.out),
-                    do_filelock=args.filelock
-                )
-            else:
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(
-                        evaluate_instance,
-                        scheduler,
-                        datadir,
-                        dataset_name,
-                        instance_num,
-                        pathlib.Path(args.out),
-                        args.filelock
-                    )
-                    try:
-                        future.result(args.timeout)
-                    except concurrent.futures.TimeoutError:
-                        print(f"Timed out {scheduler.__name__} on {dataset_name} instance {instance_num}.")
-                        # append Nones to the results file
-                        df = pd.DataFrame(
-                            [[scheduler.__name__, dataset_name, instance_num, np.nan, np.nan]],
-                            columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
-                        )
-                        if args.filelock:
-                            append_df_to_csv_with_lock(df, pathlib.Path(args.out))
-                        else:
-                            if pathlib.Path(args.out).exists():
-                                df.to_csv(pathlib.Path(args.out), mode='a', header=False, index=False)
-                            else:
-                                df.to_csv(pathlib.Path(args.out), index=False)
+        batches = [[] for _ in range(num_batches)]
+        for i, instance in enumerate(instances):
+            batches[i % num_batches].append(instance)
+
+        if args.batch == -1:
+            pool = multiprocessing.Pool(processes=num_batches)
+            outpaths = [pathlib.Path(args.out).parent / f"results_{i}.csv" for i in range(num_batches)]
+            pool.starmap(
+                run_batch,
+                [
+                    (batch, datadir, args.timeout, pathlib.Path(outpath), args.filelock)
+                    for batch, outpath in zip(batches, outpaths)
+                ]
+            )
+            # concat the results
+            results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
+            results.to_csv(pathlib.Path(args.out) / "results.csv", index=False)
+            
+        if args.batch < 0 or args.batch >= num_batches:
+            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
+        else:
+            batch = batches[args.batch]
+            print(f"Batch {args.batch} has {len(batch)} instances.")
+            run_batch(batch, datadir, args.timeout, pathlib.Path(args.out), args.filelock)
 
 def test_filelock():
     import multiprocessing
