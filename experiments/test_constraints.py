@@ -1,4 +1,6 @@
+from functools import partial
 from typing import Any, Callable, Dict, Hashable, List, Optional
+from matplotlib import pyplot as plt
 from networkx import DiGraph, Graph
 from exp_parametric import ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
 from saga.scheduler import Task
@@ -6,8 +8,13 @@ from saga.schedulers.parametric import ScheduleType
 import networkx as nx
 import numpy as np
 from saga.utils.draw import draw_gantt
+import plotly.express as px
+import pathlib
+import pandas as pd
 
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
+
+thisdir = pathlib.Path(__file__).resolve().parent
 
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,
@@ -119,49 +126,122 @@ class ConstrainedGreedyInsert(InsertTask):
             critical_path=data["critical_path"],
         )
     
-def main():
+def example():
     task_graph = add_random_weights(get_branching_dag(levels=3, branching_factor=2))
     network = add_random_weights(get_network())
-    # schedule_restrictions = {
-    #     1: {1, 2, 3},
-    #     2: {2, 3},
-    #     3: {3}
-    # }
-    # don't allow any tasks to be scheduled on node 1
-    print(task_graph.nodes)
-    schedule_restrictions = {
-        task_name: {0, 1, 2}
-        for task_name in task_graph.nodes
-    }
-    def constrained_compare(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
-        if new.node in schedule_restrictions[new.name]:
-            print(f"Preferring {cur} over {new}")
-            return 1e9
-        elif cur.node in schedule_restrictions[cur.name]:
-            print(f"Preferring {new} over {cur}")
-            return -1e9
-        print(f"Here: {new} {cur}")
-        return new.end - cur.end
 
-    insert_task = ConstrainedGreedyInsert(
-        append_only=True,
-        compare=constrained_compare,
-        critical_path=True
-    )
+    # convert task nodes from numbers to letters A, B, C, ...
+    task_graph = nx.relabel_nodes(task_graph, {i: chr(i + 65) for i in task_graph.nodes})
+    
+    schedule_restrictions = {
+        "A": {0, 1, 2},
+        "B": {1, 2},
+        "C": {2},
+        "D": {2, 3},
+        "E": {3},
+        "F": {1, 3},
+        "G": {0, 1, 2},
+        "H": {1, 2},
+    }
+    def compare_task_types(network: nx.Graph,
+                           task_graph: nx.DiGraph,
+                           schedule: ScheduleType,
+                           new: Task, cur: Task) -> float:
+        if new.node in schedule_restrictions[new.name]:
+            return 1e9 # return high number, indicating new is bad
+        elif cur.node in schedule_restrictions[cur.name]:
+            return -1e9 # return low number, indicating cur is bad
+        return new.end - cur.end # return the difference in end times
 
     scheduler = ParametricScheduler(
         initial_priority=UpwardRanking(),
-        insert_task=insert_task
+        insert_task=ConstrainedGreedyInsert(
+            append_only=False,
+            compare=compare_task_types,
+            critical_path=False
+        )
     )
-
-
+    
     schedule = scheduler.schedule(network, task_graph)
+    
+    savedir = thisdir / "output" / "constraints"
+    savedir.mkdir(parents=True, exist_ok=True)
     ax = draw_gantt(schedule)
     ax.set_title("Constrained Greedy Insert")
     ax.set_xlabel("Time")
     ax.set_ylabel("Node")
-    ax.figure.savefig("constrained_greedy_insert.png")
+    plt.tight_layout()
+    ax.figure.savefig(savedir / "task_types_schedule.png")
 
+def experiment():
+    def compare_max_tasks_per_node(network: nx.Graph,
+                                   task_graph: nx.DiGraph,
+                                   schedule: ScheduleType,
+                                   new: Task, cur: Task,
+                                   max_tasks_per_node: int) -> float:
+        if len(schedule[new.node]) >= max_tasks_per_node:
+            return 1e9
+        if len(schedule[cur.node]) >= max_tasks_per_node:
+            return -1e9
+        return new.end - cur.end
+    
+    NUM_EVALS = 100
+    LEVELS = 3
+    BRANCHING_FACTOR = 2
+    rows = []
+    for max_tasks in range(1, 8):
+        for i in range(NUM_EVALS):
+            task_graph = add_random_weights(
+                get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
+                weight_range=(0.2, 1.0)
+            )
+            network = add_random_weights(
+                get_network(),
+                weight_range=(0.2, 1.0)
+            )
+
+            # HEFT w/ constraints
+            scheduler = ParametricScheduler(
+                initial_priority=UpwardRanking(),
+                insert_task=ConstrainedGreedyInsert(
+                    append_only=False,
+                    compare=partial(compare_max_tasks_per_node, max_tasks_per_node=max_tasks),
+                    critical_path=False
+                )
+            )
+            schedule = scheduler.schedule(network, task_graph)
+            makespan = max(task.end for tasks in schedule.values() for task in tasks)
+            rows.append({
+                "max_tasks_per_node": max_tasks,
+                "run": i,
+                "makespan": makespan
+            })
+
+    df = pd.DataFrame(rows)
+
+    savedir = thisdir / "output" / "constraints"
+    savedir.mkdir(parents=True, exist_ok=True)
+
+    fig = px.box(
+        df,
+        x="max_tasks_per_node", y="makespan",
+        title="Makespan vs. Max Tasks Per Node",
+        template="plotly_white",
+        # exclude outliers
+        # boxmode="overlay",
+        points=False,
+        # make black and white
+        color_discrete_sequence=["black"],
+    )
+    # make X axes label "Max Tasks Per Node"
+    fig.update_xaxes(title_text="Max Tasks Per Node")
+    fig.update_yaxes(title_text="Makespan")
+    fig.write_image(savedir / "makespan_vs_max_tasks_per_node.png")
+    fig.write_html(savedir / "makespan_vs_max_tasks_per_node.html")
+
+def main():
+    example()
+    experiment()
 
 if __name__ == "__main__":
     main()
