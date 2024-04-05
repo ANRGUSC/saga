@@ -18,5 +18,7 @@ rm dataset.zip
 # Run the experiments
 python exp_parametric.py run \
     --datadir "./datasets/parametric_benchmarking" \
-    --out "./results/parametric/parametric.csv" \
+    --out "./results/parametric.csv" \
     --trim 100 --batch -1 --batches -1
+
+python post_parametric.py

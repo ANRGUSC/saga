@@ -627,7 +627,8 @@ def main():
 
         if args.batch == -1:
             pool = multiprocessing.Pool(processes=num_batches)
-            outpaths = [pathlib.Path(args.out).parent / f"results_{i}.csv" for i in range(num_batches)]
+            savedir = pathlib.Path(args.out).parent.joinpath('parametric')
+            outpaths = [savedir / f"results_{i}.csv" for i in range(num_batches)]
             pool.starmap(
                 run_batch,
                 [
@@ -637,9 +638,9 @@ def main():
             )
             # concat the results
             results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
-            results.to_csv(pathlib.Path(args.out) / "results.csv", index=False)
+            results.to_csv(pathlib.Path(args.out), index=False)
             
-        if args.batch < 0 or args.batch >= num_batches:
+        elif args.batch < 0 or args.batch >= num_batches:
             raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
         else:
             batch = batches[args.batch]

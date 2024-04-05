@@ -3,7 +3,6 @@ import pathlib
 import re
 from typing import Iterable, Set, Tuple
 from matplotlib import pyplot as plt
-from statsmodels.multivariate.manova import MANOVA
 import pandas as pd
 from itertools import combinations, product
 import seaborn as sns
@@ -50,7 +49,7 @@ def load_data() -> pd.DataFrame:
         }
 
     resultspath = thisdir / "results" / "parametric.csv"
-    df = pd.read_csv(resultspath, index_col=0)
+    df = pd.read_csv(resultspath) #, index_col=0)
 
     for scheduler_name in df["scheduler"].unique():
         for key, value in scheduler_params[scheduler_name].items():
@@ -127,6 +126,14 @@ def print_data_info():
 
 LABELS = {
     'makespan_ratio': 'Makespan Ratio',
+    'runtime_ratio': 'Runtime Ratio',
+    'initial_priority': 'Priority Function',
+    'append_only': 'Append-Only Scheduling',
+    'compare': 'Comparison Function',
+    'critical_path': 'Critical Path Reservation',
+    'ccr': 'CCR',
+    'sufferage': 'Sufferage Consideration',
+    'dataset_type': 'Dataset Type',
 }
 
 def generate_main_effect_plot(df: pd.DataFrame,
@@ -153,6 +160,8 @@ def generate_main_effect_plot(df: pd.DataFrame,
         # make color white
         boxprops=dict(facecolor=(1.0, 1.0, 1.0, 1.0))
     )
+    ax.set_xlabel(LABELS[param_name])
+    ax.set_ylabel(LABELS[metric])
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
     print(f"Saved to {savepath}")
@@ -177,6 +186,11 @@ def generate_interaction_plot(df: pd.DataFrame,
         markers=markers[:len(df[param_2].unique())],
         linestyles=linestyles[:len(df[param_2].unique())]
     )
+    ax.set_xlabel(LABELS[param_1])
+    ax.set_ylabel(LABELS[metric])
+    # set legend title
+    ax.legend(title=LABELS[param_2])
+
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
     print(f"Saved to {savepath}")
@@ -262,11 +276,12 @@ def generate_pareto_front_plot(df: pd.DataFrame,
                 c=df_subset["pareto"].apply(lambda x: "blue" if x == 1 else "red"),
                 alpha=0.5
             )
-            ax[j,i].set_title(f"{vary}={vary_value}, {varx}={varx_value}")
+            ax[j,i].set_title(f"{LABELS[vary]}={vary_value}, {LABELS[varx]}={varx_value}")
             if i == 0:
                 ax[j,i].set_ylabel("Makespan Ratio")
             if j == len(vary_values) - 1:
                 ax[j,i].set_xlabel("Runtime Ratio")
+            
             # ax[j,i].set_xlabel("Runtime Ratio")
             # ax[j,i].set_ylabel("Makespan Ratio")
 
@@ -339,15 +354,8 @@ def generate_pareto_front_plot(df: pd.DataFrame,
     plt.savefig(savepath, bbox_inches='tight')
     plt.close()
 
-def anova():
-    df = load_data()
-    formula = 'makespan_ratio + runtime_ratio ~ initial_priority'
-    manova = MANOVA.from_formula(formula, data=df)
-    savepath = thisdir / "output" / "parametric" / "anova" / "summary.txt"
-    savepath.parent.mkdir(parents=True, exist_ok=True)
-    savepath.write_text(manova.mv_test().summary().as_text())
 
-def interactions():
+def gen_plots():
     filetype = "pdf"
     showfliers = False
 
@@ -357,7 +365,6 @@ def interactions():
     df["dataset_type"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
 
     generate_pareto_front_plot(df, thisdir / "output" / "parametric", filetype=filetype)
-    return
     generate_interaction_plots(df, [*param_names, "dataset_type", "ccr"], thisdir / "output" / "parametric" , showfliers=showfliers, filetype=filetype)
     for dataset in df["dataset"].unique():
         print(f"Generating interaction plots for {dataset}")
@@ -367,9 +374,7 @@ def interactions():
 def main():
     # print_scheduler_info()
     # print_data_info()
-    # anova()
-    interactions()
-    # scheduler_table()
+    gen_plots()
 
 if __name__ == '__main__':
     main()
