@@ -1,8 +1,9 @@
 from functools import partial
+import random
 from typing import Any, Callable, Dict, Hashable, List, Optional
 from matplotlib import pyplot as plt
 from networkx import DiGraph, Graph
-from exp_parametric import ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
+from exp_parametric import ArbitraryTopological, ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
 from saga.scheduler import Task
 from saga.schedulers.parametric import ScheduleType
 import networkx as nx
@@ -143,7 +144,7 @@ def example():
         "G": {0, 1, 2},
         "H": {1, 2},
     }
-    def compare_task_types(network: nx.Graph,
+    def compare(network: nx.Graph,
                            task_graph: nx.DiGraph,
                            schedule: ScheduleType,
                            new: Task, cur: Task) -> float:
@@ -157,7 +158,7 @@ def example():
         initial_priority=UpwardRanking(),
         insert_task=ConstrainedGreedyInsert(
             append_only=False,
-            compare=compare_task_types,
+            compare=compare,
             critical_path=False
         )
     )
@@ -173,12 +174,12 @@ def example():
     plt.tight_layout()
     ax.figure.savefig(savedir / "task_types_schedule.png")
 
-def experiment():
-    def compare_max_tasks_per_node(network: nx.Graph,
-                                   task_graph: nx.DiGraph,
-                                   schedule: ScheduleType,
-                                   new: Task, cur: Task,
-                                   max_tasks_per_node: int) -> float:
+def experiment_1():
+    def compare(network: nx.Graph,
+                task_graph: nx.DiGraph,
+                schedule: ScheduleType,
+                new: Task, cur: Task,
+                max_tasks_per_node: int) -> float:
         if len(schedule[new.node]) >= max_tasks_per_node:
             return 1e9
         if len(schedule[cur.node]) >= max_tasks_per_node:
@@ -189,7 +190,7 @@ def experiment():
     LEVELS = 3
     BRANCHING_FACTOR = 2
     rows = []
-    for max_tasks in range(1, 8):
+    for max_tasks in range(2, 9):
         for i in range(NUM_EVALS):
             task_graph = add_random_weights(
                 get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
@@ -205,7 +206,7 @@ def experiment():
                 initial_priority=UpwardRanking(),
                 insert_task=ConstrainedGreedyInsert(
                     append_only=False,
-                    compare=partial(compare_max_tasks_per_node, max_tasks_per_node=max_tasks),
+                    compare=partial(compare, max_tasks_per_node=max_tasks),
                     critical_path=False
                 )
             )
@@ -239,9 +240,101 @@ def experiment():
     fig.write_image(savedir / "makespan_vs_max_tasks_per_node.png")
     fig.write_html(savedir / "makespan_vs_max_tasks_per_node.html")
 
+def experiment_2():
+    LEVELS = 3
+    BRANCHING_FACTOR = 2
+    NUM_NODES = 4
+
+    NUM_RUNS = 100
+    rows = []
+    for run_num in range(NUM_RUNS):
+        task_graph = add_random_weights(
+            get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
+            weight_range=(0.1, 1.0)
+        )
+        network = add_random_weights(
+            get_network(num_nodes=NUM_NODES),
+            weight_range=(0.1, 1.0)
+        )
+
+        # random constraints allowing each task to be scheduled on at least one node
+        schedule_restrictions = {
+            task: set(random.sample(network.nodes, random.randint(1, NUM_NODES)))
+            for task in task_graph.nodes
+        }
+        def compare_eft(network: nx.Graph,
+                        task_graph: nx.DiGraph,
+                        schedule: ScheduleType,
+                        new: Task, cur: Task) -> float:
+            if new.node in schedule_restrictions[new.name]:
+                return 1e9
+            elif cur.node in schedule_restrictions[cur.name]:
+                return -1e9
+            return new.end - cur.end
+        
+        scheduler_heft = ParametricScheduler(
+            initial_priority=UpwardRanking(),
+            insert_task=ConstrainedGreedyInsert(
+                append_only=False,
+                compare=compare_eft,
+                critical_path=False
+            )
+        )
+
+        def compare_arbitrary(network: nx.Graph,
+                              task_graph: nx.DiGraph,
+                              schedule: ScheduleType,
+                              new: Task, cur: Task) -> float:
+            if new.node in schedule_restrictions[new.name]:
+                return 1e9
+            elif cur.node in schedule_restrictions[cur.name]:
+                return -1e9
+            return random.random() - 0.5 # return a random number between -0.5 and 0.5
+        scheduler_baseline = ParametricScheduler(
+            initial_priority=ArbitraryTopological(),
+            insert_task=ConstrainedGreedyInsert(
+                append_only=False,
+                compare=compare_arbitrary,
+                critical_path=False
+            )
+        )
+
+        schedule_heft = scheduler_heft.schedule(network, task_graph)
+        schedule_baseline = scheduler_baseline.schedule(network, task_graph)
+
+        makespan_heft = max(task.end for tasks in schedule_heft.values() for task in tasks)
+        makespan_baseline = max(task.end for tasks in schedule_baseline.values() for task in tasks)
+
+        rows.append([run_num, makespan_heft, "HEFT"])
+        rows.append([run_num, makespan_baseline, "Baseline"])
+
+    df = pd.DataFrame(rows, columns=["run", "makespan", "scheduler"])
+    
+    savedir = thisdir / "output" / "constraints"
+    savedir.mkdir(parents=True, exist_ok=True)
+    
+    fig = px.box(
+        df,
+        x="scheduler", y="makespan",
+        title="Makespan vs. Scheduler",
+        template="plotly_white",
+        # exclude outliers
+        # boxmode="overlay",
+        points=False,
+        # make black and white
+        color_discrete_sequence=["black"],
+    )
+    # make X axes label "Scheduler"
+    fig.update_xaxes(title_text="Scheduler")
+    fig.update_yaxes(title_text="Makespan")
+    fig.write_image(savedir / "makespan_vs_scheduler.png")
+    fig.write_html(savedir / "makespan_vs_scheduler.html")
+
+    
 def main():
     example()
-    experiment()
+    experiment_1()
+    experiment_2()
 
 if __name__ == "__main__":
     main()
