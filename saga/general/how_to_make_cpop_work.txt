@@ -1,3 +1,0 @@
-Use the priority queue function to decide which tasks are critical. Instead of storing task names, store (task_name, cpop_priority).
-For schedulers that don't use it just mark it as none.
-The insert function can then decide which task to insert the task in based on the priority. 
