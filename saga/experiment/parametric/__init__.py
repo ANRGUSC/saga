@@ -8,12 +8,13 @@ import pathlib
 from pprint import pformat
 import random
 import shutil
+import subprocess
 import time
 import fcntl
 
 import numpy as np
 import pandas as pd
-from experiments.prepare_datasets import load_dataset
+from saga.experiment.pisa.prepare_datasets import load_dataset
 from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
@@ -29,7 +30,7 @@ from saga.utils.testing import test_schedulers
 from saga.utils.tools import standardize_network, standardize_task_graph
 
 
-from shuffle_datasets import load_batch, shuffle_datasets
+from saga.experiment.parametric.shuffle_datasets import load_batch, shuffle_datasets
 
 # Initial Priority functions
 class UpwardRanking(IntialPriority):
@@ -465,19 +466,6 @@ def print_datasets(datadir: pathlib.Path):
         dataset = load_dataset(datadir, dataset_path.stem)
         print(f"{i}: {dataset_path.stem} ({len(dataset)} instances)")
 
-def append_df_to_csv_with_lock(df: pd.DataFrame, savepath: pathlib.Path):
-    lock_path = savepath.with_suffix(f"{savepath.suffix}.lock")
-    with open(lock_path, 'a+') as lock_file:  # Change 'w' to 'a+' to avoid truncating the file
-        try:
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-            if savepath.exists():
-                df.to_csv(savepath, mode='a', header=False, index=False, flush=True)
-            else:
-                df.to_csv(savepath, index=False, flush=True)
-        finally:
-            fcntl.flock(lock_file, fcntl.LOCK_UN)
-            lock_file.close()
-
 DEFAULT_DATASETS = [
     f"{name}_ccr_{ccr}"
     for name in ['cycles', 'chains', 'in_trees', 'out_trees']
@@ -488,8 +476,7 @@ def evaluate_instance(scheduler: Scheduler,
                       task_graph: nx.DiGraph,
                       dataset_name: str,
                       instance_num: int,
-                      savepath: pathlib.Path,
-                      do_filelock: bool = True):
+                      savepath: pathlib.Path):
     task_graph = standardize_task_graph(task_graph)
     network = standardize_network(network)
     t0 = time.time()
@@ -501,13 +488,10 @@ def evaluate_instance(scheduler: Scheduler,
         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
     )
     savepath.parent.mkdir(exist_ok=True, parents=True)
-    if do_filelock:
-        append_df_to_csv_with_lock(df, savepath)
+    if savepath.exists():
+        df.to_csv(savepath, mode='a', header=False, index=False)
     else:
-        if savepath.exists():
-            df.to_csv(savepath, mode='a', header=False, index=False)
-        else:
-            df.to_csv(savepath, index=False)
+        df.to_csv(savepath, index=False)
     print(f"  saved results to {savepath}")
 
 def test_run():
@@ -535,8 +519,7 @@ def test_run():
 def run_batch(batch_num: int,
               datadir: pathlib.Path,
               timeout: Optional[float] = None,
-              out: pathlib.Path = pathlib.Path("results.csv"),
-              filelock: bool = False):
+              out: pathlib.Path = pathlib.Path("results.csv")):
     batch = load_batch(datadir, batch_num)
     print(f"Running batch of {len(batch)} instances.")
     for i, (scheduler, (dataset_name, instance_num, network, task_graph)) in enumerate(product(schedulers.values(), batch)):
@@ -547,8 +530,7 @@ def run_batch(batch_num: int,
                 task_graph=task_graph,
                 dataset_name=dataset_name,
                 instance_num=instance_num,
-                savepath=out,
-                do_filelock=filelock
+                savepath=out
             )
         else:
             with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -559,8 +541,7 @@ def run_batch(batch_num: int,
                     task_graph,
                     dataset_name,
                     instance_num,
-                    out,
-                    filelock
+                    out
                 )
                 try:
                     future.result(timeout)
@@ -571,25 +552,24 @@ def run_batch(batch_num: int,
                         [[scheduler.__name__, dataset_name, instance_num, np.nan, np.nan]],
                         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
                     )
-                    if filelock:
-                        append_df_to_csv_with_lock(df, pathlib.Path(out))
+                    if pathlib.Path(out).exists():
+                        df.to_csv(pathlib.Path(out), mode='a', header=False, index=False)
                     else:
-                        if pathlib.Path(out).exists():
-                            df.to_csv(pathlib.Path(out), mode='a', header=False, index=False)
-                        else:
-                            df.to_csv(pathlib.Path(out), index=False)
+                        df.to_csv(pathlib.Path(out), index=False)
 
 def main():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest="command")
+    
+    run_subparser = subparsers.add_parser("run-slurm", help="Run the benchmarking on SLURM.")
+
     run_subparser = subparsers.add_parser("run", help="Run the benchmarking.")
     run_subparser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
     run_subparser.add_argument("--out", type=str, required=True, help="Directory to save the results.")
     run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
     run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
     run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
-    run_subparser.add_argument("--filelock", action="store_true", help="Use file locking to write to the results file.")
     run_subparser.add_argument("--timeout", type=float, default=0, help="Timeout for each instance in seconds. Default is 0, which means no timeout.")    
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
@@ -602,7 +582,17 @@ def main():
         test()
     elif args.command == "list":
         print_schedulers()
-    else:
+    elif args.command == "run-slurm":
+        thisdir = pathlib.Path(__file__).parent.resolve()
+        proc = subprocess.Popen(
+            ["sbatch", thisdir / "exp_parametric.sl"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout, stderr = proc.communicate()
+        print(stdout.decode())
+        print(stderr.decode())
+    elif args.command == "run":
         datadir = pathlib.Path(args.datadir)
         shuffled_datadir = datadir.parent.joinpath(f"shuffled_{datadir.stem}")
         if not shuffled_datadir.exists():
@@ -623,7 +613,7 @@ def main():
             pool.starmap(
                 run_batch,
                 [
-                    (batch, datadir, args.timeout, pathlib.Path(outpath), args.filelock)
+                    (batch, datadir, args.timeout, pathlib.Path(outpath))
                     for batch, outpath in zip(range(num_batches), outpaths)
                 ]
             )
@@ -634,43 +624,6 @@ def main():
         elif args.batch < 0 or args.batch >= num_batches:
             raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
         else:
-            run_batch(args.batch, datadir, args.timeout, pathlib.Path(args.out), args.filelock)
-
-def test_filelock():
-    import multiprocessing
-    import pathlib
-
-    thisdir = pathlib.Path(__file__).resolve().parent
-
-    start = time.time() + 5
-
-    def write_to_file(filename: pathlib.Path, text: str):
-        # sleep until the start time
-        time.sleep(max(0, start - time.time()))
-        for i in range(100):
-            rows = [
-                [0, 1, 2, 3, 4, 5]
-            ]
-            df = pd.DataFrame(rows, columns=["a", "b", "c", "d", "e", "f"])
-            append_df_to_csv_with_lock(df, filename)
-            # df.to_csv(filename, mode='a', header=False, index=False)
-
-    savepath = thisdir / "results" / "test.csv"
-    if savepath.exists():
-        savepath.unlink()
-    savepath.parent.mkdir(exist_ok=True, parents=True)
-    # create 100 processes to write to the file
-    processes = [
-        multiprocessing.Process(target=write_to_file, args=(savepath, f"Process {i}"))
-        for i in range(1000)
-    ]
-    for process in processes:
-        process.start()
-    for process in processes:
-        process.join()
-    print("Done.")
-
-
-if __name__ == "__main__":
-    main()
-    # test_run()
+            run_batch(args.batch, datadir, args.timeout, pathlib.Path(args.out))
+    else:
+        parser.print_help()

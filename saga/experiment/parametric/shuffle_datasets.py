@@ -1,7 +1,7 @@
 import json
 import pathlib
 from typing import Dict, List, Tuple
-from prepare_datasets import load_dataset
+from saga.experiment.pisa.prepare_datasets import load_dataset
 from saga.data import Dataset, serialize_graph, deserialize_graph
 import numpy as np
 import random

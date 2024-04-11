@@ -5,7 +5,7 @@ from typing import Dict
 import dill as pickle
 import matplotlib.pyplot as plt
 import pandas as pd
-from plot import gradient_heatmap
+from saga.experiment.plot import gradient_heatmap
 from simulated_annealing import SimulatedAnnealing
 from post_benchmarking import SCHEDULER_RENAMES
 

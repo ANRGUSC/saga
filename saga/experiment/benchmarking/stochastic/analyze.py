@@ -4,8 +4,8 @@ import pathlib
 import re
 
 import pandas as pd
-from plot import gradient_heatmap
-
+from saga.experiment.plot import gradient_heatmap
+from saga.experiment import resultsdir, outputdir
 
 DATASET_ORDER = [
     "in_trees", "out_trees", "chains",
@@ -66,19 +66,18 @@ def run(resultspath: pathlib.Path,
     ax.get_figure().savefig(savepath.with_suffix(".pdf"), dpi=300, bbox_inches='tight')
 
 def main():
-    thisdir = pathlib.Path(__file__).resolve().parent
-    resultspath = thisdir.joinpath("results/stochastic_benchmarking/results.csv")
-    outputdir = thisdir.joinpath("output/stochastic_benchmarking")
+    outputdir_stochastic = outputdir / "stochastic_benchmarking"
+    resultspath_stochastic = resultsdir / "stochastic_benchmarking/results.csv"
     run(
-        resultspath,
-        outputdir.joinpath("stochastic_benchmarking_mean.png"),
+        resultspath_stochastic,
+        outputdir_stochastic.joinpath("stochastic_benchmarking_mean.png"),
         title="Stochastic Benchmarking (Average Performance)",
         upper_threshold=5.0,
         sample_agg_mode="mean"
     )
     run(
-        resultspath,
-        outputdir.joinpath("stochastic_benchmarking_max.png"),
+        resultspath_stochastic,
+        outputdir_stochastic.joinpath("stochastic_benchmarking_max.png"),
         title="Stochastic Benchmarking (Worst-Case Performance)",
         upper_threshold=5.0,
         sample_agg_mode="max"

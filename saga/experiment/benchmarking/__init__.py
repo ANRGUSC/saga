@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from prepare_datasets import load_dataset
+from saga.experiment.pisa.prepare_datasets import load_dataset
 from saga.data import Dataset
 
 import saga.schedulers as saga_schedulers

@@ -28,7 +28,6 @@ setup(
     install_requires=[
         'networkx',
         'numpy',
-#         'pygraphviz',
         'matplotlib',
         'scipy',
         'pandas',
@@ -36,6 +35,16 @@ setup(
         'kaleido',
         'pysmt',
         'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
+        'streamlit',
+        'dill',
+        'joblib==1.3.2',
+        'statsmodels==0.14.1',
+        'seaborn==0.13.2',
     ],
     python_requires='>=3.6',
+    entry_points={
+        'console_scripts': [
+            'saga_exp_parametric = saga.experiment.parametric:main',
+        ],
+    },
 )

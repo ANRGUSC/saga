@@ -9,8 +9,6 @@ from scipy.stats import norm
 
 import networkx as nx
 
-thisdir = pathlib.Path(__file__).parent.absolute()
-
 class Change:
     @classmethod
     def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> Optional['Change']:

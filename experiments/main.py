@@ -8,10 +8,10 @@ import pandas as pd
 import exp_benchmarking
 import exp_compare_all
 import exp_wfcommons
-import exp_stochastic_benchmarking
-import post_benchmarking
-import post_compare_all
-import prepare_datasets
+import saga.experiment.benchmarking.stochastic as stochastic
+import saga.experiment.benchmarking.analyze as analyze
+import saga.experiment.pisa.analyze as analyze
+import saga.experiment.pisa.prepare_datasets as prepare_datasets
 import prepare_stochastic_datasets
 import logging
 
@@ -70,7 +70,7 @@ def tab_results_ccr(resultsdir: pathlib.Path,
         recipe_name = recipe_path.stem
         for resultsdir in recipe_path.glob("ccr_*"):
             if not resultsdir.joinpath("results.csv").exists() or reprocess:
-                post_compare_all.results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
+                analyze.results_to_csv(resultspath=resultsdir, outputpath=resultsdir)
 
             if benchmarking_resultsdir is not None:
                 df_results = pd.read_csv(resultsdir.joinpath("results.csv"), index_col=0)
@@ -78,7 +78,7 @@ def tab_results_ccr(resultsdir: pathlib.Path,
                 df_results.to_csv(resultsdir.joinpath("results.csv"))
 
             ccr = float(resultsdir.name.split("_")[-1])
-            post_compare_all.tab_results(
+            analyze.tab_results(
                 resultsdir=resultsdir,
                 savedir=savedir,
                 upper_threshold=upper_threshold,
@@ -96,12 +96,12 @@ experiments = {
             output_path=thisdir.joinpath("results", "compare_all"),
         ),
         "process": partial(
-            post_compare_all.results_to_csv,
+            analyze.results_to_csv,
             resultspath=thisdir.joinpath("results", "compare_all"),
             outputpath=thisdir.joinpath("output", "compare_all")
         ),
         "plot": partial(
-            post_compare_all.tab_results,
+            analyze.tab_results,
             savedir=thisdir.joinpath("output", "compare_all"),
             upper_threshold=5.0,
         ),
@@ -155,7 +155,7 @@ experiments = {
             trim=0,
         ),
         "plot": partial(
-            post_benchmarking.run,
+            analyze.run,
             resultsdir=thisdir.joinpath("results", "benchmarking"),
             outputdir=thisdir.joinpath("output", "benchmarking"),
         )
@@ -181,7 +181,7 @@ experiments = {
         ),
         "plot": chain(
             partial(
-                post_benchmarking.run,
+                analyze.run,
                 resultsdir=thisdir.joinpath("results", "benchmarking_wfcommons_ccr"),
                 outputdir=thisdir.joinpath("output", "benchmarking_wfcommons_ccr", f"ccr_{ccr}"),
                 glob=f"*_{ccr}.csv",
@@ -194,7 +194,7 @@ experiments = {
         ),
         "plot_by_dataset": chain(
             partial(
-                post_benchmarking.run,
+                analyze.run,
                 resultsdir=thisdir.joinpath("results", "benchmarking_wfcommons_ccr"),
                 outputdir=thisdir.joinpath("output", "benchmarking_wfcommons_ccr", f"dataset_{dataset}"),
                 glob=f"{dataset}_*.csv",
@@ -212,7 +212,7 @@ experiments = {
             savedir=thisdir.joinpath("datasets", "stochastic_benchmarking"),
         ),
         "run": partial(
-            exp_stochastic_benchmarking.run,
+            stochastic.run,
             datadir=thisdir.joinpath("datasets", "stochastic_benchmarking"),
             resultsdir=thisdir.joinpath("results", "stochastic_benchmarking"),
             trim=0,
@@ -226,16 +226,10 @@ experiments = {
             ]
         ),
         "plot": partial(
-            post_benchmarking.run,
+            analyze.run,
             resultsdir=thisdir.joinpath("results", "stochastic_benchmarking"),
             outputdir=thisdir.joinpath("output", "stochastic_benchmarking"),
         )
-    },
-    "parametric_benchmarking": {   
-        "prepare": partial(
-            prepare_datasets.run_ccrs,
-            savedir=thisdir.joinpath("datasets", "parametric_benchmarking"),
-        ),
     }
 }
         

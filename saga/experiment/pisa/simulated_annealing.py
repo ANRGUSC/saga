@@ -1,19 +1,19 @@
 import logging
 import math
-import pathlib
 import random
 from dataclasses import dataclass
 from typing import (Callable, Dict, Generator, Hashable, List, Type)
 
 import networkx as nx
-from changes import (Change, NetworkChangeEdgeWeight, NetworkChangeNodeWeight,
-                     TaskGraphAddDependency, TaskGraphChangeDependencyWeight,
-                     TaskGraphChangeTaskWeight, TaskGraphDeleteDependency)
-from common import standardize_instance
+from saga.experiment.pisa.changes import (
+    Change, NetworkChangeEdgeWeight, NetworkChangeNodeWeight,
+    TaskGraphAddDependency, TaskGraphChangeDependencyWeight,
+    TaskGraphChangeTaskWeight, TaskGraphDeleteDependency
+)
 
+from saga.experiment.pisa.common import standardize_instance
 from saga.scheduler import Scheduler, Task
 
-thisdir = pathlib.Path(__file__).parent.absolute()
 
 # data class for simulated annealing iteration
 @dataclass

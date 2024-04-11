@@ -8,8 +8,8 @@ from typing import List, Type
 import dill as pickle
 import networkx as nx
 import numpy as np
-from changes import Change
-from simulated_annealing import SimulatedAnnealing
+from saga.experiment.pisa.changes import Change
+from saga.experiment.pisa.simulated_annealing import SimulatedAnnealing
 
 from saga.scheduler import Scheduler
 from saga.schedulers.data.wfcommons import (get_networks, get_num_task_range,
@@ -18,10 +18,8 @@ from saga.schedulers.data.wfcommons import (get_networks, get_num_task_range,
                                             trace_to_digraph)
 from wfcommons.wfgen import WorkflowGenerator
 
-thisdir = pathlib.Path(__file__).parent.absolute()
-random.seed(1)
-np.random.seed(1)
-
+random.seed(0)
+np.random.seed(0)
 
 def get_changes(cloud_type: str,
                 recipe_name: str,

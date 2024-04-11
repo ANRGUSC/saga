@@ -7,10 +7,10 @@ import pandas as pd
 from itertools import combinations, product
 import seaborn as sns
 
-from exp_parametric import schedulers
-from plot import gradient_heatmap
+from saga.experiment.parametric import schedulers
+from saga.experiment.plot import gradient_heatmap
 
-thisdir = pathlib.Path(__file__).resolve().parent
+from saga.experiment import resultsdir, datadir, outputdir
 
 PARAM_NAMES = {
     'initial_priority': 'Priority',
@@ -48,7 +48,7 @@ def load_data() -> pd.DataFrame:
             "sufferage": 'sufferage_top_n' in details,
         }
 
-    resultspath = thisdir / "results" / "parametric.csv"
+    resultspath = resultsdir / "parametric.csv"
     df = pd.read_csv(resultspath) #, index_col=0)
 
     for scheduler_name in df["scheduler"].unique():
@@ -82,7 +82,7 @@ def scheduler_table(df):
 
     # Convert DataFrame to LaTeX table
     latex_table = df.to_latex(escape=True, index=False)
-    savepath = thisdir / "output" / "parametric" / "scheduler_table.tex"
+    savepath = outputdir / "parametric" / "scheduler_table.tex"
     savepath.parent.mkdir(parents=True, exist_ok=True)
     savepath.write_text(latex_table)
 
@@ -364,12 +364,12 @@ def gen_plots():
     df["ccr"] = df["dataset"].apply(lambda x: float(x.split('_ccr_')[1]))
     df["dataset_type"] = df["dataset"].apply(lambda x: x.split('_ccr_')[0])
 
-    generate_pareto_front_plot(df, thisdir / "output" / "parametric", filetype=filetype)
-    generate_interaction_plots(df, [*param_names, "dataset_type", "ccr"], thisdir / "output" / "parametric" , showfliers=showfliers, filetype=filetype)
+    generate_pareto_front_plot(df, outputdir / "parametric", filetype=filetype)
+    generate_interaction_plots(df, [*param_names, "dataset_type", "ccr"], outputdir / "parametric" , showfliers=showfliers, filetype=filetype)
     for dataset in df["dataset"].unique():
         print(f"Generating interaction plots for {dataset}")
         dataset_df = df[df["dataset"] == dataset]
-        generate_interaction_plots(dataset_df, param_names, thisdir / "output" / "parametric" / "dataset" / dataset, showfliers=showfliers, filetype=filetype)
+        generate_interaction_plots(dataset_df, param_names, outputdir / "parametric" / "dataset" / dataset, showfliers=showfliers, filetype=filetype)
 
 def main():
     # print_scheduler_info()

@@ -15,10 +15,7 @@ module load git
 module load conda
 
 conda run -n saga PYTHONUNBUFFERED=x python exp_parametric.py run \
-    --datadir "/scratch1/jaredcol/datasets/parametric_benchmarking" \
-    --out "/scratch1/jaredcol/results/parametric/parametric_${SLURM_ARRAY_TASK_ID}.csv" \
+    --datadir "${SAGA_DATADIR}/parametric_benchmarking" \
+    --out "${SAGA_RESULTSDIR}/parametric/parametric_${SLURM_ARRAY_TASK_ID}.csv" \
     --trim 100 --batch $SLURM_ARRAY_TASK_ID --batches 500 \
     --timeout 300 # 5 minutes
-
-# local command
-# python exp_parametric.py run --datadir "./datasets/parametric_benchmarking" --out "./results/parametric/parametric_0.csv" --trim 100 --batch 0 --batches 500 --timeout 300
