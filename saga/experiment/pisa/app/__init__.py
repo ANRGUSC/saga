@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from saga.scheduler import Task
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
-from simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
+from saga.experiment.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
 
 from saga.experiment import resultsdir as all_resultsdir
 

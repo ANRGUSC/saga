@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from saga.experiment.plot import gradient_heatmap
 from simulated_annealing import SimulatedAnnealing
-from post_benchmarking import SCHEDULER_RENAMES
+from saga.experiment.benchmarking.analyze import SCHEDULER_RENAMES
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
