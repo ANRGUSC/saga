@@ -1,20 +1,17 @@
 from typing import Any, Dict, Hashable, List
 
 from matplotlib import pyplot as plt
-from exp_parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, UpwardRanking
-from exp_compare_all import SimulatedAnnealing, run_experiments
-from experiments.changes import NetworkChangeEdgeWeight, NetworkChangeNodeWeight, TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight
-from experiments.simulated_annealing import SimulatedAnnealingIteration
+from saga.experiment.parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, UpwardRanking
+from saga.experiment.pisa import run_experiments
+from saga.experiment.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
+from saga.experiment.pisa.changes import TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight
 from saga.schedulers.parametric import IntialPriority
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
 import networkx as nx
 
 import pathlib
 
 thisdir = pathlib.Path(__file__).parent.resolve()
-output_path = thisdir.joinpath("results", "append_only")
-output_path.mkdir(parents=True, exist_ok=True)
 
 def main():
     scheduler = ParametricScheduler(
@@ -45,7 +42,7 @@ def main():
         min_temp=0.1,
         cooling_rate=0.99,
         skip_existing=False,
-        output_path=output_path
+        thisdir=thisdir
     )
 
 def example():
@@ -119,15 +116,15 @@ def example():
     
     ax = draw_gantt(result.best_schedule)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "task_types_schedule.png")
+    ax.figure.savefig(thisdir / "task_types_schedule.png")
 
     ax = draw_network(result.best_network)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "task_types_network.png")
+    ax.figure.savefig(thisdir / "task_types_network.png")
 
     ax = draw_task_graph(result.best_task_graph)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "task_types_task_graph.png")
+    ax.figure.savefig(thisdir / "task_types_task_graph.png")
 
 def bad_example():
     task_graph = nx.DiGraph()
@@ -191,15 +188,15 @@ def bad_example():
 
     ax = draw_gantt(schedule)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "bad_example_schedule.png")
+    ax.figure.savefig(thisdir / "bad_example_schedule.png")
 
     ax = draw_gantt(schedule_append_only)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "bad_example_schedule_append_only.png")
+    ax.figure.savefig(thisdir / "bad_example_schedule_append_only.png")
 
     ax = draw_network(network)
     plt.tight_layout()
-    ax.figure.savefig(output_path / "bad_example_network.png")
+    ax.figure.savefig(thisdir / "bad_example_network.png")
 
 if __name__ == "__main__":
     # main()
