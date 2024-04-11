@@ -1,6 +1,7 @@
 import argparse
 from copy import deepcopy
 import heapq
+from itertools import product
 import logging
 import multiprocessing
 import pathlib
@@ -26,6 +27,9 @@ from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_
 
 from saga.utils.testing import test_schedulers
 from saga.utils.tools import standardize_network, standardize_task_graph
+
+
+from shuffle_datasets import load_batch, shuffle_datasets
 
 # Initial Priority functions
 class UpwardRanking(IntialPriority):
@@ -480,16 +484,12 @@ DEFAULT_DATASETS = [
     for ccr in [0.2, 0.5, 1, 2, 5]
 ]
 def evaluate_instance(scheduler: Scheduler,
-                      datadir: pathlib.Path,
+                      network: nx.Graph,
+                      task_graph: nx.DiGraph,
                       dataset_name: str,
                       instance_num: int,
                       savepath: pathlib.Path,
                       do_filelock: bool = True):
-    datadir = datadir.resolve(strict=True)
-    dataset = load_dataset(datadir, dataset_name)
-    network, task_graph = dataset[instance_num]
-    # savepath = resultsdir / scheduler.__name__ / f"{dataset_name}_{instance_num}.csv"
-    print(f"Evaluating {scheduler.__name__} on {dataset_name} instance {instance_num}")
     task_graph = standardize_task_graph(task_graph)
     network = standardize_network(network)
     t0 = time.time()
@@ -532,20 +532,22 @@ def test_run():
     print(f"Total Runtime: {dt}")
     print(f"Predicted Total Runtime: {dt * len(dataset) / 20}")
 
-def run_batch(batch: List[Tuple[Scheduler, str, int]],
+def run_batch(batch_num: int,
               datadir: pathlib.Path,
               timeout: Optional[float] = None,
               out: pathlib.Path = pathlib.Path("results.csv"),
               filelock: bool = False):
+    batch = load_batch(datadir, batch_num)
     print(f"Running batch of {len(batch)} instances.")
-    for scheduler, dataset_name, instance_num in batch:
+    for i, (scheduler, (dataset_name, instance_num, network, task_graph)) in enumerate(product(schedulers.values(), batch)):
         if not timeout:
             evaluate_instance(
-                scheduler,
-                datadir,
-                dataset_name,
-                instance_num,
-                pathlib.Path(out),
+                scheduler=scheduler,
+                network=network,
+                task_graph=task_graph,
+                dataset_name=dataset_name,
+                instance_num=instance_num,
+                savepath=out,
                 do_filelock=filelock
             )
         else:
@@ -553,10 +555,11 @@ def run_batch(batch: List[Tuple[Scheduler, str, int]],
                 future = executor.submit(
                     evaluate_instance,
                     scheduler,
-                    datadir,
+                    network,
+                    task_graph,
                     dataset_name,
                     instance_num,
-                    pathlib.Path(out),
+                    out,
                     filelock
                 )
                 try:
@@ -594,36 +597,24 @@ def main():
     test_subparser = subparsers.add_parser("test", help="Run the tests.")
     args = parser.parse_args()
 
+
     if args.command == "test":
         test()
     elif args.command == "list":
         print_schedulers()
     else:
         datadir = pathlib.Path(args.datadir)
-        datasets = {
-            dataset_name: len(load_dataset(datadir, datadir.joinpath(f"{dataset_name}.json").stem))
-            for dataset_name in DEFAULT_DATASETS
-        }
-        
-        instances = [
-            (scheduler, dataset_name, instance_num)
-            for scheduler in schedulers.values()
-            for dataset_name, dataset_size in datasets.items()
-            for instance_num in range(dataset_size if args.trim <= 0 else min(dataset_size, args.trim))
-        ]
+        shuffled_datadir = datadir.parent.joinpath(f"shuffled_{datadir.stem}")
+        if not shuffled_datadir.exists():
+            shuffle_datasets(datadir, args.batches, shuffled_datadir, trim=args.trim)
+        elif len(list(shuffled_datadir.glob("*.json"))) != args.batches:
+            shutil.rmtree(shuffled_datadir)
+            shuffle_datasets(datadir, args.batches, shuffled_datadir, trim=args.trim)
+        else:
+            print(f"Using existing shuffled datasets in {shuffled_datadir}")
 
-        # set seeds for reproducibility
-        np.random.seed(0)
-        random.seed(0)
-        # shuffle the instances
-        np.random.shuffle(instances)
-
-        print(f"Loaded {len(instances)} instances.")
+        datadir = shuffled_datadir
         num_batches = multiprocessing.cpu_count() if args.batches == -1 else args.batches
-
-        batches = [[] for _ in range(num_batches)]
-        for i, instance in enumerate(instances):
-            batches[i % num_batches].append(instance)
 
         if args.batch == -1:
             pool = multiprocessing.Pool(processes=num_batches)
@@ -633,7 +624,7 @@ def main():
                 run_batch,
                 [
                     (batch, datadir, args.timeout, pathlib.Path(outpath), args.filelock)
-                    for batch, outpath in zip(batches, outpaths)
+                    for batch, outpath in zip(range(num_batches), outpaths)
                 ]
             )
             # concat the results
@@ -643,9 +634,7 @@ def main():
         elif args.batch < 0 or args.batch >= num_batches:
             raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
         else:
-            batch = batches[args.batch]
-            print(f"Batch {args.batch} has {len(batch)} instances.")
-            run_batch(batch, datadir, args.timeout, pathlib.Path(args.out), args.filelock)
+            run_batch(args.batch, datadir, args.timeout, pathlib.Path(args.out), args.filelock)
 
 def test_filelock():
     import multiprocessing

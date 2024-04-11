@@ -28,7 +28,7 @@ def load_results(path: pathlib.Path) -> SimulatedAnnealing:
 
 st.set_page_config(layout="wide")
 
-RESULTS_PATH = "results/compare_all"
+RESULTS_PATH = "results/append_only"
 DRAW_NETWORK_NODE_LABELS = True
 DRAW_NETWORK_NODE_WEIGHTS = True
 DRAW_NETWORK_EDGE_WEIGHTS = True
@@ -173,7 +173,7 @@ def main():
     with col_selectors:
         st.subheader("Select two schedulers to compare")
 
-        query_params = st.experimental_get_query_params()
+        query_params = st.query_params
 
         base_scheduler_choice = query_params.get('base_scheduler', [None])[0]
         base_scheduler_name = st.selectbox(
@@ -200,7 +200,7 @@ def main():
 
         query_params = dict(scheduler=scheduler_name, base_scheduler=base_scheduler_name)
         query_params = {k: v for k, v in query_params.items() if v}
-        st.experimental_set_query_params(**query_params)
+        st.query_params.update(**query_params)
 
         st.caption(f"Simulated Annealing tries to find a worst case-scenario for {scheduler_name} against {base_scheduler_name}")
 

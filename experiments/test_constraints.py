@@ -3,7 +3,7 @@ import random
 from typing import Any, Callable, Dict, Hashable, List, Optional
 from matplotlib import pyplot as plt
 from networkx import DiGraph, Graph
-from exp_parametric import ArbitraryTopological, ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
+from exp_parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
 from saga.scheduler import Task
 from saga.schedulers.parametric import ScheduleType
 import networkx as nx
@@ -55,29 +55,18 @@ class ConstrainedGreedyInsert(InsertTask):
             Task: The inserted task.
         """ 
         best_insert_loc, best_task = None, None
-        # second_best_task = None
-        # TODO: This is a bit inefficient adds O(n) per iteration,
-        #       so it doesn't affect asymptotic complexity, but it's still bad
-        if self.critical_path and node is None:
-            # if task_graph doesn't have critical_path attribute, then we need to calculate it
-            if "critical_path" not in task_graph.nodes[task]:
-                ranks = cpop_ranks(network, task_graph)
-                critical_rank = max(ranks.values())
-                fastest_node = max(
-                    network.nodes,
-                    key=lambda node: network.nodes[node]['weight']
-                )
-                nx.set_node_attributes(
-                    task_graph,
-                    {
-                        task: fastest_node if np.isclose(rank, critical_rank) else None
-                     for task, rank in ranks.items()
-                    },
-                    "critical_path"
-                )
 
-            # if task is on the critical path, then we only consider the fastest node
-            node = task_graph.nodes[task]["critical_path"]
+        # If critical path is enabled and node is None, then we need to find the fastest node
+        # but with the constraint-based comparison functions some of the nodes may be invalid
+        # so we need to find the fastest valid node
+        if self.critical_path and node is None:
+            fastest_node = list(network.nodes)[0]
+            for _node in network.nodes:
+                fnode_task = Task(fastest_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[fastest_node]['weight'])
+                cnode_task = Task(_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[_node]['weight'])
+                if self._compare(network, task_graph, schedule, fnode_task, cnode_task) < 0:
+                    node = _node
+                    break
 
         considered_nodes = network.nodes if node is None else [node]
         for node in considered_nodes:
@@ -145,15 +134,16 @@ def example():
         "H": {1, 2},
     }
     def compare(network: nx.Graph,
-                           task_graph: nx.DiGraph,
-                           schedule: ScheduleType,
-                           new: Task, cur: Task) -> float:
+                task_graph: nx.DiGraph,
+                schedule: ScheduleType,
+                new: Task, cur: Task) -> float:
         if new.node in schedule_restrictions[new.name]:
             return 1e9 # return high number, indicating new is bad
         elif cur.node in schedule_restrictions[cur.name]:
             return -1e9 # return low number, indicating cur is bad
         return new.end - cur.end # return the difference in end times
 
+    # # HEFT w/ constraints
     scheduler = ParametricScheduler(
         initial_priority=UpwardRanking(),
         insert_task=ConstrainedGreedyInsert(
@@ -162,6 +152,16 @@ def example():
             critical_path=False
         )
     )
+
+    # # CPoP w/ constraints
+    # scheduler = ParametricScheduler(
+    #     initial_priority=CPoPRanking(),
+    #     insert_task=ConstrainedGreedyInsert(
+    #         append_only=False,
+    #         compare=compare,
+    #         critical_path=True
+    #     )
+    # )
     
     schedule = scheduler.schedule(network, task_graph)
     
@@ -245,17 +245,22 @@ def experiment_2():
     BRANCHING_FACTOR = 2
     NUM_NODES = 4
 
-    NUM_RUNS = 100
+    NUM_RUNS = 1000
+    CCR = 1
     rows = []
     for run_num in range(NUM_RUNS):
         task_graph = add_random_weights(
             get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
-            weight_range=(0.1, 1.0)
+            weight_range=(0.2, 1.0)
         )
         network = add_random_weights(
             get_network(num_nodes=NUM_NODES),
-            weight_range=(0.1, 1.0)
+            weight_range=(0.2, 1.0)
         )
+        
+        # multiply all task graph edge weights by CCR
+        for u, v in task_graph.edges:
+            task_graph.edges[u, v]["weight"] *= CCR
 
         # random constraints allowing each task to be scheduled on at least one node
         schedule_restrictions = {
@@ -272,11 +277,39 @@ def experiment_2():
                 return -1e9
             return new.end - cur.end
         
+        def compare_est(network: nx.Graph,
+                        task_graph: nx.DiGraph,
+                        schedule: ScheduleType,
+                        new: Task, cur: Task) -> float:
+            if new.node in schedule_restrictions[new.name]:
+                return 1e9
+            elif cur.node in schedule_restrictions[cur.name]:
+                return -1e9
+            return new.start - cur.start
+        
         scheduler_heft = ParametricScheduler(
             initial_priority=UpwardRanking(),
             insert_task=ConstrainedGreedyInsert(
                 append_only=False,
                 compare=compare_eft,
+                critical_path=False
+            )
+        )
+
+        scheduler_cpop = ParametricScheduler(
+            initial_priority=CPoPRanking(),
+            insert_task=ConstrainedGreedyInsert(
+                append_only=False,
+                compare=compare_eft,
+                critical_path=True
+            )
+        )
+
+        scheduler_est = ParametricScheduler(
+            initial_priority=ArbitraryTopological(),
+            insert_task=ConstrainedGreedyInsert(
+                append_only=False,
+                compare=compare_est,
                 critical_path=False
             )
         )
@@ -300,13 +333,16 @@ def experiment_2():
         )
 
         schedule_heft = scheduler_heft.schedule(network, task_graph)
+        schedule_cpop = scheduler_cpop.schedule(network, task_graph)
         schedule_baseline = scheduler_baseline.schedule(network, task_graph)
 
         makespan_heft = max(task.end for tasks in schedule_heft.values() for task in tasks)
+        makespan_cpop = max(task.end for tasks in schedule_cpop.values() for task in tasks)
         makespan_baseline = max(task.end for tasks in schedule_baseline.values() for task in tasks)
 
         rows.append([run_num, makespan_heft, "HEFT"])
         rows.append([run_num, makespan_baseline, "Baseline"])
+        rows.append([run_num, makespan_cpop, "CPoP"])
 
     df = pd.DataFrame(rows, columns=["run", "makespan", "scheduler"])
     

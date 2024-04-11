@@ -5,6 +5,7 @@
 #SBATCH --array=0-499
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
+#SBATCH --constraint=epyc-7513  # Ensure jobs run on AMD EPYC 7513 nodes
 
 # Run computation, use SLURM_ARRAY_TASK_ID to differentiate tasks
 
@@ -18,3 +19,6 @@ conda run -n saga PYTHONUNBUFFERED=x python exp_parametric.py run \
     --out "/scratch1/jaredcol/results/parametric/parametric_${SLURM_ARRAY_TASK_ID}.csv" \
     --trim 100 --batch $SLURM_ARRAY_TASK_ID --batches 500 \
     --timeout 300 # 5 minutes
+
+# local command
+# python exp_parametric.py run --datadir "./datasets/parametric_benchmarking" --out "./results/parametric/parametric_0.csv" --trim 100 --batch 0 --batches 500 --timeout 300
