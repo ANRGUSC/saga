@@ -44,7 +44,7 @@ setup(
     python_requires='>=3.6',
     entry_points={
         'console_scripts': [
-            'saga_exp_parametric = saga.experiment.parametric:main',
+            'saga_exp_parametric = saga.experiment.benchmarking.parametric:main',
         ],
     },
 )

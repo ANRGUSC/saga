@@ -30,7 +30,8 @@ def gradient_heatmap(data: pd.DataFrame,
                      figsize: Tuple[float, float] = (12, 8),
                      linewidth: int = 1,
                      cmap_lower: float = 0.0,
-                     cmap_upper: float = 1.0) -> plt.Axes:
+                     cmap_upper: float = 1.0,
+                     use_latex: bool = False) -> plt.Axes:
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -52,16 +53,20 @@ def gradient_heatmap(data: pd.DataFrame,
         font_size (float, optional): font size. Defaults to 20.0.
         figsize (Tuple[float, float], optional): figure size. Defaults to (12, 8).
         linewidth (int, optional): linewidth for cell borders. Defaults to 1.
+        cmap_lower (float, optional): lower bound for colormap. Defaults to 0.0.
+        cmap_upper (float, optional): upper bound for colormap. Defaults to 1.0.
+        use_latex (bool, optional): use LaTeX for text rendering. Defaults to False.
 
     Returns:
         plt.Axes: matplotlib axes
     """
-    plt.rcParams.update({
-        'font.size': font_size,
-        'font.family': 'serif',
-        'font.serif': ['Computer Modern'],
-        'text.usetex': True,
-    })
+    plt.rcParams.update({'font.size': font_size})
+    if use_latex:
+        plt.rcParams.update({
+            'font.family': 'serif',
+            'font.serif': ['Computer Modern'],
+            'text.usetex': True,
+        })
 
     data = data.copy()
     # combine xs and ys into a single column if necessary
@@ -142,13 +147,13 @@ def gradient_heatmap(data: pd.DataFrame,
                 if np.isnan(value):
                     value = ""
                 elif value > 1000:
-                    value = f'$>{1000}$'
+                    value = f'$>{1000}$' if use_latex else f'>1000'
                 elif value > upper_threshold:
-                    value = f'$>{upper_threshold}$'
+                    value = f'$>{upper_threshold}$' if use_latex else f'>{upper_threshold}'
                 elif isinstance(value, int) or (isinstance(value, float) and value.is_integer()):
-                    value = f'${int(value)}$'
+                    value = f'${int(value)}$' if use_latex else f'{int(value)}'
                 else:
-                    value = f'${value:.2f}$'
+                    value = f'${value:.2f}$' if use_latex else f'{value:.2f}'
                 ax.text(
                     j+0.5, i+0.5, value,
                     horizontalalignment='center',
@@ -181,7 +186,7 @@ def gradient_heatmap(data: pd.DataFrame,
     if upper_threshold < np.inf:
         cbar.ax.set_yticklabels(
             [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
-            + [f'$> {upper_threshold}$']
+            + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}']
         )
 
     if title:

@@ -1,7 +1,7 @@
 from typing import Any, Dict, Hashable, List
 
 from matplotlib import pyplot as plt
-from saga.experiment.parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, UpwardRanking
+from saga.experiment.benchmarking.parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, UpwardRanking
 from saga.experiment.pisa import run_experiments
 from saga.experiment.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
 from saga.experiment.pisa.changes import TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight

@@ -1,4 +1,5 @@
 from functools import lru_cache
+import logging
 import pathlib
 import re
 from typing import Iterable, Set, Tuple
@@ -7,7 +8,7 @@ import pandas as pd
 from itertools import combinations, product
 import seaborn as sns
 
-from saga.experiment.parametric import schedulers
+from saga.experiment.benchmarking.parametric.components import schedulers
 from saga.experiment.plot import gradient_heatmap
 
 from saga.experiment import resultsdir, datadir, outputdir
@@ -35,7 +36,7 @@ SCHEDULER_RENAMES = {
     r"^EFT_App_AT$": "MCT",
 }
 @lru_cache(maxsize=None)
-def load_data() -> pd.DataFrame:
+def load_data(resultspath: pathlib.Path) -> pd.DataFrame:
     scheduler_params = {}
     for scheduler_name, scheduler in schedulers.items():
         details = scheduler.serialize()
@@ -48,8 +49,7 @@ def load_data() -> pd.DataFrame:
             "sufferage": 'sufferage_top_n' in details,
         }
 
-    resultspath = resultsdir / "parametric.csv"
-    df = pd.read_csv(resultspath) #, index_col=0)
+    df = pd.read_csv(resultspath)
 
     for scheduler_name in df["scheduler"].unique():
         for key, value in scheduler_params[scheduler_name].items():
@@ -85,44 +85,6 @@ def scheduler_table(df):
     savepath = outputdir / "parametric" / "scheduler_table.tex"
     savepath.parent.mkdir(parents=True, exist_ok=True)
     savepath.write_text(latex_table)
-
-def get_missing_combos(df: pd.DataFrame) -> list[dict[str, str]]:
-    param_values = {
-        **{param: df[param].unique() for param in PARAM_NAMES},
-        'dataset': df['dataset'].unique(),
-    }
-    missing_combos: list[dict[str, str]] = []
-    for combo in product(*param_values.values()):
-        combo = dict(zip(param_values.keys(), combo))
-        if not df[(df[list(combo)] == pd.Series(combo)).all(axis=1)].empty:
-            continue
-        missing_combos.append(combo)
-    return missing_combos
-
-def print_scheduler_info():
-    for scheduler_name, scheduler in schedulers.items():
-        print(f"# {scheduler_name}")
-        print(scheduler.serialize())
-        print()
-
-def print_data_info():
-    df = load_data()
-    print(df)
-
-    missing_combos = get_missing_combos(df)
-    print(f"Missing combinations: {len(missing_combos)}")
-
-    missing_combos = get_missing_combos(df[df["k_depth"] <= 1])
-    print(f"Missing combinations (k_depth <= 1): {len(missing_combos)}")
-
-    missing_combos = get_missing_combos(df[df["k_depth"] == 0])
-    print(f"Missing combinations (k_depth == 0): {len(missing_combos)}")
-
-    missing_combos = get_missing_combos(df[df["dataset"] == "chains"])
-    print(f"Missing combinations (dataset == chains): {len(missing_combos)}")
-
-    missing_combos = get_missing_combos(df[df["sufferage"] == False])
-    print(f"Missing combinations (sufferage == False): {len(missing_combos)}")
 
 LABELS = {
     'makespan_ratio': 'Makespan Ratio',
@@ -164,7 +126,7 @@ def generate_main_effect_plot(df: pd.DataFrame,
     ax.set_ylabel(LABELS[metric])
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
-    print(f"Saved to {savepath}")
+    logging.info(f"Saved to {savepath}")
     plt.close()
 
 def generate_interaction_plot(df: pd.DataFrame,
@@ -193,7 +155,7 @@ def generate_interaction_plot(df: pd.DataFrame,
 
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
-    print(f"Saved to {savepath}")
+    logging.info(f"Saved to {savepath}")
     plt.close()
 
 def generate_interaction_plots(df: pd.DataFrame,
@@ -281,14 +243,12 @@ def generate_pareto_front_plot(df: pd.DataFrame,
                 ax[j,i].set_ylabel("Makespan Ratio")
             if j == len(vary_values) - 1:
                 ax[j,i].set_xlabel("Runtime Ratio")
-            
-            # ax[j,i].set_xlabel("Runtime Ratio")
-            # ax[j,i].set_ylabel("Makespan Ratio")
 
     plt.tight_layout()
     savepath = savedir / f"pareto_scatter.{filetype}"
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath)
+    logging.info(f"Saved pareto scatter plot to {savepath}")
     plt.close()
 
     df = df.sort_values(by=["pareto", "runtime_ratio"], ascending=[True, True], ignore_index=True)
@@ -314,46 +274,8 @@ def generate_pareto_front_plot(df: pd.DataFrame,
     savepath = savedir / f"pareto_chart.{filetype}"
     savepath.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(savepath, bbox_inches='tight')
+    logging.info(f"Saved pareto chart to {savepath}")
     plt.close()
-
-    df.loc[df["pareto"].isna(), "makespan_ratio"] = None
-    ax = gradient_heatmap(
-        df, x="scheduler", y="dataset",
-        color="makespan_ratio",
-        cmap="coolwarm",
-        upper_threshold=2,
-        title="Pareto Optimal Schedules Makespan Ratio",
-        x_label="Scheduler",
-        y_label="Dataset",
-        color_label="Makespan Ratio",
-        figsize=(16, 10),
-        cell_font_size=15,
-    )
-
-    savepath = savedir / f"pareto_chart_makespan_ratio.{filetype}"
-    savepath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(savepath, bbox_inches='tight')
-    plt.close()
-
-    df.loc[df["pareto"].isna(), "runtime_ratio"] = None
-    ax = gradient_heatmap(
-        df, x="scheduler", y="dataset",
-        color="runtime_ratio",
-        cmap="coolwarm",
-        upper_threshold=200,
-        title="Pareto Optimal Schedules Runtime Ratio",
-        x_label="Scheduler",
-        y_label="Dataset",
-        color_label="Runtime Ratio",
-        figsize=(16, 10),
-        cell_font_size=15,
-    )
-
-    savepath = savedir / f"pareto_chart_runtime_ratio.{filetype}"
-    savepath.parent.mkdir(parents=True, exist_ok=True)
-    plt.savefig(savepath, bbox_inches='tight')
-    plt.close()
-
 
 def gen_plots():
     filetype = "pdf"
@@ -367,14 +289,6 @@ def gen_plots():
     generate_pareto_front_plot(df, outputdir / "parametric", filetype=filetype)
     generate_interaction_plots(df, [*param_names, "dataset_type", "ccr"], outputdir / "parametric" , showfliers=showfliers, filetype=filetype)
     for dataset in df["dataset"].unique():
-        print(f"Generating interaction plots for {dataset}")
+        logging.info(f"Generating interaction plots for {dataset}")
         dataset_df = df[df["dataset"] == dataset]
         generate_interaction_plots(dataset_df, param_names, outputdir / "parametric" / "dataset" / dataset, showfliers=showfliers, filetype=filetype)
-
-def main():
-    # print_scheduler_info()
-    # print_data_info()
-    gen_plots()
-
-if __name__ == '__main__':
-    main()

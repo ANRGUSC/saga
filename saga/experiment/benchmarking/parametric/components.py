@@ -1,36 +1,15 @@
-import argparse
 from copy import deepcopy
 import heapq
-from itertools import product
-import logging
-import multiprocessing
-import pathlib
-from pprint import pformat
-import random
-import shutil
-import subprocess
-import time
-import fcntl
 
 import numpy as np
-import pandas as pd
-from saga.experiment.pisa.prepare_datasets import load_dataset
 from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
-import concurrent.futures
 
 
 import networkx as nx
-from typing import Any, Callable, Dict, List, Hashable, Optional, Tuple
-from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
-
-from saga.utils.testing import test_schedulers
-from saga.utils.tools import standardize_network, standardize_task_graph
-
-
-from saga.experiment.parametric.shuffle_datasets import load_batch, shuffle_datasets
+from typing import Any, Dict, List, Hashable, Optional
 
 # Initial Priority functions
 class UpwardRanking(IntialPriority):
@@ -125,11 +104,7 @@ class GreedyInsert(InsertTask):
                  node: Optional[Hashable] = None,
                  dry_run: bool = False) -> Task:
         best_insert_loc, best_task = None, None
-        # second_best_task = None
-        # TODO: This is a bit inefficient adds O(n) per iteration,
-        #       so it doesn't affect asymptotic complexity, but it's still bad
         if self.critical_path and node is None:
-            # if task_graph doesn't have critical_path attribute, then we need to calculate it
             if "critical_path" not in task_graph.nodes[task]:
                 ranks = cpop_ranks(network, task_graph)
                 critical_rank = max(ranks.values())
@@ -146,7 +121,6 @@ class GreedyInsert(InsertTask):
                     "critical_path"
                 )
 
-            # if task is on the critical path, then we only consider the fastest node
             node = task_graph.nodes[task]["critical_path"]
 
         considered_nodes = network.nodes if node is None else [node]
@@ -339,6 +313,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
 
         return schedule
 
+
 insert_funcs: Dict[str, GreedyInsert] = {}
 for compare_func_name in GREEDY_INSERT_COMPARE_FUNCS.keys():
     insert_funcs[f"{compare_func_name}_Append"] = GreedyInsert(append_only=True, compare=compare_func_name, critical_path=False)
@@ -368,262 +343,3 @@ for name, insert_func in insert_funcs.items():
         )
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
-
-        # for scheduler in [sufferage_scheduler, reg_scheduler]:
-        #     for k in range(1, 3):
-        #         k_depth_scheduler = ParametricKDepthScheduler(
-        #             scheduler=scheduler,
-        #             k_depth=k
-        #         )
-        #         k_depth_scheduler.name = f"{scheduler.name}_K{k}"
-        #         schedulers[k_depth_scheduler.name] = k_depth_scheduler
-
-def test_scheduler_equivalence(scheduler, base_scheduler):
-    task_graphs = {
-        "diamond": add_random_weights(get_diamond_dag()),
-        "chain": add_random_weights(get_chain_dag()),
-        "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag(levels=3, branching_factor=2)),
-    }
-    network = add_random_weights(get_network())
-
-    for task_graph_name, task_graph in task_graphs.items():
-        scheduler_schedule = scheduler.schedule(network, task_graph)
-        scheduler_makespan = max(
-            task.end for node, tasks in scheduler_schedule.items() for task in tasks
-        )
-        base_scheduler_schedule = base_scheduler.schedule(network, task_graph)
-        base_scheduler_makespan = max(
-            task.end for node, tasks in base_scheduler_schedule.items() for task in tasks
-        )
-        assert np.isclose(scheduler_makespan, base_scheduler_makespan), f"Makespans not equal for Schedulers {scheduler.__name__} and {base_scheduler.__name__} on {task_graph_name}. {pformat(scheduler_schedule)} {pformat(base_scheduler_schedule)}"
-        logging.info(f"PASSED: Makespans are equal for Schedulers {scheduler.__name__} and {base_scheduler.__name__} on {task_graph_name}.")
-    logging.info(f"PASSED: Schedulers {scheduler.__name__} and {base_scheduler.__name__} are equivalent.")
-
-
-def test():
-    import matplotlib
-    matplotlib.use('Agg')
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    thisdir = pathlib.Path(__file__).parent.resolve()
-    savedir = thisdir / "results" / "parametric" / "tests"
-    if savedir.exists():
-        shutil.rmtree(savedir)
-    savedir.mkdir(exist_ok=True, parents=True)
-
-    # # Uncomment to test a specific scheduler
-    # scheduler_names_to_test = [
-    #     "EST_Insert_CPoPRanking",
-    # ]
-    # for scheduler_name_to_test in scheduler_names_to_test:
-    #     test_schedulers(
-    #         {scheduler_name_to_test: schedulers[scheduler_name_to_test]},
-    #         savedir=savedir,
-    #         stop_on_error=True
-    #     )
-
-    # Test equivalence of HEFT and Parametric HEFT
-    from saga.schedulers.heft import HeftScheduler
-    heft = HeftScheduler()
-    heft_parametric = ParametricScheduler(
-        initial_priority=UpwardRanking(),
-        insert_task=GreedyInsert(append_only=False, compare="EFT")
-    )
-    test_scheduler_equivalence(heft, heft_parametric)
-
-    # Test equivalence of CPOP and Parametric CPOP
-    from saga.schedulers.cpop import CpopScheduler
-    cpop = CpopScheduler()
-    cpop_parametric = ParametricScheduler(
-        initial_priority=CPoPRanking(),
-        insert_task=GreedyInsert(append_only=False, compare="EFT", critical_path=True)
-    )
-    test_scheduler_equivalence(cpop, cpop_parametric)
-
-    # Test equivalence of Suffrage and Parametric Suffrage
-    from saga.schedulers.sufferage import SufferageScheduler
-    etf = SufferageScheduler()
-    etf_parametric = ParametricSufferageScheduler(
-        scheduler=ParametricScheduler(
-            initial_priority=ArbitraryTopological(),
-            insert_task=insert_funcs["EFT_Append"]
-        ),
-        top_n=None
-    )
-    test_scheduler_equivalence(etf, etf_parametric)
-    
-    # # Test all schedulers
-    test_schedulers(schedulers, savedir=savedir, stop_on_error=True, save_passing=False)
-
-def print_schedulers():
-    for i, (name, scheduler) in enumerate(schedulers.items(), start=1):
-        print(f"{i}: {name}")
-
-def print_datasets(datadir: pathlib.Path):
-    for i, dataset_path in enumerate(datadir.glob("*.json"), start=1):
-        dataset = load_dataset(datadir, dataset_path.stem)
-        print(f"{i}: {dataset_path.stem} ({len(dataset)} instances)")
-
-DEFAULT_DATASETS = [
-    f"{name}_ccr_{ccr}"
-    for name in ['cycles', 'chains', 'in_trees', 'out_trees']
-    for ccr in [0.2, 0.5, 1, 2, 5]
-]
-def evaluate_instance(scheduler: Scheduler,
-                      network: nx.Graph,
-                      task_graph: nx.DiGraph,
-                      dataset_name: str,
-                      instance_num: int,
-                      savepath: pathlib.Path):
-    task_graph = standardize_task_graph(task_graph)
-    network = standardize_network(network)
-    t0 = time.time()
-    schedule = scheduler.schedule(network, task_graph)
-    dt = time.time() - t0
-    makespan = max(task.end for tasks in schedule.values() for task in tasks)
-    df = pd.DataFrame(
-        [[scheduler.__name__, dataset_name, instance_num, makespan, dt]],
-        columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
-    )
-    savepath.parent.mkdir(exist_ok=True, parents=True)
-    if savepath.exists():
-        df.to_csv(savepath, mode='a', header=False, index=False)
-    else:
-        df.to_csv(savepath, index=False)
-    print(f"  saved results to {savepath}")
-
-def test_run():
-    # Evaluating EST_Append_CP_UpwardRanking on cycles_ccr_2 instance 56
-    scheduler = schedulers["EST_Append_CP_UpwardRanking"]
-    datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
-    dataset_name = "cycles_ccr_2"
-    dataset = load_dataset(datadir, dataset_name)
-
-    t00 = time.time()
-    for network, task_graph in dataset:
-        task_graph = standardize_task_graph(task_graph)
-        network = standardize_network(network)
-
-        t0 = time.time()
-        schedule = scheduler.schedule(network, task_graph)
-        dt = time.time() - t0
-        makespan = max(task.end for tasks in schedule.values() for task in tasks)
-        print(f"Makespan: {makespan}, Runtime: {dt}")
-
-    dt = time.time() - t00
-    print(f"Total Runtime: {dt}")
-    print(f"Predicted Total Runtime: {dt * len(dataset) / 20}")
-
-def run_batch(batch_num: int,
-              datadir: pathlib.Path,
-              timeout: Optional[float] = None,
-              out: pathlib.Path = pathlib.Path("results.csv")):
-    batch = load_batch(datadir, batch_num)
-    print(f"Running batch of {len(batch)} instances.")
-    for i, (scheduler, (dataset_name, instance_num, network, task_graph)) in enumerate(product(schedulers.values(), batch)):
-        if not timeout:
-            evaluate_instance(
-                scheduler=scheduler,
-                network=network,
-                task_graph=task_graph,
-                dataset_name=dataset_name,
-                instance_num=instance_num,
-                savepath=out
-            )
-        else:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(
-                    evaluate_instance,
-                    scheduler,
-                    network,
-                    task_graph,
-                    dataset_name,
-                    instance_num,
-                    out
-                )
-                try:
-                    future.result(timeout)
-                except concurrent.futures.TimeoutError:
-                    print(f"Timed out {scheduler.__name__} on {dataset_name} instance {instance_num}.")
-                    # append Nones to the results file
-                    df = pd.DataFrame(
-                        [[scheduler.__name__, dataset_name, instance_num, np.nan, np.nan]],
-                        columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
-                    )
-                    if pathlib.Path(out).exists():
-                        df.to_csv(pathlib.Path(out), mode='a', header=False, index=False)
-                    else:
-                        df.to_csv(pathlib.Path(out), index=False)
-
-def main():
-    parser = argparse.ArgumentParser()
-
-    subparsers = parser.add_subparsers(dest="command")
-    
-    run_subparser = subparsers.add_parser("run-slurm", help="Run the benchmarking on SLURM.")
-
-    run_subparser = subparsers.add_parser("run", help="Run the benchmarking.")
-    run_subparser.add_argument("--datadir", type=str, required=True, help="Directory to load the dataset from.")
-    run_subparser.add_argument("--out", type=str, required=True, help="Directory to save the results.")
-    run_subparser.add_argument("--trim", type=int, default=0, help="Maximum number of instances to evaluate. Default is 0, which means no trimming.")
-    run_subparser.add_argument("--batch", type=int, required=True, help="Batch number to run.")
-    run_subparser.add_argument("--batches", type=int, default=500, help="total number of batches.")
-    run_subparser.add_argument("--timeout", type=float, default=0, help="Timeout for each instance in seconds. Default is 0, which means no timeout.")    
-
-    list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
-
-    test_subparser = subparsers.add_parser("test", help="Run the tests.")
-    args = parser.parse_args()
-
-
-    if args.command == "test":
-        test()
-    elif args.command == "list":
-        print_schedulers()
-    elif args.command == "run-slurm":
-        thisdir = pathlib.Path(__file__).parent.resolve()
-        proc = subprocess.Popen(
-            ["sbatch", thisdir / "exp_parametric.sl"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        stdout, stderr = proc.communicate()
-        print(stdout.decode())
-        print(stderr.decode())
-    elif args.command == "run":
-        datadir = pathlib.Path(args.datadir)
-        shuffled_datadir = datadir.parent.joinpath(f"shuffled_{datadir.stem}")
-        if not shuffled_datadir.exists():
-            shuffle_datasets(datadir, args.batches, shuffled_datadir, trim=args.trim)
-        elif len(list(shuffled_datadir.glob("*.json"))) != args.batches:
-            shutil.rmtree(shuffled_datadir)
-            shuffle_datasets(datadir, args.batches, shuffled_datadir, trim=args.trim)
-        else:
-            print(f"Using existing shuffled datasets in {shuffled_datadir}")
-
-        datadir = shuffled_datadir
-        num_batches = multiprocessing.cpu_count() if args.batches == -1 else args.batches
-
-        if args.batch == -1:
-            pool = multiprocessing.Pool(processes=num_batches)
-            savedir = pathlib.Path(args.out).parent.joinpath('parametric')
-            outpaths = [savedir / f"results_{i}.csv" for i in range(num_batches)]
-            pool.starmap(
-                run_batch,
-                [
-                    (batch, datadir, args.timeout, pathlib.Path(outpath))
-                    for batch, outpath in zip(range(num_batches), outpaths)
-                ]
-            )
-            # concat the results
-            results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
-            results.to_csv(pathlib.Path(args.out), index=False)
-            
-        elif args.batch < 0 or args.batch >= num_batches:
-            raise ValueError(f"Invalid batch number {args.batch}. Must be between 0 and {num_batches-1} for this trim value ({args.trim}).")
-        else:
-            run_batch(args.batch, datadir, args.timeout, pathlib.Path(args.out))
-    else:
-        parser.print_help()

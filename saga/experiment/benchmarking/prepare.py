@@ -248,8 +248,6 @@ def riotbench_dataset(get_task_graphs: Callable[[int], List[nx.DiGraph]],
 
 def run(savedir: pathlib.Path, skip_existing: bool = True):
     """Generate the datasets."""
-    random.seed(0) # For reproducibility
-    np.random.seed(0)
     savedir.mkdir(parents=True, exist_ok=True)
 
     # Random Graphs
@@ -285,8 +283,6 @@ def run(savedir: pathlib.Path, skip_existing: bool = True):
 
 def run_wfcommons_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
     """Generate the datasets."""
-    random.seed(0) # For reproducibility
-    np.random.seed(0)
     savedir.mkdir(parents=True, exist_ok=True)
 
     # Wfcommons w/ different CCRs
@@ -297,19 +293,17 @@ def run_wfcommons_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
                 # wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}")
                 save_dataset(savedir, wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}"))
 
-def run_ccrs(savedir: pathlib.Path, skip_existing: bool = True):
+def prepare_ccr_datasets(savedir: pathlib.Path,
+                         ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
+                         skip_existing: bool = True):
     """Generate the datasets."""
-    random.seed(0) # For reproducibility
-    np.random.seed(0)
     savedir.mkdir(parents=True, exist_ok=True)
-
     dataset_names = {
         'chains': chains_dataset,
         'in_trees': in_trees_dataset,
         'out_trees': out_trees_dataset,
         'cycles': lambda ccr: wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}"),
     }
-    ccrs = [1/5, 1/2, 1, 2, 5]
     for ccr in ccrs:
         for name in dataset_names:
             if not savedir.joinpath(f"{name}_ccr_{ccr}.json").exists() or not skip_existing:

@@ -18,9 +18,6 @@ from saga.schedulers.data.wfcommons import (get_networks, get_num_task_range,
                                             trace_to_digraph)
 from wfcommons.wfgen import WorkflowGenerator
 
-random.seed(0)
-np.random.seed(0)
-
 def get_changes(cloud_type: str,
                 recipe_name: str,
                 granularity: float) -> List[Type[Change]]:

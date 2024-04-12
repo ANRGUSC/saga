@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from saga.experiment.pisa.prepare_datasets import load_dataset
+from saga.experiment.benchmarking.prepare import load_dataset
 from saga.data import Dataset
 
 import saga.schedulers as saga_schedulers
@@ -100,12 +100,8 @@ def run(datadir: pathlib.Path,
         schedulers (List[Scheduler], optional): The schedulers to evaluate. Defaults to None (all schedulers).
         overwrite (bool, optional): Whether to overwrite existing results. Defaults to False.
     """ 
-    random.seed(0) # For reproducibility
-    np.random.seed(0) # For reproducibility
     resultsdir.mkdir(parents=True, exist_ok=True)
-
     schedulers = schedulers if schedulers else get_schedulers()
-
     default_datasets = [path.stem for path in datadir.glob("*.json")]
     dataset_names = [dataset] if dataset else default_datasets
     for dataset_name in dataset_names:

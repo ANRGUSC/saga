@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 
-from saga.experiment.pisa.prepare_datasets import load_dataset
+from saga.experiment.benchmarking.prepare import load_dataset
 
 from saga.scheduler import Scheduler, Task
 from saga.schedulers import HeftScheduler, FastestNodeScheduler, CpopScheduler
@@ -173,8 +173,6 @@ def run(datadir: pathlib.Path,
         trim (int, optional): Maximum number of instances to evaluate per dataset. Defaults to 0 (no trimming).
         schedulers (List[Scheduler], optional): The schedulers to evaluate. Defaults to None (all schedulers).
     """ 
-    random.seed(0) # For reproducibility
-    np.random.seed(0) # For reproducibility
     resultsdir.mkdir(parents=True, exist_ok=True)
 
     schedulers = determinize_schedulers(schedulers if schedulers else get_schedulers())
