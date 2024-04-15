@@ -42,10 +42,12 @@ def evaluate_instance(scheduler: Scheduler,
                       savepath: pathlib.Path):
     task_graph = standardize_task_graph(task_graph)
     network = standardize_network(network)
-    t0 = time.time()
-    schedule = scheduler.schedule(network, task_graph)
-    dt = time.time() - t0
-    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+    # t0 = time.time()
+    # schedule = scheduler.schedule(network, task_graph)
+    # dt = time.time() - t0
+    # makespan = max(task.end for tasks in schedule.values() for task in tasks)
+    dt = 2
+    makespan = 1
     df = pd.DataFrame(
         [[scheduler.__name__, dataset_name, instance_num, makespan, dt]],
         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
@@ -71,6 +73,9 @@ def run_batch(batch_num: int,
             instance_num=instance_num,
             savepath=out
         )
+
+    if queue is not None:
+        queue.put("DONE")
 
 def shuffle_datasets(datadir: pathlib.Path,
                      batches: int,
@@ -157,27 +162,30 @@ class ParametricExperiment(Experiment):
         pool = multiprocessing.Pool(processes=num_batches)
         savedir = self.resultsdir / "batch_results"
         savedir.mkdir(parents=True, exist_ok=True)
-        outpaths = [savedir / f"results_{i}.csv" for i in range(num_batches)]
 
         res = pool.starmap_async(
             run_batch,
             [
-                (batch, shuffled_datadir, pathlib.Path(outpath))
-                for batch, outpath in zip(range(num_batches), outpaths)
+                (batch, shuffled_datadir, pathlib.Path(savedir / f"results_{batch}.csv"))
+                for batch in range(num_batches)
             ]
         )
 
+        batches_done = 0
         while True:
             thing = queue.get()
             if isinstance(thing, str) and thing == "DONE":
-                break
-            progress_callback(thing)
+                batches_done += 1
+                if batches_done == num_batches:
+                    break
+            else:
+                progress_callback(thing)
 
-        queue.put("DONE")
+        print("Done!")
         res.wait()
 
         # concat the results
-        results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
+        results = pd.concat([pd.read_csv(outpath) for outpath in savedir.glob("*.csv")])
         results.to_csv(self.resultsdir / "results.csv", index=False)
 
     def analyze(self,

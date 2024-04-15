@@ -1,21 +1,24 @@
 from functools import partial
 import random
+from sched import scheduler
 from typing import Any, Callable, Dict, Hashable, List, Optional
 from matplotlib import pyplot as plt
-from networkx import DiGraph, Graph
-from exp_parametric import ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS, UpwardRanking, get_insert_loc, cpop_ranks
+from saga.experiment.benchmarking.parametric.components import (
+    ArbitraryTopological, CPoPRanking, ParametricScheduler,
+    GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS,
+    ParametricSufferageScheduler, UpwardRanking, get_insert_loc,
+    initial_priority_funcs, insert_funcs
+)
 from saga.scheduler import Task
 from saga.schedulers.parametric import ScheduleType
 import networkx as nx
-import numpy as np
 from saga.utils.draw import draw_gantt
 import plotly.express as px
-import pathlib
 import pandas as pd
 
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
+from saga.experiment import resultsdir, outputdir, datadir
 
-thisdir = pathlib.Path(__file__).resolve().parent
 
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,
@@ -165,7 +168,7 @@ def example():
     
     schedule = scheduler.schedule(network, task_graph)
     
-    savedir = thisdir / "output" / "constraints"
+    savedir = outputdir / "constraints"
     savedir.mkdir(parents=True, exist_ok=True)
     ax = draw_gantt(schedule)
     ax.set_title("Constrained Greedy Insert")
@@ -220,7 +223,7 @@ def experiment_1():
 
     df = pd.DataFrame(rows)
 
-    savedir = thisdir / "output" / "constraints"
+    savedir = outputdir / "constraints"
     savedir.mkdir(parents=True, exist_ok=True)
 
     fig = px.box(
@@ -346,7 +349,7 @@ def experiment_2():
 
     df = pd.DataFrame(rows, columns=["run", "makespan", "scheduler"])
     
-    savedir = thisdir / "output" / "constraints"
+    savedir = outputdir / "constraints"
     savedir.mkdir(parents=True, exist_ok=True)
     
     fig = px.box(
@@ -366,7 +369,96 @@ def experiment_2():
     fig.write_image(savedir / "makespan_vs_scheduler.png")
     fig.write_html(savedir / "makespan_vs_scheduler.html")
 
-    
+def experiment_full():
+    schedulers: Dict[str, ParametricScheduler] = {}
+    arb_insert = GreedyInsert(
+        append_only=True,
+        compare=lambda new, cur: random.random() - 0.5,
+        critical_path=False
+    )
+    insert_tasks = {"RAND": arb_insert, **insert_funcs}
+    for name, insert_task in insert_tasks.items():
+        for intial_priority_name, initial_priority_func in initial_priority_funcs.items():
+            def compare(network: nx.Graph,
+                        task_graph: nx.DiGraph,
+                        schedule: ScheduleType,
+                        new: Task, cur: Task,
+                        max_tasks_per_node: int) -> float:
+                if len(schedule[new.node]) >= max_tasks_per_node:
+                    return 1e9
+                if len(schedule[cur.node]) >= max_tasks_per_node:
+                    return -1e9
+                return insert_task._compare(new, cur)
+            reg_scheduler = ParametricScheduler(
+                initial_priority=scheduler.initial_priority,
+                insert_task=ConstrainedGreedyInsert(
+                    append_only=insert_task.append_only,
+                    compare=compare,
+                    critical_path=insert_task.critical_path
+                )
+            )
+            reg_scheduler.name = f"{name}_{intial_priority_name}"
+            schedulers[reg_scheduler.name] = reg_scheduler
+
+            sufferage_scheduler = ParametricSufferageScheduler(
+                scheduler=reg_scheduler,
+                top_n=2
+            )
+            sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
+            schedulers[sufferage_scheduler.name] = sufferage_scheduler
+
+    LEVELS = 3
+    BRANCHING_FACTOR = 2
+    NUM_EVALS = 100
+    rows = []
+    for i in range(NUM_EVALS):
+        for scheduler_name, scheduler in schedulers.items():
+            task_graph = add_random_weights(
+                get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
+                weight_range=(0.2, 1.0)
+            )
+            network = add_random_weights(
+                get_network(),
+                weight_range=(0.2, 1.0)
+            )
+
+            # HEFT w/ constraints
+            scheduler = ParametricScheduler(
+                initial_priority=UpwardRanking(),
+                insert_task=ConstrainedGreedyInsert(
+                    append_only=False,
+                    compare=compare,
+                    critical_path=False
+                )
+            )
+            schedule = scheduler.schedule(network, task_graph)
+            makespan = max(task.end for tasks in schedule.values() for task in tasks)
+            rows.append({
+                "scheduler": scheduler_name,
+                "problem": i,
+                "makespan": makespan
+            })
+
+    df = pd.DataFrame(rows)
+    savedir = resultsdir / "constraints"
+    savedir.mkdir(parents=True, exist_ok=True)
+    df.to_csv(savedir / "results.csv", index=False)
+
+def experiment_full_plots():
+    df = pd.read_csv(resultsdir / "constraints" / "results.csv")
+    fig = px.box(
+        df,
+        x="scheduler", y="makespan",
+        title="Makespan vs. Scheduler",
+        template="plotly_white",
+        # exclude outliers
+        # boxmode="overlay",
+        points=False,
+        # make black and white
+        color_discrete_sequence=["black"],
+    )
+
+
 def main():
     example()
     experiment_1()
