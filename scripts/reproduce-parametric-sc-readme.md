@@ -1,5 +1,17 @@
 # Parametric List Scheduler
 
+<!-- table of contents -->
+## Table of Contents
+- [Preliminaries](#preliminaries)
+- [Running Experiments Locally](#running-experiments-locally)
+  - [Installation](#installation)
+  - [Running the experiments](#running-the-experiments)
+- [Running Experiments on Coder](#running-experiments-on-coder)
+
+## Preliminaries
+The general requirements are Python 3.10 (other versions may work but have not been tested).
+We have tested the following instructions on Ubuntu 20.04 and MacOS 11.2.3.
+
 ## Running Experiments Locally
 
 To get a local copy up and running on your machine follow these steps
@@ -55,7 +67,7 @@ To run the experiments on our cloud servers without having to install anything l
 
 4. Enter a name for your workspace and click on "Create Workspace"
 
-5. Wait for it to setup and then click on "code-server"
+5. Wait for the setup script to finish *completely* (the setup stdout window will close when it isi finished) and then click on "code-server"
 
 6. Navigate to "scripts/reproduce-parametric-sc.ipynb" 
 
@@ -63,4 +75,4 @@ To run the experiments on our cloud servers without having to install anything l
 
 8. Once the extensions are installed select "Python Environments..." and then select "saga"
 
-9. Click on "Run All"
+9. Click on "Run All". Make sure to leave the window open *the entire time* the experiments are running.

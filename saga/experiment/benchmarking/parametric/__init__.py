@@ -136,7 +136,8 @@ class ParametricExperiment(Experiment):
 
         shuffled_datadir = self.datadir.joinpath("shuffled")
         if (not shuffled_datadir.exists() or len(list(shuffled_datadir.glob("*.json"))) != num_batches):
-            shutil.rmtree(shuffled_datadir)
+            if shuffled_datadir.exists():
+                shutil.rmtree(shuffled_datadir)
             shuffle_datasets(self.datadir, num_batches, shuffled_datadir, trim=self.trim)
         else:
             print(f"Using existing shuffled datasets in {shuffled_datadir}")
@@ -158,17 +159,7 @@ class ParametricExperiment(Experiment):
         savedir.mkdir(parents=True, exist_ok=True)
         outpaths = [savedir / f"results_{i}.csv" for i in range(num_batches)]
 
-        def run_callback_on_queue():
-            while True:
-                thing = queue.get()
-                if isinstance(thing, str) and thing == "DONE":
-                    break
-                progress_callback(thing)
-
-        callback_process = multiprocessing.Process(target=run_callback_on_queue)
-        callback_process.start()
-
-        pool.starmap(
+        res = pool.starmap_async(
             run_batch,
             [
                 (batch, shuffled_datadir, pathlib.Path(outpath))
@@ -176,8 +167,14 @@ class ParametricExperiment(Experiment):
             ]
         )
 
+        while True:
+            thing = queue.get()
+            if isinstance(thing, str) and thing == "DONE":
+                break
+            progress_callback(thing)
+
         queue.put("DONE")
-        callback_process.join()
+        res.wait()
 
         # concat the results
         results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
@@ -202,23 +199,23 @@ class ParametricExperiment(Experiment):
             for param in param_names:
                 generate_main_effect_plot(
                     df, param, "makespan_ratio",
-                    savedir / f"{param}-makespan-ratio.{filetype}",
+                    outputdir / f"{param}-makespan-ratio.{filetype}",
                     showfliers=showfliers
                 )
                 generate_main_effect_plot(
                     df, param, "runtime_ratio",
-                    savedir / f"{param}-runtime-ratio.{filetype}",
+                    outputdir / f"{param}-runtime-ratio.{filetype}",
                     showfliers=showfliers
                 )
         if do_interaction_plots:
             for param_1, param_2 in combinations(param_names, 2):
                 generate_interaction_plot(
                     df, param_1, param_2, "makespan_ratio",
-                    savedir / "interactions" / f"{param_1}-{param_2}-makespan-ratio.{filetype}"
+                    outputdir / "interactions" / f"{param_1}-{param_2}-makespan-ratio.{filetype}"
                 )
                 generate_interaction_plot(
                     df, param_1, param_2, "runtime_ratio",
-                    savedir / "interactions" / f"{param_1}-{param_2}-runtime-ratio.{filetype}"
+                    outputdir / "interactions" / f"{param_1}-{param_2}-runtime-ratio.{filetype}"
                 )
             
         # Dataset specific plots
