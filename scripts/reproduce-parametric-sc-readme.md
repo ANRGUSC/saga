@@ -45,7 +45,7 @@ Install the required libraries
 ```
 ### Running the experiments
 
-1. Activate your base conda environtment or whichever environment has jupyter
+1. Activate your base conda environment or whichever environment has jupyter
 2. Select "saga_env" as your kernal
 3. Run all cells
 ```bash
