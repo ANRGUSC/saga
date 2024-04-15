@@ -13,23 +13,32 @@ git clone https://github.com/ANRGUSC/saga.git
 cd saga
 ```
 
-[Optional] Create a virtual environment and activate it
+Create a virtual environment, activate it and set up the kernal
 ```bash
-python -m venv saga_env
-source saga_env/bin/activate # Unix or MacOS
-saga_env\Scripts\activate # Windows
+$conda create -n saga_env
+$conda activate -n saga_env 
+(saga_env)$conda install ipykernal
+(saga_env)$ipython kernal install --user --name=saga_env
+(saga_env)$pip install anrg.saga
 ```
 Switch branch to "feature/experimentation"
 
 ```bash
-git checkout feature/experimentation
+(saga_env)$git checkout feature/experimentation
 ```
 Install the required libraries
 ```bash
-pip install .
+(saga_env)$pip install .
+(saga_env)$conda deactivate
 ```
 ### Running the experiments
 
+1. Activate your base conda environtment or whichever environment has jupyter
+2. Select "saga_env" as your kernal
+3. Run all cells
+```bash
+(base)$jupyter notebook scripts/reproduce-parametric-sc.ipynb
+```
 Naviagte to "scripts/reproduce-parametric-sc.ipynb" and run all 
 
 
