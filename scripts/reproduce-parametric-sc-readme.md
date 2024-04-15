@@ -1,5 +1,17 @@
 # Parametric List Scheduler
 
+<!-- table of contents -->
+## Table of Contents
+- [Preliminaries](#preliminaries)
+- [Running Experiments Locally](#running-experiments-locally)
+  - [Installation](#installation)
+  - [Running the experiments](#running-the-experiments)
+- [Running Experiments on Coder](#running-experiments-on-coder)
+
+## Preliminaries
+The general requirements are Python 3.9 or later (earlier versions may work but have not been tested).
+We have tested the following instructions on Ubuntu 20.04 and MacOS 11.2.3.
+
 ## Running Experiments Locally
 
 To get a local copy up and running on your machine follow these steps
@@ -16,8 +28,7 @@ cd saga
 [Optional] Create a virtual environment and activate it
 ```bash
 python -m venv saga_env
-source saga_env/bin/activate # Unix or MacOS
-saga_env\Scripts\activate # Windows
+source saga_env/bin/activate
 ```
 Switch branch to "feature/experimentation"
 

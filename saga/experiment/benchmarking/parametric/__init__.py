@@ -158,17 +158,7 @@ class ParametricExperiment(Experiment):
         savedir.mkdir(parents=True, exist_ok=True)
         outpaths = [savedir / f"results_{i}.csv" for i in range(num_batches)]
 
-        def run_callback_on_queue():
-            while True:
-                thing = queue.get()
-                if isinstance(thing, str) and thing == "DONE":
-                    break
-                progress_callback(thing)
-
-        callback_process = multiprocessing.Process(target=run_callback_on_queue)
-        callback_process.start()
-
-        pool.starmap(
+        res = pool.starmap_async(
             run_batch,
             [
                 (batch, shuffled_datadir, pathlib.Path(outpath))
@@ -176,8 +166,14 @@ class ParametricExperiment(Experiment):
             ]
         )
 
+        while True:
+            thing = queue.get()
+            if isinstance(thing, str) and thing == "DONE":
+                break
+            progress_callback(thing)
+
         queue.put("DONE")
-        callback_process.join()
+        res.wait()
 
         # concat the results
         results = pd.concat([pd.read_csv(outpath) for outpath in outpaths])
