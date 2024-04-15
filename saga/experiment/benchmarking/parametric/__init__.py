@@ -42,12 +42,12 @@ def evaluate_instance(scheduler: Scheduler,
                       savepath: pathlib.Path):
     task_graph = standardize_task_graph(task_graph)
     network = standardize_network(network)
-    # t0 = time.time()
-    # schedule = scheduler.schedule(network, task_graph)
-    # dt = time.time() - t0
-    # makespan = max(task.end for tasks in schedule.values() for task in tasks)
-    dt = 2
-    makespan = 1
+    t0 = time.time()
+    schedule = scheduler.schedule(network, task_graph)
+    dt = time.time() - t0
+    makespan = max(task.end for tasks in schedule.values() for task in tasks)
+    # dt = 2
+    # makespan = 1
     df = pd.DataFrame(
         [[scheduler.__name__, dataset_name, instance_num, makespan, dt]],
         columns=["scheduler", "dataset", "instance", "makespan", "runtime"]
