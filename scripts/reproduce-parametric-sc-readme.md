@@ -29,8 +29,8 @@ Create a virtual environment, activate it and set up the kernal
 ```bash
 $conda create -n saga_env
 $conda activate saga_env 
-(saga_env)$conda install ipykernal
-(saga_env)$ipython kernal install --user --name=saga_env
+(saga_env)$conda install ipykernel
+(saga_env)$ipython kernel install --user --name=saga_env
 (saga_env)$pip install anrg.saga
 ```
 Switch branch to "feature/experimentation"
