@@ -13,7 +13,7 @@ from saga.scheduler import Scheduler, Task
 from saga.schedulers import HeftScheduler, FastestNodeScheduler, CpopScheduler
 from saga.schedulers.stochastic.determinizer import Determinizer
 from saga.utils.random_variable import RandomVariable
-from saga.experiment.benchmarking import get_schedulers, TrimmedDataset
+from saga.experiment.benchmarking.run import get_schedulers, TrimmedDataset
 
 determinizers: Dict[str, Callable[[RandomVariable], float]] = {
     "mean": lambda rv: rv.mean(),

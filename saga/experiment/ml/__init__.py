@@ -1,15 +1,12 @@
+from copy import deepcopy
 import json
-from saga.data import serialize_graph
+from typing import Dict, List
+from saga.data import serialize_graph, deserialize_graph
 from saga.experiment.benchmarking.parametric.components import UpwardRanking, GreedyInsert, ParametricScheduler
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
 import networkx as nx
 import os
 
-os.environ["DGLBACKEND"] = "pytorch"
-import dgl
-import torch
-from dgl.data import DGLDataset
-import pandas as pd
 
 from saga.experiment import datadir, resultsdir, outputdir
 
@@ -26,11 +23,9 @@ def prepare_dataset():
         network = add_random_weights(get_network(num_nodes=NUM_NODES))
 
         topological_sorts = list(nx.all_topological_sorts(task_graph))
-        best_makespan = float("inf")
-        best_topological_sort = None
         for topological_sort in topological_sorts:
             scheduler = ParametricScheduler(
-                initial_priority=lambda *_: topological_sort,
+                initial_priority=lambda *_: deepcopy(topological_sort),
                 insert_task=GreedyInsert(
                     append_only=False,
                     compare="EFT",
@@ -41,17 +36,15 @@ def prepare_dataset():
             schedule = scheduler.schedule(network.copy(), task_graph.copy())
             makespan = max(task.end for tasks in schedule.values() for task in tasks)
 
-            if makespan < best_makespan:
-                best_makespan = makespan
-                best_topological_sort = topological_sort
-
-        dataset.append(
-            {
-                "task_graph": serialize_graph(task_graph),
-                "network": serialize_graph(network),
-                "topological_sort": best_topological_sort
-            }
-        )
+            dataset.append(
+                {
+                    "instance": i,
+                    "task_graph": serialize_graph(task_graph),
+                    "network": serialize_graph(network),
+                    "topological_sort": deepcopy(topological_sort),
+                    "makespan": makespan,
+                }
+            )
 
     print("Progress: 100.00%")
 
@@ -60,49 +53,26 @@ def prepare_dataset():
     dataset_path = savedir / "data.json"
     dataset_path.write_text(json.dumps(dataset, indent=4))
 
-class MLSchedulingDataset(DGLDataset):
-    def __init__(self):
-        super().__init__(name="karate_club")
+def load_dataset(cache: bool = True) -> List[Dict]:
+    """Load the dataset from disk and deserialize the graphs.
+    
+    Args:
+        cache (bool, optional): Whether to cache the dataset. Defaults to True.
 
-    def process(self):
-        dataset = json.loads((datadir / "ml" / "data.json").read_text())
+    Returns:
+        List[Dict]: List of problem instances, each containing a task graph, network, topological sort, and makespan
+            of HEFT on the problem instance with the given topological sort.
+    """
+    savedir = datadir / "ml"
+    dataset_path = savedir / "data.json"
+    if not dataset_path.exists() or not cache:
+        print("Dataset not found. Generating dataset...")
+        prepare_dataset()
 
-        nodes_data = pd.read_csv("./members.csv")
-        edges_data = pd.read_csv("./interactions.csv")
-        node_features = torch.from_numpy(nodes_data["Age"].to_numpy())
-        node_labels = torch.from_numpy(
-            nodes_data["Club"].astype("category").cat.codes.to_numpy()
-        )
-        edge_features = torch.from_numpy(edges_data["Weight"].to_numpy())
-        edges_src = torch.from_numpy(edges_data["Src"].to_numpy())
-        edges_dst = torch.from_numpy(edges_data["Dst"].to_numpy())
-
-        self.graph = dgl.graph(
-            (edges_src, edges_dst), num_nodes=nodes_data.shape[0]
-        )
-        self.graph.ndata["feat"] = node_features
-        self.graph.ndata["label"] = node_labels
-        self.graph.edata["weight"] = edge_features
-
-        # If your dataset is a node classification dataset, you will need to assign
-        # masks indicating whether a node belongs to training, validation, and test set.
-        n_nodes = nodes_data.shape[0]
-        n_train = int(n_nodes * 0.6)
-        n_val = int(n_nodes * 0.2)
-        train_mask = torch.zeros(n_nodes, dtype=torch.bool)
-        val_mask = torch.zeros(n_nodes, dtype=torch.bool)
-        test_mask = torch.zeros(n_nodes, dtype=torch.bool)
-        train_mask[:n_train] = True
-        val_mask[n_train : n_train + n_val] = True
-        test_mask[n_train + n_val :] = True
-        self.graph.ndata["train_mask"] = train_mask
-        self.graph.ndata["val_mask"] = val_mask
-        self.graph.ndata["test_mask"] = test_mask
-
-    def __getitem__(self, i):
-        return self.graph
-
-    def __len__(self):
-        return 1
-
-
+    print("Loading dataset...")
+    dataset = json.loads(dataset_path.read_text())
+    # deserialize graphs
+    for problem_instance in dataset:
+        problem_instance["task_graph"] = deserialize_graph(problem_instance["task_graph"])
+        problem_instance["network"] = deserialize_graph(problem_instance["network"])
+    return dataset
