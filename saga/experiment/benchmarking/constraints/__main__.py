@@ -7,7 +7,7 @@ def main():
     # experiment_1()
     # experiment_2()
 
-    # experiment_full()
+    experiment_full()
     experiment_full_plots()
 
 if __name__ == "__main__":
