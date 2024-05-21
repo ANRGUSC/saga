@@ -18,6 +18,7 @@ import pandas as pd
 
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
 from saga.experiment import resultsdir, outputdir, datadir
+from saga.experiment.benchmarking.parametric.analyze import SCHEDULER_RENAMES
 
 
 class ConstrainedGreedyInsert(InsertTask):
@@ -371,26 +372,20 @@ def experiment_2():
 
 def experiment_full():
     schedulers: Dict[str, ParametricScheduler] = {}
-    arb_insert = GreedyInsert(
-        append_only=True,
-        compare=lambda new, cur: random.random() - 0.5,
-        critical_path=False
-    )
-    insert_tasks = {"RAND": arb_insert, **insert_funcs}
-    for name, insert_task in insert_tasks.items():
+    for name, insert_task in insert_funcs.items():
         for intial_priority_name, initial_priority_func in initial_priority_funcs.items():
             def compare(network: nx.Graph,
                         task_graph: nx.DiGraph,
                         schedule: ScheduleType,
-                        new: Task, cur: Task,
-                        max_tasks_per_node: int) -> float:
-                if len(schedule[new.node]) >= max_tasks_per_node:
+                        new: Task, cur: Task) -> float:
+                schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+                if new.node in schedule_restrictions[new.name]:
                     return 1e9
-                if len(schedule[cur.node]) >= max_tasks_per_node:
+                elif cur.node in schedule_restrictions[cur.name]:
                     return -1e9
                 return insert_task._compare(new, cur)
             reg_scheduler = ParametricScheduler(
-                initial_priority=scheduler.initial_priority,
+                initial_priority=initial_priority_func,
                 insert_task=ConstrainedGreedyInsert(
                     append_only=insert_task.append_only,
                     compare=compare,
@@ -407,30 +402,42 @@ def experiment_full():
             sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
             schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
+    arb_scheduler = ParametricScheduler(
+        initial_priority=ArbitraryTopological(),
+        insert_task=ConstrainedGreedyInsert(
+            append_only=True,
+            compare=lambda *_: random.random() - 0.5,
+            critical_path=False
+        )
+    )
+    schedulers = {"Arbitrary": arb_scheduler, **schedulers}
+
+    NUM_NODES = 4
     LEVELS = 3
     BRANCHING_FACTOR = 2
     NUM_EVALS = 100
     rows = []
+    total = len(schedulers) * NUM_EVALS
+    count = 0
     for i in range(NUM_EVALS):
+        # random constraints allowing each task to be scheduled on at least one node
+            
+        task_graph = add_random_weights(
+            get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
+            weight_range=(0.2, 1.0)
+        )
+        network = add_random_weights(
+            get_network(NUM_NODES),
+            weight_range=(0.2, 1.0)
+        )
+        schedule_restrictions = {
+            task: set(random.sample(network.nodes, random.randint(1, NUM_NODES)))
+            for task in task_graph.nodes
+        }
+        task_graph.graph["schedule_restrictions"] = schedule_restrictions
         for scheduler_name, scheduler in schedulers.items():
-            task_graph = add_random_weights(
-                get_branching_dag(levels=LEVELS, branching_factor=BRANCHING_FACTOR),
-                weight_range=(0.2, 1.0)
-            )
-            network = add_random_weights(
-                get_network(),
-                weight_range=(0.2, 1.0)
-            )
-
-            # HEFT w/ constraints
-            scheduler = ParametricScheduler(
-                initial_priority=UpwardRanking(),
-                insert_task=ConstrainedGreedyInsert(
-                    append_only=False,
-                    compare=compare,
-                    critical_path=False
-                )
-            )
+            count += 1
+            print(f"Progress: {count/total*100:.2f}%" + " "*100, end="\r")
             schedule = scheduler.schedule(network, task_graph)
             makespan = max(task.end for tasks in schedule.values() for task in tasks)
             rows.append({
@@ -446,6 +453,11 @@ def experiment_full():
 
 def experiment_full_plots():
     df = pd.read_csv(resultsdir / "constraints" / "results.csv")
+    for key, value in SCHEDULER_RENAMES.items():
+        df["scheduler"] = df["scheduler"].str.replace(key, value, regex=True)
+
+    arb_mean = df[df["scheduler"] == "Arbitrary"]["makespan"].median()
+
     fig = px.box(
         df,
         x="scheduler", y="makespan",
@@ -457,12 +469,55 @@ def experiment_full_plots():
         # make black and white
         color_discrete_sequence=["black"],
     )
+    # draw horizontal line at the mean of the Arbitrary scheduler
+    fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
 
+    # make the plot really wide to accommodate the 72 schedulers
+    fig.update_layout(width=3000)
+    fig.update_xaxes(title_text="Scheduler")
+    fig.update_yaxes(title_text="Makespan")
+    savedir = outputdir / "constraints"
 
-def main():
-    example()
-    experiment_1()
-    experiment_2()
+    savedir.mkdir(parents=True, exist_ok=True)
+    fig.write_image(savedir / "makespan_vs_scheduler.png")
+    print(f"Saved to {savedir / 'makespan_vs_scheduler.png'}")
+    fig.write_html(savedir / "makespan_vs_scheduler.html")
+    print(f"Saved to {savedir / 'makespan_vs_scheduler.html'}")
 
-if __name__ == "__main__":
-    main()
+    num_plots = 4
+    schedulers_without_arb = [scheduler for scheduler in df["scheduler"].unique() if scheduler != "Arbitrary"]
+    scheduler_groups = [schedulers_without_arb[i::num_plots] for i in range(num_plots)]
+    upper_threshold = df["makespan"].max() + 1
+    lower_threshold = df["makespan"].min() - 1
+    figs = []
+    for i in range(num_plots):
+        _df = df[df["scheduler"].isin({"Arbitrary", *scheduler_groups[i]})]
+        fig = px.box(
+            _df,
+            x="scheduler", y="makespan",
+            title="Makespan vs. Scheduler",
+            template="plotly_white",
+            # exclude outliers
+            # boxmode="overlay",
+            points=False,
+            # make black and white
+            color_discrete_sequence=["black"],
+        )
+        # draw horizontal line at the mean of the Arbitrary scheduler
+        fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
+
+        fig.update_layout(width=1500, height=800)
+        fig.update_xaxes(title_text="Scheduler")
+        fig.update_yaxes(title_text="Makespan")
+        savedir = outputdir / "constraints"
+        # make font larger
+        fig.update_layout(font=dict(size=18))
+        # set the y-axis range to be the same for all plots
+        fig.update_yaxes(range=[lower_threshold, upper_threshold])
+
+        savedir.mkdir(parents=True, exist_ok=True)
+        fig.write_image(savedir / f"makespan_vs_scheduler_{i}.png")
+        print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.png'}")
+        fig.write_html(savedir / f"makespan_vs_scheduler_{i}.html")
+        print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.html'}")
+        figs.append(fig)

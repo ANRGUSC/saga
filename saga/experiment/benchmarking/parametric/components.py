@@ -1,5 +1,6 @@
 from copy import deepcopy
 import heapq
+import random
 
 import numpy as np
 from saga.scheduler import Scheduler, Task
@@ -72,7 +73,7 @@ class ArbitraryTopological(IntialPriority):
 GREEDY_INSERT_COMPARE_FUNCS = {
     "EFT": lambda new, cur: new.end - cur.end,
     "EST": lambda new, cur: new.start - cur.start,
-    "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start),
+    "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start)
 }
 # Insert Task functions
 class GreedyInsert(InsertTask):
