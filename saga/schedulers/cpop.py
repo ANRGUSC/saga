@@ -12,85 +12,44 @@ def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, flo
     """Computes the upward rank of the tasks in the task graph."""
     ranks = {}
 
-    is_comm_zero = all(np.isclose(network.edges[_edge]['weight'], 0) for _edge in network.edges)
-    is_comp_zero = all(np.isclose(network.nodes[_node]['weight'], 0) for _node in network.nodes)
-
-    def avg_comm_time(parent: Hashable, child: Hashable) -> float:
-        if is_comm_zero:
-            return 1e-9
-        comm_times = [ # average communication time for output data of predecessor
-            task_graph.edges[parent, child]['weight'] / network.edges[src, dst]['weight']
-            for src, dst in network.edges
-            if not np.isclose(1/network.edges[src, dst]['weight'], 0)
-        ]
-        if not comm_times:
-            return 1e-9
-        return np.mean(comm_times)
-
-    def avg_comp_time(task: Hashable) -> float:
-        if is_comp_zero:
-            return 1e-9
-        comp_times = [
-            task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
-            for node in network.nodes
-            if not np.isclose(network.nodes[node]['weight'], 0)
-        ]
-        if not comp_times:
-            return 1e-9
-        return np.mean(comp_times)
-    
-    for task_name in reversed(list(nx.topological_sort(task_graph))):
-        max_comm = 0 if task_graph.out_degree(task_name) <= 0 else max(
-            (
-                ranks[succ] + # rank of successor
-                avg_comm_time(task_name, succ) # average communication time for output data of task
-            )
-            for succ in task_graph.successors(task_name)
+    topological_order = list(nx.topological_sort(task_graph))
+    for node in topological_order[::-1]:
+        # rank = avg_comp_time + max(rank of successors + avg_comm_time w/ successors)
+        avg_comp_time = np.mean([
+            task_graph.nodes[node]['weight'] / network.nodes[neighbor]['weight']
+            for neighbor in network.nodes
+        ])
+        max_comm_time = 0 if task_graph.out_degree(node) <= 0 else max(
+            [
+                ranks[neighbor] + np.mean([
+                    task_graph.edges[node, neighbor]['weight'] / network.edges[src, dst]['weight']
+                    for src, dst in network.edges
+                ])
+                for neighbor in task_graph.successors(node)
+            ]
         )
-        ranks[task_name] = avg_comp_time(task_name) + max_comm
-        try:
-            assert ranks[task_name] == ranks[task_name]
-        except AssertionError:
-            print(f"Task {task_name} has rank {ranks[task_name]}")
-            print(f"Task {task_name} has avg_comp_time {avg_comp_time(task_name)}")
-            print(f"Task {task_name} has max_comm {max_comm}")
-            print(f"Task successor comm times: {[(succ, avg_comm_time(task_name, succ)) for succ in task_graph.successors(task_name)]}")
-            
-            raise
+        ranks[node] = avg_comp_time + max_comm_time
 
     return ranks
 
 def downward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
-    """Computes the downward rank of the tasks in the task graph."""
     ranks = {}
 
-    is_comm_zero = all(np.isclose(network.edges[_edge]['weight'], 0) for _edge in network.edges)
-    is_comp_zero = all(np.isclose(network.nodes[_node]['weight'], 0) for _node in network.nodes)
+    topological_order = list(nx.topological_sort(task_graph))
 
-    def avg_comm_time(parent: Hashable, child: Hashable) -> float:
-        if is_comm_zero:
-            return 1e-9
-        return np.mean([ # average communication time for output data of predecessor
-            task_graph.edges[parent, child]['weight'] / network.edges[src, dst]['weight']
-            for src, dst in network.edges
-            if not np.isclose(network.edges[src, dst]['weight'], 0)
-        ])
-
-    def avg_comp_time(task: Hashable) -> float:
-        if is_comp_zero:
-            return 1e-9
-        return np.mean([
-            task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
-            for node in network.nodes
-            if not np.isclose(network.nodes[node]['weight'], 0)
-        ])
-
-    for task_name in nx.topological_sort(task_graph):
-        ranks[task_name] = 0 if task_graph.in_degree(task_name) <= 0 else max(
-            (
-                avg_comp_time(pred) + ranks[pred] + avg_comm_time(pred, task_name)
-            )
-            for pred in task_graph.predecessors(task_name)
+    for node in topological_order:
+        # rank = max(rank of predecessors + avg_comm_time w/ predecessors + avg_comp_time)
+        ranks[node] = 0 if task_graph.in_degree(node) <= 0 else max(
+            [
+                ranks[pred] + np.mean([
+                    task_graph.edges[pred, node]['weight'] / network.edges[src, dst]['weight']
+                    for src, dst in network.edges
+                ]) + np.mean([
+                    task_graph.nodes[pred]['weight'] / network.nodes[neighbor]['weight']
+                    for neighbor in network.nodes
+                ])
+                for pred in task_graph.predecessors(node)
+            ]
         )
 
     return ranks
