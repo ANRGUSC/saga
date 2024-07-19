@@ -6,7 +6,7 @@ from itertools import product
 from typing import List, Optional, Tuple
 
 import dill as pickle
-from changes import (NetworkChangeEdgeWeight, NetworkChangeNodeWeight,
+from .changes import (NetworkChangeEdgeWeight, NetworkChangeNodeWeight,
                      TaskGraphAddDependency, TaskGraphChangeDependencyWeight,
                      TaskGraphChangeTaskWeight, TaskGraphDeleteDependency)
 from saga.experiment.pisa.simulated_annealing import SimulatedAnnealing
