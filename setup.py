@@ -34,7 +34,7 @@ setup(
         'plotly',
         'kaleido',
         'pysmt',
-        'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
+        # 'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
         'streamlit',
         'dill',
         'joblib==1.3.2',

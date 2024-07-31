@@ -41,7 +41,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     figsize: Tuple[int, int] = None,
                     draw_node_labels: bool = True,
                     draw_edge_weights: bool = True,
-                    draw_node_weights: bool = True) -> plt.Axes:
+                    draw_node_weights: bool = True,
+                    pos = None) -> plt.Axes:
     """Draws a task graph
 
     Args:
@@ -58,13 +59,18 @@ def draw_task_graph(task_graph: nx.DiGraph,
         draw_node_labels: Whether to draw node labels. Defaults to True.
         draw_edge_weights: Whether to draw edge weights. Defaults to True.
         draw_node_weights: Whether to draw node weights. Defaults to True.
+        pos: Position of nodes. Defaults to None.
     """
     if axis is None:
         # make size slightly larger than default
         _, axis = plt.subplots(figsize=figsize)
 
     task_graph = format_graph(task_graph.copy())
-    pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
+    # remove __source__ and __sink__ nodes
+    task_graph.remove_nodes_from(["__source__", "__sink__"])
+
+    if pos is None:
+        pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
 
     colors, tasks = {}, {}
     if schedule is not None:
@@ -112,13 +118,23 @@ def draw_task_graph(task_graph: nx.DiGraph,
             )
         if draw_node_weights:
             if use_latex:
-                cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['weight'], 1))
+                # if has "label" attribute, use that
+                if "label" in task_graph.nodes[task_name]:
+                    cost_label = r"$c(%s)=%s$" % (task_name, task_graph.nodes[task_name]['label'])
+                else:
+                    cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['weight'], 1))
             else:
                 cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['weight'], 1)}"
+
+            print(dict(
+                cost_label=cost_label,
+                xy=pos[task_name],
+                xytext=(pos[task_name][0] + 0.15, pos[task_name][1]),
+                fontsize=weight_font_size))
             axis.annotate(
                 cost_label,
                 xy=pos[task_name],
-                xytext=(pos[task_name][0] + font_size//4, pos[task_name][1] - font_size//4),
+                xytext=(pos[task_name][0] + 0.15, pos[task_name][1]),
                 fontsize=weight_font_size,
             )
 
@@ -128,7 +144,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
             label = task_graph.edges[(u, v)]['weight']
             if isinstance(label, (int, float)):
                 if use_latex:
-                    label = r"$c\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                    if "label" in task_graph.edges[(u, v)]:
+                        label = r"$c\left(%s, %s\right)=%s$" % (u, v, task_graph.edges[(u, v)]["label"])
+                    else:
+                        label = r"$c\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
                 else:
                     label = f"c({u}, {v})={round(label, 1)}"
             edge_labels[(u, v)] = label
