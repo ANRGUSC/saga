@@ -1,7 +1,6 @@
 from functools import partial
 import random
-from sched import scheduler
-from typing import Any, Callable, Dict, Hashable, List, Optional
+from typing import Any, Callable, Dict, Hashable, Optional
 from matplotlib import pyplot as plt
 from saga.experiment.benchmarking.parametric.components import (
     ArbitraryTopological, CPoPRanking, ParametricScheduler,
@@ -15,11 +14,14 @@ import networkx as nx
 from saga.utils.draw import draw_gantt
 import plotly.express as px
 import pandas as pd
+import pathlib
 
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
-from saga.experiment import resultsdir, outputdir, datadir
 from saga.experiment.benchmarking.parametric.analyze import SCHEDULER_RENAMES
 
+thisdir = pathlib.Path(__file__).parent
+resultsdir = thisdir / "results"
+outputdir = thisdir / "output"
 
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,
@@ -521,3 +523,16 @@ def experiment_full_plots():
         fig.write_html(savedir / f"makespan_vs_scheduler_{i}.html")
         print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.html'}")
         figs.append(fig)
+
+
+
+def main():
+    # example()
+    # experiment_1()
+    # experiment_2()
+
+    experiment_full()
+    experiment_full_plots()
+
+if __name__ == "__main__":
+    main()
