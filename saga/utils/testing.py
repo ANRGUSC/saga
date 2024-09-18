@@ -3,7 +3,6 @@ import pathlib
 import pprint
 import traceback
 from typing import Callable, Dict, List, Tuple
-import matplotlib
 
 import networkx as nx
 

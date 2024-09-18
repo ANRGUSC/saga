@@ -2,7 +2,7 @@ from functools import partial
 import random
 from typing import Any, Callable, Dict, Hashable, Optional
 from matplotlib import pyplot as plt
-from saga.experiment.benchmarking.parametric.components import (
+from saga.schedulers.parametric.components import (
     ArbitraryTopological, CPoPRanking, ParametricScheduler,
     GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS,
     ParametricSufferageScheduler, UpwardRanking, get_insert_loc,
@@ -17,11 +17,15 @@ import pandas as pd
 import pathlib
 
 from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_network
-from saga.experiment.benchmarking.parametric.analyze import SCHEDULER_RENAMES
 
 thisdir = pathlib.Path(__file__).parent
 resultsdir = thisdir / "results"
 outputdir = thisdir / "output"
+
+SCHEDULER_RENAMES = {
+    "Cpop": "CPoP",
+    "Heft": "HEFT",
+}
 
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,

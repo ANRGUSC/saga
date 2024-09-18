@@ -3,7 +3,7 @@ import logging
 import pathlib
 
 import pandas as pd
-from saga.experiment.plot import gradient_heatmap
+from saga.utils.draw import gradient_heatmap
 
 
 DATASET_ORDER = [

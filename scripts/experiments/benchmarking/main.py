@@ -3,7 +3,12 @@ import pathlib
 from typing import List, Optional
 
 from saga.data import Dataset
-import saga.schedulers as saga_schedulers
+from saga.schedulers import (
+    BILScheduler, CpopScheduler, DuplexScheduler, ETFScheduler, FCPScheduler,
+    FLBScheduler, FastestNodeScheduler, GDLScheduler, HeftScheduler,
+    MCTScheduler, METScheduler, MaxMinScheduler, MinMinScheduler,
+    OLBScheduler, WBAScheduler
+)
 from saga.scheduler import Scheduler
 
 from prepare import load_dataset, prepare_datasets
@@ -11,11 +16,27 @@ from analyze import run_analysis
 
 thisdir = pathlib.Path(__file__).parent.resolve()
 
-exclude_schedulers = [ # exclude optimal schedulers
-    saga_schedulers.BruteForceScheduler,
-    saga_schedulers.SMTScheduler,
-    saga_schedulers.HybridScheduler,
-]
+exclude_schedulers = []
+saga_schedulers = {
+    # Schedulers included in benchmarking results for the paper
+    # "Comparing Task Graph Scheduling Algorithms: An Adversarial Approach"
+    # https://arxiv.org/abs/2403.07120
+    "BIL": BILScheduler,
+    "CPoP": CpopScheduler,
+    "Duplex": DuplexScheduler,
+    "ETF": ETFScheduler,
+    "FCP": FCPScheduler,
+    "FLB": FLBScheduler,
+    "FastestNode": FastestNodeScheduler,
+    "GDL": GDLScheduler,
+    "HEFT": HeftScheduler,
+    "MCT": MCTScheduler,
+    "MET": METScheduler,
+    "MaxMin": MaxMinScheduler,
+    "MinMin": MinMinScheduler,
+    "OLB": OLBScheduler,
+    "WBA": WBAScheduler
+}
 
 def get_schedulers() -> List[Scheduler]:
     """Get a list of all schedulers.
@@ -24,7 +45,7 @@ def get_schedulers() -> List[Scheduler]:
         List[Scheduler]: list of schedulers
     """
     schedulers = []
-    for item in saga_schedulers.__dict__.values():
+    for item in saga_schedulers.values():
         if (isinstance(item, type) and issubclass(item, Scheduler) and item is not Scheduler):
             if item not in exclude_schedulers:
                 try:
