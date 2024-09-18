@@ -433,7 +433,7 @@ def experiment_full():
             weight_range=(0.2, 1.0)
         )
         schedule_restrictions = {
-            task: set(random.sample(network.nodes, random.randint(1, NUM_NODES)))
+            task: set(random.sample(list(network.nodes), random.randint(1, NUM_NODES)))
             for task in task_graph.nodes
         }
         task_graph.graph["schedule_restrictions"] = schedule_restrictions
@@ -524,7 +524,32 @@ def experiment_full_plots():
         print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.html'}")
         figs.append(fig)
 
+    # generate plot with only Arbitrary and main schedulers: CPoP, HEFT, Sufferage, MET, MCT
+    main_schedulers = ["CPoP", "HEFT", "Sufferage", "MET", "MCT"]
+    _df = df[df["scheduler"].isin({"Arbitrary", *main_schedulers})]
+    fig = px.box(
+        _df,
+        x="scheduler", y="makespan",
+        template="plotly_white",
+        # exclude outliers
+        # boxmode="overlay",
+        points=False,
+        # make black and white
+        color_discrete_sequence=["black"],
+    )
+    # draw horizontal line at the mean of the Arbitrary scheduler
+    fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
 
+    fig.update_layout(width=1500, height=800)
+    fig.update_xaxes(title_text="Scheduler")
+    fig.update_yaxes(title_text="Makespan")
+    savedir = outputdir / "constraints"
+    # increase font size; use Latex font
+    fig.update_layout(font=dict(size=28, family="serif"))
+
+    savedir.mkdir(parents=True, exist_ok=True)
+    fig.write_image(savedir / f"constraints.pdf")
+    print(f"Saved to {savedir / 'constraints.pdf'}")
 
 def main():
     # example()
