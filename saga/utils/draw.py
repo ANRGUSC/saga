@@ -1,3 +1,6 @@
+from functools import lru_cache
+import logging
+import shutil
 from typing import Dict, Hashable, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -9,6 +12,8 @@ from saga.scheduler import Task
 
 from ..utils.random_variable import RandomVariable
 
+# create logger with SAGA:saga.utils.draw: prefix
+logger = logging.getLogger("SAGA:saga.utils.draw")
 
 def format_graph(graph: Union[nx.DiGraph, nx.Graph]) -> Union[nx.DiGraph, nx.Graph]:
     """Formats the graph
@@ -29,6 +34,10 @@ def format_graph(graph: Union[nx.DiGraph, nx.Graph]) -> Union[nx.DiGraph, nx.Gra
         graph.edges[edge]["weight"] = round(graph.edges[edge]["weight"], 2)
 
     return graph
+
+@lru_cache(maxsize=None)
+def is_latex_installed():
+    return shutil.which("latex") is not None
 
 def draw_task_graph(task_graph: nx.DiGraph,
                     axis: Optional[plt.Axes] = None,
@@ -62,6 +71,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
         draw_node_weights: Whether to draw node weights. Defaults to True.
         pos: Position of nodes. Defaults to None.
     """
+    if use_latex and not is_latex_installed():
+        logger.warning("Latex is not installed. Using non-latex mode.")
+        use_latex = False
+
     rc_context_opts = {'text.usetex': use_latex}
     with rc_context(rc=rc_context_opts):
         if axis is None:
@@ -129,11 +142,6 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 else:
                     cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['weight'], 1)}"
 
-                print(dict(
-                    cost_label=cost_label,
-                    xy=pos[task_name],
-                    xytext=(pos[task_name][0] + 0.15, pos[task_name][1]),
-                    fontsize=weight_font_size))
                 axis.annotate(
                     cost_label,
                     xy=pos[task_name],
@@ -193,6 +201,10 @@ def draw_network(network: nx.Graph,
         draw_edge_weights: Whether to draw edge weights. Defaults to True.
         draw_node_weights: Whether to draw node weights. Defaults to True.
     """
+    if use_latex and not is_latex_installed():
+        logger.warning("Latex is not installed. Using non-latex mode.")
+        use_latex = False
+
     rc_context_opts = {'text.usetex': use_latex}
     with rc_context(rc=rc_context_opts):
         if axis is None:
@@ -304,6 +316,10 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
     Returns:
         Gantt chart
     """
+    if use_latex and not is_latex_installed():
+        logger.warning("Latex is not installed. Using non-latex mode.")
+        use_latex = False
+
     rc_context_opts = {'text.usetex': use_latex}
     with rc_context(rc=rc_context_opts):
         # Remove dummy tasks with near 0 duration

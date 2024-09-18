@@ -59,7 +59,6 @@ def my_schedule() -> Dict[str, List[Task]]:
     task_map: Dict[str, Task] = {}
     schedule = {node: [] for node in network.nodes}
     for task_name, node_name in task_name_map.items():
-        print(f"Scheduling {task_name} on {node_name}")
         min_start_time = max(
             [
                 task_map[pred].end + (
