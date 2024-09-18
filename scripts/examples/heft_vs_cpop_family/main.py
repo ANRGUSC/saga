@@ -11,14 +11,6 @@ import matplotlib.pyplot as plt
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-
-plt.rcParams.update({
-    # 'font.size': 20,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.usetex': True,
-})
-
 FILETYPE = "pdf" # pdf or png
 
 def rand_value(mean: float, std: float) -> float:

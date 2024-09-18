@@ -12,13 +12,6 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 logging.basicConfig(level=logging.DEBUG)
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-plt.rcParams.update({
-    # 'font.size': 20,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.usetex': True,
-})
-
 def get_makespan(schedule: Dict[str, List[Task]]) -> float:
     """Get makespan of a schedule.
     

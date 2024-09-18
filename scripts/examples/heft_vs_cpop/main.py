@@ -7,14 +7,6 @@ import matplotlib.pyplot as plt
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-
-plt.rcParams.update({
-    # 'font.size': 20,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.usetex': True,
-})
-
 def cpop_vs_heft():
     cpop_scheduler = CpopScheduler()
     heft_scheduler = HeftScheduler()

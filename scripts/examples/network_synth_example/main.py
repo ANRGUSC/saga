@@ -9,13 +9,6 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 thisdir = pathlib.Path(__file__).parent.absolute()
 
 
-plt.rcParams.update({
-    # 'font.size': 20,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.usetex': True,
-})
-
 def main():
     # simple diamond-task graph A -> B, A -> C, B -> D, C -> D
     task_graph = nx.DiGraph()
