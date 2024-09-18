@@ -14,14 +14,6 @@ logging.basicConfig(level=logging.INFO)
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-
-plt.rcParams.update({
-    # 'font.size': 20,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.usetex': True,
-})
-
 @lru_cache(maxsize=None)
 def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     network = nx.Graph()
