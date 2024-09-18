@@ -7,7 +7,7 @@ long_description = (thisdir / "README.md").read_text()
 
 setup(
     name='anrg.saga',
-    version='0.0.6',
+    version='0.0.8',
     description='Collection of schedulers for distributed computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -34,7 +34,6 @@ setup(
         'plotly',
         'kaleido',
         'pysmt',
-        # 'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
         'wfcommons',
         'streamlit',
         'dill',
