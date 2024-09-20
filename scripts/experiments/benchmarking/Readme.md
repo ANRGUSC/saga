@@ -1,14 +1,14 @@
 # Benchmarking Experiments
 
 ## Normal Benchmarking
-To run benchmarking experiments performed in the paper ``Comparing Task Graph Scheduling Algorithms: An Adversarial Approach``, run the following command:
+To run benchmarking experiments performed in the paper [Comparing Task Graph Scheduling Algorithms: An Adversarial Approach](https://arxiv.org/abs/2403.07120), run the following command:
 ```bash
 python exp_benchmarking.py
 ```
 This will prepare the datasets, run the experiments, and generate the plots in the `./data`, `./results`, and `./plots` directories, respectively.
 
 ## Parametric Scheduler Benchmarking
-To run benchmarking experiments like those from the paper ``Parameterized Task Graph Scheduling Algorithm for Comparing Algorithmic Components``, run the following command:
+To run benchmarking experiments like those from the paper [Parameterized Task Graph Scheduling Algorithm for Comparing Algorithmic Components](https://arxiv.org/abs/2403.07112), run the following command:
 ```bash
 python exp_parametric.py run --datadir ./data/parametric/ --out ./results/parametric/batch0.csv --trim 10 --batch 0 --batches 1
 python post_parametric_agg.py 
