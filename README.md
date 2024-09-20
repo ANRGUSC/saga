@@ -35,7 +35,7 @@ task_graph: nx.DiGraph = ...
 scheduler.schedule(network, task_graph)
 ```
 
-See the examples in the [examples](./examples) directory for more!
+See the examples in the [examples](./scripts/examples) directory for more!
 
 ### Experiments from Papers
-To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments/Readme.md) directory.
+To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
