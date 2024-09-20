@@ -596,6 +596,10 @@ def main():
 
     thisdir = pathlib.Path(__file__).resolve().parent
 
+    if args.command is None:
+        parser.print_help()
+        return
+    
     if args.command == "test":
         test()
     elif args.command == "list":
