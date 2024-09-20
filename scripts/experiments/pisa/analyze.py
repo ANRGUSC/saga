@@ -185,8 +185,10 @@ def main():
     resultsdir = thisdir.joinpath("results")
     outputdir = thisdir.joinpath("output")
 
+    outputdir.mkdir(parents=True, exist_ok=True)
+
     results_to_csv(resultsdir, outputdir)
-    tab_results(resultsdir, outputdir, mode="pdf")
+    tab_results(outputdir, outputdir, mode="pdf")
 
 if __name__ == "__main__":
     main()

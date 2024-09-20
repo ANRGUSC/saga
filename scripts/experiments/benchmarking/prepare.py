@@ -32,6 +32,7 @@ def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:
 @lru_cache(maxsize=None)
 def load_dataset(datadir: pathlib.Path, name: str) -> Dataset:
     """Load the dataset from disk."""
+    print(f"Loading dataset {datadir / f'{name}.json'}")
     if datadir.joinpath(name).is_dir():
         return LargeDataset.from_json(
             datadir.joinpath(f"{name}.json").read_text(encoding="utf-8")
