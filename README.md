@@ -16,7 +16,9 @@ Scripts for comparing the performance of the algorithms are also provided.
 Clone the repository and install the requirements:
 
 ```bash
-pip install anrg.saga
+git clone https://github.com/ANRGUSC/saga.git
+cd saga
+pip install -e .
 ```
 
 ### Running the algorithms
@@ -33,4 +35,7 @@ task_graph: nx.DiGraph = ...
 scheduler.schedule(network, task_graph)
 ```
 
-See [./examples/heft/main.py](./examples/heft/main.py) for a complete example.
+See the examples in the [examples](./examples) directory for more!
+
+### Experiments from Papers
+To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments/Readme.md) directory.

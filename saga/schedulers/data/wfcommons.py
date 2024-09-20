@@ -6,12 +6,12 @@ import random
 import tempfile
 from functools import lru_cache
 from itertools import product
-from typing import Dict, Iterable, List, Set, Tuple, Type, Union, Callable
+from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, Callable
 
 import git
 import networkx as nx
 from scipy import stats
-from wfcommons.common.workflow import Workflow
+from wfcommons.common.workflow import Workflow, Task
 from wfcommons import wfchef
 from wfcommons.wfchef.recipes import (BlastRecipe, BwaRecipe, CyclesRecipe,
                                       EpigenomicsRecipe, GenomeRecipe,
@@ -19,6 +19,7 @@ from wfcommons.wfchef.recipes import (BlastRecipe, BwaRecipe, CyclesRecipe,
                                       SoykbRecipe, SrasearchRecipe)
 from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
 from wfcommons.wfgen.generator import WorkflowGenerator
+from wfcommons.wfchef.wfchef_abstract_recipe import WfChefWorkflowRecipe
 
 recipes: Dict[str, Type[WorkflowRecipe]] = {
     'epigenomics': EpigenomicsRecipe,
@@ -299,12 +300,77 @@ def get_workflow_task_info(recipe_name: str) -> Dict:
         raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
     return json.loads(path.read_text(encoding="utf-8"))
 
-def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
+def build_workflow(recipe: WfChefWorkflowRecipe,
+                   workflow_name: Optional[str] = None,
+                   graph: Optional[nx.DiGraph] = None) -> Workflow:
+    """Generate a synthetic workflow instance.
+
+    NOTE: This function is a copy of the build_workflow method in wfcommons.wfchef.wfchef_abstract_recipe 
+    modified to allow providing a graph so that only the weights need to be generated.
+
+    Args:
+        recipe (WorkflowRecipe): The recipe to generate the workflow from.
+        workflow_name (Optional[str], optional): The workflow name. Defaults to None.
+        graph (Optional[nx.DiGraph], optional): The graph to generate the workflow from. Defaults to None.
+
+    Returns:
+        Workflow: A synthetic workflow instance object.
+    """
+    workflow = Workflow(name=recipe.name + "-synthetic-instance" if not workflow_name else workflow_name,
+                        makespan=0)
+    if graph is None:
+        graph = recipe.generate_nx_graph()
+    else:
+        graph = graph.copy()
+
+    task_names = {}
+    for node in graph.nodes:
+        if node in ["SRC", "DST"]:
+            continue
+        node_type = graph.nodes[node]["type"]
+        task_name = recipe._generate_task_name(node_type)
+        task = recipe._generate_task(node_type, task_name)
+        workflow.add_node(task_name, task=task)
+
+        task_names[node] = task_name
+
+    # tasks dependencies
+    for (src, dst) in graph.edges:
+        if src in ["SRC", "DST"] or dst in ["SRC", "DST"]:
+            continue
+        workflow.add_edge(task_names[src], task_names[dst])
+
+        if task_names[src] not in recipe.tasks_children:
+            recipe.tasks_children[task_names[src]] = []
+        if task_names[dst] not in recipe.tasks_parents:
+            recipe.tasks_parents[task_names[dst]] = []
+
+        recipe.tasks_children[task_names[src]].append(task_names[dst])
+        recipe.tasks_parents[task_names[dst]].append(task_names[src])
+
+    # find leaf tasks
+    leaf_tasks = []
+    for node_name in workflow.nodes:
+        task: Task = workflow.nodes[node_name]['task']
+        if task.name not in recipe.tasks_children:
+            leaf_tasks.append(task)
+
+    for task in leaf_tasks:
+        recipe._generate_task_files(task)
+
+    workflow.nxgraph = graph
+    recipe.workflows.append(workflow)
+    return workflow
+
+def get_workflows(num: int,
+                  recipe_name: str,
+                  vary_weights_only: bool = False) -> List[nx.DiGraph]:
     """Generate a list of network, task graph pairs for the given recipe.
 
     Args:
         num (int): The number of task graphs to generate.
         recipe_name (str): The name of the recipe.
+        vary_weights_only (bool, optional): Whether to vary only the weights of the tasks. Defaults to False.
 
     Returns:
         List[nx.DiGraph]: The list of task graphs.
@@ -313,11 +379,13 @@ def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
         raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
 
     task_graphs: List[nx.DiGraph] = []
+    graph = None
     for _ in range(num):
         num_tasks = random.randint(*get_num_task_range(recipe_name))
         recipe = recipes[recipe_name](num_tasks=num_tasks)
-        generator = WorkflowGenerator(recipe)
-        workflow = generator.build_workflow()
+        workflow = build_workflow(recipe, graph=graph)
+        if vary_weights_only:
+            graph = workflow.nxgraph.copy()
         with tempfile.NamedTemporaryFile() as tmp:
             workflow.write_json(tmp.name)
             task_graphs.append(trace_to_digraph(tmp.name))

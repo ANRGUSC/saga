@@ -7,7 +7,7 @@ long_description = (thisdir / "README.md").read_text()
 
 setup(
     name='anrg.saga',
-    version='0.0.6',
+    version='0.0.8',
     description='Collection of schedulers for distributed computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -28,14 +28,23 @@ setup(
     install_requires=[
         'networkx',
         'numpy',
-#         'pygraphviz',
         'matplotlib',
         'scipy',
         'pandas',
         'plotly',
         'kaleido',
         'pysmt',
-        'wfcommons @ git+https://github.com/jaredraycoleman/wfcommons.git@eb81f245925944d3c4e323e4e979723a5748a777',
+        'wfcommons',
+        'streamlit',
+        'dill',
+        'joblib==1.3.2',
+        'statsmodels==0.14.1',
+        'seaborn==0.13.2',
     ],
     python_requires='>=3.6',
+    entry_points={
+        'console_scripts': [
+            'saga_exp_parametric = saga.experiment.benchmarking.parametric:main',
+        ],
+    },
 )
