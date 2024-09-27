@@ -2,9 +2,15 @@ import numpy as np
 from scipy.stats import norm, uniform, beta
 from saga.utils.random_variable import RandomVariable
 import pytest
+import random
+
+# set seed for reproducibility
+random.seed(0)
+np.random.seed(0)
+n_samples = 1000000
 
 # Helper function to compare distributions via sample means and variances
-def compare_distributions(dist1_samples, dist2_samples, atol=0.1, rtol=0.1):
+def compare_distributions(dist1_samples, dist2_samples, atol=0.01, rtol=0.1):
     """Compares two sets of samples by checking their means and variances."""
     mean1, mean2 = np.mean(dist1_samples), np.mean(dist2_samples)
     var1, var2 = np.var(dist1_samples), np.var(dist2_samples)
@@ -28,7 +34,6 @@ def test_sum(mode: str):
     dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 + dist2
 
-    n_samples = 100000
     samples1 = dist1.sample(n_samples)
     samples2 = dist2.sample(n_samples)
     samples_add = samples1 + samples2
@@ -54,7 +59,6 @@ def test_max(mode: str):
     dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = RandomVariable.max(dist1, dist2)
 
-    n_samples = 100000
     samples1 = dist1.sample(n_samples)
     samples2 = dist2.sample(n_samples)
     samples_max = np.maximum(samples1, samples2)
@@ -80,7 +84,6 @@ def test_sub(mode: str):
     dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 - dist2
 
-    n_samples = 100000
     samples1 = dist1.sample(n_samples)
     samples2 = dist2.sample(n_samples)
     samples_sub = samples1 - samples2
@@ -106,7 +109,6 @@ def test_mul(mode: str):
     dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 * dist2
 
-    n_samples = 100000
     samples1 = dist1.sample(n_samples)
     samples2 = dist2.sample(n_samples)
     samples_mul = samples1 * samples2
@@ -120,19 +122,18 @@ def test_div(mode: str):
     x = np.linspace(-10, 10, 100000)
     if mode == 'norm':
         pdf1 = norm.pdf(x, loc=2, scale=1)
-        pdf2 = norm.pdf(x, loc=5, scale=2)
+        pdf2 = norm.pdf(x, loc=10, scale=2)
     elif mode == 'uniform':
         pdf1 = uniform.pdf(x, loc=2, scale=2)
         pdf2 = uniform.pdf(x, loc=1, scale=2)
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
-        pdf2 = beta.pdf(x, a=3, b=5)
+        pdf2 = beta.pdf(x, a=10, b=5)
 
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)
     dist3 = dist1 / dist2
 
-    n_samples = 100000
     samples1 = dist1.sample(n_samples)
     samples2 = dist2.sample(n_samples)
     samples_div = samples1 / samples2

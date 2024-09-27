@@ -64,19 +64,25 @@ pip install pytest pytest-timeout
 Then, run the tests:
 
 ```bash
-pytest
+pytest ./tests
 ```
 
-If you want to specify a timeout for the tests, you can do so using the `--timeout` option. For example:
+You may want to skip some of the tests that are too slow.
+You can do this ddirectly:
+```bash
+pytest ./tests -k "not (branching and (BruteForceScheduler or SMTScheduler))"
+```
+
+or by setting a timeout for the tests:
 
 ```bash
-pytest --timeout=60
+pytest ./tests --timeout=60
 ```
 
 To run a specific test or scheduler-task combination, use the `-k` option. For example, to run the `HeftScheduler` tests on the `diamond` task graph:
 
 ```bash
-pytest -k "HeftScheduler and diamond"
+pytest ./tests -k "HeftScheduler and diamond"
 ```
 
 #### Using Docker
