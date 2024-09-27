@@ -1,13 +1,15 @@
 from setuptools import setup, find_packages
-import pathlib
 
-thisdir = pathlib.Path(__file__).parent
+long_description = """
+# SAGA
+*S*cheduling *A*lgorithms *GA*thered
 
-long_description = (thisdir.parent / "README.md").read_text()
+Read more about SAGA on [GitHub](https://github.com/ANRGUSC/saga)
+"""
 
 setup(
     name='anrg.saga',
-    version='0.0.9',
+    version='0.0.10',
     description='Collection of schedulers for distributed computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
