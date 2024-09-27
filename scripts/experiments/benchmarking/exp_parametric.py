@@ -1,12 +1,9 @@
 import argparse
 from copy import deepcopy
 import heapq
-import logging
 import multiprocessing
 import pathlib
-from pprint import pformat
 import random
-import shutil
 import time
 import fcntl
 
@@ -20,10 +17,8 @@ import concurrent.futures
 
 
 import networkx as nx
-from typing import Any, Callable, Dict, List, Hashable, Optional, Tuple
-from saga.utils.random_graphs import add_random_weights, get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag, get_network
+from typing import Any, Dict, List, Hashable, Optional, Tuple
 
-from saga.utils.testing import test_schedulers
 from saga.utils.tools import standardize_network, standardize_task_graph
 
 from prepare import load_dataset, prepare_ccr_datasets
@@ -365,94 +360,6 @@ for name, insert_func in insert_funcs.items():
         sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
-        # for scheduler in [sufferage_scheduler, reg_scheduler]:
-        #     for k in range(1, 3):
-        #         k_depth_scheduler = ParametricKDepthScheduler(
-        #             scheduler=scheduler,
-        #             k_depth=k
-        #         )
-        #         k_depth_scheduler.name = f"{scheduler.name}_K{k}"
-        #         schedulers[k_depth_scheduler.name] = k_depth_scheduler
-
-def test_scheduler_equivalence(scheduler, base_scheduler):
-    task_graphs = {
-        "diamond": add_random_weights(get_diamond_dag()),
-        "chain": add_random_weights(get_chain_dag()),
-        "fork": add_random_weights(get_fork_dag()),
-        "branching": add_random_weights(get_branching_dag(levels=3, branching_factor=2)),
-    }
-    network = add_random_weights(get_network())
-
-    for task_graph_name, task_graph in task_graphs.items():
-        scheduler_schedule = scheduler.schedule(network, task_graph)
-        scheduler_makespan = max(
-            task.end for node, tasks in scheduler_schedule.items() for task in tasks
-        )
-        base_scheduler_schedule = base_scheduler.schedule(network, task_graph)
-        base_scheduler_makespan = max(
-            task.end for node, tasks in base_scheduler_schedule.items() for task in tasks
-        )
-        assert np.isclose(scheduler_makespan, base_scheduler_makespan), f"Makespans not equal for Schedulers {scheduler.__name__} and {base_scheduler.__name__} on {task_graph_name}. {pformat(scheduler_schedule)} {pformat(base_scheduler_schedule)}"
-        logging.info(f"PASSED: Makespans are equal for Schedulers {scheduler.__name__} and {base_scheduler.__name__} on {task_graph_name}.")
-    logging.info(f"PASSED: Schedulers {scheduler.__name__} and {base_scheduler.__name__} are equivalent.")
-
-
-def test():
-    import matplotlib
-    matplotlib.use('Agg')
-
-    logging.basicConfig(level=logging.DEBUG)
-
-    thisdir = pathlib.Path(__file__).parent.resolve()
-    savedir = thisdir / "results" / "parametric" / "tests"
-    if savedir.exists():
-        shutil.rmtree(savedir)
-    savedir.mkdir(exist_ok=True, parents=True)
-
-    # # Uncomment to test a specific scheduler
-    # scheduler_names_to_test = [
-    #     "EST_Insert_CPoPRanking",
-    # ]
-    # for scheduler_name_to_test in scheduler_names_to_test:
-    #     test_schedulers(
-    #         {scheduler_name_to_test: schedulers[scheduler_name_to_test]},
-    #         savedir=savedir,
-    #         stop_on_error=True
-    #     )
-
-    # Test equivalence of HEFT and Parametric HEFT
-    from saga.schedulers.heft import HeftScheduler
-    heft = HeftScheduler()
-    heft_parametric = ParametricScheduler(
-        initial_priority=UpwardRanking(),
-        insert_task=GreedyInsert(append_only=False, compare="EFT")
-    )
-    test_scheduler_equivalence(heft, heft_parametric)
-
-    # Test equivalence of CPOP and Parametric CPOP
-    from saga.schedulers.cpop import CpopScheduler
-    cpop = CpopScheduler()
-    cpop_parametric = ParametricScheduler(
-        initial_priority=CPoPRanking(),
-        insert_task=GreedyInsert(append_only=False, compare="EFT", critical_path=True)
-    )
-    test_scheduler_equivalence(cpop, cpop_parametric)
-
-    # Test equivalence of Suffrage and Parametric Suffrage
-    from saga.schedulers.sufferage import SufferageScheduler
-    etf = SufferageScheduler()
-    etf_parametric = ParametricSufferageScheduler(
-        scheduler=ParametricScheduler(
-            initial_priority=ArbitraryTopological(),
-            insert_task=insert_funcs["EFT_Append"]
-        ),
-        top_n=None
-    )
-    test_scheduler_equivalence(etf, etf_parametric)
-    
-    # # Test all schedulers
-    test_schedulers(schedulers, savedir=savedir, stop_on_error=True, save_passing=False)
-
 def print_schedulers():
     for i, (name, scheduler) in enumerate(schedulers.items(), start=1):
         print(f"{i}: {name}")
@@ -509,28 +416,6 @@ def evaluate_instance(scheduler: Scheduler,
         else:
             df.to_csv(savepath, index=False)
     print(f"  saved results to {savepath}")
-
-def test_run():
-    # Evaluating EST_Append_CP_UpwardRanking on cycles_ccr_2 instance 56
-    scheduler = schedulers["EST_Append_CP_UpwardRanking"]
-    datadir = pathlib.Path(__file__).parent / "datasets" / "parametric_benchmarking"
-    dataset_name = "cycles_ccr_2"
-    dataset = load_dataset(datadir, dataset_name)
-
-    t00 = time.time()
-    for network, task_graph in dataset:
-        task_graph = standardize_task_graph(task_graph)
-        network = standardize_network(network)
-
-        t0 = time.time()
-        schedule = scheduler.schedule(network, task_graph)
-        dt = time.time() - t0
-        makespan = max(task.end for tasks in schedule.values() for task in tasks)
-        print(f"Makespan: {makespan}, Runtime: {dt}")
-
-    dt = time.time() - t00
-    print(f"Total Runtime: {dt}")
-    print(f"Predicted Total Runtime: {dt * len(dataset) / 20}")
 
 def run_batch(batch: List[Tuple[Scheduler, str, int]],
               datadir: pathlib.Path,
@@ -591,7 +476,6 @@ def main():
 
     list_subparser = subparsers.add_parser("list", help="List the available schedulers.")
 
-    test_subparser = subparsers.add_parser("test", help="Run the tests.")
     args = parser.parse_args()
 
     thisdir = pathlib.Path(__file__).resolve().parent
@@ -600,9 +484,7 @@ def main():
         parser.print_help()
         return
     
-    if args.command == "test":
-        test()
-    elif args.command == "list":
+    if args.command == "list":
         print_schedulers()
     else:
         # Prepare the datasets
@@ -661,41 +543,5 @@ def main():
             print(f"Batch {args.batch} has {len(batch)} instances.")
             run_batch(batch, datadir, args.timeout, pathlib.Path(args.out), args.filelock)
 
-def test_filelock():
-    import multiprocessing
-    import pathlib
-
-    thisdir = pathlib.Path(__file__).resolve().parent
-
-    start = time.time() + 5
-
-    def write_to_file(filename: pathlib.Path, text: str):
-        # sleep until the start time
-        time.sleep(max(0, start - time.time()))
-        for i in range(100):
-            rows = [
-                [0, 1, 2, 3, 4, 5]
-            ]
-            df = pd.DataFrame(rows, columns=["a", "b", "c", "d", "e", "f"])
-            append_df_to_csv_with_lock(df, filename)
-            # df.to_csv(filename, mode='a', header=False, index=False)
-
-    savepath = thisdir / "results" / "test.csv"
-    if savepath.exists():
-        savepath.unlink()
-    savepath.parent.mkdir(exist_ok=True, parents=True)
-    # create 100 processes to write to the file
-    processes = [
-        multiprocessing.Process(target=write_to_file, args=(savepath, f"Process {i}"))
-        for i in range(1000)
-    ]
-    for process in processes:
-        process.start()
-    for process in processes:
-        process.join()
-    print("Done.")
-
-
 if __name__ == "__main__":
     main()
-    # test_run()

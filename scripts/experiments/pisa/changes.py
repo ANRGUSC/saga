@@ -1,5 +1,4 @@
 import abc
-import pathlib
 import random
 from dataclasses import dataclass
 from typing import Optional

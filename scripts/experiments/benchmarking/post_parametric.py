@@ -1,6 +1,5 @@
 from functools import lru_cache
 import pathlib
-import re
 from typing import Iterable, Set, Tuple
 from matplotlib import pyplot as plt
 import pandas as pd
