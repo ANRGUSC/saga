@@ -49,7 +49,6 @@ def calulate_sbct(
         min_node = None
         degree = task_graph.in_degree(task_name)
         for node in network.nodes:
-            # print("degree",degree)
             if degree <= 0:
                 temp_val = runtimes[node][task_name]
             else:
@@ -62,7 +61,6 @@ def calulate_sbct(
 
     for task_name in nx.topological_sort(task_graph):
         sbct[task_name], ifav[task_name] = get_sbct(task_name)
-        # print(task_name, sbct[task_name], ifav[task_name])
 
     return sbct, ifav
 
@@ -265,7 +263,6 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             ]
         )
 
-        # print(readySet)
         scheduled_set = set()
         sorted_nodes = sorted(
             network.nodes, key=lambda node: network.nodes[node]["weight"], reverse=True
@@ -332,17 +329,8 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             ValueError: If instance is invalid.
         """
         runtimes, commtimes = MsbcScheduler.get_runtimes(network, task_graph)
-
         sbl = get_sbl(network, task_graph)
-
         sbct, ifav = calulate_sbct(network, task_graph, runtimes, commtimes)
-
         st = calculate_st(task_graph, ifav, runtimes, commtimes)
-
         priorities = get_priority(task_graph, sbct, sbl, st)
-        # print("SBL:", sbl)
-        # print("SBCT:", sbct)
-        # print("ifav", ifav)
-        # print("st", st)
-        # print(priorities)
         return self._schedule(network, task_graph, runtimes, commtimes, priorities)

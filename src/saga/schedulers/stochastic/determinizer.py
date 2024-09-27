@@ -46,9 +46,6 @@ class Determinizer(Scheduler):
         det_task_graph.add_nodes_from(task_graph.nodes)
         det_task_graph.add_edges_from(task_graph.edges)
         for task in det_task_graph.nodes:
-            # print(task, task_graph.nodes[task]["weight"], task_graph.out_degree(task), task_graph.in_degree(task))
-            # if isinstance(task_graph.nodes[task]["weight"], RandomVariable):
-                # print("samples:", task_graph.nodes[task]["weight"].samples)
             det_task_graph.nodes[task]["weight"] = self.determinize(task_graph.nodes[task]["weight"])
             if det_task_graph.nodes[task]["weight"] != det_task_graph.nodes[task]["weight"]:
                 raise ValueError("Task weight is nan")

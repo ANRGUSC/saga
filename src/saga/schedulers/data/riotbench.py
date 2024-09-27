@@ -279,8 +279,6 @@ def get_predict_task_graphs(num: int,
 def test():
     """Test the fog network generator."""
     network = get_fog_networks(num=1)[0]
-    print(network.nodes)
-    print(network.edges)
 
 if __name__ == "__main__":
     test()

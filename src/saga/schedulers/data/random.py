@@ -202,34 +202,3 @@ def gen_random_networks(num: int, # pylint: disable=arguments-differ
         graphs.append(graph)
 
     return graphs
-
-def test():
-    """Test the datasets."""
-    # Out Trees
-    print("Out Trees")
-    task_graph = gen_out_trees(num=1, num_levels=3, branching_factor=2)[0]
-    for out in nx.readwrite.text.generate_network_text(task_graph, sources=["T0"]):
-        print(out)
-
-    # In Trees
-    print("In Trees")
-    task_graph = gen_in_trees(num=1, num_levels=3, branching_factor=2)[0]
-    for out in nx.readwrite.text.generate_network_text(task_graph.reverse(), sources=["T0"]):
-        print(out)
-
-    # Parallel Chains
-    print("Parallel Chains")
-    task_graph = gen_parallel_chains(num=1, num_chains=2, chain_length=3)[0]
-    sources = [node for node in task_graph.nodes if task_graph.in_degree(node) == 0]
-    for out in nx.readwrite.text.generate_network_text(task_graph, sources=sources):
-        print(out)
-
-    # Random Networks
-    print("Random Networks")
-    network = gen_random_networks(num=1, num_nodes=5)[0]
-    for out in nx.readwrite.text.generate_network_text(network):
-        print(out)
-
-
-if __name__ == "__main__":
-    test()

@@ -214,10 +214,7 @@ class RandomVariable:
             missing_samples = other_num_samples - self_num_samples
             self_samples = np.concatenate([self.samples, np.random.choice(self.samples, missing_samples)])
             other_samples = other.samples
-        print(self_samples)
-        print(other_samples)
         samples = self_samples / other_samples
-        print(samples)
         return RandomVariable(samples)
 
     def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":

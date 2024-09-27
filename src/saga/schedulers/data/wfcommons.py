@@ -95,7 +95,6 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     Raises:
         ValueError: If the cloud_name is not found.
     """
-    # git clone - print progress
     if cloud_name not in clouds:
         raise ValueError(f"Cloud {cloud_name} not found. Available clouds: {clouds.keys()}")
 
@@ -392,21 +391,3 @@ def get_workflows(num: int,
 
     return task_graphs
 
-def test():
-    """Test the module."""
-    task_graph = get_workflows(1, "1000genome")[0]
-    # print node and edge attributes
-    for node in task_graph.nodes:
-        print(node, task_graph.nodes[node])
-    for edge in task_graph.edges:
-        print(edge, task_graph.edges[edge])
-
-    network = get_networks(1, "chameleon")[0]
-    # print node and edge attributes
-    for node in network.nodes:
-        print(node, network.nodes[node])
-    for edge in network.edges:
-        print(edge, network.edges[edge])
-
-if __name__ == "__main__":
-    test()

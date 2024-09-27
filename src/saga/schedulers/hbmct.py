@@ -43,7 +43,6 @@ def hbmct_create_groups(network: nx.Graph, task_graph: nx.DiGraph) -> List[List[
                 break
         if is_same_group:
             groups[-1].append(task_name)
-    # print(groups)
     return groups
 
 def calculate_est(network: nx.Graph,
@@ -104,13 +103,10 @@ def get_initial_assignments(network: nx.Graph,
     """
     assignments = {node:[] for node in network.nodes}
     for task_name in group: #Assign nodes based on execution times
-        # print("runtimes:", runtimes)
-        # print("task:",task_name)
         assigned_node = min(runtimes, key= lambda node, task_name=task_name : runtimes[node][task_name])
         assignments[assigned_node].append(task_name)
     for node in assignments: #sort based on earliest start times
         assignments[node].sort(key= lambda x, node=node: est_table[x][node])
-    # print("assignments", assignments)
     return assignments
     
 def get_ft(node_schedule: List[Task]) -> float:
@@ -165,7 +161,6 @@ def get_ft_after_insert(new_task_name: Hashable,
         start_time = est_table[task_name][node]
         if new_schedule:
             start_time = max(start_time, new_schedule[-1].end)
-        # print("start_time", start_time, "runtime", runtimes[task_name][node])
         task = Task(node, task_name, start_time, start_time + runtimes[node][task_name])
         new_schedule.append(task)
         if task_name == new_task_name:
@@ -284,7 +279,6 @@ class HbmctScheduler(Scheduler):
         for group in groups:
             comp_group_start_positions = {node: len(comp_schedule[node]) for node in comp_schedule}
             est_table = calculate_est(network, task_graph, group, commtimes, comp_schedule, task_schedule)
-            # print("EST:",est_table)
             average_est = {task_name: np.mean([
                 est for est in est_table[task_name]
             ]) for task_name in est_table}
@@ -297,9 +291,7 @@ class HbmctScheduler(Scheduler):
                     task = Task(node, task_name, start_time, start_time + runtimes[node][task_name])
                     comp_schedule[node].append(task)
                     task_schedule[task_name] = task
-            # print("Schedule BEFORE BMCT:", comp_schedule)
             logging.debug("Initial assignment for group %s: %s", group, comp_schedule)
-            #Run the process of shuffling tasks between different machines
             assignment_changed = True
             while assignment_changed:
                 assignment_changed = False
@@ -307,7 +299,6 @@ class HbmctScheduler(Scheduler):
                 max_ft = comp_schedule[max_ft_node][-1].end
                 avg_est_assignments = sorted(assignments[max_ft_node], key=lambda task_name, average_est = average_est: average_est[task_name])
                 logging.debug("current MFT %s with finish time %s", max_ft_node, max_ft)
-                
                 
                 for task_name in avg_est_assignments:
                     logging.debug("Trying to move around task %s", task_name)
@@ -340,30 +331,22 @@ class HbmctScheduler(Scheduler):
                                     min_ft_node = node
                                     min_ft_node_schedule = node_schedule.copy()
                                     updated_task = new_task
-                                    # print("Found better!")
                         if min_ft_node:
-                            #Update the schedules
                             assignment_changed=True
                             comp_schedule[min_ft_node] = min_ft_node_schedule
                             comp_schedule[max_ft_node] = max_ft_node_new_schedule
                             task_schedule[task_name] = updated_task
                             assignments[min_ft_node].append(task_name)
                             assignments[max_ft_node].remove(task_name)
-                            # print(f"New finish time for node {min_ft_node} after inserting task {task_name}: {new_ft}")
-                            # print("Schedule AFTER BMCT:", comp_schedule)
                             logging.debug("New assignment for group %s: %s", group, comp_schedule)
 
                             break
-
-
-            # print("***********************************")
         return comp_schedule
 
 
 
         
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
-        # print("scheduling...")
         """Computes the schedule for the task graph using the CPoP algorithm.
 
         Args:
@@ -374,6 +357,5 @@ class HbmctScheduler(Scheduler):
             Dict[str, List[Task]]: The schedule for the task graph.
         """
         runtimes, commtimes = HbmctScheduler.get_runtimes(network, task_graph)
-        # print("Runtimes:", runtimes)
         groups = hbmct_create_groups(network, task_graph)
         return self.schedule_groups(network, task_graph, groups, runtimes, commtimes)

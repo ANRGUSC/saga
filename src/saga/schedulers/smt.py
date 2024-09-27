@@ -1,5 +1,4 @@
 from itertools import combinations, product
-from pprint import pprint
 from typing import Dict, Hashable, List, Optional
 
 import networkx as nx
@@ -193,32 +192,3 @@ class SMTScheduler(Scheduler):
             makespan = (lower_bound + upper_bound) / 2
 
         return schedule
-
-def test():
-    """Test the SMT solver."""
-    task_graph = nx.DiGraph()
-    task_graph.add_node('A', weight=1)
-    task_graph.add_node('B', weight=2)
-    task_graph.add_node('C', weight=1)
-    task_graph.add_node('D', weight=3)
-
-    task_graph.add_edge('A', 'B', weight=1)
-    task_graph.add_edge('A', 'C', weight=2)
-    task_graph.add_edge('B', 'D', weight=3)
-    task_graph.add_edge('C', 'D', weight=1)
-
-    network = nx.Graph()
-    network.add_node(1, weight=1)
-    network.add_node(2, weight=2)
-    network.add_node(3, weight=3)
-    network.add_node(4, weight=4)
-
-    for node1, node2 in product(network.nodes, network.nodes):
-        network.add_edge(node1, node2, weight=1e9 if node1 == node2 else 1)
-
-    scheduler = SMTScheduler(solver_name="z3")
-    schedule = scheduler.schedule(network, task_graph)
-    pprint(schedule)
-
-if __name__ == "__main__":
-    test()

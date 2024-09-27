@@ -103,7 +103,6 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
             link_type = io_file["link"]
             file_name = io_file["name"]
             file_type = file_name[36:] # strip off uuid
-            # print(task['name'], task_type, link_type, file_type, file_name)
             io_info = task_info[link_type].get(file_type)
             if io_info and io_info['distribution']:
                 samples = getattr(stats, io_info['distribution']['name']).rvs(size=RandomVariable.DEFAULT_NUM_SAMPLES, *io_info['distribution']['params'])

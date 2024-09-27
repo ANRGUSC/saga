@@ -115,11 +115,3 @@ class LVCDataset(Dataset):
         
         # sort paths by path length (shortest first) and then by name (alphabetical)
         self._paths = sorted(self._paths, key=lambda path: (len(path.parts), str(path)))
-        
-
-
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.debug)
-    data = load_all_task_graphs()
-    print(f"Loaded: {data.keys()}")

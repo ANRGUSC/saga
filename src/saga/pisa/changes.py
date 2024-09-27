@@ -93,8 +93,6 @@ class GaussianTaskGraphAddDependency(TaskGraphAddDependency):
         new_weight = get_gaussian_random_variable()
         task_graph.add_edge(self.task, self.dependency, weight=new_weight)
 
-        print(f"New edge: {self.task} -> {self.dependency} with weight {new_weight}")
-
 # Change a dependency weight
 @dataclass
 class TaskGraphChangeDependencyWeight(Change):

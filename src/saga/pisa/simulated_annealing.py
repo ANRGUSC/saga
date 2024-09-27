@@ -219,7 +219,7 @@ class SimulatedAnnealing:
         # loop until max iterations or min temperature is reached
         while iteration < self.max_iterations and temp > self.min_temp:
             log_prefix = f"[Iter {iteration}/{self.max_iterations} | Temp {temp:.2f} | Energy {current_energy:.2f} | Best {best_energy:.2f}]"
-            print("%s Running" % log_prefix, end="\r")
+            logging.debug("%s Current solution energy: %s", log_prefix, current_energy)
 
             ChangeType = random.choice(self.change_types) # pylint: disable=invalid-name
             neighbor_network, neighbor_task_graph = current_network.copy(), current_task_graph.copy()

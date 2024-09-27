@@ -496,7 +496,6 @@ class Dataset(ABC):
         """
         makespans = []
         for i, (network, task_graph) in enumerate(self):
-            print(f"Evaluating {scheduler.__name__} on {self.name} instance {i+1}/{len(self)}")
             try:
                 task_graph = standardize_task_graph(task_graph)
                 schedule = scheduler.schedule(network, task_graph)

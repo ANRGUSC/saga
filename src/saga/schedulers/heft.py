@@ -119,13 +119,6 @@ class HeftScheduler(Scheduler):
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
 
-        # print(f"------------------")
-        # for node in nx.topological_sort(task_graph):
-        #     print(f"{node}({task_graph.nodes[node]['weight']})")
-        #     for child in task_graph.successors(node):
-        #         print(f"  -->{child}({task_graph.edges[node, child]['weight']})")
-        # print(schedule_order)
-
         task_name: Hashable
         logging.debug("Schedule order: %s", schedule_order)
         for task_name in schedule_order:
