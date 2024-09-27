@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# cd to the directory of this script
-cd "$(dirname "$0")"
+# cd to the directory of the source code
+cd "$(dirname "$0")/src"
 
 # if build and dist directories exist, remove them
 if [ -d "build" ]; then
