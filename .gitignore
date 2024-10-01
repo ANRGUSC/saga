@@ -1,5 +1,7 @@
 .workspace
 
+build
+
 # sphinx build folder
 _build
 
