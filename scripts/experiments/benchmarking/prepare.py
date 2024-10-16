@@ -8,16 +8,16 @@ from typing import Callable, Dict, List, Optional
 import networkx as nx
 import numpy as np
 
-from saga.data import AllPairsDataset, Dataset, PairsDataset
-from saga.schedulers.data.random import (gen_in_trees, gen_out_trees,
+from src.saga.data import AllPairsDataset, Dataset, PairsDataset
+from src.saga.schedulers.data.random import (gen_in_trees, gen_out_trees,
                                          gen_parallel_chains,
                                          gen_random_networks)
-from saga.schedulers.data.riotbench import (get_etl_task_graphs,
+from src.saga.schedulers.data.riotbench import (get_etl_task_graphs,
                                             get_fog_networks,
                                             get_predict_task_graphs,
                                             get_stats_task_graphs,
                                             get_train_task_graphs)
-from saga.schedulers.data.wfcommons import (get_networks, get_real_workflows,
+from src.saga.schedulers.data.wfcommons import (get_networks, get_real_workflows,
                                             get_workflows)
 
 def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:

@@ -12,7 +12,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 
-from saga.scheduler import Task
+from src.saga.scheduler import Task
 
 # create logger with SAGA:saga.utils.draw: prefix
 logger = logging.getLogger("SAGA:saga.utils.draw")

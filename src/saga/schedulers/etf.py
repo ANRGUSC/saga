@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Tuple, Set
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import Task
+from src.saga.scheduler import Task
 
 from ..scheduler import Task
 from ..scheduler import Scheduler

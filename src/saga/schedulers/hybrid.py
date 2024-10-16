@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import Scheduler, Task
+from src.saga.scheduler import Scheduler, Task
 
 
 class HybridScheduler(Scheduler):

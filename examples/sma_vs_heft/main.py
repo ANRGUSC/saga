@@ -1,9 +1,9 @@
 import networkx as nx
-from saga.schedulers.heft import HeftScheduler
-from saga.schedulers.sma import SimulatedAnnealingScheduler
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from saga.utils.testing import test_schedulers
-from saga.utils.random_graphs import (
+from src.saga.schedulers.heft import HeftScheduler
+from src.saga.schedulers.sma import SimulatedAnnealingScheduler
+from src.saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+from scripts.experiments.benchmarking.prepare import scale_ccr
+from src.saga.utils.random_graphs import (
     add_random_weights,
     get_branching_dag,
     get_chain_dag,
@@ -72,6 +72,54 @@ def random_task_graph():
   print(f'num_tasks: {num_tasks}')
   return task_graph
 
+def grid_search(ccrs : List[float]):
+  # Define network
+  network = nx.Graph()
+  network.add_node(1, weight=0.99)
+  network.add_node(2, weight=0.31)
+  network.add_node(3, weight=0.98)
+  network.add_edge(1, 2, weight=0.88)
+  network.add_edge(1, 3, weight=0.61)
+  network.add_edge(2, 3, weight=0.72)
+  network.add_edge(1, 1, weight=1e9)
+  network.add_edge(2, 2, weight=1e9)
+  network.add_edge(3, 3, weight=1e9)
+
+  # Define task_graph
+  task_graph = nx.DiGraph()
+  task_graph.add_node('__src__', weight=1e-9)
+  task_graph.add_node('A', weight=0.76)
+  task_graph.add_node('B', weight=0.94)
+  task_graph.add_node('C', weight=0.57)
+  task_graph.add_node('__dst__', weight=1e-9)
+  task_graph.add_edge('__src__', 'A', weight=1e-9)
+  task_graph.add_edge('__src__', 'B', weight=1e-9)
+  task_graph.add_edge('A', 'C', weight=0.68)
+  task_graph.add_edge('B', 'C', weight=0.21)
+  task_graph.add_edge('C', '__dst__', weight=1e-9)
+  heft_makespans = []
+  sma_makespans = []
+  for ccr in ccrs:
+    scale_ccr(task_graph, network, ccr)
+    heft_makespan, sma_makespan = sma_vs_heft(network, task_graph)
+    heft_makespans.append((ccr, heft_makespan))
+    sma_makespans.append((ccr, sma_makespan))
+
+  plt.figure(figsize=(10, 6))
+  plt.plot([heft_makespans, sma_makespans], tick_labels=['HEFT', 'SMA'])
+  plt.ylabel('Makespan')
+  plt.title('Comparison of Makespans: HEFT vs SMA')
+  
+  # Save the plot
+  plt.savefig("sma_vs_heft_makespans.png")
+  plt.close()
+  print(f'Heft Makespans with CCRs {heft_makespans}')
+  print(f'SMA makespans with CCRs {sma_makespans}')
+
+
+
+     
+    
 def get_makespans():
     heft_makespans = []
     sma_makespans = []
@@ -97,6 +145,9 @@ def get_makespans():
     plt.close()
 
 def main():
+  ccrs = [0.2, 0.5, 1, 2, 5]
+  grid_search(ccrs)
   get_makespans()
+  
 
 main()

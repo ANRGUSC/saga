@@ -7,7 +7,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 from networkx import DiGraph, Graph
 
-from saga.scheduler import Task
+from src.saga.scheduler import Task
 
 from ..scheduler import Scheduler, Task
 

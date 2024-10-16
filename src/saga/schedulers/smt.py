@@ -6,7 +6,7 @@ from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, Or, Plus,
                              Real, Symbol, get_model)
 from pysmt.typing import REAL
 
-from saga.scheduler import Task
+from src.saga.scheduler import Task
 
 from ..scheduler import Scheduler, Task
 
