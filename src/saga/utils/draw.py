@@ -142,7 +142,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     else:
                         cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['weight'], 1))
                 else:
-                    cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['weight'], 1)}"
+                    cost_label = f"c({task_name})={str(round(task_graph.nodes[task_name]['weight'], 1))}"
 
                 axis.annotate(
                     cost_label,
@@ -248,7 +248,7 @@ def draw_network(network: nx.Graph,
                 if use_latex:
                     weight_label = r"$s(%s)=%s$" % (node, round(network.nodes[node]['weight'], 1))
                 else:
-                    weight_label = f"{round(network.nodes[node]['weight'], 1)}"
+                    weight_label = str(round(network.nodes[node]['weight'], 1))
                 
                 # get min and max x-coordinate from pos
                 xmin = min(pos[node][0] for node in network.nodes)

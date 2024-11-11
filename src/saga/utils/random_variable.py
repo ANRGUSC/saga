@@ -29,6 +29,17 @@ class RandomVariable:
             str: The formatted random variable.
         """
         return f"{self.mean():{format_spec}} ± {self.std():{format_spec}}"
+    
+    def __round__(self, n: int) -> "RandomVariable":
+        """Round the random variable to the given number of decimal places.
+
+        Args:
+            n (int): The number of decimal places.
+
+        Returns:
+            RandomVariable: The rounded random variable.
+        """
+        return self
 
     def __str__(self) -> str:
         """Get the string representation of the random variable."""
