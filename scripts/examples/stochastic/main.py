@@ -1,4 +1,5 @@
 import pathlib
+from typing import Dict
 from matplotlib import pyplot as plt
 import pandas as pd
 from saga.scheduler import Scheduler
