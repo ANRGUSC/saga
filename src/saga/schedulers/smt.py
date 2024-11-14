@@ -13,7 +13,9 @@ from ..scheduler import Scheduler, Task
 
 class SMTScheduler(Scheduler):
     """SMT-based scheduler"""
-    def __init__(self, epsilon: float = 1e-3, solver_name: Optional[str] = None) -> None:
+    def __init__(self,
+                 epsilon: float = 1e-3,
+                 solver_name: Optional[str] = None) -> None:
         """Initializes the scheduler
 
         Args:
@@ -66,6 +68,14 @@ class SMTScheduler(Scheduler):
                     GE(start_time[node][task], Real(0)) for node in network.nodes
                 )
             )
+
+        # add constraints that some tasks cannot be scheduled on some nodes
+        schedule_restrictions: Dict[str, List[str]] = task_graph.graph.get('schedule_restrictions', {})
+        for task, bad_nodes in schedule_restrictions.items():
+            for node in bad_nodes:
+                constraints.append(
+                    LE(start_time[node][task], Real(-1))
+                )
 
         # Each node can only execute one task at a time
         for node in network.nodes:
