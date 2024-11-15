@@ -20,6 +20,7 @@ def main():
         task_graph.edges[edge]['weight'] = 10
 
     task_graph.edges['A', 'B']['weight'] = 1
+    task_graph.edges['A', 'C']['weight'] = 1
 
     # simple network with two nodes and one edge
     network = nx.Graph()
