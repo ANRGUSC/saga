@@ -2,8 +2,9 @@ from itertools import combinations, product
 from typing import Dict, Hashable, List, Optional
 
 import networkx as nx
-from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, Or, Plus,
-                             Real, Symbol, get_model)
+from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, 
+                             Or, Plus, Max, Times, Ite,
+                             Iff, Real, Symbol, get_model)
 from pysmt.typing import REAL
 
 from saga.scheduler import Task
@@ -15,16 +16,19 @@ class SMTScheduler(Scheduler):
     """SMT-based scheduler"""
     def __init__(self,
                  epsilon: float = 1e-3,
-                 solver_name: Optional[str] = None) -> None:
+                 solver_name: Optional[str] = None,
+                 mode: str = "makespan") -> None:
         """Initializes the scheduler
 
         Args:
             epsilon (float, optional): The epsilon value. Defaults to 1e-3.
             solver_name (Optional[str], optional): The name of the solver. Defaults to None.
+            mode (str, optional): The mode of the scheduler (either "makespan" or "throughput"). Defaults to "makespan".
         """
         super(SMTScheduler, self).__init__()
         self.epsilon = epsilon
         self.solver_name = solver_name
+        self.mode = mode
 
     @classmethod
     def get_assignment_symbols(cls, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[int, Dict[int, Symbol]]:
@@ -47,13 +51,13 @@ class SMTScheduler(Scheduler):
     def _schedule(self,
                   network: nx.Graph,
                   task_graph: nx.DiGraph,
-                  makespan: float) -> Optional[Dict[Hashable, List[Task]]]:
-        """Returns the schedule of the tasks on the network if one exists within the makespan
+                  value: float) -> Optional[Dict[Hashable, List[Task]]]:
+        """Returns the schedule of the tasks on the network if one exists within the value
 
         Args:
             network (nx.Graph): The network.
             task_graph (nx.DiGraph): The task graph.
-            makespan (float): The makespan.
+            value (float): The value.
 
         Returns:
             Optional[Dict[Hashable, List[Task]]]: The schedule of the tasks on the network.
@@ -127,18 +131,54 @@ class SMTScheduler(Scheduler):
                     )
                 )
 
-        # makespan constraint
-        for node, task in product(network.nodes, task_graph.nodes):
-            constraints.append(
-                Implies(
-                    GE(start_time[node][task], Real(0)),
-                    LE(
-                        Plus(start_time[node][task], Div(Real(task_graph.nodes[task]['weight']),
-                                                         Real(network.nodes[node]['weight']))),
-                        Real(makespan)
+        
+        if self.mode == "makespan": # makespan constraint
+            for node, task in product(network.nodes, task_graph.nodes):
+                constraints.append(
+                    Implies(
+                        GE(start_time[node][task], Real(0)),
+                        LE(
+                            Plus(start_time[node][task], Div(Real(task_graph.nodes[task]['weight']),
+                                                             Real(network.nodes[node]['weight']))),
+                            Real(value)
+                        )
                     )
                 )
-            )
+        elif self.mode == "throughput": # throughput constraint
+            for node in network.nodes:
+                # add constraint that the sum of the execution times of all tasks assigned to the node is at most value
+                constraints.append(
+                    LE(
+                        Plus(
+                            Ite(
+                                GE(start_time[node][task], Real(0)),
+                                Div(Real(task_graph.nodes[task]['weight']), Real(network.nodes[node]['weight'])),
+                                Real(0)
+                            )
+                            for task in task_graph.nodes
+                        ),
+                        Real(value)
+                    )
+                )
+            for src, dst in product(network.nodes, repeat=2):
+                # add constraint that the sum of the communication times of all tasks assigned to the node is at most value
+                constraints.append(
+                    LE(
+                        Plus(
+                            Ite(
+                                And(
+                                    GE(start_time[src][task1], Real(0)),
+                                    GE(start_time[dst][task2], Real(0))
+                                ),
+                                Div(Real(task_graph.edges[task1, task2]['weight']), Real(network.edges[src, dst]['weight'])),
+                                Real(0)
+                            )
+                            for task1, task2 in task_graph.edges
+                        ),
+                        Real(value)
+                    )
+                )
+                
 
         model = get_model(And(constraints), solver_name=self.solver_name)
         schedule: Dict[Hashable, List[Task]] = {}

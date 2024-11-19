@@ -1,13 +1,12 @@
+from copy import deepcopy
 from functools import partial
 from itertools import product
 import random
 from typing import Any, Callable, Dict, Hashable, Optional, Tuple
 from matplotlib import pyplot as plt
 from saga.schedulers.parametric.components import (
-    ArbitraryTopological, CPoPRanking, ParametricScheduler,
-    GreedyInsert, InsertTask, GREEDY_INSERT_COMPARE_FUNCS,
-    ParametricSufferageScheduler, UpwardRanking, get_insert_loc,
-    initial_priority_funcs, insert_funcs
+    ArbitraryTopological, CPoPRanking, ParametricScheduler, GreedyInsert, InsertTask,
+    ParametricSufferageScheduler, UpwardRanking, get_insert_loc
 )
 from saga.schedulers.smt import SMTScheduler
 from saga.schedulers.brute_force import BruteForceScheduler
@@ -203,14 +202,99 @@ def generate_instance(workflow_type: str) -> Tuple[nx.Graph, nx.DiGraph]:
 
     return network, task_graph
 
+def get_makespan(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType) -> float:
+    return max(task.end for tasks in schedule.values() for task in tasks)
+
+def get_throughput(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType) -> float:
+    tasks = {task.name: task for _, tasks in schedule.items() for task in tasks}
+    task_bottleneck = max(sum(task.end - task.start for task in tasks) for node, tasks in schedule.items())
+    comm_bottleneck = max(
+        sum(
+            task_graph.edges[parent, child]["weight"] / network.edges[tasks[child].node, tasks[child].node]["weight"]
+            for parent, child in task_graph.edges
+            if parent in tasks and child in tasks and tasks[parent].node == src and tasks[child].node == dst
+        )
+        for src, dst in network.edges
+    )
+    return max(task_bottleneck, comm_bottleneck)
+
+def compare_etf(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    return new.end - cur.end
+
+def compare_est(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    return new.start - cur.start
+
+def compare_quickest(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    return (new.end - new.start) - (cur.end - cur.start)
+
+def compare_arbitrary(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    return 0
+
+def compare_max_proc_time(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    # This is the "simple_greedy" approach from https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=5161045
+    new_node_tp = max([
+        # runtime of new task on new node
+        task_graph.nodes[new.name]["weight"] / network.nodes[new.node]["weight"],
+        # runtime of previously scheduled tasks on new node
+        *[task_graph.nodes[task.name]["weight"] / network.nodes[task.node]["weight"] for task in schedule[new.node]]
+    ])
+    cur_node_tp = max([
+        # runtime of new task on current node
+        task_graph.nodes[cur.name]["weight"] / network.nodes[cur.node]["weight"],
+        # runtime of previously scheduled tasks on current node
+        *[task_graph.nodes[task.name]["weight"] / network.nodes[task.node]["weight"] for task in schedule[cur.node]]
+    ])
+    return new_node_tp - cur_node_tp
+
+def compare_throughput(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
+    schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
+    if new.node in schedule_restrictions[new.name]:
+        return 1e9
+    elif cur.node in schedule_restrictions[cur.name]:
+        return -1e9
+    schedule_1 = deepcopy(schedule)
+    schedule_2 = deepcopy(schedule)
+    schedule_1[new.node].append(new) # doesn't matter if this is valid or not because it's just for computing throughput
+    schedule_2[cur.node].append(cur) # doesn't matter if this is valid or not because it's just for computing throughput
+
+    return get_throughput(network, task_graph, schedule_1) - get_throughput(network, task_graph, schedule_2)
+
 def example(workflow_type: str = 'heirarchy',
             num_examples: int = 1,
-            savedir: pathlib.Path = outputdir):
+            savedir: pathlib.Path = outputdir,
+            mode: str = "makespan"):
+    """Produce an example where the HEFT scheduling algorithm doesn't perform well"""
+
     worst_network = None
     worst_task_graph = None
     worst_schedule = None
     worst_smt_schedule = None
-    worst_mr = float("-inf")
+    worst_qr = float("-inf")
 
     savedir.mkdir(parents=True, exist_ok=True)
 
@@ -233,7 +317,7 @@ def example(workflow_type: str = 'heirarchy',
                 return -1e9 # return low number, indicating cur is bad
             return new.end - cur.end # return the difference in end times
 
-        # # HEFT w/ constraints
+        # HEFT w/ constraints
         scheduler = ParametricScheduler(
             initial_priority=UpwardRanking(),
             insert_task=ConstrainedGreedyInsert(
@@ -242,16 +326,6 @@ def example(workflow_type: str = 'heirarchy',
                 critical_path=False
             )
         )
-
-        # # CPoP w/ constraints
-        # scheduler = ParametricScheduler(
-        #     initial_priority=CPoPRanking(),
-        #     insert_task=ConstrainedGreedyInsert(
-        #         append_only=False,
-        #         compare=compare,
-        #         critical_path=True
-        #     )
-        # )
         
         schedule = scheduler.schedule(network.copy(), task_graph.copy())
 
@@ -264,7 +338,7 @@ def example(workflow_type: str = 'heirarchy',
 
         # SMT schedule
         task_graph.graph["schedule_restrictions"] = schedule_restrictions
-        smt_scheduler = SMTScheduler(epsilon=0.1)
+        smt_scheduler = SMTScheduler(epsilon=0.1, mode=mode)
         smt_schedule = smt_scheduler.schedule(network, task_graph)
 
         # verify schedule satisfies constraints
@@ -274,11 +348,15 @@ def example(workflow_type: str = 'heirarchy',
         # Verify schedule is valid
         validate_simple_schedule(network, task_graph, smt_schedule)
 
-        makespan = max(task.end for tasks in schedule.values() for task in tasks)
-        smt_makespan = max(task.end for tasks in smt_schedule.values() for task in tasks)
-        mr = makespan / smt_makespan
-        if mr > worst_mr:
-            worst_mr = mr
+        if mode == "makespan":
+            quality = get_makespan(network, task_graph, schedule)
+            smt_quality = get_makespan(network, task_graph, smt_schedule)
+        elif mode == "throughput":
+            quality = get_throughput(network, task_graph, schedule)
+            smt_quality = get_throughput(network, task_graph, smt_schedule)
+        qr = quality / smt_quality
+        if qr > worst_qr:
+            worst_qr = qr
             worst_network = network
             worst_task_graph = task_graph
             worst_schedule = schedule
@@ -311,38 +389,45 @@ def example(workflow_type: str = 'heirarchy',
     ax.figure.savefig(savedir / "smt_schedule.png")
 
 def experiment(workflow_type: str,
-               savedir: pathlib.Path):
+               savedir: pathlib.Path,
+               mode: str = "makespan"):
     savedir.mkdir(parents=True, exist_ok=True)
+
+    compare_funcs = {
+        "EFT": compare_etf,
+        "EST": compare_est,
+        "Qck": compare_quickest,
+        "Arb": compare_arbitrary,
+        "MET": compare_max_proc_time,
+        "Thp": compare_throughput
+    }
+
+    initial_priority_funcs = {
+        "Upwd": UpwardRanking(),
+        "CPoP": CPoPRanking(),
+        "ArbT": ArbitraryTopological()
+    }
     
     schedulers: Dict[str, ParametricScheduler] = {}
-    for name, insert_task in insert_funcs.items():
+    for append_only, compare_func, critical_path in product([True, False], compare_funcs.keys(), [False, True]):
         for intial_priority_name, initial_priority_func in initial_priority_funcs.items():
-            def compare(network: nx.Graph,
-                        task_graph: nx.DiGraph,
-                        schedule: ScheduleType,
-                        new: Task, cur: Task) -> float:
-                schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
-                if new.node in schedule_restrictions[new.name]:
-                    return 1e9
-                elif cur.node in schedule_restrictions[cur.name]:
-                    return -1e9
-                return insert_task._compare(new, cur)
+            name = f"{compare_func}_{intial_priority_name}_{'App' if append_only else 'Ins'}{'_CP' if critical_path else ''}"
             reg_scheduler = ParametricScheduler(
                 initial_priority=initial_priority_func,
                 insert_task=ConstrainedGreedyInsert(
-                    append_only=insert_task.append_only,
-                    compare=compare,
-                    critical_path=insert_task.critical_path
+                    append_only=append_only,
+                    compare=compare_funcs[compare_func],
+                    critical_path=critical_path
                 )
             )
-            reg_scheduler.name = f"{name}_{intial_priority_name}"
+            reg_scheduler.name = name
             schedulers[reg_scheduler.name] = reg_scheduler
 
             sufferage_scheduler = ParametricSufferageScheduler(
                 scheduler=reg_scheduler,
                 top_n=2
             )
-            sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
+            sufferage_scheduler.name = f"{reg_scheduler.name}_Suff"
             schedulers[sufferage_scheduler.name] = sufferage_scheduler
 
     def compare_arb(network: nx.Graph,
@@ -365,9 +450,7 @@ def experiment(workflow_type: str,
         )
     )
 
-    bf_scheduler = BruteForceScheduler()
-    smt_scheduler = SMTScheduler(epsilon=0.1)
-
+    smt_scheduler = SMTScheduler(epsilon=0.1, mode=mode)
     schedulers = {"Arbitrary": arb_scheduler, "SMT": smt_scheduler, **schedulers}
 
     NUM_EVALS = 100
@@ -400,11 +483,11 @@ def experiment(workflow_type: str,
                 print(f"Error validating schedule for scheduler {scheduler_name}: {e}")
                 raise e
 
-            makespan = max(task.end for tasks in schedule.values() for task in tasks)
+            quality = get_makespan(network, task_graph, schedule) if mode == "makespan" else get_throughput(network, task_graph, schedule)
             rows.append({
-                "scheduler": scheduler_name,
+                "scheduler": scheduler_name,                
                 "problem": i,
-                "makespan": makespan,
+                "quality": quality,
                 "time": dt.total_seconds()
             })
 
@@ -413,18 +496,22 @@ def experiment(workflow_type: str,
     for key, value in SCHEDULER_RENAMES.items():
         df["scheduler"] = df["scheduler"].str.replace(key, value, regex=True)
 
-    arb_mean = df[df["scheduler"] == "Arbitrary"]["makespan"].median()
+    arb_mean = df[df["scheduler"] == "Arbitrary"]["quality"].median()
+
+    quality_label = "Makespan" if mode == "makespan" else "Throughput"
 
     fig = px.box(
         df,
-        x="scheduler", y="makespan",
-        title="Makespan vs. Scheduler",
+        x="scheduler", y="quality",
+        title=f"{quality_label} vs. Scheduler",
         template="plotly_white",
-        # exclude outliers
-        # boxmode="overlay",
         points=False,
-        # make black and white
+        # facet_col="scheduler",
         color_discrete_sequence=["black"],
+        labels={
+            "quality": quality_label,
+            "scheduler": "Scheduler"
+        }
     )
     # draw horizontal line at the mean of the Arbitrary scheduler
     fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
@@ -432,74 +519,74 @@ def experiment(workflow_type: str,
     # make the plot really wide to accommodate the 72 schedulers
     fig.update_layout(width=3000)
     fig.update_xaxes(title_text="Scheduler")
-    fig.update_yaxes(title_text="Makespan")
+    fig.update_yaxes(title_text=quality_label)
 
     savedir.mkdir(parents=True, exist_ok=True)
-    fig.write_image(savedir / "makespan_vs_scheduler.png")
-    print(f"Saved to {savedir / 'makespan_vs_scheduler.png'}")
-    fig.write_html(savedir / "makespan_vs_scheduler.html")
-    print(f"Saved to {savedir / 'makespan_vs_scheduler.html'}")
+    fig.write_image(savedir / "quality.png")
+    print(f"Saved to {savedir / 'quality.png'}")
+    fig.write_html(savedir / "quality.html")
+    print(f"Saved to {savedir / 'quality.html'}")
 
-    num_plots = 4
-    schedulers_without_arb = [scheduler for scheduler in df["scheduler"].unique() if scheduler != "Arbitrary"]
-    scheduler_groups = [schedulers_without_arb[i::num_plots] for i in range(num_plots)]
-    upper_threshold = df["makespan"].max() + 1
-    lower_threshold = df["makespan"].min() - 1
-    figs = []
-    for i in range(num_plots):
-        _df = df[df["scheduler"].isin({"Arbitrary", *scheduler_groups[i]})]
-        fig = px.box(
-            _df,
-            x="scheduler", y="makespan",
-            title="Makespan vs. Scheduler",
-            template="plotly_white",
-            # exclude outliers
-            # boxmode="overlay",
-            points=False,
-            # make black and white
-            color_discrete_sequence=["black"],
-        )
-        # draw horizontal line at the mean of the Arbitrary scheduler
-        fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
+    # num_plots = 4
+    # schedulers_without_arb = [scheduler for scheduler in df["scheduler"].unique() if scheduler != "Arbitrary"]
+    # scheduler_groups = [schedulers_without_arb[i::num_plots] for i in range(num_plots)]
+    # upper_threshold = df["quality"].max() + 1
+    # lower_threshold = df["quality"].min() - 1
+    # figs = []
+    # for i in range(num_plots):
+    #     _df = df[df["scheduler"].isin({"Arbitrary", *scheduler_groups[i]})]
+    #     fig = px.box(
+    #         _df,
+    #         x="scheduler", y="quality",
+    #         title=f"{quality_label} vs. Scheduler",
+    #         template="plotly_white",
+    #         # exclude outliers
+    #         # boxmode="overlay",
+    #         points=False,
+    #         # make black and white
+    #         color_discrete_sequence=["black"],
+    #     )
+    #     # draw horizontal line at the mean of the Arbitrary scheduler
+    #     fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
 
-        fig.update_layout(width=1500, height=800)
-        fig.update_xaxes(title_text="Scheduler")
-        fig.update_yaxes(title_text="Makespan")
-        # make font larger
-        fig.update_layout(font=dict(size=18))
-        # set the y-axis range to be the same for all plots
-        fig.update_yaxes(range=[lower_threshold, upper_threshold])
+    #     fig.update_layout(width=1500, height=800)
+    #     fig.update_xaxes(title_text="Scheduler")
+    #     fig.update_yaxes(title_text=quality_label)
+    #     # make font larger
+    #     fig.update_layout(font=dict(size=18))
+    #     # set the y-axis range to be the same for all plots
+    #     fig.update_yaxes(range=[lower_threshold, upper_threshold])
 
-        fig.write_image(savedir / f"makespan_vs_scheduler_{i}.png")
-        print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.png'}")
-        fig.write_html(savedir / f"makespan_vs_scheduler_{i}.html")
-        print(f"Saved to {savedir / f'makespan_vs_scheduler_{i}.html'}")
-        figs.append(fig)
+    #     fig.write_image(savedir / f"quality_{i}.png")
+    #     print(f"Saved to {savedir / f'quality_{i}.png'}")
+    #     fig.write_html(savedir / f"quality_{i}.html")
+    #     print(f"Saved to {savedir / f'quality_{i}.html'}")
+    #     figs.append(fig)
 
-    # generate plot with only Arbitrary and main schedulers: CPoP, HEFT, Sufferage, MET, MCT
-    main_schedulers = ["CPoP", "HEFT", "Sufferage", "MET", "MCT"]
-    _df = df[df["scheduler"].isin({"Arbitrary", *main_schedulers})]
-    fig = px.box(
-        _df,
-        x="scheduler", y="makespan",
-        template="plotly_white",
-        # exclude outliers
-        # boxmode="overlay",
-        points=False,
-        # make black and white
-        color_discrete_sequence=["black"],
-    )
-    # draw horizontal line at the mean of the Arbitrary scheduler
-    fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
+    # # generate plot with only Arbitrary and main schedulers: CPoP, HEFT, Sufferage, MET, MCT
+    # main_schedulers = ["CPoP", "HEFT", "Sufferage", "MET", "MCT"]
+    # _df = df[df["scheduler"].isin({"Arbitrary", *main_schedulers})]
+    # fig = px.box(
+    #     _df,
+    #     x="scheduler", y="quality",
+    #     template="plotly_white",
+    #     # exclude outliers
+    #     # boxmode="overlay",
+    #     points=False,
+    #     # make black and white
+    #     color_discrete_sequence=["black"],
+    # )
+    # # draw horizontal line at the mean of the Arbitrary scheduler
+    # fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
 
-    fig.update_layout(width=1500, height=800)
-    fig.update_xaxes(title_text="Scheduler")
-    fig.update_yaxes(title_text="Makespan")
-    fig.update_layout(font=dict(size=28, family="serif"))
+    # fig.update_layout(width=1500, height=800)
+    # fig.update_xaxes(title_text="Scheduler")
+    # fig.update_yaxes(title_text=quality_label)
+    # fig.update_layout(font=dict(size=28, family="serif"))
 
-    savedir.mkdir(parents=True, exist_ok=True)
-    fig.write_image(savedir / f"constraints.pdf")
-    print(f"Saved to {savedir / 'constraints.pdf'}")
+    # savedir.mkdir(parents=True, exist_ok=True)
+    # fig.write_image(savedir / f"constraints.pdf")
+    # print(f"Saved to {savedir / 'constraints.pdf'}")
 
 
     # Plot the time taken for each scheduler
@@ -528,10 +615,12 @@ def experiment(workflow_type: str,
     print(f"SMT average time / Other average time: {avg_smt_time / avg_other_time:.2f}")
 
 def main():
-    for workflow_type in ['chain', 'heirarchy']:
-        savedir = resultsdir / workflow_type
-        example(workflow_type=workflow_type, num_examples=20, savedir=savedir / "example")
-        # experiment(workflow_type=workflow_type, savedir=savedir / "comparison")
+    for mode in ["makespan", "throughput"]:
+        print(f"Mode: {mode}")
+        for workflow_type in ['chain', 'heirarchy']:
+            savedir = resultsdir / workflow_type
+            # example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode)
+            experiment(workflow_type=workflow_type, savedir=savedir / mode / "comparison", mode=mode)
 
 if __name__ == "__main__":
     main()
