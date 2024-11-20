@@ -18,6 +18,7 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 import plotly.express as px
 import pandas as pd
 import pathlib
+import seaborn as sns
 
 thisdir = pathlib.Path(__file__).parent
 resultsdir = thisdir / "results"
@@ -27,6 +28,10 @@ SCHEDULER_RENAMES = {
     "Cpop": "CPoP",
     "Heft": "HEFT",
 }
+
+# Enable LaTeX fonts
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
 
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,
@@ -287,7 +292,8 @@ def compare_throughput(network: nx.Graph, task_graph: nx.DiGraph, schedule: Sche
 def example(workflow_type: str = 'heirarchy',
             num_examples: int = 1,
             savedir: pathlib.Path = outputdir,
-            mode: str = "makespan"):
+            mode: str = "makespan",
+            filetype: str = "png"):
     """Produce an example where the HEFT scheduling algorithm doesn't perform well"""
 
     worst_network = None
@@ -364,59 +370,77 @@ def example(workflow_type: str = 'heirarchy',
     
     savedir.mkdir(parents=True, exist_ok=True)
 
-    ax = draw_task_graph(worst_task_graph, figsize=(10, 10))
-    ax.set_title("Task Graph")
-    plt.tight_layout()
-    ax.figure.savefig(savedir / "task_graph.png")
+    max_makespan = max(
+        max(task.end for tasks in worst_schedule.values() for task in tasks),
+        max(task.end for tasks in worst_smt_schedule.values() for task in tasks)
+    )
 
-    ax = draw_network(worst_network, figsize=(10, 10))
-    ax.set_title("Network")
+    worst_task_graph = worst_task_graph.subgraph([node for node in worst_task_graph.nodes if node not in {"src", "sink"}])
+    # rename nodes in \text{} to enable LaTeX rendering
+    # worst_task_graph = nx.relabel_nodes(worst_task_graph, {node: f"node}}}" for node in worst_task_graph.nodes})
+    ax = draw_task_graph(
+        worst_task_graph,
+        figsize=(10, 10),
+        use_latex=True,
+        draw_edge_weights=False,
+        draw_node_weights=False
+    )
     plt.tight_layout()
-    ax.figure.savefig(savedir / "network.png")
+    ax.figure.savefig(savedir / f"task_graph.{filetype}")
 
-    ax = draw_gantt(worst_schedule, figsize=(15, 6))
-    ax.set_title("Constrained Greedy Insert")
+    ax = draw_network(
+        worst_network,
+        figsize=(10, 10),
+        use_latex=True,
+        draw_edge_weights=False,
+        draw_node_weights=False,
+        draw_colors=False
+    )
+    plt.tight_layout()
+    ax.figure.savefig(savedir / f"network.{filetype}")
+
+    ax = draw_gantt(worst_schedule, figsize=(15, 6), use_latex=True, xmax=max_makespan)
     ax.set_xlabel("Time")
     ax.set_ylabel("Node")
     plt.tight_layout()
-    ax.figure.savefig(savedir / "schedule.png")
+    ax.figure.savefig(savedir / f"schedule.{filetype}")
 
-    ax = draw_gantt(worst_smt_schedule, figsize=(15, 6))
-    ax.set_title("SMT Schedule")
+    ax = draw_gantt(worst_smt_schedule, figsize=(15, 6), use_latex=True, xmax=max_makespan)
     ax.set_xlabel("Time")
     ax.set_ylabel("Node")
     plt.tight_layout()
-    ax.figure.savefig(savedir / "smt_schedule.png")
+    ax.figure.savefig(savedir / f"smt_schedule.{filetype}")
+
+
+COMPARE_FUNCS = {
+    "EFT": compare_etf,
+    "EST": compare_est,
+    "Qck": compare_quickest,
+    "Arb": compare_arbitrary,
+    "MET": compare_max_proc_time,
+    "Thp": compare_throughput
+}
+
+PRIORITY_FUNCS = {
+    "Upwd": UpwardRanking(),
+    "CPoP": CPoPRanking(),
+    "ArbT": ArbitraryTopological()
+}
 
 def experiment(workflow_type: str,
                savedir: pathlib.Path,
                mode: str = "makespan"):
     savedir.mkdir(parents=True, exist_ok=True)
 
-    compare_funcs = {
-        "EFT": compare_etf,
-        "EST": compare_est,
-        "Qck": compare_quickest,
-        "Arb": compare_arbitrary,
-        "MET": compare_max_proc_time,
-        "Thp": compare_throughput
-    }
-
-    initial_priority_funcs = {
-        "Upwd": UpwardRanking(),
-        "CPoP": CPoPRanking(),
-        "ArbT": ArbitraryTopological()
-    }
-    
     schedulers: Dict[str, ParametricScheduler] = {}
-    for append_only, compare_func, critical_path in product([True, False], compare_funcs.keys(), [False, True]):
-        for intial_priority_name, initial_priority_func in initial_priority_funcs.items():
+    for append_only, compare_func, critical_path in product([True, False], COMPARE_FUNCS.keys(), [False, True]):
+        for intial_priority_name, initial_priority_func in PRIORITY_FUNCS.items():
             name = f"{compare_func}_{intial_priority_name}_{'App' if append_only else 'Ins'}{'_CP' if critical_path else ''}"
             reg_scheduler = ParametricScheduler(
                 initial_priority=initial_priority_func,
                 insert_task=ConstrainedGreedyInsert(
                     append_only=append_only,
-                    compare=compare_funcs[compare_func],
+                    compare=COMPARE_FUNCS[compare_func],
                     critical_path=critical_path
                 )
             )
@@ -496,118 +520,53 @@ def experiment(workflow_type: str,
     for key, value in SCHEDULER_RENAMES.items():
         df["scheduler"] = df["scheduler"].str.replace(key, value, regex=True)
 
-    arb_mean = df[df["scheduler"] == "Arbitrary"]["quality"].median()
+    df.to_csv(savedir / "data.csv", index=False)
 
+def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str = "png"):
+    df = pd.read_csv(savedir / "data.csv")
+    arb_mean = df[df["scheduler"] == "Arbitrary"]["quality"].median()
     quality_label = "Makespan" if mode == "makespan" else "Throughput"
 
-    fig = px.box(
-        df,
-        x="scheduler", y="quality",
-        title=f"{quality_label} vs. Scheduler",
-        template="plotly_white",
-        points=False,
-        # facet_col="scheduler",
-        color_discrete_sequence=["black"],
-        labels={
-            "quality": quality_label,
-            "scheduler": "Scheduler"
-        }
-    )
-    # draw horizontal line at the mean of the Arbitrary scheduler
-    fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
+    min_quality = df["quality"].min()
+    max_quality = df["quality"].max()
 
-    # make the plot really wide to accommodate the 72 schedulers
-    fig.update_layout(width=3000)
-    fig.update_xaxes(title_text="Scheduler")
-    fig.update_yaxes(title_text=quality_label)
+    print(min_quality, max_quality)
 
-    savedir.mkdir(parents=True, exist_ok=True)
-    fig.write_image(savedir / "quality.png")
-    print(f"Saved to {savedir / 'quality.png'}")
-    fig.write_html(savedir / "quality.html")
-    print(f"Saved to {savedir / 'quality.html'}")
+    for compare_func in COMPARE_FUNCS.keys():
+        _df = df[(df["scheduler"].str.startswith(compare_func) | df["scheduler"].str.contains("SMT")) | (df["scheduler"] == "Arbitrary")]
 
-    # num_plots = 4
-    # schedulers_without_arb = [scheduler for scheduler in df["scheduler"].unique() if scheduler != "Arbitrary"]
-    # scheduler_groups = [schedulers_without_arb[i::num_plots] for i in range(num_plots)]
-    # upper_threshold = df["quality"].max() + 1
-    # lower_threshold = df["quality"].min() - 1
-    # figs = []
-    # for i in range(num_plots):
-    #     _df = df[df["scheduler"].isin({"Arbitrary", *scheduler_groups[i]})]
-    #     fig = px.box(
-    #         _df,
-    #         x="scheduler", y="quality",
-    #         title=f"{quality_label} vs. Scheduler",
-    #         template="plotly_white",
-    #         # exclude outliers
-    #         # boxmode="overlay",
-    #         points=False,
-    #         # make black and white
-    #         color_discrete_sequence=["black"],
-    #     )
-    #     # draw horizontal line at the mean of the Arbitrary scheduler
-    #     fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(data=_df, x="scheduler", y="quality", color="gray", showfliers=False)
+        plt.axhline(y=arb_mean, linestyle="--", color="black", label="Arbitrary Median")
+        plt.xlabel("Scheduler", fontsize=14)
+        plt.ylabel(quality_label, fontsize=14)
+        padding = (max_quality - min_quality) * 0.1
+        plt.ylim(min_quality - padding, max_quality + padding)
+        plt.xticks(rotation=45, ha="right", fontsize=12)
+        plt.yticks(fontsize=12)
+        plt.legend(fontsize=12)
+        plt.tight_layout()
 
-    #     fig.update_layout(width=1500, height=800)
-    #     fig.update_xaxes(title_text="Scheduler")
-    #     fig.update_yaxes(title_text=quality_label)
-    #     # make font larger
-    #     fig.update_layout(font=dict(size=18))
-    #     # set the y-axis range to be the same for all plots
-    #     fig.update_yaxes(range=[lower_threshold, upper_threshold])
-
-    #     fig.write_image(savedir / f"quality_{i}.png")
-    #     print(f"Saved to {savedir / f'quality_{i}.png'}")
-    #     fig.write_html(savedir / f"quality_{i}.html")
-    #     print(f"Saved to {savedir / f'quality_{i}.html'}")
-    #     figs.append(fig)
-
-    # # generate plot with only Arbitrary and main schedulers: CPoP, HEFT, Sufferage, MET, MCT
-    # main_schedulers = ["CPoP", "HEFT", "Sufferage", "MET", "MCT"]
-    # _df = df[df["scheduler"].isin({"Arbitrary", *main_schedulers})]
-    # fig = px.box(
-    #     _df,
-    #     x="scheduler", y="quality",
-    #     template="plotly_white",
-    #     # exclude outliers
-    #     # boxmode="overlay",
-    #     points=False,
-    #     # make black and white
-    #     color_discrete_sequence=["black"],
-    # )
-    # # draw horizontal line at the mean of the Arbitrary scheduler
-    # fig.add_hline(y=arb_mean, line_dash="dot", line_color="black")
-
-    # fig.update_layout(width=1500, height=800)
-    # fig.update_xaxes(title_text="Scheduler")
-    # fig.update_yaxes(title_text=quality_label)
-    # fig.update_layout(font=dict(size=28, family="serif"))
-
-    # savedir.mkdir(parents=True, exist_ok=True)
-    # fig.write_image(savedir / f"constraints.pdf")
-    # print(f"Saved to {savedir / 'constraints.pdf'}")
-
+        output_path = savedir / f"quality_{compare_func}.{filetype}"
+        plt.savefig(output_path)
+        plt.close()
+        print(f"Saved to {output_path}")
 
     # Plot the time taken for each scheduler
-    fig = px.box(
-        df,
-        x="scheduler", y="time",
-        title="Time vs. Scheduler",
-        template="plotly_white",
-        # exclude outliers
-        # boxmode="overlay",
-        points=False,
-        # make black and white
-        color_discrete_sequence=["black"],
-    )
-    fig.update_layout(width=1500, height=800)
-    fig.update_xaxes(title_text="Scheduler")
-    fig.update_yaxes(title_text="Time (s)")
-    fig.write_image(savedir / "time_vs_scheduler.png")
+    plt.figure(figsize=(12, 6))
+    sns.boxplot(data=df, x="scheduler", y="time", color="gray", showfliers=False)
+    plt.xlabel(r"Scheduler", fontsize=14)
+    plt.ylabel(r"Time (s)", fontsize=14)
+    plt.xticks(rotation=45, ha="right", fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
 
+    output_path = savedir / f"time_vs_scheduler.{filetype}"
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Saved to {output_path}")
 
-    # On average how many times slower is SMT than other schedulers
+    # On average, how many times slower is SMT than other schedulers
     smt_times = df[df["scheduler"] == "SMT"]["time"]
     other_times = df[df["scheduler"] != "SMT"]["time"]
     avg_smt_time = smt_times.mean()
@@ -615,12 +574,15 @@ def experiment(workflow_type: str,
     print(f"SMT average time / Other average time: {avg_smt_time / avg_other_time:.2f}")
 
 def main():
+    filetype = "pdf"
+
     for mode in ["makespan", "throughput"]:
         print(f"Mode: {mode}")
         for workflow_type in ['chain', 'heirarchy']:
             savedir = resultsdir / workflow_type
-            # example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode)
-            experiment(workflow_type=workflow_type, savedir=savedir / mode / "comparison", mode=mode)
+            example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode, filetype=filetype)
+            # experiment(workflow_type=workflow_type, savedir=savedir / mode / "comparison", mode=mode)
+            # generate_plots(savedir=savedir / mode / "comparison", mode=mode, filetype=filetype)
 
 if __name__ == "__main__":
     main()

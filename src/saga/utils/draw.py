@@ -120,7 +120,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 color = "white"
                 if schedule is not None and task_name in tasks:
                     color = colors[tasks[task_name].node]
-                task_label = r"$%s$" % task_name if use_latex else task_name
+                task_label = r"%s" % task_name if use_latex else task_name
                 nx.draw_networkx_labels(
                     task_graph, pos=pos, ax=axis,
                     font_size=font_size,
@@ -242,7 +242,7 @@ def draw_network(network: nx.Graph,
                 label = network.nodes[node].get("label", node)
                 # if isinstance(label, (int, float)) and use_latex:
                 if use_latex:
-                    label = r"$%s$" % node
+                    label = r"%s" % node
                 node_labels[node] = label
             if draw_node_weights:
                 if use_latex:
@@ -340,11 +340,11 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
         if use_latex:
             for node in schedule:
                 for task in schedule[node]:
-                    task.node = r"$%s$" % task.node
-                    task.name = r"$%s$" % task.name
+                    task.node = r"%s" % task.node
+                    task.name = r"%s" % task.name
 
         if use_latex:
-            schedule = {r"$%s$" % node: tasks for node, tasks in schedule.items()}
+            schedule = {r"%s" % node: tasks for node, tasks in schedule.items()}
 
         # insert dummy tasks to make sure all nodes have at least one task
         for node in schedule:
