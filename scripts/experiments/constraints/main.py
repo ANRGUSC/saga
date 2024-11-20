@@ -530,8 +530,6 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
     min_quality = df["quality"].min()
     max_quality = df["quality"].max()
 
-    print(min_quality, max_quality)
-
     for compare_func in COMPARE_FUNCS.keys():
         _df = df[(df["scheduler"].str.startswith(compare_func) | df["scheduler"].str.contains("SMT")) | (df["scheduler"] == "Arbitrary")]
 
@@ -553,9 +551,21 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
         print(f"Saved to {output_path}")
 
     # Plot the time taken for each scheduler
+
+    # group by the compare function (first 3 characters of the scheduler name)
+    # rename scheduler to just the compare function
+    df_time = df.copy()
+    df_time["scheduler"] = df_time["scheduler"].str.extract(r"([A-Za-z]{3})")
+
     plt.figure(figsize=(12, 6))
-    sns.boxplot(data=df, x="scheduler", y="time", color="gray", showfliers=False)
-    plt.xlabel(r"Scheduler", fontsize=14)
+    sns.boxplot(
+        data=df_time,
+        x="scheduler",
+        y="time",
+        color="gray",
+        showfliers=False
+    )
+    plt.xlabel(r"Scheduler Type", fontsize=14)
     plt.ylabel(r"Time (s)", fontsize=14)
     plt.xticks(rotation=45, ha="right", fontsize=12)
     plt.yticks(fontsize=12)
@@ -580,9 +590,9 @@ def main():
         print(f"Mode: {mode}")
         for workflow_type in ['chain', 'heirarchy']:
             savedir = resultsdir / workflow_type
-            example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode, filetype=filetype)
+            # example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode, filetype=filetype)
             # experiment(workflow_type=workflow_type, savedir=savedir / mode / "comparison", mode=mode)
-            # generate_plots(savedir=savedir / mode / "comparison", mode=mode, filetype=filetype)
+            generate_plots(savedir=savedir / mode / "comparison", mode=mode, filetype=filetype)
 
 if __name__ == "__main__":
     main()
