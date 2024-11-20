@@ -217,6 +217,7 @@ class SMTScheduler(Scheduler):
         # binary search for the makespan
         lower_bound = 0
         # upper_bound is if we execute all tasks on the fastest node
+        # This doesn't work if there are schedule restrictions, so this is just a starting point
         fastest_node = max(network.nodes, key=lambda node: network.nodes[node]['weight'])
 
         upper_bound = 0
@@ -228,7 +229,11 @@ class SMTScheduler(Scheduler):
             ], default=0)
             upper_bound += exec_time + comm_time
 
-        schedule = self._schedule(network, task_graph, upper_bound)
+        schedule = None
+        while schedule is None: 
+            # if the upper bound is too low (because of schedule restrictions), double it and try again
+            upper_bound *= 2
+            schedule = self._schedule(network, task_graph, upper_bound)
         if schedule is None:
             raise ValueError("Error in SMT solver, a schedule should always exist")
         makespan = (lower_bound + upper_bound) / 2
