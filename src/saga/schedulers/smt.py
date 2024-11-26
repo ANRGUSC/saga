@@ -23,7 +23,7 @@ class SMTScheduler(Scheduler):
         Args:
             epsilon (float, optional): The epsilon value. Defaults to 1e-3.
             solver_name (Optional[str], optional): The name of the solver. Defaults to None.
-            mode (str, optional): The mode of the scheduler (either "makespan" or "throughput"). Defaults to "makespan".
+            mode (str, optional): The mode of the scheduler (either "makespan" or "bottleneck"). Defaults to "makespan".
         """
         super(SMTScheduler, self).__init__()
         self.epsilon = epsilon
@@ -144,7 +144,7 @@ class SMTScheduler(Scheduler):
                         )
                     )
                 )
-        elif self.mode == "throughput": # throughput constraint
+        elif self.mode == "bottleneck": # bottleneck constraint
             for node in network.nodes:
                 # add constraint that the sum of the execution times of all tasks assigned to the node is at most value
                 constraints.append(
@@ -164,9 +164,9 @@ class SMTScheduler(Scheduler):
                 # add constraint that the sum of the communication times of all tasks assigned to the node is at most value
                 constraints.append(
                     LE(
-                        Plus(
+                        Max(
                             Ite(
-                                And(
+                                And( # task1 and task2 are assigned to src and dst respectively
                                     GE(start_time[src][task1], Real(0)),
                                     GE(start_time[dst][task2], Real(0))
                                 ),
@@ -178,6 +178,8 @@ class SMTScheduler(Scheduler):
                         Real(value)
                     )
                 )
+        else:
+            raise ValueError(f"Invalid mode: {self.mode}")
                 
 
         model = get_model(And(constraints), solver_name=self.solver_name)
@@ -220,14 +222,14 @@ class SMTScheduler(Scheduler):
         # This doesn't work if there are schedule restrictions, so this is just a starting point
         fastest_node = max(network.nodes, key=lambda node: network.nodes[node]['weight'])
 
-        upper_bound = 0
-        for task in task_graph.nodes:
-            exec_time = task_graph.nodes[task]['weight'] / network.nodes[fastest_node]['weight']
-            comm_time = max([
-                task_graph.edges[pred_task, task]['weight'] / network.edges[pred_node, fastest_node]['weight']
-                for pred_task, pred_node in product(task_graph.predecessors(task), network.nodes)
-            ], default=0)
-            upper_bound += exec_time + comm_time
+        upper_bound = 1
+        # for task in task_graph.nodes:
+        #     exec_time = task_graph.nodes[task]['weight'] / network.nodes[fastest_node]['weight']
+        #     comm_time = max([
+        #         task_graph.edges[pred_task, task]['weight'] / network.edges[pred_node, fastest_node]['weight']
+        #         for pred_task, pred_node in product(task_graph.predecessors(task), network.nodes)
+        #     ], default=0)
+        #     upper_bound += exec_time + comm_time
 
         schedule = None
         while schedule is None: 
