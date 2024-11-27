@@ -164,7 +164,7 @@ class SMTScheduler(Scheduler):
                 # add constraint that the sum of the communication times of all tasks assigned to the node is at most value
                 constraints.append(
                     LE(
-                        Max(
+                        Plus(
                             Ite(
                                 And( # task1 and task2 are assigned to src and dst respectively
                                     GE(start_time[src][task1], Real(0)),

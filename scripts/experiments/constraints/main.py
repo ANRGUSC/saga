@@ -1,8 +1,8 @@
 from copy import deepcopy
-from functools import partial
 from hashlib import sha256
 from itertools import product
 import random
+import time
 from typing import Any, Callable, Dict, Hashable, List, Optional, Tuple
 from matplotlib import pyplot as plt
 import numpy as np
@@ -11,16 +11,15 @@ from saga.schedulers.parametric.components import (
     ParametricSufferageScheduler, UpwardRanking, get_insert_loc
 )
 from saga.schedulers.smt import SMTScheduler
-from saga.schedulers.brute_force import BruteForceScheduler
 from saga.scheduler import Task
 from saga.schedulers.parametric import ScheduleType
 from saga.utils.tools import validate_simple_schedule
 import networkx as nx
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-import plotly.express as px
 import pandas as pd
 import pathlib
 import seaborn as sns
+import multiprocessing
 
 thisdir = pathlib.Path(__file__).parent
 resultsdir = thisdir / "results"
@@ -218,15 +217,14 @@ def get_bottleneck(network: nx.Graph, task_graph: nx.DiGraph, schedule: Schedule
     tasks = {task.name: task for _, tasks in schedule.items() for task in tasks}
     task_bottleneck = max(sum(task.end - task.start for task in tasks) for node, tasks in schedule.items())
     comm_bottleneck = max(
-        max(
-            [
-                task_graph.edges[parent, child]["weight"] / network.edges[tasks[child].node, tasks[child].node]["weight"]
-                for parent, child in task_graph.edges
-                if parent in tasks and child in tasks and tasks[parent].node == src and tasks[child].node == dst
-            ] + [0.0]
+        sum(
+            task_graph.edges[parent, child]["weight"] / network.edges[tasks[child].node, tasks[child].node]["weight"]
+            for parent, child in task_graph.edges
+            if parent in tasks and child in tasks and tasks[parent].node == src and tasks[child].node == dst
         )
         for src, dst in network.edges
     )
+
     return max(task_bottleneck, comm_bottleneck)
 
 def compare_etf(network: nx.Graph, task_graph: nx.DiGraph, schedule: ScheduleType, new: Task, cur: Task) -> float:
@@ -435,7 +433,8 @@ PRIORITY_FUNCS = {
 
 def experiment(workflow_type: str,
                savedir: pathlib.Path,
-               mode: str = "makespan"):
+               mode: str = "makespan",
+               num_evals: int = 100):
     savedir.mkdir(parents=True, exist_ok=True)
 
     schedulers: List[ParametricScheduler] = []
@@ -489,7 +488,7 @@ def experiment(workflow_type: str,
             return -1e9
         return 0
 
-    arb_scheduler = ParametricScheduler(
+    baseline_scheduler = ParametricScheduler(
         initial_priority=ArbitraryTopological(),
         insert_task=ConstrainedGreedyInsert(
             append_only=True,
@@ -501,12 +500,12 @@ def experiment(workflow_type: str,
     smt_scheduler = SMTScheduler(epsilon=0.1, mode=mode)
     baseline_schedulers = [
         {
-            "scheduler_id": "Arbitrary",
-            "scheduler": arb_scheduler,
-            "append_only": True,
-            "compare": "Arbitrary",
-            "critical_path": False,
-            "priority": "Arbitrary",
+            "scheduler_id": "Baseline",
+            "scheduler": baseline_scheduler,
+            "append_only": None,
+            "compare": None,
+            "critical_path": None,
+            "priority": None,
             "sufferage": False
         },
         {
@@ -524,11 +523,10 @@ def experiment(workflow_type: str,
     def get_scheduler_name(**kwargs):
         return "/".join(f"{key}={value}" for key, value in kwargs.items())
 
-    NUM_EVALS = 100
     rows = []
-    total = len(schedulers) * NUM_EVALS
+    total = len(schedulers) * num_evals
     count = 0
-    for i in range(NUM_EVALS):
+    for i in range(num_evals):
         # random constraints allowing each task to be scheduled on at least one node
         network, task_graph = generate_instance(workflow_type)
         schedule_restrictions = {
@@ -587,7 +585,7 @@ def experiment(workflow_type: str,
 
 def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str = "png"):
     df = pd.read_csv(savedir / "data.csv")
-    arb_median = df[df["scheduler_id"] == "Arbitrary"]["quality"].median()
+    baseline_median = df[df["scheduler_id"] == "Baseline"]["quality"].median()
     smt_median = df[df["scheduler_id"] == "SMT"]["quality"].median()
     quality_label = "Makespan" if mode == "makespan" else "Bottleneck (1 / Throughput)"
 
@@ -597,8 +595,8 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
     def get_scheduler_name(scheduler_id: str, **kwargs):
         if scheduler_id == "SMT":
             return "SMT"
-        if scheduler_id == "Arbitrary":
-            return "Arbitrary"
+        if scheduler_id == "Baseline":
+            return "Baseline"
         renames = {
             "compare": {
                 "EFT": "EFT",
@@ -639,14 +637,26 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
     
 
     for compare_func in COMPARE_FUNCS.keys():
-        _df = df[(df["compare"] == compare_func) | (df["scheduler_id"] == "SMT") | (df["scheduler_id"] == "Arbitrary")]
+        _df = df[(df["compare"] == compare_func) | (df["scheduler_id"] == "SMT") | (df["scheduler_id"] == "Baseline")]
+
+        _df = _df.rename(
+            columns={
+                "name": "Scheduler",
+                "quality": quality_label,
+                "time": "Time (s)"
+            }
+        )
 
         plt.figure(figsize=(12, 6))
-        sns.boxplot(data=_df, x="name", y="quality", color="gray", showfliers=False)
-        plt.axhline(y=arb_median, linestyle="--", color="black", label="Arbitrary Median")
+        sns.boxplot(
+            data=_df,
+            x="Scheduler",
+            y=quality_label,
+            color="gray",
+            showfliers=False
+        )
+        plt.axhline(y=baseline_median, linestyle="--", color="black", label="Baseline Median")
         plt.axhline(y=smt_median, linestyle="--", color="blue", label="SMT Median")
-        plt.xlabel("Scheduler")
-        plt.ylabel(quality_label)
         padding = (max_quality - min_quality) * 0.1
         plt.ylim(min_quality - padding, max_quality + padding)
         plt.xticks(rotation=45, ha="right")
@@ -665,16 +675,22 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
     df_time = df.copy()
     df_time["name"] = df_time["name"].str.extract(r"([A-Za-z]{3})")
 
+    df_time = df_time.rename(
+        columns={
+            "name": "Scheduler",
+            "quality": quality_label,
+            "time": "Time (s)"
+        }
+    )
+
     plt.figure(figsize=(12, 6))
     sns.boxplot(
         data=df_time,
-        x="name",
-        y="time",
+        x="Scheduler",
+        y="Time (s)",
         color="gray",
         showfliers=False
     )
-    plt.xlabel(r"Scheduler Type")
-    plt.ylabel(r"Time (s)")
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
 
@@ -692,25 +708,35 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
 
 
     # Plot the effects of each parameter value
-    parameters = ["compare", "priority", "append_only", "critical_path", "sufferage"]
-    for parameter in parameters:
-        # df.loc[df["scheduler_id"] == "SMT", parameter] = "SMT"
-        # df.loc[df["scheduler_id"] == "Arbitrary", parameter] = "Arbitrary"
+    parameters = {
+        "compare": "Comparison Function",
+        "priority": "Priority Function",
+        "append_only": "Append Only",
+        "critical_path": "Critical Path Reservation",
+        "sufferage": "Sufferage"
+    }
+    for parameter, parameter_label in parameters.items():
+        _df = df.rename(
+            columns={
+                "name": "Scheduler",
+                "quality": quality_label,
+                "time": "Time (s)",
+                parameter: parameter_label
+            }
+        )
         plt.figure(figsize=(12, 6))
         sns.boxplot(
-            data=df,
-            x=parameter,
-            y="quality",
+            data=_df,
+            x=parameter_label,
+            y=quality_label,
             color="gray",
             showfliers=False
         )
-        plt.xlabel(parameter)
-        plt.ylabel(quality_label)
         plt.xticks(ha="right", rotation=45)
         plt.tight_layout()
 
-        # add bands for the SMT and Arbitrary schedulers
-        plt.axhline(y=arb_median, linestyle="--", color="black", label="Arbitrary Median")
+        # add bands for the SMT and Baseline schedulers
+        plt.axhline(y=baseline_median, linestyle="--", color="black", label="Baseline Median")
         plt.axhline(y=smt_median, linestyle="--", color="blue", label="SMT Median")
         plt.legend(loc="upper right")
 
@@ -723,17 +749,23 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
     for parameter1, parameter2 in product(parameters, parameters):
         if parameter1 == parameter2:
             continue
-        # line plot markers, categorical x-axis, error bars
+        _df = df.rename(
+            columns={
+                "name": "Scheduler",
+                "quality": quality_label,
+                "time": "Time (s)",
+                parameter1: parameters[parameter1],
+                parameter2: parameters[parameter2]
+            }
+        )
         plt.figure(figsize=(12, 6))
         sns.pointplot(
-            data=df,
-            x=parameter1,
-            y="quality",
-            hue=parameter2,
+            data=_df,
+            x=parameters[parameter1],
+            y=quality_label,
+            hue=parameters[parameter2],
             errorbar="sd"
         )
-        plt.xlabel(parameter1)
-        plt.ylabel(quality_label)
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
 
@@ -741,6 +773,115 @@ def generate_plots(savedir: pathlib.Path, mode: str = "makespan", filetype: str 
         plt.savefig(output_path)
         plt.close()
         print(f"Saved to {output_path}")
+
+def experiment_scalability(savedir: pathlib.Path,
+                           num_evals: int = 10,
+                           timeout: float = 60.0,
+                           multipliers: List[int] = [1, 2, 3, 4, 5]):
+
+    workflow_types = ['chain', 'heirarchy']
+    modes = ['makespan', 'bottleneck']
+
+    rows = []
+    for workflow_type, mode, multiplier in product(workflow_types, modes, multipliers):
+        print(f"Workflow Type: {workflow_type}, Mode: {mode}, Multiplier: {multiplier}")
+        smt_scheduler = SMTScheduler(epsilon=0.1, mode=mode)
+        heft_scheduler = ParametricScheduler(
+            initial_priority=UpwardRanking(),
+            insert_task=ConstrainedGreedyInsert(
+                append_only=False,
+                compare=compare_etf,
+                critical_path=False
+            )
+        )
+
+        for i in range(num_evals):
+            print(f"  Evaluation {i+1}/{num_evals}")
+            # generate instance
+            network, _ = generate_instance(workflow_type)
+            task_graphs = [generate_instance(workflow_type)[1] for _ in range(multiplier)]
+            # rename task graph nodes
+            for i, task_graph in enumerate(task_graphs):
+                task_graph = nx.relabel_nodes(task_graph, {node: f"{node}_{i}" for node in task_graph.nodes})
+                task_graphs[i] = task_graph
+
+            task_graph = nx.compose_all(task_graphs)
+            task_graph.graph["schedule_restrictions"] = {
+                task: set(random.sample(list(network.nodes), random.randint(1, len(network.nodes))-1))
+                for task in task_graph.nodes
+            }
+
+            # SMT schedule with time limit
+            proc = multiprocessing.Process(
+                target=smt_scheduler.schedule,
+                args=(network, task_graph),
+            )
+            start = time.time()
+            proc.start()
+            proc.join(timeout)
+            dt = time.time() - start
+            if proc.is_alive():
+                print(f"Terminating process for {workflow_type}/{mode}/{multiplier}")
+                proc.terminate()
+                proc.join()
+                dt = None
+            rows.append({
+                "workflow_type": workflow_type,
+                "mode": mode,
+                "multiplier": multiplier,
+                "scheduler": "SMT",
+                "time": dt
+            })
+
+
+            # HEFT schedule
+            start = time.time()
+            heft_scheduler.schedule(network, task_graph)
+            dt = time.time() - start
+            rows.append({
+                "workflow_type": workflow_type,
+                "mode": mode,
+                "multiplier": multiplier,
+                "scheduler": "HEFT",
+                "time": dt
+            })
+
+
+    df = pd.DataFrame(rows)
+    savedir.mkdir(parents=True, exist_ok=True)
+    df.to_csv(savedir / "data.csv", index=False)
+
+def generate_scalability_plots(savedir: pathlib.Path, filetype: str = "png"):
+    df = pd.read_csv(savedir / "data.csv")
+
+    # combine workflow_type and mode into a single column
+    df["Workflow/Mode"] = df["workflow_type"].str.cat(df["mode"], sep="/")
+
+    # rename columns
+    df = df.rename(columns={
+        "time": "Time (s)",
+        "scheduler": "Scheduler",
+        "multiplier": "Number of Workflows",
+    })
+
+    # Plot the time taken for each scheduler
+    plt.figure(figsize=(12, 6))
+    sns.lineplot(
+        data=df,
+        x="Number of Workflows",
+        y="Time (s)",
+        hue="Scheduler",
+        style="Workflow/Mode",
+        markers=True,
+    )
+    plt.tight_layout()
+
+    output_path = savedir / f"time_vs_multiplier.{filetype}"
+    plt.savefig(output_path)
+    plt.close()
+    print(f"Saved to {output_path}")
+
+
 
 def main():
     filetype = "pdf"
@@ -752,6 +893,10 @@ def main():
             # example(workflow_type=workflow_type, num_examples=20, savedir=savedir / mode / "example", mode=mode, filetype=filetype)
             experiment(workflow_type=workflow_type, savedir=savedir / mode / "comparison", mode=mode)
             generate_plots(savedir=savedir / mode / "comparison", mode=mode, filetype=filetype)
+
+
+    # experiment_scalability(savedir=resultsdir / "scalability", num_evals=10, timeout=60)
+    # generate_scalability_plots(savedir=resultsdir / "scalability", filetype=filetype)
 
 if __name__ == "__main__":
     main()
