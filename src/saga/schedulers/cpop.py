@@ -99,7 +99,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
-
+        
+            
         Returns:
             Dict[str, List[Task]]: The schedule for the task graph.
 
