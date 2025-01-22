@@ -99,11 +99,16 @@ def draw_task_graph(task_graph: nx.DiGraph,
             sorted_nodes = sorted(network_nodes)
             sorted_colors = [cmap(i) for i in range(len(network_nodes))]
             colors = dict(zip(sorted_nodes, sorted_colors))
+        # if nodes have "color" attribute, use that
+        elif any("color" in task_graph.nodes[node] for node in task_graph.nodes):
+            categories = sorted(set(task_graph.nodes[node].get("color", "__blank__") for node in task_graph.nodes))
+            cmap = plt.get_cmap("tab20", len(categories))
+            colors = {node: cmap(categories.index(task_graph.nodes[node].get("color", "__blank__"))) for node in task_graph.nodes}
 
         nx.draw_networkx_nodes(
             task_graph, pos=pos, ax=axis,
             node_size=1 if draw_node_labels else node_size,
-            node_color="white",
+            node_color=[colors.get(node, "white") for node in task_graph.nodes],
             edgecolors="black",
             linewidths=linewidths,
         )
@@ -120,6 +125,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 color = "white"
                 if schedule is not None and task_name in tasks:
                     color = colors[tasks[task_name].node]
+                elif task_name in colors:
+                    color = colors[task_name]
                 task_label = r"$%s$" % task_name if use_latex else task_name
                 nx.draw_networkx_labels(
                     task_graph, pos=pos, ax=axis,
