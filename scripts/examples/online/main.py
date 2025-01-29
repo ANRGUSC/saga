@@ -2,7 +2,7 @@ from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
 # from saga.utils.random_variable import RandomVariable
 
-from typing import Dict, Hashable, List
+from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 
 
@@ -115,46 +115,6 @@ class OnlineHeftScheduler(Scheduler):
             return False
 
         while True:
-
-
-
-            '''
-            for task_name in task_graph.nodes:
-                if is_task_committed(task_name):
-                    # Task is already in final schedule => use actual
-                    task_graph.nodes[task_name]["weight"] = task_graph.nodes[task_name]["weight_actual"]
-                else:
-                    # Otherwise => estimate
-                    task_graph.nodes[task_name]["weight"] = task_graph[task_name]["weight_estimate"]
-
-            for (u, v) in task_graph.edges:
-                if is_task_committed(u) and is_task_committed(v):
-                    # Task is already in final schedule => use actual
-                    task_graph.edges[u, v]["weight"] = task_graph.edges[u, v]["weight_actual"]
-                else:
-                    # Otherwise => estimate
-                    task_graph.edges[u, v]["weight"] = task_graph.edges[u, v]["weight_estimate"]
-
-            for node in network.nodes:
-                # if the node is in schedule_actual Assume speed of node is known? we should test for varying speed of node?
-                if schedule_actual[node]:
-                    network.nodes[node]["weight"] = network.nodes[node]["weight_actual"]
-                else:
-                    network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
-
-            for (src, dst) in network.edges:
-                """
-                edges = [(1, 2), (1, 3), (2, 3)] example of what they look like
-                """
-                if schedule_actual[src] and schedule_actual[dst]:
-                    #if both nodes are in actual schedule then get actual
-                    network.edges[src, dst]["weight"] = network.edges[src, dst]["weight_actual"]
-                else:
-                    # Otherwise => estimate
-                    network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
-            '''
-
-            
             #------------------------------------------Step 2: Get next task to finish based on *actual* execution time
             
             schedule_estimate = self.heft_scheduler.schedule(network, task_graph, schedule_actual)
@@ -193,3 +153,123 @@ class OnlineHeftScheduler(Scheduler):
                 break
 
         return schedule_actual
+    
+from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag
+from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
+    # Create a random network
+    network = get_network(num_nodes=4)
+    # Create a random task graph
+    # task_graph = get_branching_dag(levels=3, branching_factor=2)
+    task_graph = get_diamond_dag()
+
+    # network = add_rv_weights(network)
+    # task_graph = add_rv_weights(task_graph)
+
+    min_mean = 3
+    max_mean = 10
+    min_std = 1/2
+    max_std = 1
+
+    for node in network.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.nodes[node]["weight_estimate"] = mean
+        network.nodes[node]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        if u == v:
+            network.edges[u, v]["weight_estimate"] = 1e9
+            network.edges[u, v]["weight_actual"] = 1e9
+
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.edges[u, v]["weight_estimate"] = mean
+        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    for task in task_graph.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.nodes[task]["weight_estimate"] = mean
+        task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
+        
+
+    for (src, dst) in task_graph.edges:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.edges[src, dst]["weight_estimate"] = mean
+        task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
+
+    return network, task_graph
+
+
+def main():
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+
+    n_samples = 1000
+
+    rows = []
+    worst_instance, worst_makespan_ratio = None, 0
+    for _ in range(n_samples):
+        network, task_graph = get_instance()
+        schedule = scheduler.schedule(network, task_graph)
+        schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
+        makespan = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
+
+        schedule_online = scheduler_online.schedule(network, task_graph)
+        makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+
+        # print(f"HEFT makespan: {makespan}")
+        # print(f"Online HEFT makespan: {makespan_online}")
+
+        if makespan_online / makespan > worst_makespan_ratio:
+            worst_instance = (network, task_graph)
+            worst_makespan_ratio = makespan_online / makespan
+
+
+        rows.append((makespan, makespan_online, makespan_online / makespan))
+
+    df = pd.DataFrame(rows, columns=["HEFT", "Online HEFT", "Makespan Ratio"])
+    print(df.describe())
+
+    fig, ax = plt.subplots()
+    
+    # boxplot
+    df.boxplot(column=["Makespan Ratio"], ax=ax)
+    ax.set_ylabel("Makespan")
+
+
+    fig.savefig("online_heft.png")
+
+
+    # Draw task graph, network, and schedules for the worst instance
+    network, task_graph = worst_instance
+    schedule = scheduler.schedule(network, task_graph)
+    schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
+    schedule_online = scheduler_online.schedule(network, task_graph)
+
+    ax_task_graph: plt.Axes = draw_task_graph(task_graph)
+    ax_task_graph.get_figure().savefig("task_graph.png")
+
+    ax_network: plt.Axes = draw_network(network)
+    ax_network.get_figure().savefig("network.png")
+
+    ax_schedule: plt.Axes = draw_gantt(schedule_actual)
+    ax_schedule.get_figure().savefig("schedule.png")
+
+    ax_schedule_online: plt.Axes = draw_gantt(schedule_online)
+    ax_schedule_online.get_figure().savefig("schedule_online.png")
+
+
+
+if __name__ == "__main__":
+    main()
