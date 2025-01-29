@@ -1,3 +1,4 @@
+from copy import deepcopy
 import logging
 import pathlib
 from typing import Dict, Hashable, List, Optional, Tuple
@@ -99,6 +100,7 @@ class HeftScheduler(Scheduler):
         ],
         schedule_order: List[Hashable],
         schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        min_start_time: float = 0.0,
     ) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
@@ -122,7 +124,7 @@ class HeftScheduler(Scheduler):
             comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
             task_schedule: Dict[Hashable, Task] = {}
         else:
-            comp_schedule = schedule
+            comp_schedule = deepcopy(schedule)
             task_schedule = {task.name: task for node in schedule for task in schedule[node]}
 
         task_name: Hashable
@@ -135,7 +137,7 @@ class HeftScheduler(Scheduler):
             for node in network.nodes:  # Find the best node to run the task
                 max_arrival_time: float = max(  #
                     [
-                        0.0,
+                        min_start_time,
                         *[
                             task_schedule[parent].end
                             + (
@@ -178,13 +180,15 @@ class HeftScheduler(Scheduler):
     def schedule(self, 
                  network: nx.Graph, 
                  task_graph: nx.DiGraph, 
-                 schedule: Optional[Dict[Hashable, List[Task]]] = None) -> Dict[Hashable, List[Task]]:
+                 schedule: Optional[Dict[Hashable, List[Task]]] = None,
+                 min_start_time: float = 0.0) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
             schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
+            min_start_time (float, optional): The minimum start time. Defaults to 0.0.
 
         Returns:
             Dict[str, List[Task]]: The schedule.
@@ -195,4 +199,4 @@ class HeftScheduler(Scheduler):
 
         runtimes, commtimes = HeftScheduler.get_runtimes(network, task_graph)
         schedule_order = heft_rank_sort(network, task_graph)
-        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, schedule)
+        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, schedule, min_start_time)

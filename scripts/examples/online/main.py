@@ -65,14 +65,14 @@ def schedule_estimate_to_actual(network: nx.Graph,
 
         #calculating runtime of current task 
         runtime = task_graph.nodes[task_name]["weight_actual"] / network.nodes[task_node]["weight_actual"]
-        task = Task( #creating a "new" task with all of our calculated attributes 
+        new_task = Task( #creating a "new" task with all of our calculated attributes 
             node=task_node,
             name=task_name,
             start=start_time,
             end=start_time + runtime
         )
-        schedule_actual[task_node].append(task) #putting into our actual scheduler 
-        tasks_actual[task_name] = task #putting into our dict of actual tasks 
+        schedule_actual[task_node].append(new_task) #putting into our actual scheduler 
+        tasks_actual[task_name] = new_task #putting into our dict of actual tasks 
 
     return schedule_actual
 
@@ -81,7 +81,10 @@ class OnlineHeftScheduler(Scheduler):
     def __init__(self):
         self.heft_scheduler = HeftScheduler()
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self,
+                 network: nx.Graph,
+                 task_graph: nx.DiGraph,
+                 do_print: bool = False) -> Dict[Hashable, List[Task]]:
         """
         A 'live' scheduling loop using HEFT in a dynamic manner.
         We assume each node/task has 'weight_actual' and 'weight_estimate' attributes.
@@ -97,61 +100,38 @@ class OnlineHeftScheduler(Scheduler):
         "Node1": [Task(node="Node1", name="TaskA", start=0, end=5)],
         "Node2": [Task(node="Node2", name="TaskB", start=3, end=8)],
         """
-
-        #final actual schedule dict
         schedule_actual: Dict[Hashable, List[Task]] = {
             node: [] for node in network.nodes
         }
+        tasks_actual: Dict[str, Task] = {}
+        current_time = 0
 
-        # Total number of tasks in the graph
-        total_tasks = len(task_graph.nodes)
-
-        # Helper function: See if a task is already in schedule_actual
-        def is_task_committed(task_name: str) -> bool:
-            for node_tasks in schedule_actual.values():
-                for t in node_tasks:
-                    if t.name == task_name:
-                        return True
-            return False
-
-        while True:
+        while len(tasks_actual) < len(task_graph.nodes):
             #------------------------------------------Step 2: Get next task to finish based on *actual* execution time
             
-            schedule_estimate = self.heft_scheduler.schedule(network, task_graph, schedule_actual)
-            schedule_actual_hypothetical = schedule_estimate_to_actual(network, task_graph, schedule_estimate)
+            schedule_actual_hypothetical = schedule_estimate_to_actual(
+                network,
+                task_graph,
+                self.heft_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time)
+            )
 
-            all_tasks_hypothetical = []
-            # create list of dict values
-            for node_tasks in schedule_actual_hypothetical.values():
-                all_tasks_hypothetical.extend(node_tasks)
+            tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
+            next_task: Task = min(
+                [task for task in tasks if task.name not in tasks_actual],
+                key=lambda x: x.end
+            )
+            current_time = next_task.end
+            if do_print:
+                print(f"Next task to finish: {next_task.name}")
+            
+            for task in tasks:
+                if task.start < next_task.end and task.name not in tasks_actual:
+                    if do_print:
+                        print(f"Adding task {task.name} to actual schedule")
+                    schedule_actual[task.node].append(task)
+                    tasks_actual[task.name] = task
 
-            estimated_tasks_only = []
-
-            for task in all_tasks_hypothetical:
-                # check if task is not already been committed before
-                if not is_task_committed(task.name):
-                    # add the task to the estimated_tasks_only list
-                    estimated_tasks_only.append(task)
- 
-            if not estimated_tasks_only:
-                break
-            else:
-                # sort by lowest end time
-                estimated_tasks_only.sort(key=lambda x: x.end)
-                next_task_to_commit = estimated_tasks_only[0]
-                #add the lowest finishing task to the actual schedule
-                schedule_actual[next_task_to_commit.node].append(next_task_to_commit)
-
-            #------------------------------------------Step 3: check if all tasks have been added to schedule actual
-            committed_count = 0
-
-            #loop through each node, schedule_actual.values() returns a list of tasks on that node 
-            for tasks in schedule_actual.values():
-                committed_count += len(tasks)
-
-            if committed_count >= total_tasks:
-                break
-
+        print("Final schedule:", schedule_actual)
         return schedule_actual
     
 from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag
@@ -164,7 +144,7 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     # Create a random network
     network = get_network(num_nodes=4)
     # Create a random task graph
-    # task_graph = get_branching_dag(levels=3, branching_factor=2)
+    # task_graph = get_branching_dag(levels=2, branching_factor=2)
     task_graph = get_diamond_dag()
 
     # network = add_rv_weights(network)
@@ -215,7 +195,7 @@ def main():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
-    n_samples = 1000
+    n_samples = 100
 
     rows = []
     worst_instance, worst_makespan_ratio = None, 0
@@ -255,7 +235,10 @@ def main():
     network, task_graph = worst_instance
     schedule = scheduler.schedule(network, task_graph)
     schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-    schedule_online = scheduler_online.schedule(network, task_graph)
+    makespan_actual = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
+    schedule_online = scheduler_online.schedule(network, task_graph, do_print=True)
+    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+    xmax = max(makespan_actual, makespan_online)
 
     ax_task_graph: plt.Axes = draw_task_graph(task_graph)
     ax_task_graph.get_figure().savefig("task_graph.png")
@@ -263,10 +246,10 @@ def main():
     ax_network: plt.Axes = draw_network(network)
     ax_network.get_figure().savefig("network.png")
 
-    ax_schedule: plt.Axes = draw_gantt(schedule_actual)
+    ax_schedule: plt.Axes = draw_gantt(schedule_actual, xmax=xmax)
     ax_schedule.get_figure().savefig("schedule.png")
 
-    ax_schedule_online: plt.Axes = draw_gantt(schedule_online)
+    ax_schedule_online: plt.Axes = draw_gantt(schedule_online, xmax=xmax)
     ax_schedule_online.get_figure().savefig("schedule_online.png")
 
 
