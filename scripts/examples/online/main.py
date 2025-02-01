@@ -2,6 +2,7 @@ from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
 # from saga.utils.random_variable import RandomVariable
 
+import pygraphviz as pgv
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 
@@ -89,8 +90,7 @@ class OnlineHeftScheduler(Scheduler):
         A 'live' scheduling loop using HEFT in a dynamic manner.
         We assume each node/task has 'weight_actual' and 'weight_estimate' attributes.
         
-        1) Updates node, edge, and task weights to use 'actual' or 'estimate' 
-            based on whether a task is in schedule_actual.
+        1) No longer needed
         2) Calls the standard HEFT for an 'estimated' schedule.
         3) Converts that schedule to 'actual' times using schedule_estimate_to_actual.
         4) Commits the earliest-finishing new task to schedule_actual.
@@ -134,7 +134,7 @@ class OnlineHeftScheduler(Scheduler):
         print("Final schedule:", schedule_actual)
         return schedule_actual
     
-from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag
+from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 import numpy as np
 import pandas as pd
@@ -144,9 +144,10 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     # Create a random network
     network = get_network(num_nodes=4)
     # Create a random task graph
-    # task_graph = get_branching_dag(levels=2, branching_factor=2)
-    task_graph = get_diamond_dag()
-
+    #task_graph = get_fork_dag()
+    task_graph = get_branching_dag(levels=3, branching_factor=5)
+    #task_graph = get_chain_dag(num_nodes=10)
+    #task_graph = get_diamond_dag()
     # network = add_rv_weights(network)
     # task_graph = add_rv_weights(task_graph)
 
