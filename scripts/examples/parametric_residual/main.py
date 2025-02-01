@@ -34,7 +34,7 @@ def main():
     network = add_ccr_weights(task_graphs[0], add_random_weights(get_network()), ccr=1.0)
 
     schedule: ScheduleType = {node: [] for node in network.nodes}
-    for arrival_time, task_graph in zip(arrival_times, task_graphs):
+    for i, (arrival_time, task_graph) in enumerate(zip(arrival_times, task_graphs), start=1):
         schedule = scheduler.schedule(
             network=network,
             task_graph=task_graph,
@@ -42,17 +42,17 @@ def main():
             min_start_time=arrival_time
         )
 
-    ax_task_graph: plt.Axes = draw_task_graph(task_graph)
-    ax_task_graph.get_figure().savefig(thisdir / "task_graph.png")
-    plt.close(ax_task_graph.get_figure())
+        ax_task_graph: plt.Axes = draw_task_graph(task_graph)
+        ax_task_graph.get_figure().savefig(thisdir / f"task_graph_{i}.png")
+        plt.close(ax_task_graph.get_figure())
+        
+        ax_schedule: plt.Axes = draw_gantt(schedule)
+        ax_schedule.get_figure().savefig(thisdir / f"schedule_{i}.png")
+        plt.close(ax_schedule.get_figure())
 
     ax_network: plt.Axes = draw_network(network)
     ax_network.get_figure().savefig(thisdir / "network.png")
     plt.close(ax_network.get_figure())
-
-    ax_schedule: plt.Axes = draw_gantt(schedule)
-    ax_schedule.get_figure().savefig(thisdir / "schedule.png")
-    plt.close(ax_schedule.get_figure())
 
 
 if __name__ == '__main__':
