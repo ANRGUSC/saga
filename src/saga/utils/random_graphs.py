@@ -1,3 +1,4 @@
+from copy import deepcopy
 from itertools import product
 import random
 from typing import Tuple, TypeVar
@@ -8,6 +9,44 @@ from scipy.stats import norm
 
 from saga.utils.random_variable import RandomVariable
 
+
+
+def add_ccr_weights(task_graph: nx.DiGraph, 
+                    network: nx.Graph,
+                    ccr: float) -> nx.Graph:
+    """Get the network with weights for a given CCR
+
+    Args:
+        task_graph (nx.DiGraph): The task graph.
+        network (nx.Graph): The network graph.
+        ccr (float): The communication to computation ratio.
+
+    Returns:
+        nx.Graph: The network graph.
+    """
+    network = deepcopy(network)
+    mean_network_weight = np.mean([
+        network.nodes[node]["weight"]
+        for node in network.nodes
+    ])
+    mean_task_cost = np.mean([
+        task_graph.nodes[node]["weight"]
+        for node in task_graph.nodes
+    ])
+    mean_dependency_weight = np.mean([
+        task_graph.edges[edge]["weight"]
+        for edge in task_graph.edges
+    ])
+    
+    link_strength = (mean_dependency_weight * mean_network_weight) / (ccr * mean_task_cost)
+
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = 1e9
+        else:
+            network.edges[edge]["weight"] = link_strength
+
+    return network
 
 def  get_diamond_dag() -> nx.DiGraph:
     """Returns a diamond DAG."""

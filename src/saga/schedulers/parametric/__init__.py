@@ -100,21 +100,39 @@ class ParametricScheduler(Scheduler):
     def schedule(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
+                 schedule: Optional[ScheduleType] = None,
+                 min_start_time: float = 0.0) -> ScheduleType:
         """Schedule the tasks on the network.
         
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
             schedule (Optional[ScheduleType]): The current schedule.
+            min_start_time: float
 
         Returns:
             Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
         """
+        if schedule is not None:
+            schedule = {
+                node: [
+                    Task(task.node, task.name, task.start - min_start_time, task.end - min_start_time)
+                    for task in tasks
+                ]
+                for node, tasks in schedule.items()
+            }
         queue = self.initial_priority(network, task_graph)
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
         while queue:
             self.insert_task(network, task_graph, schedule, queue.pop(0))
+
+        schedule = {
+            node: [
+                Task(task.node, task.name, task.start + min_start_time, task.end + min_start_time)
+                for task in tasks
+            ]
+            for node, tasks in schedule.items()
+        }
         return schedule
 
     def serialize(self) -> Dict[str, Any]:

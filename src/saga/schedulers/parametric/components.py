@@ -139,7 +139,7 @@ class GreedyInsert(InsertTask):
             if self.append_only:
                 start_time = max(
                     min_start_time,
-                    0.0 if not schedule[node] else schedule[node][-1].end
+                    0.0 if not schedule[node] else max(schedule[node][-1].end, 0.0)
                 )
                 insert_loc = len(schedule[node])
             else:
