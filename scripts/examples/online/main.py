@@ -5,6 +5,13 @@ from saga.scheduler import Scheduler, Task
 import pygraphviz as pgv
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
+import matplotlib.cm as cm
+import plotly.express as px
+
+import pathlib
+
+
+thisdir = pathlib.Path(__file__).resolve().parent
 
 
 def schedule_estimate_to_actual(network: nx.Graph,
@@ -131,7 +138,6 @@ class OnlineHeftScheduler(Scheduler):
                     schedule_actual[task.node].append(task)
                     tasks_actual[task.name] = task
 
-        print("Final schedule:", schedule_actual)
         return schedule_actual
     
 from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
@@ -145,9 +151,9 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     network = get_network(num_nodes=4)
     # Create a random task graph
     #task_graph = get_fork_dag()
-    task_graph = get_branching_dag(levels=3, branching_factor=5)
+    #task_graph = get_branching_dag(levels=3, branching_factor=5)
     #task_graph = get_chain_dag(num_nodes=10)
-    #task_graph = get_diamond_dag()
+    task_graph = get_diamond_dag()
     # network = add_rv_weights(network)
     # task_graph = add_rv_weights(task_graph)
 
@@ -191,8 +197,55 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
 
     return network, task_graph
 
+def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
+    """
+    Create a network and a branching task graph with the specified number
+    of levels and branching factor.
+    """
+    network = get_network(num_nodes=4)
+    task_graph = get_branching_dag(levels=levels, branching_factor=branching_factor)
 
-def main():
+    #Make graph for varying these
+    min_mean = 3
+    max_mean = 10
+    min_std = 0.5
+    max_std = 1.0
+
+    for node in network.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.nodes[node]["weight_estimate"] = mean
+        network.nodes[node]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        if u == v:
+            network.edges[u, v]["weight_estimate"] = 1e9
+            network.edges[u, v]["weight_actual"] = 1e9
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.edges[u, v]["weight_estimate"] = mean
+        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    for task in task_graph.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.nodes[task]["weight_estimate"] = mean
+        task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
+
+    for (src, dst) in task_graph.edges:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.edges[src, dst]["weight_estimate"] = mean
+        task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
+
+    return network, task_graph
+
+
+def experiment_1():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
@@ -231,7 +284,6 @@ def main():
 
     fig.savefig("online_heft.png")
 
-
     # Draw task graph, network, and schedules for the worst instance
     network, task_graph = worst_instance
     schedule = scheduler.schedule(network, task_graph)
@@ -253,6 +305,98 @@ def main():
     ax_schedule_online: plt.Axes = draw_gantt(schedule_online, xmax=xmax)
     ax_schedule_online.get_figure().savefig("schedule_online.png")
 
+def experiment_2():
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+
+    n_samples = 100
+
+    experiments = []
+
+    levels_range = [1, 2, 3, 4, 5]         # x axis: Levels
+    branching_range = [1, 2, 3, 4, 5]      # y axis: Branching Factor
+    for levels in levels_range:
+        for branching_factor in branching_range:
+            for i in range(n_samples):
+                print(f"Levels {levels}, BF {branching_factor}, Instance {i}")
+                network_custom, task_graph_custom = get_instance_custom(levels, branching_factor)
+                # Run standard HEFT on the custom instance
+                schedule_custom = scheduler.schedule(network_custom, task_graph_custom)
+                schedule_actual_custom = schedule_estimate_to_actual(network_custom, task_graph_custom, schedule_custom)
+                makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
+                # Run Online HEFT on the same custom instance
+                schedule_online_custom = scheduler_online.schedule(network_custom, task_graph_custom)
+                makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
+                ratio = makespan_online_custom / makespan_custom
+                experiments.append((levels, branching_factor, ratio))
+
+    df = pd.DataFrame(experiments, columns=["levels", "branching_factor", "makespan_ratio"])
+    df = df.groupby(by=["levels", "branching_factor"]).mean().reset_index()
+    
+
+    fig = px.scatter(
+        df,
+        x="levels",
+        y="branching_factor",
+        color="makespan_ratio",
+        text=[str(val)[:5] for val in df["makespan_ratio"]],       # add labels for the ratio
+        template="simple_white"
+    )
+
+    # Force x and y axes ticks to be integer values (e.g. no decimals)
+    fig.update_xaxes(tickmode='linear', dtick=1)
+    fig.update_yaxes(tickmode='linear', dtick=1)
+    # Increase the dot (marker) size and position text above the dots
+    fig.update_traces(marker=dict(size=12), textposition='top center')
+
+    fig.write_image(thisdir / "makespan_ratio.png")
+
+    return
+
+
+#possible to make a generic graph for diamond, fork, and chain (maybe not this because length of chain taken into account)
+def experiment_3():
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+
+    n_samples = 100
+
+    experiments = []
+    for _ in range(n_samples):
+        network, task_graph = get_instance()
+        schedule = scheduler.schedule(network, task_graph)
+        schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
+'''
+
+  # Unpack experiment data:
+    levels_data = [exp[0] for exp in experiments]
+    branching_data = [exp[1] for exp in experiments]
+    ratio_data = [exp[2] for exp in experiments]
+    
+    # Create the scatter plot:
+    fig_scatter, ax_scatter = plt.subplots()
+    sc = ax_scatter.scatter(levels_data, branching_data, c=ratio_data, cmap='viridis', s=200, edgecolors='black')
+    
+    # Annotate each point with the makespan ratio value:
+    for lev, bran, ratio in experiments:
+        ax_scatter.annotate(f"{ratio:.2f}", (lev, bran), textcoords="offset points", xytext=(5, 5), fontsize=9)
+    
+    # Label axes and add title:
+    ax_scatter.set_xlabel("Levels")
+    ax_scatter.set_ylabel("Branching Factor")
+    ax_scatter.set_title("Makespan Ratio (Online HEFT / HEFT)")
+    
+    # Add a colorbar:
+    cbar = fig_scatter.colorbar(sc, ax=ax_scatter)
+    cbar.set_label("Makespan Ratio")
+    
+    # Save the figure in the same way as your other graphs:
+    fig_scatter.savefig("dot_plot.png")
+    print("Dot plot saved as dot_plot.png")
+'''
+def main():
+    # experiment_1()
+    experiment_2()
 
 
 if __name__ == "__main__":
