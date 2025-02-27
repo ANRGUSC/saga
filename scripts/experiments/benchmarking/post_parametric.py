@@ -152,7 +152,8 @@ def generate_main_effect_plot(df: pd.DataFrame,
         df[param_name] = df[param_name].str.replace("CPoPRanking", "CR") 
 
     # Plotting
-    fig, ax = plt.subplots(figsize=(6, 6))
+    # fig, ax = plt.subplots(figsize=(6, 6))
+    fig, ax = plt.subplots(figsize=(6, 3))
     sns.boxplot(
         x=param_name, y=metric, data=df, ax=ax,
         showfliers=showfliers,
@@ -178,7 +179,7 @@ def generate_interaction_plot(df: pd.DataFrame,
     linestyles = ["-", "--", "-.", ":", (0, (3, 5, 1, 5)), (0, (3, 5, 1, 5, 1, 5))]
 
     # Plotting
-    fig, ax = plt.subplots(figsize=(12, 6))
+    fig, ax = plt.subplots(figsize=(6, 3))
     sns.pointplot(
         x=param_1, y=metric, hue=param_2,
         data=df, dodge=True, ax=ax,
