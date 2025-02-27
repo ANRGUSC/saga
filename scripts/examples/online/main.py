@@ -7,6 +7,9 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import matplotlib.cm as cm
 import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
+from saga.utils.draw import gradient_heatmap
 
 import pathlib
 
@@ -244,6 +247,21 @@ def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, n
 
     return network, task_graph
 
+def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.Graph, nx.DiGraph]:
+    # replace weights with actual weights
+    for node in network.nodes:
+        network.nodes[node]["weight"] = network.nodes[node]["weight_actual"]
+
+    for (u, v) in network.edges:
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_actual"]
+
+    for task in task_graph.nodes:
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_actual"]
+
+    for (src, dst) in task_graph.edges:
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_actual"]
+
+    return network, task_graph
 
 def experiment_1():
     scheduler = HeftScheduler()
@@ -309,7 +327,7 @@ def experiment_2():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
-    n_samples = 100
+    n_samples = 50
 
     experiments = []
 
@@ -320,80 +338,80 @@ def experiment_2():
             for i in range(n_samples):
                 print(f"Levels {levels}, BF {branching_factor}, Instance {i}")
                 network_custom, task_graph_custom = get_instance_custom(levels, branching_factor)
+
                 # Run standard HEFT on the custom instance
                 schedule_custom = scheduler.schedule(network_custom, task_graph_custom)
                 schedule_actual_custom = schedule_estimate_to_actual(network_custom, task_graph_custom, schedule_custom)
                 makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
+                experiments.append((levels, branching_factor, i, makespan_custom, "Naive Online HEFT"))
+
                 # Run Online HEFT on the same custom instance
                 schedule_online_custom = scheduler_online.schedule(network_custom, task_graph_custom)
                 makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
-                ratio = makespan_online_custom / makespan_custom
-                experiments.append((levels, branching_factor, ratio))
+                experiments.append((levels, branching_factor, i, makespan_online_custom, "Online HEFT"))
 
-    df = pd.DataFrame(experiments, columns=["levels", "branching_factor", "makespan_ratio"])
-    df = df.groupby(by=["levels", "branching_factor"]).mean().reset_index()
+                # Run Offline HEFT that knows the actual weights
+                network_offline, task_graph_offline = get_offline_instance(network_custom, task_graph_custom)
+                schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
+                makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
+                experiments.append((levels, branching_factor, i, makespan_offline, "Offline HEFT"))
+
+
+    df = pd.DataFrame(experiments, columns=["levels", "branching_factor", "instance", "makespan", "scheduler"])
+    # get makespan ratio of (makespan_online / makespan_offline)
+    df["makespan_ratio"] = df.groupby(by=["levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
+
+    fig, (ax_naive, ax_online) = plt.subplots(1, 2, figsize=(20, 10))
+
+    for scheduler, ax in [("Naive Online HEFT", ax_naive), ("Online HEFT", ax_online)]:
+        df_scheduler = df[df["scheduler"] == scheduler]
+        gradient_heatmap(
+            df_scheduler,
+            x="levels",
+            y="branching_factor",
+            color="makespan_ratio",
+            title=f"{scheduler}",
+            x_label="Levels", rotate_xlabels=0,
+            y_label="Branching Factor",
+            color_label="Makespan Ratio",
+            font_size=20,
+            ax=ax
+        )
     
+    fig.tight_layout()
+    fig.savefig(thisdir / "makespan_heatmap.png")
 
-    fig = px.scatter(
-        df,
-        x="levels",
-        y="branching_factor",
-        color="makespan_ratio",
-        text=[str(val)[:5] for val in df["makespan_ratio"]],       # add labels for the ratio
-        template="simple_white"
-    )
+    # # get average makespan ratio
+    # df_avg = df.groupby(by=["levels", "branching_factor", "scheduler"]).mean().reset_index()
+    # print(df_avg)
 
-    # Force x and y axes ticks to be integer values (e.g. no decimals)
-    fig.update_xaxes(tickmode='linear', dtick=1)
-    fig.update_yaxes(tickmode='linear', dtick=1)
-    # Increase the dot (marker) size and position text above the dots
-    fig.update_traces(marker=dict(size=12), textposition='top center')
+    # # plot 2D heatmap of makespan ratio by levels and branching factor using imshow
+    # fig, ax = plt.subplots()
+    # df_pivot = df.pivot(index="levels", columns="branching_factor", values="makespan_ratio")
+    # im = ax.imshow(df_pivot, cmap="viridis")
 
-    fig.write_image(thisdir / "makespan_ratio.png")
+    # # We want to show all ticks...
+    # ax.set_xticks(np.arange(len(branching_range)))
+    # ax.set_yticks(np.arange(len(levels_range)))
+    # # ... and label them with the respective list entries
+    # ax.set_xticklabels(branching_range)
+    # ax.set_yticklabels(levels_range)
 
-    return
+    # # Rotate the tick labels and set their alignment.
+    # plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+
+    # # Loop over data dimensions and create text annotations.
+    # for i in range(len(levels_range)):
+    #     for j in range(len(branching_range)):
+    #         text = ax.text(j, i, f"{df_pivot.iloc[i, j]:.2f}",
+    #                        ha="center", va="center", color="black")
+            
+    # ax.set_title("Makespan Ratio of Online HEFT vs Offline HEFT")
+    # fig.tight_layout()
+    # plt.savefig(thisdir / "makespan_ratio_heatmap.png")
 
 
-#possible to make a generic graph for diamond, fork, and chain (maybe not this because length of chain taken into account)
-def experiment_3():
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
 
-    n_samples = 100
-
-    experiments = []
-    for _ in range(n_samples):
-        network, task_graph = get_instance()
-        schedule = scheduler.schedule(network, task_graph)
-        schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-'''
-
-  # Unpack experiment data:
-    levels_data = [exp[0] for exp in experiments]
-    branching_data = [exp[1] for exp in experiments]
-    ratio_data = [exp[2] for exp in experiments]
-    
-    # Create the scatter plot:
-    fig_scatter, ax_scatter = plt.subplots()
-    sc = ax_scatter.scatter(levels_data, branching_data, c=ratio_data, cmap='viridis', s=200, edgecolors='black')
-    
-    # Annotate each point with the makespan ratio value:
-    for lev, bran, ratio in experiments:
-        ax_scatter.annotate(f"{ratio:.2f}", (lev, bran), textcoords="offset points", xytext=(5, 5), fontsize=9)
-    
-    # Label axes and add title:
-    ax_scatter.set_xlabel("Levels")
-    ax_scatter.set_ylabel("Branching Factor")
-    ax_scatter.set_title("Makespan Ratio (Online HEFT / HEFT)")
-    
-    # Add a colorbar:
-    cbar = fig_scatter.colorbar(sc, ax=ax_scatter)
-    cbar.set_label("Makespan Ratio")
-    
-    # Save the figure in the same way as your other graphs:
-    fig_scatter.savefig("dot_plot.png")
-    print("Dot plot saved as dot_plot.png")
-'''
 def main():
     # experiment_1()
     experiment_2()
