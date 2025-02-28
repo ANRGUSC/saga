@@ -1,3 +1,5 @@
+from copy import deepcopy
+from itertools import product
 from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
 # from saga.utils.random_variable import RandomVariable
@@ -263,67 +265,44 @@ def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.
 
     return network, task_graph
 
-def experiment_1():
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
+def to_ccr(task_graph: nx.DiGraph, 
+           network: nx.Graph,
+           ccr: float) -> nx.Graph:
+    """Get the network graph to run the task graph on with the given CCR.
 
-    n_samples = 100
+    CCR is the communication to computation ratio. The higher the CCR, the more
+    communication-heavy the task graph is. The lower the CCR, the more computation-heavy
+    the task graph is.
 
-    rows = []
-    worst_instance, worst_makespan_ratio = None, 0
-    for _ in range(n_samples):
-        network, task_graph = get_instance()
-        schedule = scheduler.schedule(network, task_graph)
-        schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-        makespan = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
+    Args:
+        task_graph (nx.DiGraph): The task graph.
+        network (nx.Graph): The network graph.
+        ccr (float): The communication to computation ratio.
 
-        schedule_online = scheduler_online.schedule(network, task_graph)
-        makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
-
-        # print(f"HEFT makespan: {makespan}")
-        # print(f"Online HEFT makespan: {makespan_online}")
-
-        if makespan_online / makespan > worst_makespan_ratio:
-            worst_instance = (network, task_graph)
-            worst_makespan_ratio = makespan_online / makespan
-
-
-        rows.append((makespan, makespan_online, makespan_online / makespan))
-
-    df = pd.DataFrame(rows, columns=["HEFT", "Online HEFT", "Makespan Ratio"])
-    print(df.describe())
-
-    fig, ax = plt.subplots()
+    Returns:
+        nx.Graph: The network graph.
+    """
+    network = deepcopy(network)
+    mean_task_weight = np.mean([
+        task_graph.nodes[node]["weight"]
+        for node in task_graph.nodes
+    ])
+    mean_dependency_weight = np.mean([
+        task_graph.edges[edge]["weight"]
+        for edge in task_graph.edges
+    ])
     
-    # boxplot
-    df.boxplot(column=["Makespan Ratio"], ax=ax)
-    ax.set_ylabel("Makespan")
+    link_strength = mean_dependency_weight / (ccr * mean_task_weight)
 
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = 1e9
+        else:
+            network.edges[edge]["weight"] = link_strength
 
-    fig.savefig("online_heft.png")
+    return network
 
-    # Draw task graph, network, and schedules for the worst instance
-    network, task_graph = worst_instance
-    schedule = scheduler.schedule(network, task_graph)
-    schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-    makespan_actual = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
-    schedule_online = scheduler_online.schedule(network, task_graph, do_print=True)
-    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
-    xmax = max(makespan_actual, makespan_online)
-
-    ax_task_graph: plt.Axes = draw_task_graph(task_graph)
-    ax_task_graph.get_figure().savefig("task_graph.png")
-
-    ax_network: plt.Axes = draw_network(network)
-    ax_network.get_figure().savefig("network.png")
-
-    ax_schedule: plt.Axes = draw_gantt(schedule_actual, xmax=xmax)
-    ax_schedule.get_figure().savefig("schedule.png")
-
-    ax_schedule_online: plt.Axes = draw_gantt(schedule_online, xmax=xmax)
-    ax_schedule_online.get_figure().savefig("schedule_online.png")
-
-def experiment_2():
+def run_experiment():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
@@ -331,90 +310,75 @@ def experiment_2():
 
     experiments = []
 
-    levels_range = [1, 2, 3, 4, 5]         # x axis: Levels
-    branching_range = [1, 2, 3, 4, 5]      # y axis: Branching Factor
-    for levels in levels_range:
-        for branching_factor in branching_range:
+    ccrs = [1/5, 1/2, 1, 2, 5]
+    levels_range = [1, 2, 3, 4]         # x axis: Levels
+    branching_range = [1, 2, 3, 4]      # y axis: Branching Factor
+    total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
+    for ccr in ccrs:
+        for levels, bf in product(levels_range, branching_range):
             for i in range(n_samples):
-                print(f"Levels {levels}, BF {branching_factor}, Instance {i}")
-                network_custom, task_graph_custom = get_instance_custom(levels, branching_factor)
+                network, task_graph = get_instance_custom(levels, bf)
+                network_ccr = to_ccr(task_graph, network, ccr)
+                print(
+                    f"Running experiment {len(experiments) + 1}/{total_experiments}"
+                    f"(CCR={ccr}, levels={levels}, branching_factor={bf}, sample={i})"
+                    f" - {len(experiments) / total_experiments * 100:.2f}%"
+                )
 
                 # Run standard HEFT on the custom instance
-                schedule_custom = scheduler.schedule(network_custom, task_graph_custom)
-                schedule_actual_custom = schedule_estimate_to_actual(network_custom, task_graph_custom, schedule_custom)
+                schedule_custom = scheduler.schedule(network_ccr, task_graph)
+                schedule_actual_custom = schedule_estimate_to_actual(network_ccr, task_graph, schedule_custom)
                 makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
-                experiments.append((levels, branching_factor, i, makespan_custom, "Naive Online HEFT"))
+                experiments.append((ccr, levels, bf, i, makespan_custom, "Naive Online HEFT"))
 
                 # Run Online HEFT on the same custom instance
-                schedule_online_custom = scheduler_online.schedule(network_custom, task_graph_custom)
+                schedule_online_custom = scheduler_online.schedule(network_ccr, task_graph)
                 makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
-                experiments.append((levels, branching_factor, i, makespan_online_custom, "Online HEFT"))
+                experiments.append((ccr, levels, bf, i, makespan_online_custom, "Online HEFT"))
 
                 # Run Offline HEFT that knows the actual weights
-                network_offline, task_graph_offline = get_offline_instance(network_custom, task_graph_custom)
+                network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
                 schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
                 makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
-                experiments.append((levels, branching_factor, i, makespan_offline, "Offline HEFT"))
+                experiments.append((ccr, levels, bf, i, makespan_offline, "Offline HEFT"))
 
 
-    df = pd.DataFrame(experiments, columns=["levels", "branching_factor", "instance", "makespan", "scheduler"])
+    df = pd.DataFrame(experiments, columns=["ccr", "levels", "branching_factor", "instance", "makespan", "scheduler"])
+
+    df.to_csv(thisdir / "makespan_experiments.csv")
+
+def analyze_results():
+    df = pd.read_csv(thisdir / "makespan_experiments.csv")
     # get makespan ratio of (makespan_online / makespan_offline)
-    df["makespan_ratio"] = df.groupby(by=["levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
+    df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
-    fig, (ax_naive, ax_online) = plt.subplots(1, 2, figsize=(20, 10))
+    ccrs = sorted(df["ccr"].unique())
 
-    for scheduler, ax in [("Naive Online HEFT", ax_naive), ("Online HEFT", ax_online)]:
-        df_scheduler = df[df["scheduler"] == scheduler]
-        gradient_heatmap(
-            df_scheduler,
-            x="levels",
-            y="branching_factor",
-            color="makespan_ratio",
-            title=f"{scheduler}",
-            x_label="Levels", rotate_xlabels=0,
-            y_label="Branching Factor",
-            color_label="Makespan Ratio",
-            font_size=20,
-            ax=ax
-        )
-    
-    fig.tight_layout()
-    fig.savefig(thisdir / "makespan_heatmap.png")
-
-    # # get average makespan ratio
-    # df_avg = df.groupby(by=["levels", "branching_factor", "scheduler"]).mean().reset_index()
-    # print(df_avg)
-
-    # # plot 2D heatmap of makespan ratio by levels and branching factor using imshow
-    # fig, ax = plt.subplots()
-    # df_pivot = df.pivot(index="levels", columns="branching_factor", values="makespan_ratio")
-    # im = ax.imshow(df_pivot, cmap="viridis")
-
-    # # We want to show all ticks...
-    # ax.set_xticks(np.arange(len(branching_range)))
-    # ax.set_yticks(np.arange(len(levels_range)))
-    # # ... and label them with the respective list entries
-    # ax.set_xticklabels(branching_range)
-    # ax.set_yticklabels(levels_range)
-
-    # # Rotate the tick labels and set their alignment.
-    # plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-
-    # # Loop over data dimensions and create text annotations.
-    # for i in range(len(levels_range)):
-    #     for j in range(len(branching_range)):
-    #         text = ax.text(j, i, f"{df_pivot.iloc[i, j]:.2f}",
-    #                        ha="center", va="center", color="black")
-            
-    # ax.set_title("Makespan Ratio of Online HEFT vs Offline HEFT")
-    # fig.tight_layout()
-    # plt.savefig(thisdir / "makespan_ratio_heatmap.png")
-
-
+    for ccr in ccrs:
+        fig, (ax_naive, ax_online) = plt.subplots(1, 2, figsize=(20, 10))
+        for scheduler, ax in [("Naive Online HEFT", ax_naive), ("Online HEFT", ax_online)]:
+            df_scheduler = df[df["scheduler"] == scheduler]
+            gradient_heatmap(
+                df_scheduler,
+                x="levels",
+                y="branching_factor",
+                color="makespan_ratio",
+                title=f"{scheduler}",
+                x_label="Levels", rotate_xlabels=0,
+                y_label="Branching Factor",
+                color_label="Makespan Ratio",
+                xorder=sorted(df_scheduler["levels"].unique()),
+                yorder=sorted(df_scheduler["branching_factor"].unique()),
+                font_size=20,
+                ax=ax
+            )
+        
+        fig.tight_layout()
+        fig.savefig(thisdir / f"makespan_heatmap_ccr_{ccr}.png")
 
 def main():
-    # experiment_1()
-    experiment_2()
+    run_experiment()
+    analyze_results()
 
 
 if __name__ == "__main__":
