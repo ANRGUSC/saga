@@ -348,7 +348,7 @@ def run_experiment():
     df.to_csv(thisdir / "makespan_experiments.csv")
 
 def analyze_results():
-    df = pd.read_csv(thisdir / "makespan_experiments.csv")
+    df = pd.read_csv(thisdir / "makespan_experiments.csv", index_col=0)
     # get makespan ratio of (makespan_online / makespan_offline)
     df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
@@ -367,8 +367,8 @@ def analyze_results():
                 x_label="Levels", rotate_xlabels=0,
                 y_label="Branching Factor",
                 color_label="Makespan Ratio",
-                xorder=sorted(df_scheduler["levels"].unique()),
-                yorder=sorted(df_scheduler["branching_factor"].unique()),
+                xorder=lambda x: int(x),
+                yorder=lambda x: -int(x),
                 font_size=20,
                 ax=ax
             )
@@ -377,7 +377,7 @@ def analyze_results():
         fig.savefig(thisdir / f"makespan_heatmap_ccr_{ccr}.png")
 
 def main():
-    run_experiment()
+    # run_experiment()
     analyze_results()
 
 
