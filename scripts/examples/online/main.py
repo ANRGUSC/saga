@@ -147,9 +147,12 @@ class OnlineHeftScheduler(Scheduler):
     
 from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
+
 
 def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     # Create a random network
@@ -302,18 +305,60 @@ def to_ccr(task_graph: nx.DiGraph,
 
     return network
 
+def run_sample(params: Tuple[float, int, int, int]) -> List[Tuple[float, int, int, int, float, str]]:
+    """
+    Runs one experiment sample for a given set of parameters.
+    
+    Args:
+        params: A tuple (ccr, levels, branching_factor, sample_index)
+    
+    Returns:
+        A list of three tuples, one for each scheduler variant:
+            (ccr, levels, branching_factor, sample_index, makespan, scheduler_name)
+    """
+    
+    ccr, levels, bf, sample_index = params
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+    network, task_graph = get_instance_custom(levels, bf)
+    network_ccr = to_ccr(task_graph, network, ccr)
+    print(f"Running experiment (CCR={ccr}, levels={levels}, branching_factor={bf}, sample={sample_index})")
+    
+    # Run standard HEFT (Naive Online HEFT)
+    schedule_custom = scheduler.schedule(network_ccr, task_graph)
+    schedule_actual_custom = schedule_estimate_to_actual(network_ccr, task_graph, schedule_custom)
+    makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
+    
+    # Run Online HEFT
+    schedule_online_custom = scheduler_online.schedule(network_ccr, task_graph)
+    makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
+    
+    # Run Offline HEFT (knows actual weights)
+    network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
+    schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
+    makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
+    
+    return [
+        (ccr, levels, bf, sample_index, makespan_custom, "Naive Online HEFT"),
+        (ccr, levels, bf, sample_index, makespan_online_custom, "Online HEFT"),
+        (ccr, levels, bf, sample_index, makespan_offline, "Offline HEFT")
+    ]
+
 def run_experiment():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
+    cores = 4
     n_samples = 50
-
     experiments = []
-
     ccrs = [1/5, 1/2, 1, 2, 5]
     levels_range = [1, 2, 3, 4]         # x axis: Levels
     branching_range = [1, 2, 3, 4]      # y axis: Branching Factor
-    total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
+    all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
+    #total_experiments = len(all_params) * 3  # three experiments per instance
+    
+    #total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
+    '''
     for ccr in ccrs:
         for levels, bf in product(levels_range, branching_range):
             for i in range(n_samples):
@@ -324,27 +369,16 @@ def run_experiment():
                     f"(CCR={ccr}, levels={levels}, branching_factor={bf}, sample={i})"
                     f" - {len(experiments) / total_experiments * 100:.2f}%"
                 )
+    '''
 
-                # Run standard HEFT on the custom instance
-                schedule_custom = scheduler.schedule(network_ccr, task_graph)
-                schedule_actual_custom = schedule_estimate_to_actual(network_ccr, task_graph, schedule_custom)
-                makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
-                experiments.append((ccr, levels, bf, i, makespan_custom, "Naive Online HEFT"))
-
-                # Run Online HEFT on the same custom instance
-                schedule_online_custom = scheduler_online.schedule(network_ccr, task_graph)
-                makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
-                experiments.append((ccr, levels, bf, i, makespan_online_custom, "Online HEFT"))
-
-                # Run Offline HEFT that knows the actual weights
-                network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
-                schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
-                makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
-                experiments.append((ccr, levels, bf, i, makespan_offline, "Offline HEFT"))
-
-
+    #multiprocessing
+    with Pool(processes=cores) as pool:
+        results = pool.map(run_sample, all_params)
+    
+    # Flatten results
+    for res in results:
+        experiments.extend(res)
     df = pd.DataFrame(experiments, columns=["ccr", "levels", "branching_factor", "instance", "makespan", "scheduler"])
-
     df.to_csv(thisdir / "makespan_experiments.csv")
 
 def analyze_results():
@@ -377,8 +411,16 @@ def analyze_results():
         fig.savefig(thisdir / f"makespan_heatmap_ccr_{ccr}.png")
 
 def main():
-    # run_experiment()
+    #record start time
+    start_time = time.perf_counter()
+
+    #run_experiment()
     analyze_results()
+
+    #record end time
+    end_time = time.perf_counter()
+    elapsed = end_time - start_time
+    print(f"Execution time: {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":
