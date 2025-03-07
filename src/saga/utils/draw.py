@@ -138,16 +138,17 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 if use_latex:
                     # if has "label" attribute, use that
                     if "label" in task_graph.nodes[task_name]:
-                        cost_label = r"$c(%s)=%s$" % (task_name, task_graph.nodes[task_name]['label'])
+                        cost_label = r"$%s$" % (task_graph.nodes[task_name]['label'])
                     else:
-                        cost_label = r"$c(%s)=%s$" % (task_name, round(task_graph.nodes[task_name]['weight'], 1))
+                        cost_label = r"$%s$" % (round(task_graph.nodes[task_name]['weight'], 1))
                 else:
-                    cost_label = f"c({task_name})={round(task_graph.nodes[task_name]['weight'], 1)}"
+                    cost_label = f"{round(task_graph.nodes[task_name]['weight'], 1)}"
 
+                offset = np.sqrt(node_size) * 0.125
                 axis.annotate(
                     cost_label,
                     xy=pos[task_name],
-                    xytext=(pos[task_name][0] + 0.15, pos[task_name][1]),
+                    xytext=(pos[task_name][0] + offset, pos[task_name][1]),
                     fontsize=weight_font_size,
                 )
 
@@ -158,16 +159,17 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 if isinstance(label, (int, float)):
                     if use_latex:
                         if "label" in task_graph.edges[(u, v)]:
-                            label = r"$c\left(%s, %s\right)=%s$" % (u, v, task_graph.edges[(u, v)]["label"])
+                            label = r"$%s$" % (task_graph.edges[(u, v)]["label"])
                         else:
-                            label = r"$c\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                            label = r"$%s$" % (round(label, 1))
                     else:
-                        label = f"c({u}, {v})={round(label, 1)}"
+                        label = f"{round(label, 1)}"
                 edge_labels[(u, v)] = label
             nx.draw_networkx_edge_labels(
                 task_graph, pos=pos, ax=axis,
                 edge_labels=edge_labels,
                 font_size=weight_font_size,
+                rotate=False
             )
 
         axis.margins(0.1)
@@ -246,7 +248,7 @@ def draw_network(network: nx.Graph,
                 node_labels[node] = label
             if draw_node_weights:
                 if use_latex:
-                    weight_label = r"$s(%s)=%s$" % (node, round(network.nodes[node]['weight'], 1))
+                    weight_label = r"$%s$" % (round(network.nodes[node]['weight'], 1))
                 else:
                     weight_label = f"{round(network.nodes[node]['weight'], 1)}"
                 
@@ -281,7 +283,7 @@ def draw_network(network: nx.Graph,
                 label = network.edges[(u, v)].get("label", network.edges[(u, v)]['weight'])
                 if isinstance(label, (int, float)):
                     if use_latex:
-                        label = r"$s\left(%s, %s\right)=%s$" % (u, v, round(label, 1))
+                        label = r"$%s$" % (round(label, 1))
                     else:
                         label = f"{round(label, 1)}"
                 edge_labels[(u, v)] = label
@@ -290,6 +292,7 @@ def draw_network(network: nx.Graph,
                 network, pos=pos, ax=axis,
                 edge_labels=edge_labels,
                 font_size=weight_font_size,
+                rotate=False
             )
 
         axis.margins(0.2)
@@ -300,6 +303,7 @@ def draw_network(network: nx.Graph,
 def draw_gantt(schedule: Dict[Hashable, List[Task]],
                use_latex: bool = False,
                font_size: int = 20,
+               tick_font_size: int = 20,
                xmax: float = None,
                axis: Optional[plt.Axes] = None,
                figsize: Tuple[int, int] = (10, 4),
@@ -392,11 +396,8 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
         axis.set_yticks(unique_nodes)
         axis.set_yticklabels(unique_nodes)
 
-        # # set tick font size
-        # for tick in axis.xaxis.get_major_ticks():
-        #     tick.label.set_fontsize(font_size)
-        # for tick in axis.yaxis.get_major_ticks():
-        #     tick.label.set_fontsize(font_size)
+        # set tick font size
+        axis.tick_params(axis='both', which='major', labelsize=tick_font_size)
         
         # Set labels and title
         axis.set_xlabel('Time', fontsize=font_size)

@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
+font_size = 20
+
+
 def cpop_vs_heft():
     cpop_scheduler = CpopScheduler()
     heft_scheduler = HeftScheduler()
@@ -57,19 +60,35 @@ def cpop_vs_heft():
 
     savepath = thisdir / 'cpop_vs_heft'
     savepath.mkdir(exist_ok=True)
-    axis = draw_task_graph(clean_task_graph, use_latex=True)
+    axis = draw_task_graph(
+        clean_task_graph, use_latex=True,
+        font_size=font_size,
+        weight_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'task_graph.pdf')
     plt.close(axis.get_figure())
     
-    axis = draw_network(network, draw_colors=False, use_latex=True)
+    axis = draw_network(
+        network, draw_colors=False, use_latex=True,
+        font_size=font_size,
+        weight_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'network.pdf')
     
     max_makespan = max(heft_makespan, cpop_makespan)
-    axis = draw_gantt(cpop_schedule, use_latex=True, xmax=max_makespan)
+    axis = draw_gantt(
+        cpop_schedule, use_latex=True, xmax=max_makespan,
+        font_size=font_size,
+        tick_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'cpop_gantt.pdf')
     plt.close(axis.get_figure())
 
-    axis = draw_gantt(heft_schedule, use_latex=True, xmax=max_makespan)
+    axis = draw_gantt(
+        heft_schedule, use_latex=True, xmax=max_makespan,
+        font_size=font_size,
+        tick_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'heft_gantt.pdf')
     plt.close(axis.get_figure())
 
@@ -123,20 +142,36 @@ def heft_vs_cpop():
 
     savepath = thisdir / 'heft_vs_cpop'
     savepath.mkdir(exist_ok=True)
-    axis = draw_task_graph(clean_task_graph, use_latex=True)
+    axis = draw_task_graph(
+        clean_task_graph, use_latex=True,
+        font_size=font_size,
+        weight_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'task_graph.pdf')
     plt.close(axis.get_figure())
 
-    axis = draw_network(network, draw_colors=False, use_latex=True)
+    axis = draw_network(
+        network, draw_colors=False, use_latex=True,
+        font_size=font_size,
+        weight_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'network.pdf')
     plt.close(axis.get_figure())
 
     max_makespan = max(heft_makespan, cpop_makespan)
-    axis = draw_gantt(heft_schedule, use_latex=True, xmax=max_makespan)
+    axis = draw_gantt(
+        heft_schedule, use_latex=True, xmax=max_makespan,
+        font_size=font_size,
+        tick_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'heft_gantt.pdf')
     plt.close(axis.get_figure())
 
-    axis = draw_gantt(cpop_schedule, use_latex=True, xmax=max_makespan)
+    axis = draw_gantt(
+        cpop_schedule, use_latex=True, xmax=max_makespan,
+        font_size=font_size,
+        tick_font_size=font_size
+    )
     axis.get_figure().savefig(savepath / 'cpop_gantt.pdf')
     plt.close(axis.get_figure())
 

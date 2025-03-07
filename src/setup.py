@@ -9,7 +9,7 @@ Read more about SAGA on [GitHub](https://github.com/ANRGUSC/saga)
 
 setup(
     name='anrg.saga',
-    version='0.0.10',
+    version='0.0.11',
     description='Collection of schedulers for distributed computing',
     long_description=long_description,
     long_description_content_type='text/markdown',
