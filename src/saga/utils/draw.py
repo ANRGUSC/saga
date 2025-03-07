@@ -54,6 +54,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     draw_node_labels: bool = True,
                     draw_edge_weights: bool = True,
                     draw_node_weights: bool = True,
+                    node_weight_offset: float = 0.1,
                     pos = None) -> plt.Axes:
     """Draws a task graph
 
@@ -84,8 +85,6 @@ def draw_task_graph(task_graph: nx.DiGraph,
             _, axis = plt.subplots(figsize=figsize)
 
         task_graph = format_graph(task_graph.copy())
-        # remove __source__ and __sink__ nodes
-        task_graph.remove_nodes_from(["__source__", "__sink__"])
 
         if pos is None:
             pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
@@ -140,15 +139,15 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     if "label" in task_graph.nodes[task_name]:
                         cost_label = r"$%s$" % (task_graph.nodes[task_name]['label'])
                     else:
-                        cost_label = r"$%s$" % (round(task_graph.nodes[task_name]['weight'], 1))
+                        cost_label = r"$%s$" % (round(task_graph.nodes[task_name]['weight'], 2))
                 else:
-                    cost_label = f"{round(task_graph.nodes[task_name]['weight'], 1)}"
+                    cost_label = f"{round(task_graph.nodes[task_name]['weight'], 2)}"
 
-                offset = np.sqrt(node_size) * 0.125
                 axis.annotate(
                     cost_label,
                     xy=pos[task_name],
-                    xytext=(pos[task_name][0] + offset, pos[task_name][1]),
+                    xytext=(font_size, 0),
+                    textcoords="offset points",
                     fontsize=weight_font_size,
                 )
 
@@ -161,9 +160,9 @@ def draw_task_graph(task_graph: nx.DiGraph,
                         if "label" in task_graph.edges[(u, v)]:
                             label = r"$%s$" % (task_graph.edges[(u, v)]["label"])
                         else:
-                            label = r"$%s$" % (round(label, 1))
+                            label = r"$%s$" % (round(label, 2))
                     else:
-                        label = f"{round(label, 1)}"
+                        label = f"{round(label, 2)}"
                 edge_labels[(u, v)] = label
             nx.draw_networkx_edge_labels(
                 task_graph, pos=pos, ax=axis,
@@ -248,18 +247,15 @@ def draw_network(network: nx.Graph,
                 node_labels[node] = label
             if draw_node_weights:
                 if use_latex:
-                    weight_label = r"$%s$" % (round(network.nodes[node]['weight'], 1))
+                    weight_label = r"$%s$" % (round(network.nodes[node]['weight'], 2))
                 else:
-                    weight_label = f"{round(network.nodes[node]['weight'], 1)}"
+                    weight_label = f"{round(network.nodes[node]['weight'], 2)}"
                 
-                # get min and max x-coordinate from pos
-                xmin = min(pos[node][0] for node in network.nodes)
-                xmax = max(pos[node][0] for node in network.nodes)
-                shift = (xmax - xmin) / 10
                 axis.annotate(
                     weight_label,
                     xy=pos[node],
-                    xytext=(pos[node][0] + shift, pos[node][1]),
+                    xytext=(font_size*1.5, 0),
+                    textcoords="offset points",
                     fontsize=weight_font_size,
                 )
 
@@ -283,9 +279,9 @@ def draw_network(network: nx.Graph,
                 label = network.edges[(u, v)].get("label", network.edges[(u, v)]['weight'])
                 if isinstance(label, (int, float)):
                     if use_latex:
-                        label = r"$%s$" % (round(label, 1))
+                        label = r"$%s$" % (round(label, 2))
                     else:
-                        label = f"{round(label, 1)}"
+                        label = f"{round(label, 2)}"
                 edge_labels[(u, v)] = label
 
             nx.draw_networkx_edge_labels(
