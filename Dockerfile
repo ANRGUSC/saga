@@ -27,7 +27,5 @@ RUN pip install -e . \
 # Install Z3 solver
 RUN pysmt-install --z3 --confirm-agreement
 
-COPY ./tests /app/tests
+COPY ./scripts /app/scripts
 
-# Run the tests on container startup
-CMD ["pytest", "./tests", "--timeout=60"]
