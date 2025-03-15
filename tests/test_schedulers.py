@@ -7,7 +7,7 @@ from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, GDLScheduler
+    BILScheduler, FLBScheduler, GDLScheduler, SDBATSScheduler
 )
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
@@ -72,6 +72,7 @@ schedulers = [
     BILScheduler(),
     FLBScheduler(),
     GDLScheduler(),
+    SDBATSScheduler(),
 ]
 
 # Parametrize the task graphs for common schedulers

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 from saga.scheduler import Task
-from saga.schedulers import HeftScheduler, BruteForceScheduler
+from saga.schedulers import HeftScheduler, BruteForceScheduler, SDBATSScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 logging.basicConfig(level=logging.INFO)
@@ -93,6 +93,12 @@ def brute_force_schedule():
     schedule = scheduler.schedule(network, task_graph)
     return schedule
 
+def sdbats_schedule():
+    network, task_graph = get_instance()
+    scheduler = SDBATSScheduler()
+    schedule = scheduler.schedule(network, task_graph)
+    return schedule
+
 def main():
     draw_instance(*get_instance())
     schedule = my_schedule()
@@ -101,6 +107,8 @@ def main():
     draw_schedule(heft_sched, 'heft_gantt')
     bf_sched = brute_force_schedule()
     draw_schedule(bf_sched, 'brute_force_gantt')
+    sdbats_sched = sdbats_schedule()
+    draw_schedule(sdbats_sched, 'sdbats_gantt')
 
     max_makespan = max(
         task.end 
@@ -111,6 +119,7 @@ def main():
     draw_schedule(schedule, 'gantt_scaled', xmax=max_makespan)
     draw_schedule(heft_sched, 'heft_gantt_scaled', xmax=max_makespan)
     draw_schedule(bf_sched, 'brute_force_gantt_scaled', xmax=max_makespan)
+    draw_schedule(sdbats_sched, 'sdbats_gantt_scaled', xmax=max_makespan)
 
 if __name__ == '__main__':
     main()

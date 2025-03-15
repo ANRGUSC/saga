@@ -20,9 +20,15 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY ./src /app
 
+# VOLUME ["/app"]
+# WORKDIR /app
+
 # Install package dependencies and pytest-related tools
-RUN pip install -e . \
-    && pip install pytest pytest-timeout
+# RUN pip install -e . \
+#     && pip install pytest pytest-timeout
+
+RUN pip install -e .
+RUN pip install pytest pytest-timeout
 
 # Install Z3 solver
 RUN pysmt-install --z3 --confirm-agreement
@@ -30,4 +36,7 @@ RUN pysmt-install --z3 --confirm-agreement
 COPY ./tests /app/tests
 
 # Run the tests on container startup
-CMD ["pytest", "./tests", "--timeout=60"]
+# CMD ["pytest", "./tests", "--timeout=60"]
+
+# Set default command to bash (so you can interact with the container)
+CMD ["/bin/bash"]

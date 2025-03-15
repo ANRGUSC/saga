@@ -6,7 +6,7 @@ from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
                              ETFScheduler, FastestNodeScheduler, FCPScheduler,
                              FLBScheduler, GDLScheduler, HeftScheduler,
                              MaxMinScheduler, MCTScheduler, METScheduler,
-                             MinMinScheduler, OLBScheduler, WBAScheduler)
+                             MinMinScheduler, OLBScheduler, WBAScheduler, SDBATSScheduler)
 from saga.pisa import run_experiments
 
 thisdir = pathlib.Path(__file__).parent
@@ -41,6 +41,7 @@ SCHEDULERS = {
     "BIL": BILScheduler(),
     "WBA": WBAScheduler(),
     "FLB": FLBScheduler(),
+    "SDBATS": SDBATSScheduler()
 }
 def run(output_path: pathlib.Path): # pylint: disable=too-many-locals, too-many-statements
     """Run first set of experiments."""
