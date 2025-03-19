@@ -83,8 +83,7 @@ class OnlineHeftScheduler(Scheduler):
 
     def schedule(self,
                  network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 do_print: bool = False) -> Dict[Hashable, List[Task]]:
+                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """
         A 'live' scheduling loop using HEFT in a dynamic manner.
         We assume each node/task has 'weight_actual' and 'weight_estimate' attributes.
@@ -121,17 +120,12 @@ class OnlineHeftScheduler(Scheduler):
                 key=lambda x: x.end
             )
             current_time = next_task.end
-            if do_print:
-                print(f"Next task to finish: {next_task.name}")
             
             for task in tasks:
                 if task.start < next_task.end and task.name not in tasks_actual:
-                    if do_print:
-                        print(f"Adding task {task.name} to actual schedule")
                     schedule_actual[task.node].append(task)
                     tasks_actual[task.name] = task
 
-        print("Final schedule:", schedule_actual)
         return schedule_actual
     
 from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag
@@ -144,16 +138,16 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     # Create a random network
     network = get_network(num_nodes=4)
     # Create a random task graph
-    # task_graph = get_branching_dag(levels=2, branching_factor=2)
-    task_graph = get_diamond_dag()
+    task_graph = get_branching_dag(levels=3, branching_factor=4)
+    # task_graph = get_diamond_dag()
 
     # network = add_rv_weights(network)
     # task_graph = add_rv_weights(task_graph)
 
-    min_mean = 3
-    max_mean = 10
-    min_std = 1/2
-    max_std = 1
+    min_mean = 10
+    max_mean = 50
+    min_std = 0
+    max_std = 10
 
     for node in network.nodes:
         mean = np.random.uniform(min_mean, max_mean)
@@ -208,9 +202,6 @@ def main():
         schedule_online = scheduler_online.schedule(network, task_graph)
         makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
 
-        # print(f"HEFT makespan: {makespan}")
-        # print(f"Online HEFT makespan: {makespan_online}")
-
         if makespan_online / makespan > worst_makespan_ratio:
             worst_instance = (network, task_graph)
             worst_makespan_ratio = makespan_online / makespan
@@ -219,7 +210,7 @@ def main():
         rows.append((makespan, makespan_online, makespan_online / makespan))
 
     df = pd.DataFrame(rows, columns=["HEFT", "Online HEFT", "Makespan Ratio"])
-    print(df.describe())
+    print(df.round(2).describe())
 
     fig, ax = plt.subplots()
     
@@ -236,7 +227,7 @@ def main():
     schedule = scheduler.schedule(network, task_graph)
     schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
     makespan_actual = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
-    schedule_online = scheduler_online.schedule(network, task_graph, do_print=True)
+    schedule_online = scheduler_online.schedule(network, task_graph)
     makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
     xmax = max(makespan_actual, makespan_online)
 
