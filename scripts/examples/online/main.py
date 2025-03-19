@@ -14,8 +14,7 @@ from multiprocessing import Pool, Value, Lock, cpu_count
 
 from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
-from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+from saga.utils.random_graphs import get_branching_dag, get_network
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -153,7 +152,7 @@ def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGra
     min_mean = 3
     max_mean = 10
     min_std = 0.5
-    max_std = 1.0
+    max_std = 2.0
 
     for node in network.nodes:
         mean = np.random.uniform(min_mean, max_mean)
@@ -189,6 +188,8 @@ def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGra
     return network, task_graph
 
 def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.Graph, nx.DiGraph]:
+    network = deepcopy(network)
+    task_graph = deepcopy(task_graph)
     # replace weights with actual weights
     for node in network.nodes:
         network.nodes[node]["weight"] = network.nodes[node]["weight_actual"]
