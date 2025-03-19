@@ -1,9 +1,22 @@
+from copy import deepcopy
+from itertools import product
 from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
 # from saga.utils.random_variable import RandomVariable
 
+import pygraphviz as pgv
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
+import matplotlib.cm as cm
+import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
+from saga.utils.draw import gradient_heatmap
+
+import pathlib
+
+
+thisdir = pathlib.Path(__file__).resolve().parent
 
 
 def schedule_estimate_to_actual(network: nx.Graph,
@@ -88,8 +101,7 @@ class OnlineHeftScheduler(Scheduler):
         A 'live' scheduling loop using HEFT in a dynamic manner.
         We assume each node/task has 'weight_actual' and 'weight_estimate' attributes.
         
-        1) Updates node, edge, and task weights to use 'actual' or 'estimate' 
-            based on whether a task is in schedule_actual.
+        1) No longer needed
         2) Calls the standard HEFT for an 'estimated' schedule.
         3) Converts that schedule to 'actual' times using schedule_estimate_to_actual.
         4) Commits the earliest-finishing new task to schedule_actual.
@@ -128,19 +140,23 @@ class OnlineHeftScheduler(Scheduler):
 
         return schedule_actual
     
-from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag
+from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+from multiprocessing import Pool, cpu_count
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import time
+
 
 def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
     # Create a random network
     network = get_network(num_nodes=4)
     # Create a random task graph
-    task_graph = get_branching_dag(levels=3, branching_factor=4)
-    # task_graph = get_diamond_dag()
-
+    #task_graph = get_fork_dag()
+    #task_graph = get_branching_dag(levels=3, branching_factor=5)
+    #task_graph = get_chain_dag(num_nodes=10)
+    task_graph = get_diamond_dag()
     # network = add_rv_weights(network)
     # task_graph = add_rv_weights(task_graph)
 
@@ -184,65 +200,222 @@ def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
 
     return network, task_graph
 
+def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
+    """
+    Create a network and a branching task graph with the specified number
+    of levels and branching factor.
+    """
+    network = get_network(num_nodes=4)
+    task_graph = get_branching_dag(levels=levels, branching_factor=branching_factor)
 
-def main():
+    #Make graph for varying these
+    min_mean = 3
+    max_mean = 10
+    min_std = 0.5
+    max_std = 1.0
+
+    for node in network.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.nodes[node]["weight_estimate"] = mean
+        network.nodes[node]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        if u == v:
+            network.edges[u, v]["weight_estimate"] = 1e9
+            network.edges[u, v]["weight_actual"] = 1e9
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        network.edges[u, v]["weight_estimate"] = mean
+        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    for task in task_graph.nodes:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.nodes[task]["weight_estimate"] = mean
+        task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
+
+    for (src, dst) in task_graph.edges:
+        mean = np.random.uniform(min_mean, max_mean)
+        std = np.random.uniform(min_std, max_std)
+        task_graph.edges[src, dst]["weight_estimate"] = mean
+        task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
+
+    return network, task_graph
+
+def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.Graph, nx.DiGraph]:
+    # replace weights with actual weights
+    for node in network.nodes:
+        network.nodes[node]["weight"] = network.nodes[node]["weight_actual"]
+
+    for (u, v) in network.edges:
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_actual"]
+
+    for task in task_graph.nodes:
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_actual"]
+
+    for (src, dst) in task_graph.edges:
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_actual"]
+
+    return network, task_graph
+
+def to_ccr(task_graph: nx.DiGraph, 
+           network: nx.Graph,
+           ccr: float) -> nx.Graph:
+    """Get the network graph to run the task graph on with the given CCR.
+
+    CCR is the communication to computation ratio. The higher the CCR, the more
+    communication-heavy the task graph is. The lower the CCR, the more computation-heavy
+    the task graph is.
+
+    Args:
+        task_graph (nx.DiGraph): The task graph.
+        network (nx.Graph): The network graph.
+        ccr (float): The communication to computation ratio.
+
+    Returns:
+        nx.Graph: The network graph.
+    """
+    network = deepcopy(network)
+    mean_task_weight = np.mean([
+        task_graph.nodes[node]["weight"]
+        for node in task_graph.nodes
+    ])
+    mean_dependency_weight = np.mean([
+        task_graph.edges[edge]["weight"]
+        for edge in task_graph.edges
+    ])
+    
+    link_strength = mean_dependency_weight / (ccr * mean_task_weight)
+
+    for edge in network.edges:
+        if edge[0] == edge[1]:
+            network.edges[edge]["weight"] = 1e9
+        else:
+            network.edges[edge]["weight"] = link_strength
+
+    return network
+
+def run_sample(params: Tuple[float, int, int, int]) -> List[Tuple[float, int, int, int, float, str]]:
+    """
+    Runs one experiment sample for a given set of parameters.
+    
+    Args:
+        params: A tuple (ccr, levels, branching_factor, sample_index)
+    
+    Returns:
+        A list of three tuples, one for each scheduler variant:
+            (ccr, levels, branching_factor, sample_index, makespan, scheduler_name)
+    """
+    
+    ccr, levels, bf, sample_index = params
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+    network, task_graph = get_instance_custom(levels, bf)
+    network_ccr = to_ccr(task_graph, network, ccr)
+    print(f"Running experiment (CCR={ccr}, levels={levels}, branching_factor={bf}, sample={sample_index})")
+    
+    # Run standard HEFT (Naive Online HEFT)
+    schedule_custom = scheduler.schedule(network_ccr, task_graph)
+    schedule_actual_custom = schedule_estimate_to_actual(network_ccr, task_graph, schedule_custom)
+    makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
+    
+    # Run Online HEFT
+    schedule_online_custom = scheduler_online.schedule(network_ccr, task_graph)
+    makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
+    
+    # Run Offline HEFT (knows actual weights)
+    network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
+    schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
+    makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
+    
+    return [
+        (ccr, levels, bf, sample_index, makespan_custom, "Naive Online HEFT"),
+        (ccr, levels, bf, sample_index, makespan_online_custom, "Online HEFT"),
+        (ccr, levels, bf, sample_index, makespan_offline, "Offline HEFT")
+    ]
+
+def run_experiment():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
-    n_samples = 100
-
-    rows = []
-    worst_instance, worst_makespan_ratio = None, 0
-    for _ in range(n_samples):
-        network, task_graph = get_instance()
-        schedule = scheduler.schedule(network, task_graph)
-        schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-        makespan = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
-
-        schedule_online = scheduler_online.schedule(network, task_graph)
-        makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
-
-        if makespan_online / makespan > worst_makespan_ratio:
-            worst_instance = (network, task_graph)
-            worst_makespan_ratio = makespan_online / makespan
-
-
-        rows.append((makespan, makespan_online, makespan_online / makespan))
-
-    df = pd.DataFrame(rows, columns=["HEFT", "Online HEFT", "Makespan Ratio"])
-    print(df.round(2).describe())
-
-    fig, ax = plt.subplots()
+    cores = 4
+    n_samples = 50
+    experiments = []
+    ccrs = [1/5, 1/2, 1, 2, 5]
+    levels_range = [1, 2, 3, 4]         # x axis: Levels
+    branching_range = [1, 2, 3, 4]      # y axis: Branching Factor
+    all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
+    #total_experiments = len(all_params) * 3  # three experiments per instance
     
-    # boxplot
-    df.boxplot(column=["Makespan Ratio"], ax=ax)
-    ax.set_ylabel("Makespan")
+    #total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
+    '''
+    for ccr in ccrs:
+        for levels, bf in product(levels_range, branching_range):
+            for i in range(n_samples):
+                network, task_graph = get_instance_custom(levels, bf)
+                network_ccr = to_ccr(task_graph, network, ccr)
+                print(
+                    f"Running experiment {len(experiments) + 1}/{total_experiments}"
+                    f"(CCR={ccr}, levels={levels}, branching_factor={bf}, sample={i})"
+                    f" - {len(experiments) / total_experiments * 100:.2f}%"
+                )
+    '''
 
+    #multiprocessing
+    with Pool(processes=cores) as pool:
+        results = pool.map(run_sample, all_params)
+    
+    # Flatten results
+    for res in results:
+        experiments.extend(res)
+    df = pd.DataFrame(experiments, columns=["ccr", "levels", "branching_factor", "instance", "makespan", "scheduler"])
+    df.to_csv(thisdir / "makespan_experiments.csv")
 
-    fig.savefig("online_heft.png")
+def analyze_results():
+    df = pd.read_csv(thisdir / "makespan_experiments.csv", index_col=0)
+    # get makespan ratio of (makespan_online / makespan_offline)
+    df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
+    ccrs = sorted(df["ccr"].unique())
 
-    # Draw task graph, network, and schedules for the worst instance
-    network, task_graph = worst_instance
-    schedule = scheduler.schedule(network, task_graph)
-    schedule_actual = schedule_estimate_to_actual(network, task_graph, schedule)
-    makespan_actual = max(task.end for node_tasks in schedule_actual.values() for task in node_tasks)
-    schedule_online = scheduler_online.schedule(network, task_graph)
-    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
-    xmax = max(makespan_actual, makespan_online)
+    for ccr in ccrs:
+        fig, (ax_naive, ax_online) = plt.subplots(1, 2, figsize=(20, 10))
+        for scheduler, ax in [("Naive Online HEFT", ax_naive), ("Online HEFT", ax_online)]:
+            df_scheduler = df[df["scheduler"] == scheduler]
+            gradient_heatmap(
+                df_scheduler,
+                x="levels",
+                y="branching_factor",
+                color="makespan_ratio",
+                title=f"{scheduler}",
+                x_label="Levels", rotate_xlabels=0,
+                y_label="Branching Factor",
+                color_label="Makespan Ratio",
+                xorder=lambda x: int(x),
+                yorder=lambda x: -int(x),
+                font_size=20,
+                ax=ax
+            )
+        
+        fig.tight_layout()
+        fig.savefig(thisdir / f"makespan_heatmap_ccr_{ccr}.png")
 
-    ax_task_graph: plt.Axes = draw_task_graph(task_graph)
-    ax_task_graph.get_figure().savefig("task_graph.png")
+def main():
+    #record start time
+    start_time = time.perf_counter()
 
-    ax_network: plt.Axes = draw_network(network)
-    ax_network.get_figure().savefig("network.png")
+    #run_experiment()
+    analyze_results()
 
-    ax_schedule: plt.Axes = draw_gantt(schedule_actual, xmax=xmax)
-    ax_schedule.get_figure().savefig("schedule.png")
-
-    ax_schedule_online: plt.Axes = draw_gantt(schedule_online, xmax=xmax)
-    ax_schedule_online.get_figure().savefig("schedule_online.png")
-
+    #record end time
+    end_time = time.perf_counter()
+    elapsed = end_time - start_time
+    print(f"Execution time: {elapsed:.2f} seconds")
 
 
 if __name__ == "__main__":
