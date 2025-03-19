@@ -1,20 +1,21 @@
+from functools import partial
+from typing import Dict, Hashable, List, Tuple
 from copy import deepcopy
 from itertools import product
-from saga.schedulers import HeftScheduler
-from saga.scheduler import Scheduler, Task
-# from saga.utils.random_variable import RandomVariable
-
-import pygraphviz as pgv
-from typing import Dict, Hashable, List, Tuple
+import os
+import time
+import pathlib
 import networkx as nx
-import matplotlib.cm as cm
-import plotly.express as px
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from saga.utils.draw import gradient_heatmap
+from multiprocessing import Pool, Value, Lock, cpu_count
 
-import pathlib
-
+from saga.schedulers import HeftScheduler
+from saga.scheduler import Scheduler, Task
+from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
+from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -140,67 +141,7 @@ class OnlineHeftScheduler(Scheduler):
 
         return schedule_actual
     
-from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from multiprocessing import Pool, cpu_count
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import time
-
-
-def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
-    # Create a random network
-    network = get_network(num_nodes=4)
-    # Create a random task graph
-    #task_graph = get_fork_dag()
-    #task_graph = get_branching_dag(levels=3, branching_factor=5)
-    #task_graph = get_chain_dag(num_nodes=10)
-    task_graph = get_diamond_dag()
-    # network = add_rv_weights(network)
-    # task_graph = add_rv_weights(task_graph)
-
-    min_mean = 10
-    max_mean = 50
-    min_std = 0
-    max_std = 10
-
-    for node in network.nodes:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        network.nodes[node]["weight_estimate"] = mean
-        network.nodes[node]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
-
-    for (u, v) in network.edges:
-        if u == v:
-            network.edges[u, v]["weight_estimate"] = 1e9
-            network.edges[u, v]["weight_actual"] = 1e9
-
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        network.edges[u, v]["weight_estimate"] = mean
-        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
-
-    for task in task_graph.nodes:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        task_graph.nodes[task]["weight_estimate"] = mean
-        task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
-        
-
-    for (src, dst) in task_graph.edges:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        task_graph.edges[src, dst]["weight_estimate"] = mean
-        task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
-
-    return network, task_graph
-
-def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
+def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
     """
     Create a network and a branching task graph with the specified number
     of levels and branching factor.
@@ -300,84 +241,91 @@ def to_ccr(task_graph: nx.DiGraph,
 
     return network
 
-def run_sample(params: Tuple[float, int, int, int]) -> List[Tuple[float, int, int, int, float, str]]:
+
+counter = Value('i', 0)  # Shared integer counter
+total = Value('i', 0)  # Shared integer total
+counter_lock = Lock()  # Lock to prevent race conditions
+def progress_callback():
+    with counter.get_lock():
+        counter.value += 1
+        perc = counter.value / total.value * 100
+        print(f"Progress: {counter.value}/{total.value} ({perc:.2f}%)" + " " * 10, end="\r")
+
+def run_sample(ccr: float,
+               levels: int,
+               branching_factor: int,
+               sample_index: int) -> List[Tuple]:
     """
-    Runs one experiment sample for a given set of parameters.
-    
+    Runs one experiment sample for a given set of parameters and updates the experiment counter.
+
     Args:
-        params: A tuple (ccr, levels, branching_factor, sample_index)
+        params: A tuple (ccr, levels, branching_factor, sample_index, counter, counter_lock)
     
     Returns:
         A list of three tuples, one for each scheduler variant:
             (ccr, levels, branching_factor, sample_index, makespan, scheduler_name)
     """
-    
-    ccr, levels, bf, sample_index = params
+    global counter, counter_lock
+
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
-    network, task_graph = get_instance_custom(levels, bf)
+    network, task_graph = get_instance(levels, branching_factor)
     network_ccr = to_ccr(task_graph, network, ccr)
-    print(f"Running experiment (CCR={ccr}, levels={levels}, branching_factor={bf}, sample={sample_index})")
     
     # Run standard HEFT (Naive Online HEFT)
-    schedule_custom = scheduler.schedule(network_ccr, task_graph)
-    schedule_actual_custom = schedule_estimate_to_actual(network_ccr, task_graph, schedule_custom)
-    makespan_custom = max(task.end for node_tasks in schedule_actual_custom.values() for task in node_tasks)
+    schedule_online_naive = scheduler.schedule(network_ccr, task_graph)
+    schedule_online_naive_actual = schedule_estimate_to_actual(network_ccr, task_graph, schedule_online_naive)
+    makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
     
     # Run Online HEFT
-    schedule_online_custom = scheduler_online.schedule(network_ccr, task_graph)
-    makespan_online_custom = max(task.end for node_tasks in schedule_online_custom.values() for task in node_tasks)
+    schedule_online = scheduler_online.schedule(network_ccr, task_graph)
+    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
     
     # Run Offline HEFT (knows actual weights)
     network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
     makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
     
+    # Increment the counter in a thread-safe manner
+    progress_callback()
+
     return [
-        (ccr, levels, bf, sample_index, makespan_custom, "Naive Online HEFT"),
-        (ccr, levels, bf, sample_index, makespan_online_custom, "Online HEFT"),
-        (ccr, levels, bf, sample_index, makespan_offline, "Offline HEFT")
+        (ccr, levels, branching_factor, sample_index, makespan_online_naive, "Naive Online HEFT"),
+        (ccr, levels, branching_factor, sample_index, makespan_online, "Online HEFT"),
+        (ccr, levels, branching_factor, sample_index, makespan_offline, "Offline HEFT")
     ]
 
 def run_experiment():
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
-
-    cores = 4
+    cores = int(os.cpu_count() * 0.8)
     n_samples = 50
     experiments = []
     ccrs = [1/5, 1/2, 1, 2, 5]
-    levels_range = [1, 2, 3, 4]         # x axis: Levels
-    branching_range = [1, 2, 3, 4]      # y axis: Branching Factor
+    levels_range = [1, 2, 3, 4]
+    branching_range = [1, 2, 3, 4]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
-    #total_experiments = len(all_params) * 3  # three experiments per instance
-    
-    #total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
-    '''
-    for ccr in ccrs:
-        for levels, bf in product(levels_range, branching_range):
-            for i in range(n_samples):
-                network, task_graph = get_instance_custom(levels, bf)
-                network_ccr = to_ccr(task_graph, network, ccr)
-                print(
-                    f"Running experiment {len(experiments) + 1}/{total_experiments}"
-                    f"(CCR={ccr}, levels={levels}, branching_factor={bf}, sample={i})"
-                    f" - {len(experiments) / total_experiments * 100:.2f}%"
-                )
-    '''
 
-    #multiprocessing
-    with Pool(processes=cores) as pool:
-        results = pool.map(run_sample, all_params)
-    
+    with counter.get_lock():
+        counter.value = 0
+        total.value = len(all_params)
+
+    # Multiprocessing
+    if cores == 1:
+        results = [run_sample(*params) for params in all_params
+                     if run_sample(*params) is not None]
+    else:
+        with Pool(processes=cores) as pool:
+            results = pool.starmap(run_sample, all_params)
+
     # Flatten results
     for res in results:
         experiments.extend(res)
+
+    # Save results to CSV
     df = pd.DataFrame(experiments, columns=["ccr", "levels", "branching_factor", "instance", "makespan", "scheduler"])
-    df.to_csv(thisdir / "makespan_experiments.csv")
+    df.to_csv("makespan_experiments.csv", index=False)
 
 def analyze_results():
-    df = pd.read_csv(thisdir / "makespan_experiments.csv", index_col=0)
+    df = pd.read_csv(thisdir / "makespan_experiments.csv")
     # get makespan ratio of (makespan_online / makespan_offline)
     df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
@@ -409,7 +357,7 @@ def main():
     #record start time
     start_time = time.perf_counter()
 
-    #run_experiment()
+    run_experiment()
     analyze_results()
 
     #record end time
