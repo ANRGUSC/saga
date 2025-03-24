@@ -251,6 +251,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
     trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
     children: Dict[str, Set[str]] = {}
+    print(trace["workflow"].keys())
     for task in trace["workflow"]["tasks"]:
         for parent in task.get("parents", []):
             children.setdefault(parent, set()).add(task["name"])
@@ -360,6 +361,12 @@ def build_workflow(recipe: WfChefWorkflowRecipe,
     workflow.nxgraph = graph
     recipe.workflows.append(workflow)
     return workflow
+
+@lru_cache(maxsize=None)
+def get_task_stats(recipe_name: str) -> Dict:
+    min_nodes, _ = get_num_task_range(recipe_name)
+    recipe = recipes[recipe_name](min_nodes)
+    return recipe._workflow_recipe()
 
 def get_workflows(num: int,
                   recipe_name: str,

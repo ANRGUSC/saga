@@ -1,19 +1,20 @@
 from copy import deepcopy
 from itertools import product
-from saga.schedulers import HeftScheduler
-from saga.scheduler import Scheduler, Task
-# from saga.utils.random_variable import RandomVariable
-
-import pygraphviz as pgv
+from multiprocessing import Pool
+import pandas as pd
+import time
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
-import matplotlib.cm as cm
-import plotly.express as px
 import matplotlib.pyplot as plt
 import numpy as np
-from saga.utils.draw import gradient_heatmap
-
 import pathlib
+
+from saga.utils.draw import gradient_heatmap
+from saga.schedulers import HeftScheduler
+from saga.scheduler import Scheduler, Task
+from saga.schedulers.data.wfcommons import get_workflows, get_networks, get_task_stats
+from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
+from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 
 thisdir = pathlib.Path(__file__).resolve().parent
@@ -145,67 +146,7 @@ class OnlineHeftScheduler(Scheduler):
 
         return schedule_actual
     
-from saga.utils.random_graphs import get_branching_dag, get_network, get_diamond_dag, get_chain_dag, get_fork_dag
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from multiprocessing import Pool, cpu_count
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import time
-
-
-def get_instance() -> Tuple[nx.Graph, nx.DiGraph]:
-    # Create a random network
-    network = get_network(num_nodes=4)
-    # Create a random task graph
-    #task_graph = get_fork_dag()
-    #task_graph = get_branching_dag(levels=3, branching_factor=5)
-    #task_graph = get_chain_dag(num_nodes=10)
-    task_graph = get_diamond_dag()
-    # network = add_rv_weights(network)
-    # task_graph = add_rv_weights(task_graph)
-
-    min_mean = 3
-    max_mean = 10
-    min_std = 1/2
-    max_std = 1
-
-    for node in network.nodes:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        network.nodes[node]["weight_estimate"] = mean
-        network.nodes[node]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
-
-    for (u, v) in network.edges:
-        if u == v:
-            network.edges[u, v]["weight_estimate"] = 1e9
-            network.edges[u, v]["weight_actual"] = 1e9
-
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        network.edges[u, v]["weight_estimate"] = mean
-        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
-
-    for task in task_graph.nodes:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        task_graph.nodes[task]["weight_estimate"] = mean
-        task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
-        
-
-    for (src, dst) in task_graph.edges:
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        task_graph.edges[src, dst]["weight_estimate"] = mean
-        task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
-
-    return network, task_graph
-
-def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
+def get_instance_branching(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
     """
     Create a network and a branching task graph with the specified number
     of levels and branching factor.
@@ -251,6 +192,31 @@ def get_instance_custom(levels: int, branching_factor: int) -> Tuple[nx.Graph, n
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
 
     return network, task_graph
+
+def get_instance_wfcommons(recipe_name: str, cloud_name: str = "chameleon") -> Tuple[nx.Graph, nx.DiGraph]:
+    """
+    Create a network and a task graph based on a real-world
+    workflow and network.
+    """
+    network = get_networks(num=1, cloud_name=cloud_name)[0]
+    task_graph = get_workflows(num=1, recipe_name=recipe_name)[0]
+    task_stats = get_task_stats(recipe_name=recipe_name)
+
+    
+    # if not distribution or distribution == "None":
+    #     return min_value
+
+    # params = distribution['params']
+    # kwargs = params[:-2]
+    # rvs: float = max(0.1, getattr(scipy.stats, distribution['name']).rvs(*kwargs, loc=params[-2], scale=params[-1]))
+    # return rvs * max_value
+
+    # set weights
+    for node in network.nodes:
+        print(node)
+
+
+    raise ValueError()
 
 def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.Graph, nx.DiGraph]:
     # replace weights with actual weights
@@ -320,7 +286,8 @@ def run_sample(params: Tuple[float, int, int, int]) -> List[Tuple[float, int, in
     ccr, levels, bf, sample_index = params
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
-    network, task_graph = get_instance_custom(levels, bf)
+    # network, task_graph = get_instance_branching(levels, bf)
+    network, task_graph = get_instance_wfcommons("epigenomics")
     network_ccr = to_ccr(task_graph, network, ccr)
     print(f"Running experiment (CCR={ccr}, levels={levels}, branching_factor={bf}, sample={sample_index})")
     
@@ -345,31 +312,13 @@ def run_sample(params: Tuple[float, int, int, int]) -> List[Tuple[float, int, in
     ]
 
 def run_experiment():
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
-
-    cores = 4
+    cores = 1
     n_samples = 50
     experiments = []
     ccrs = [1/5, 1/2, 1, 2, 5]
     levels_range = [1, 2, 3, 4]         # x axis: Levels
     branching_range = [1, 2, 3, 4]      # y axis: Branching Factor
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
-    #total_experiments = len(all_params) * 3  # three experiments per instance
-    
-    #total_experiments = len(ccrs) * len(levels_range) * len(branching_range) * n_samples * 3
-    '''
-    for ccr in ccrs:
-        for levels, bf in product(levels_range, branching_range):
-            for i in range(n_samples):
-                network, task_graph = get_instance_custom(levels, bf)
-                network_ccr = to_ccr(task_graph, network, ccr)
-                print(
-                    f"Running experiment {len(experiments) + 1}/{total_experiments}"
-                    f"(CCR={ccr}, levels={levels}, branching_factor={bf}, sample={i})"
-                    f" - {len(experiments) / total_experiments * 100:.2f}%"
-                )
-    '''
 
     #multiprocessing
     with Pool(processes=cores) as pool:
@@ -414,7 +363,7 @@ def main():
     #record start time
     start_time = time.perf_counter()
 
-    #run_experiment()
+    run_experiment()
     analyze_results()
 
     #record end time
