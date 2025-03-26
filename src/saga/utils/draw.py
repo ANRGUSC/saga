@@ -431,6 +431,7 @@ def gradient_heatmap(data: pd.DataFrame,
                      upper_threshold: float = np.inf,
                      title: str = None,
                      x_label: str = None,
+                     rotate_xlabels: int = 90,
                      y_label: str = None,
                      color_label: str = None,
                      cell_text: str = None,
@@ -575,8 +576,8 @@ def gradient_heatmap(data: pd.DataFrame,
         # Add labels, ticks, and other plot elements
         ax.set_xticks(np.arange(len(xvals)) + 0.5)  # Adjusted tick positions
         ax.set_yticks(np.arange(len(yvals)) + 0.5)    # Adjusted tick positions
-        ax.set_xticklabels(xvals, rotation=90)      # Rotate x-axis labels
-        ax.set_yticklabels(yvals)
+        ax.set_xticklabels(xvals, rotation=rotate_xlabels, fontsize=font_size)
+        ax.set_yticklabels(yvals, fontsize=font_size)
         ax.grid(False)
 
         ax.tick_params(axis='x', which='both', bottom=False, top=False)  # Optional: remove bottom ticks
@@ -586,7 +587,7 @@ def gradient_heatmap(data: pd.DataFrame,
         ax.set_ylim([0, len(yvals)])  # Set y-axis limits
 
         # Add colorbar
-        cbar = plt.colorbar(
+        cbar = ax.get_figure().colorbar(
             im, 
             ax=ax,
             orientation='vertical',
@@ -597,12 +598,13 @@ def gradient_heatmap(data: pd.DataFrame,
         if upper_threshold < np.inf:
             cbar.ax.set_yticklabels(
                 [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
-                + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}']
+                + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}'],
+                fontsize=font_size
             )
 
         if title:
-            plt.title(title)
-        plt.xlabel(x_label if x_label else x, labelpad=20)
-        plt.ylabel(y_label if y_label else y, labelpad=20)
+            ax.set_title(title)
+        ax.set_xlabel(x_label if x_label else x, labelpad=20, fontsize=font_size)
+        ax.set_ylabel(y_label if y_label else y, labelpad=20, fontsize=font_size)
 
         return ax
