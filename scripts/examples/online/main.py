@@ -15,6 +15,10 @@ from multiprocessing import Pool, Value, Lock, cpu_count
 from saga.schedulers import HeftScheduler
 from saga.scheduler import Scheduler, Task
 from saga.utils.random_graphs import get_branching_dag, get_network
+from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+
+from saga.schedulers.data.wfcommons import get_workflows, get_networks
+from saga.utils.random_variable import RandomVariable
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -116,16 +120,18 @@ class OnlineHeftScheduler(Scheduler):
         }
         tasks_actual: Dict[str, Task] = {}
         current_time = 0
-
+        iteration = 0
         while len(tasks_actual) < len(task_graph.nodes):
-            #------------------------------------------Step 2: Get next task to finish based on *actual* execution time
-            
+            iteration += 1
+            if iteration > 1000:
+                print({t for t in tasks_actual}, set(task_graph.nodes))
+                #------------------------------------------Step 2: Get next task to finish based on *actual* execution time
+                print("here")
             schedule_actual_hypothetical = schedule_estimate_to_actual(
                 network,
                 task_graph,
                 self.heft_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time)
             )
-
             tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
             next_task: Task = min(
                 [task for task in tasks if task.name not in tasks_actual],
@@ -134,13 +140,13 @@ class OnlineHeftScheduler(Scheduler):
             current_time = next_task.end
             
             for task in tasks:
-                if task.start < next_task.end and task.name not in tasks_actual:
+                if task.start <= current_time and task.name not in tasks_actual:
                     schedule_actual[task.node].append(task)
                     tasks_actual[task.name] = task
 
         return schedule_actual
     
-def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGraph]:
+def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[nx.Graph, nx.DiGraph]:
     """
     Create a network and a branching task graph with the specified number
     of levels and branching factor.
@@ -150,9 +156,9 @@ def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGra
 
     #Make graph for varying these
     min_mean = 3
-    max_mean = 10
+    max_mean = 20
     min_std = 0.5
-    max_std = 2.0
+    max_std = 3
 
     for node in network.nodes:
         mean = np.random.uniform(min_mean, max_mean)
@@ -165,14 +171,16 @@ def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGra
         if u == v:
             network.edges[u, v]["weight_estimate"] = 1e9
             network.edges[u, v]["weight_actual"] = 1e9
-        mean = np.random.uniform(min_mean, max_mean)
-        std = np.random.uniform(min_std, max_std)
-        network.edges[u, v]["weight_estimate"] = mean
-        network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
-        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+            network.edges[u, v]["weight"] = 1e9
+        else:
+            mean = np.random.uniform(min_mean, max_mean)
+            std = np.random.uniform(min_std, max_std)
+            network.edges[u, v]["weight_estimate"] = mean
+            network.edges[u, v]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
+            network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
     for task in task_graph.nodes:
-        mean = np.random.uniform(min_mean, max_mean)
+        mean = np.random.uniform(min_mean, max_mean) * ccr
         std = np.random.uniform(min_std, max_std)
         task_graph.nodes[task]["weight_estimate"] = mean
         task_graph.nodes[task]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
@@ -186,6 +194,62 @@ def get_instance(levels: int, branching_factor: int) -> Tuple[nx.Graph, nx.DiGra
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
 
     return network, task_graph
+
+def get_wfcommons_instance(recipe_name: str, ccr: float):
+    workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True)[0]
+
+    # rename weight attribute to weight_rv
+    for node in workflow.nodes:
+        weight_rv: RandomVariable = workflow.nodes[node]["weight"]
+        workflow.nodes[node]["weight_rv"] = weight_rv
+        workflow.nodes[node]["weight_estimate"] = weight_rv.mean()
+        workflow.nodes[node]["weight_actual"] = weight_rv.sample()
+        workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
+
+    for (u, v) in workflow.edges:
+        weight_rv: RandomVariable = workflow.edges[u, v]["weight"]
+        workflow.edges[u, v]["weight_rv"] = weight_rv
+        workflow.edges[u, v]["weight_estimate"] = weight_rv.mean()
+        workflow.edges[u, v]["weight_actual"] = weight_rv.sample()
+        workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
+    
+    network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
+    network: nx.Graph = get_networks(
+        num=1,
+        cloud_name="chameleon",
+        network_speed=network_speed,
+        rv_weights=True
+    )[0]
+
+    for node in network.nodes:
+        weight_rv: RandomVariable = network.nodes[node]["weight"]
+        network.nodes[node]["weight_rv"] = weight_rv
+        network.nodes[node]["weight_estimate"] = weight_rv.mean()
+        network.nodes[node]["weight_actual"] = weight_rv.sample()
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        weight_rv: RandomVariable = network.edges[u, v]["weight"]
+        network.edges[u, v]["weight_rv"] = weight_rv
+        network.edges[u, v]["weight_estimate"] = weight_rv.mean()
+        network.edges[u, v]["weight_actual"] = weight_rv.sample()
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    avg_task_cost = np.mean([workflow.nodes[node]["weight_actual"] for node in workflow.nodes])
+    avg_dep_cost = np.mean([workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges])
+    avg_node_speed = np.mean([network.nodes[node]["weight_actual"] for node in network.nodes])
+    avg_comm_speed = np.mean([network.edges[u, v]["weight_actual"] for u, v in network.edges])
+
+    # ccr = (avg_task_cost / avg_node_speed) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_new = (avg_task_cost / ccr) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_multiplier = avg_node_speed_new / avg_comm_speed
+    for node in network.nodes:
+        network.nodes[node]["weight_rv"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_estimate"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_actual"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    return network, workflow
 
 def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.Graph, nx.DiGraph]:
     network = deepcopy(network)
@@ -204,44 +268,6 @@ def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_actual"]
 
     return network, task_graph
-
-def to_ccr(task_graph: nx.DiGraph, 
-           network: nx.Graph,
-           ccr: float) -> nx.Graph:
-    """Get the network graph to run the task graph on with the given CCR.
-
-    CCR is the communication to computation ratio. The higher the CCR, the more
-    communication-heavy the task graph is. The lower the CCR, the more computation-heavy
-    the task graph is.
-
-    Args:
-        task_graph (nx.DiGraph): The task graph.
-        network (nx.Graph): The network graph.
-        ccr (float): The communication to computation ratio.
-
-    Returns:
-        nx.Graph: The network graph.
-    """
-    network = deepcopy(network)
-    mean_task_weight = np.mean([
-        task_graph.nodes[node]["weight"]
-        for node in task_graph.nodes
-    ])
-    mean_dependency_weight = np.mean([
-        task_graph.edges[edge]["weight"]
-        for edge in task_graph.edges
-    ])
-    
-    link_strength = mean_dependency_weight / (ccr * mean_task_weight)
-
-    for edge in network.edges:
-        if edge[0] == edge[1]:
-            network.edges[edge]["weight"] = 1e9
-        else:
-            network.edges[edge]["weight"] = link_strength
-
-    return network
-
 
 counter = Value('i', 0)  # Shared integer counter
 total = Value('i', 0)  # Shared integer total
@@ -270,20 +296,19 @@ def run_sample(ccr: float,
 
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
-    network, task_graph = get_instance(levels, branching_factor)
-    network_ccr = to_ccr(task_graph, network, ccr)
+    network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
     
     # Run standard HEFT (Naive Online HEFT)
-    schedule_online_naive = scheduler.schedule(network_ccr, task_graph)
-    schedule_online_naive_actual = schedule_estimate_to_actual(network_ccr, task_graph, schedule_online_naive)
+    schedule_online_naive = scheduler.schedule(network, task_graph)
+    schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
     makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
     
     # Run Online HEFT
-    schedule_online = scheduler_online.schedule(network_ccr, task_graph)
+    schedule_online = scheduler_online.schedule(network, task_graph)
     makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
     
     # Run Offline HEFT (knows actual weights)
-    network_offline, task_graph_offline = get_offline_instance(network_ccr, task_graph)
+    network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
     makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
     
@@ -301,8 +326,8 @@ def run_experiment():
     n_samples = 50
     experiments = []
     ccrs = [1/5, 1/2, 1, 2, 5]
-    levels_range = [1, 2, 3, 4]
-    branching_range = [1, 2, 3, 4]
+    levels_range = [1, 2, 3, 4, 5]
+    branching_range = [1, 2, 3, 4, 5]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
 
     with counter.get_lock():
@@ -311,8 +336,10 @@ def run_experiment():
 
     # Multiprocessing
     if cores == 1:
-        results = [run_sample(*params) for params in all_params
-                     if run_sample(*params) is not None]
+        results = [
+            run_sample(*params) for params in all_params
+            if run_sample(*params) is not None
+        ]
     else:
         with Pool(processes=cores) as pool:
             results = pool.starmap(run_sample, all_params)
@@ -348,24 +375,76 @@ def analyze_results():
                 xorder=lambda x: int(x),
                 yorder=lambda x: -int(x),
                 font_size=20,
-                ax=ax
+                ax=ax,
+                upper_threshold=10.0,
+                # cmap_lower=1.0
             )
         
         fig.tight_layout()
         fig.savefig(thisdir / f"makespan_heatmap_ccr_{ccr}.png")
 
+    # print stats on makespan ratio
+    print("Makespan ratio stats:")
+    print(df.groupby("scheduler")["makespan_ratio"].describe())
+
+def run_example():
+    levels = 3
+    branching_factor = 2
+    ccr = 1
+    sample_index = 0
+    
+    scheduler = HeftScheduler()
+    scheduler_online = OnlineHeftScheduler()
+
+    network, task_graph = get_instance(levels, branching_factor)
+
+    schedule_online_naive = scheduler.schedule(network, task_graph)
+    schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
+    makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
+
+    schedule_online = scheduler_online.schedule(network, task_graph)
+    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+
+    network_offline, task_graph_offline = get_offline_instance(network, task_graph)
+    schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
+    makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
+
+    # Plot
+    plotdir = thisdir / "example"
+    plotdir.mkdir(exist_ok=True)
+
+    ax: plt.Axes = draw_gantt(schedule=schedule_online_naive)
+    ax.figure.savefig(plotdir / "naive_online_heft_schedule.png")
+    ax: plt.Axes = draw_gantt(schedule=schedule_online_naive_actual)
+    ax.figure.savefig(plotdir / "naive_online_heft_schedule_actual.png")
+    ax: plt.Axes = draw_gantt(schedule=schedule_online)
+    ax.figure.savefig(plotdir / "online_heft_schedule.png")
+    ax: plt.Axes = draw_gantt(schedule=schedule_offline)
+    ax.figure.savefig(plotdir / "offline_heft_schedule.png")
+
+    ax: plt.Axes = draw_network(network)
+    ax.figure.savefig(plotdir / "network_graph.png")
+    ax: plt.Axes = draw_task_graph(task_graph)
+    ax.figure.savefig(plotdir / "task_graph.png")
+
+
+
+
 def main():
-    #record start time
-    start_time = time.perf_counter()
+    # #record start time
+    # start_time = time.perf_counter()
 
-    run_experiment()
-    analyze_results()
+    # run_example()
+    # run_experiment()
+    # analyze_results()
 
-    #record end time
-    end_time = time.perf_counter()
-    elapsed = end_time - start_time
-    print(f"Execution time: {elapsed:.2f} seconds")
+    # #record end time
+    # end_time = time.perf_counter()
+    # elapsed = end_time - start_time
+    # print(f"Execution time: {elapsed:.2f} seconds")
 
+    
+    workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
 
 if __name__ == "__main__":
     main()
