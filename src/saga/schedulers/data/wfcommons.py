@@ -276,7 +276,7 @@ def trace_to_digraph_15(path: Union[str, pathlib.Path],
         else:
             runtime = task.get('runtime', task.get('runtimeInSeconds'))
 
-        workflow.add_node(task["id"], weight=max(1e-9, runtime))
+        workflow.add_node(task["id"], weight=max(1e-9, runtime), color=task_name)
     
     file_sizes = {}
     for file in trace["workflow"]["specification"]["files"]:
@@ -284,9 +284,12 @@ def trace_to_digraph_15(path: Union[str, pathlib.Path],
 
     for task in trace["workflow"]["specification"]["tasks"]:
         for parent in parents.get(task["id"], []):
-            weight = RandomVariable([0.0])
-            for file_id in task["inputFiles"]:
-                weight += file_sizes[file_id]
+            if rv_weights:
+                weight = RandomVariable([0.0])
+                for file_id in task["inputFiles"]:
+                    weight += file_sizes[file_id]
+            else:
+                weight = sum(file_sizes[file_id] for file_id in task["inputFiles"])
             workflow.add_edge(parent, task["id"], weight=max(1e-9, weight))
 
     return workflow
@@ -437,7 +440,8 @@ def build_workflow(recipe: WfChefWorkflowRecipe,
 def get_workflows(num: int,
                   recipe_name: str,
                   vary_weights_only: bool = False,
-                  rv_weights: bool = False) -> List[nx.DiGraph]:
+                  rv_weights: bool = False,
+                  max_size_multiplier: int = None) -> List[nx.DiGraph]:
     """Generate a list of network, task graph pairs for the given recipe.
 
     Args:
@@ -445,6 +449,8 @@ def get_workflows(num: int,
         recipe_name (str): The name of the recipe.
         vary_weights_only (bool, optional): Whether to vary only the weights of the tasks. Defaults to False.
         rv_weights (bool, optional): Whether to use random variables for the weights. Defaults to False.
+        max_size_multiplier (int, optional): The maximum size multiplier for the number of tasks. Defaults to None.
+            If None, the maximum size multiplier is determined by the real workflows.
 
     Returns:
         List[nx.DiGraph]: The list of task graphs.
@@ -455,7 +461,10 @@ def get_workflows(num: int,
     task_graphs: List[nx.DiGraph] = []
     graph = None
     for _ in range(num):
-        num_tasks = random.randint(*get_num_task_range(recipe_name))
+        min_tasks, max_tasks = get_num_task_range(recipe_name)
+        if max_size_multiplier is not None:
+            max_tasks = max_size_multiplier * min_tasks
+        num_tasks = random.randint(min_tasks, max_tasks)
         recipe = recipes[recipe_name](num_tasks=num_tasks)
         workflow = build_workflow(recipe, graph=graph)
         if vary_weights_only:

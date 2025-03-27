@@ -152,13 +152,16 @@ class HeftScheduler(Scheduler):
             for node in nodes:  # Find the best node to run the task
                 transcript_callback(f"Testing task {task_name} on node {node}")
                 max_arrival_time: float = max(  [
-                        task_schedule[parent].end
-                        + (
-                            commtimes[(task_schedule[parent].node, node)][
-                                (parent, task_name)
-                            ]
-                        )
-                        for parent in task_graph.predecessors(task_name)
+                        0.0,
+                        *[
+                            task_schedule[parent].end
+                            + (
+                                commtimes[(task_schedule[parent].node, node)][
+                                    (parent, task_name)
+                                ]
+                            )
+                            for parent in task_graph.predecessors(task_name)
+                        ]
                     ]
                 )
                 transcript_callback(f"All required predecessor data for task {task_name} would be available on node {node} at {max_arrival_time:0.4f}")
