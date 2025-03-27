@@ -122,6 +122,11 @@ class OnlineHeftScheduler(Scheduler):
         current_time = 0
         iteration = 0
         while len(tasks_actual) < len(task_graph.nodes):
+
+            #Generates a heft schedule as normal with mean values but
+            #only schedules task after min_start_time (initially this is zero)
+            #schedule around the schedule_actual function (initially this is empty)
+            #turn this schedule to schedule with actual values instead of mean values
             iteration += 1
             if iteration > 1000:
                 print({t for t in tasks_actual}, set(task_graph.nodes))
@@ -132,13 +137,17 @@ class OnlineHeftScheduler(Scheduler):
                 task_graph,
                 self.heft_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time)
             )
+            #Figures out what the next task is that is not in schedule_actual
             tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
             next_task: Task = min(
                 [task for task in tasks if task.name not in tasks_actual],
                 key=lambda x: x.end
             )
+            #move the time up
             current_time = next_task.end
             
+            #add the next task to schedule_actual
+            #if statement is just a failsafe to make sure we are not scheduling any hazardous task            
             for task in tasks:
                 if task.start <= current_time and task.name not in tasks_actual:
                     schedule_actual[task.node].append(task)
