@@ -1,7 +1,7 @@
 from copy import deepcopy
 import logging
 import pathlib
-from typing import Callable, Dict, Hashable, List, Optional, Tuple, Set
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -13,27 +13,20 @@ from .cpop import upward_rank
 thisdir = pathlib.Path(__file__).resolve().parent
 
 
-def heft_rank_sort(network: nx.Graph,
-                   task_graph: nx.DiGraph,
-                   transcript_callback: Callable[[str], None] = lambda x: x) -> List[Hashable]:
+def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     """Sort tasks based on their rank (as defined in the HEFT paper).
 
     Args:
         network (nx.Graph): The network graph.
         task_graph (nx.DiGraph): The task graph.
-        transcript_callback (Optional[Callable[[str], None]]): A callback function to call with explanations
-            of the scheduling process.
 
     Returns:
         List[Hashable]: The sorted list of tasks.
     """
-    transcript_callback("Computing upward rank of tasks")
-    rank = upward_rank(network, task_graph, transcript_callback)
+    rank = upward_rank(network, task_graph)
     topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
-    rank = {node: (rank[node], topological_sort[node]) for node in rank}
-    task_order = sorted(list(rank.keys()), key=rank.get, reverse=True)
-    transcript_callback(f"Scheduling order: {task_order}")
-    return task_order
+    rank = {node: (rank[node] + topological_sort[node]) for node in rank}
+    return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 
 class HeftScheduler(Scheduler):
@@ -106,8 +99,8 @@ class HeftScheduler(Scheduler):
             Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
         ],
         schedule_order: List[Hashable],
-        transcript_callback: Callable[[str], None] = lambda x: x,
-        clusters: Optional[List[Set[Hashable]]] = None,
+        schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        min_start_time: float = 0.0,
     ) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
@@ -119,10 +112,7 @@ class HeftScheduler(Scheduler):
             commtimes (Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]): A
                 dictionary mapping edges to a dictionary of task dependencies and their communication times.
             schedule_order (List[Hashable]): The order in which to schedule the tasks.
-            transcript_callback (Optional[Callable[[str], None]]): A callback function to call with explanations
-                of the scheduling process.
-            clusters (Optional[List[Set[Hashable]]]): A list of clusters of tasks that should be scheduled to
-                run on the same node.
+            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
 
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
@@ -130,29 +120,24 @@ class HeftScheduler(Scheduler):
         Raises:
             ValueError: If the instance is invalid.
         """
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
-        cluster_decisions: Dict[Hashable, Hashable] = {}
-        def get_cluster(task_name: Hashable) -> Set[Hashable]:
-            if clusters is None:
-                return {task_name}
-            for cluster in clusters:
-                if task_name in cluster:
-                    return cluster
-            return {task_name}
+        if schedule is None:
+            comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+            task_schedule: Dict[Hashable, Task] = {}
+        else:
+            comp_schedule = deepcopy(schedule)
+            task_schedule = {task.name: task for node in schedule for task in schedule[node]}
 
         task_name: Hashable
+        logging.debug("Schedule order: %s", schedule_order)
         for task_name in schedule_order:
-            transcript_callback(f"Scheduling task {task_name}")
-            nodes = network.nodes
-            if task_name in cluster_decisions:
-                nodes = [cluster_decisions[task_name]]
+            if task_name in task_schedule:
+                continue
             min_finish_time = np.inf
             best_node = None
-            for node in nodes:  # Find the best node to run the task
-                transcript_callback(f"Testing task {task_name} on node {node}")
-                max_arrival_time: float = max(  [
-                        0.0,
+            for node in network.nodes:  # Find the best node to run the task
+                max_arrival_time: float = max(  #
+                    [
+                        min_start_time,
                         *[
                             task_schedule[parent].end
                             + (
@@ -161,58 +146,49 @@ class HeftScheduler(Scheduler):
                                 ]
                             )
                             for parent in task_graph.predecessors(task_name)
-                        ]
+                        ],
                     ]
                 )
-                transcript_callback(f"All required predecessor data for task {task_name} would be available on node {node} at {max_arrival_time:0.4f}")
 
                 runtime = runtimes[node][task_name]
                 idx, start_time = get_insert_loc(
                     comp_schedule[node], max_arrival_time, runtime
                 )
-                transcript_callback(f"Earliest large enough slot for task {task_name} on node {node} is {idx} at {start_time:0.4f}")
+
+                logging.debug(
+                    "Testing task %s on node %s: start time %s, finish time %s",
+                    task_name,
+                    node,
+                    start_time,
+                    start_time + runtime,
+                )
 
                 finish_time = start_time + runtime
-                transcript_callback(f"Task {task_name} on node {node} would finish at {finish_time:0.4f}")
                 if finish_time < min_finish_time:
-                    if best_node is not None:
-                        transcript_callback(f"This is better than the previous best finish time of {min_finish_time:0.4f} (on node {best_node[0]})")
                     min_finish_time = finish_time
                     best_node = node, idx
-                else:
-                    if best_node is not None:
-                        transcript_callback(f"This is worse than the previous best finish time of {min_finish_time:0.4f} (on node {best_node[0]})")
 
-            transcript_callback(f"Best node for task {task_name} is {best_node[0]}")
             new_runtime = runtimes[best_node[0]][task_name]
             task = Task(
                 best_node[0], task_name, min_finish_time - new_runtime, min_finish_time
             )
-            transcript_callback(f"Inserting {task}")
             comp_schedule[best_node[0]].insert(best_node[1], task)
             task_schedule[task_name] = task
 
-            if clusters is not None:
-                cluster = get_cluster(task_name)
-                for task in cluster:
-                    cluster_decisions[task] = best_node[0]
-
-            transcript_callback(f"Current schedule: {comp_schedule}")
-
         return comp_schedule
 
-    def schedule(
-        self, network: nx.Graph, task_graph: nx.DiGraph,
-        transcript_callback: Callable[[str], None] = lambda x: x,
-        clusters: Optional[List[Set[Hashable]]] = None
-    ) -> Dict[str, List[Task]]:
+    def schedule(self, 
+                 network: nx.Graph, 
+                 task_graph: nx.DiGraph, 
+                 schedule: Optional[Dict[Hashable, List[Task]]] = None,
+                 min_start_time: float = 0.0) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
-            clusters (Optional[List[Set[Hashable]]]): A list of clusters of tasks that should be scheduled to
-                run on the same node.
+            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
+            min_start_time (float, optional): The minimum start time. Defaults to 0.0.
 
         Returns:
             Dict[str, List[Task]]: The schedule.
@@ -222,5 +198,5 @@ class HeftScheduler(Scheduler):
         """
 
         runtimes, commtimes = HeftScheduler.get_runtimes(network, task_graph)
-        schedule_order = heft_rank_sort(network, task_graph, transcript_callback)
-        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, transcript_callback, clusters)
+        schedule_order = heft_rank_sort(network, task_graph)
+        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, schedule, min_start_time)
