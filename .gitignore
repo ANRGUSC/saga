@@ -2,6 +2,9 @@
 
 build
 
+# DS_Store for Mac
+.DS_Store
+
 # sphinx build folder
 _build
 
