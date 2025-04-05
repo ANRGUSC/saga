@@ -479,7 +479,7 @@ def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    run_example()
+    #run_example()
     run_experiment()
     # analyze_results()
 
