@@ -163,12 +163,47 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
     network = get_network(num_nodes=4)
     task_graph = get_branching_dag(levels=levels, branching_factor=branching_factor)
 
+    
+    #Make graph for varying these
+    node_loc = RandomVariable(samples=np.random.normal(size=100000, loc=11, scale=8))
+    node_scale = RandomVariable(samples=np.random.normal(size=100000, loc=2, scale=0.5))
+
+    for node in network.nodes:
+        random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
+        network.nodes[node]["weight_estimate"] = random_node.mean()
+        network.nodes[node]["weight_actual"] = random_node.sample()
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        if u == v:
+            network.edges[u, v]["weight_estimate"] = 1e9
+            network.edges[u, v]["weight_actual"] = 1e9
+            network.edges[u, v]["weight"] = 1e9
+        else:
+            random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
+            network.edges[u, v]["weight_estimate"] = random_node.mean()
+            network.edges[u, v]["weight_actual"] = random_node.sample()
+            network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    for task in task_graph.nodes:
+        random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample() * ccr, scale=node_scale.sample())) # Do not understand what CCR is doing ???
+        task_graph.nodes[task]["weight_estimate"] = random_node.mean()
+        task_graph.nodes[task]["weight_actual"] = random_node.sample()
+        task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
+
+    for (src, dst) in task_graph.edges:
+        random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
+        task_graph.edges[src, dst]["weight_estimate"] = random_node.mean()
+        task_graph.edges[src, dst]["weight_actual"] = random_node.sample()
+        task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
+
+    '''
     #Make graph for varying these
     min_mean = 3
     max_mean = 20
     min_std = 0.5
     max_std = 3
-
+    
     for node in network.nodes:
         mean = np.random.uniform(min_mean, max_mean)
         std = np.random.uniform(min_std, max_std)
@@ -201,6 +236,7 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
         task_graph.edges[src, dst]["weight_estimate"] = mean
         task_graph.edges[src, dst]["weight_actual"] = max(1e-9, np.random.normal(mean, std))
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
+    '''
 
     return network, task_graph
 
@@ -443,8 +479,8 @@ def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    # run_example()
-    # run_experiment()
+    run_example()
+    run_experiment()
     # analyze_results()
 
     # #record end time
@@ -453,7 +489,7 @@ def main():
     # print(f"Execution time: {elapsed:.2f} seconds")
 
     
-    workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
+    #workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
 
 if __name__ == "__main__":
     main()
