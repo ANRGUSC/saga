@@ -8,6 +8,16 @@ RUN apt-get update && apt-get install -y \
     libboost-dev \
     libgsl-dev \
     curl \
+    graphviz \
+    libgraphviz-dev \
+    pkg-config \
+    python3-dev \
+    texlive-latex-base \
+    texlive-latex-recommended \
+    texlive-latex-extra \
+    texlive-fonts-recommended \
+    texlive-fonts-extra \
+    dvipng \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,23 +30,15 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY ./src /app
 
-# VOLUME ["/app"]
-# WORKDIR /app
-
 # Install package dependencies and pytest-related tools
-# RUN pip install -e . \
-#     && pip install pytest pytest-timeout
-
 RUN pip install -e .
 RUN pip install pytest pytest-timeout
+RUN pip install openai python-dotenv
+RUN pip install pygraphviz
 
 # Install Z3 solver
 RUN pysmt-install --z3 --confirm-agreement
-
 COPY ./tests /app/tests
-
-# Run the tests on container startup
-# CMD ["pytest", "./tests", "--timeout=60"]
 
 # Set default command to bash (so you can interact with the container)
 CMD ["/bin/bash"]
