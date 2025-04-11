@@ -29,6 +29,7 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 
+
 class HeftScheduler(Scheduler):
     """Schedules tasks using the HEFT algorithm.
 

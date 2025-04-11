@@ -121,6 +121,9 @@ class OnlineHeftScheduler(Scheduler):
         tasks_actual: Dict[str, Task] = {}
         current_time = 0
         iteration = 0
+
+ 
+        
         while len(tasks_actual) < len(task_graph.nodes):
 
             #Generates a heft schedule as normal with mean values but
@@ -143,8 +146,11 @@ class OnlineHeftScheduler(Scheduler):
                 [task for task in tasks if task.name not in tasks_actual],
                 key=lambda x: x.end
             )
+            print(next_task)
             #move the time up
             current_time = next_task.end
+            print(current_time)
+
             
             #add the next task to schedule_actual
             #if statement is just a failsafe to make sure we are not scheduling any hazardous task            
@@ -152,8 +158,17 @@ class OnlineHeftScheduler(Scheduler):
                 if task.start <= current_time and task.name not in tasks_actual:
                     schedule_actual[task.node].append(task)
                     tasks_actual[task.name] = task
+            
 
         return schedule_actual
+
+
+def safe_value(x: float) -> float:
+    """
+    Helper function for get_instance() that hardcodes any value less than or equal to zero to 1e-9
+    """
+    return x if x > 0 else 1e-9
+ 
     
 def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[nx.Graph, nx.DiGraph]:
     """
@@ -165,14 +180,16 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
 
     
     #Make graph for varying these
-    node_loc = RandomVariable(samples=np.random.normal(size=100000, loc=11, scale=8))
-    node_scale = RandomVariable(samples=np.random.normal(size=100000, loc=2, scale=0.5))
+    node_loc = RandomVariable(samples=np.random.normal(size=100000, loc=24, scale=5))
+    node_scale = RandomVariable(samples=np.random.normal(size=100000, loc=2, scale=0.2))
+    #Do failsafe check to make sure weights are not negative possibly use 1e-9
 
     for node in network.nodes:
         random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
-        network.nodes[node]["weight_estimate"] = random_node.mean()
-        network.nodes[node]["weight_actual"] = random_node.sample()
+        network.nodes[node]["weight_estimate"] = safe_value(random_node.mean())
+        network.nodes[node]["weight_actual"] = safe_value(random_node.sample())
         network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+        
 
     for (u, v) in network.edges:
         if u == v:
@@ -181,22 +198,23 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
             network.edges[u, v]["weight"] = 1e9
         else:
             random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
-            network.edges[u, v]["weight_estimate"] = random_node.mean()
-            network.edges[u, v]["weight_actual"] = random_node.sample()
+            network.edges[u, v]["weight_estimate"] = safe_value(random_node.mean())
+            network.edges[u, v]["weight_actual"] = safe_value(random_node.sample())
             network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
     for task in task_graph.nodes:
         random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample() * ccr, scale=node_scale.sample())) # Do not understand what CCR is doing ???
-        task_graph.nodes[task]["weight_estimate"] = random_node.mean()
-        task_graph.nodes[task]["weight_actual"] = random_node.sample()
+        task_graph.nodes[task]["weight_estimate"] = safe_value(random_node.mean())
+        task_graph.nodes[task]["weight_actual"] = safe_value(random_node.sample())
         task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
 
     for (src, dst) in task_graph.edges:
         random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample(), scale=node_scale.sample()))
-        task_graph.edges[src, dst]["weight_estimate"] = random_node.mean()
-        task_graph.edges[src, dst]["weight_actual"] = random_node.sample()
+        task_graph.edges[src, dst]["weight_estimate"] = safe_value(random_node.mean())
+        task_graph.edges[src, dst]["weight_actual"] = safe_value(random_node.sample())
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_estimate"]
-
+ 
+    
     '''
     #Make graph for varying these
     min_mean = 3
