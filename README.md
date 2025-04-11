@@ -119,3 +119,7 @@ See the examples in the [examples](./scripts/examples) directory for more!
 ### Experiments from Papers
 
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
+
+### Acknowledgements
+
+This work was supported in part by Army Research Laboratory under Cooperative Agreement W911NF-17-2-0196.
