@@ -1,5 +1,6 @@
 import openai
 import os
+import sys
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -8,6 +9,7 @@ import matplotlib.pyplot as plt
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 from saga.utils.tools import check_instance_simple
 from typing import Dict, List, Tuple
+from saga.scheduler import Task
 import pathlib
 import logging
 from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
@@ -28,9 +30,14 @@ def schedule(TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph):
     cpop_makespan = max([0 if not tasks else tasks[-1].end for tasks in cpop_schedule.values()])
     heft_makespan = max([0 if not tasks else tasks[-1].end for tasks in heft_schedule.values()])
 
+    draw_schedule(heft_schedule, 'heft_gantt_scaled', xmax=heft_makespan)
+    draw_schedule(cpop_schedule, 'cpop_gantt_scaled', xmax=cpop_makespan)
+
     print(f'CPoP makespan: {cpop_makespan}')
     print(f'HEFT makespan: {heft_makespan}')
-    print(f"Makespan Ratio: {cpop_makespan/heft_makespan}")
+    print(f"Makespan Ratio: {heft_makespan/cpop_makespan}")
+
+    
 
 # get prompt
 def getPrompt(algorithm1: str, algorithm2: str) -> str:
@@ -40,7 +47,7 @@ def getPrompt(algorithm1: str, algorithm2: str) -> str:
         "from task t is required input for task t′.) and task graph (N = (V, E) denote the compute node network, "
         "where N is a complete undirected graph. V is the set of nodes and E is the set of edges. The compute speed "
         "of a node v ∈ V is s(v) ∈ R+ and the communication strength between nodes (v,v′) ∈ E is s(v,v′) ∈ R+). "
-        f"An example where {algorithm1} performs dramatically worse compared to {algorithm2} in a scheduling makespan (we want the maximum difference in the execution time between the two algorithms). "
+        f"An example where {algorithm1} (uses upward rank) performs dramatically different compared to {algorithm2} (uses both upward and downward rank) in a scheduling makespan (we want the maximum difference in the execution time between the two algorithms). "
         "Name nodes in task graph A, B, and C etc and name nodes in network graph 1, 2, and 3 etc "
         "(no limitations for the number of nodes). We want no cycle, and exactly one source (start node) and one sink (end node) for task graph."
     )
@@ -84,6 +91,14 @@ def visualizeGraphs(TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph):
     axis = draw_network(NETWORK_GRAPH, draw_colors=False, use_latex=True)
     axis.get_figure().savefig(savepath / 'network_graph.pdf')
     plt.close(axis.get_figure())
+
+# draw schedule
+def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None):
+    thisdir = pathlib.Path(__file__).parent.absolute()
+    savepath = thisdir / 'results'
+    savepath.mkdir(exist_ok=True)
+    ax: plt.Axes = draw_gantt(schedule, use_latex=True, xmax=xmax)
+    ax.get_figure().savefig(str(savepath / f'{name}.png'))
 
 # get chatgpt answer
 def query(algorithm1: str, algorithm2: str) -> Tuple[nx.DiGraph, nx.Graph]:
@@ -193,12 +208,20 @@ if __name__ == "__main__":
     visualizeGraphs(TASK_GRAPH, NETWORK_GRAPH)
 
     # check to see if graphs are valid
-    check_instance_simple(NETWORK_GRAPH, TASK_GRAPH)
+    try:
+        check_instance_simple(NETWORK_GRAPH, TASK_GRAPH)
+    # catch errors and exit if there's problems
+    except Exception as e:
+        print(f"Error during instance check: {e}")
+        sys.exit(1)
+    else:
+        # used for debug purposes
+        # logging.basicConfig(level=logging.DEBUG)
 
-    # used for debug purposes
-    # logging.basicConfig(level=logging.DEBUG)
-
-    # make schedules
-    schedule(TASK_GRAPH, NETWORK_GRAPH)
-
+        # make schedules
+        try:
+            schedule(TASK_GRAPH, NETWORK_GRAPH)
+        except Exception as e:
+            print("Graph error")
+            sys.exit(1)
 
