@@ -80,7 +80,7 @@ def getGraphs(task_graph: json, network_graph: json) -> Tuple[nx.DiGraph, nx.Gra
 
 # visualize the graphs generated
 def visualizeGraphs(TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph):
-    thisdir = pathlib.Path(__file__).parent.absolute()
+    thisdir = pathlib.Path(__file__).resolve().parent
 
     savepath = thisdir / 'results'
     savepath.mkdir(exist_ok=True)
@@ -94,7 +94,7 @@ def visualizeGraphs(TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph):
 
 # draw schedule
 def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None):
-    thisdir = pathlib.Path(__file__).parent.absolute()
+    thisdir = pathlib.Path(__file__).resolve().parent
     savepath = thisdir / 'results'
     savepath.mkdir(exist_ok=True)
     ax: plt.Axes = draw_gantt(schedule, use_latex=True, xmax=xmax)
