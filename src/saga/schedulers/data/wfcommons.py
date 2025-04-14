@@ -234,7 +234,7 @@ def get_networks(num: int,
         node_speeds = get_node_speed(num_nodes)
         for i in range(num_nodes):
             if rv_weights:
-                node_speeds[i] = RandomVariable(node_speeds)
+                network.add_node(i, weight=RandomVariable(node_speeds))
             else:
                 network.add_node(i, weight=max(1e-9, node_speeds[i]))
 
@@ -471,7 +471,6 @@ def get_workflows(num: int,
             graph = workflow.nxgraph.copy()
         with tempfile.NamedTemporaryFile() as tmp:
             workflow.write_json(tmp.name)
-            shutil.copy(tmp.name, f"trace.json")
             task_graphs.append(trace_to_digraph(tmp.name, recipe_name, rv_weights=rv_weights))
 
     return task_graphs

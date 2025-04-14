@@ -125,33 +125,20 @@ class OnlineHeftScheduler(Scheduler):
  
         
         while len(tasks_actual) < len(task_graph.nodes):
-
-            #Generates a heft schedule as normal with mean values but
-            #only schedules task after min_start_time (initially this is zero)
-            #schedule around the schedule_actual function (initially this is empty)
-            #turn this schedule to schedule with actual values instead of mean values
-            iteration += 1
-            if iteration > 1000:
-                print({t for t in tasks_actual}, set(task_graph.nodes))
-                #------------------------------------------Step 2: Get next task to finish based on *actual* execution time
-                print("here")
             schedule_actual_hypothetical = schedule_estimate_to_actual(
                 network,
                 task_graph,
                 self.heft_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time)
             )
-            #Figures out what the next task is that is not in schedule_actual
+
             tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
             next_task: Task = min(
                 [task for task in tasks if task.name not in tasks_actual],
                 key=lambda x: x.end
             )
-            print(next_task)
             #move the time up
             current_time = next_task.end
-            print(current_time)
 
-            
             #add the next task to schedule_actual
             #if statement is just a failsafe to make sure we are not scheduling any hazardous task            
             for task in tasks:
@@ -259,7 +246,7 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
     return network, task_graph
 
 def get_wfcommons_instance(recipe_name: str, ccr: float):
-    workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True)[0]
+    workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True, max_size_multiplier=2)[0]
 
     # rename weight attribute to weight_rv
     for node in workflow.nodes:
@@ -287,15 +274,15 @@ def get_wfcommons_instance(recipe_name: str, ccr: float):
     for node in network.nodes:
         weight_rv: RandomVariable = network.nodes[node]["weight"]
         network.nodes[node]["weight_rv"] = weight_rv
-        network.nodes[node]["weight_estimate"] = weight_rv.mean()
-        network.nodes[node]["weight_actual"] = weight_rv.sample()
+        network.nodes[node]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.nodes[node]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
         network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
 
     for (u, v) in network.edges:
         weight_rv: RandomVariable = network.edges[u, v]["weight"]
         network.edges[u, v]["weight_rv"] = weight_rv
-        network.edges[u, v]["weight_estimate"] = weight_rv.mean()
-        network.edges[u, v]["weight_actual"] = weight_rv.sample()
+        network.edges[u, v]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.edges[u, v]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
         network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
     avg_task_cost = np.mean([workflow.nodes[node]["weight_actual"] for node in workflow.nodes])
@@ -459,36 +446,40 @@ def run_example():
     scheduler = HeftScheduler()
     scheduler_online = OnlineHeftScheduler()
 
-    network, task_graph = get_instance(levels, branching_factor)
-
-    schedule_online_naive = scheduler.schedule(network, task_graph)
-    schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
-    makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
-
-    schedule_online = scheduler_online.schedule(network, task_graph)
-    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+    # network, task_graph = get_instance(levels, branching_factor)
+    network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
 
     network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
     makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
+    print(f"Offline HEFT makespan: {makespan_offline}")
 
-    # Plot
-    plotdir = thisdir / "example"
-    plotdir.mkdir(exist_ok=True)
+    schedule_online_naive = scheduler.schedule(network, task_graph)
+    schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
+    makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
+    print(f"Naive Online HEFT makespan: {makespan_online_naive}")
 
-    ax: plt.Axes = draw_gantt(schedule=schedule_online_naive)
-    ax.figure.savefig(plotdir / "naive_online_heft_schedule.png")
-    ax: plt.Axes = draw_gantt(schedule=schedule_online_naive_actual)
-    ax.figure.savefig(plotdir / "naive_online_heft_schedule_actual.png")
-    ax: plt.Axes = draw_gantt(schedule=schedule_online)
-    ax.figure.savefig(plotdir / "online_heft_schedule.png")
-    ax: plt.Axes = draw_gantt(schedule=schedule_offline)
-    ax.figure.savefig(plotdir / "offline_heft_schedule.png")
+    schedule_online = scheduler_online.schedule(network, task_graph)
+    makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+    print(f"Online HEFT makespan: {makespan_online}")
 
-    ax: plt.Axes = draw_network(network)
-    ax.figure.savefig(plotdir / "network_graph.png")
-    ax: plt.Axes = draw_task_graph(task_graph)
-    ax.figure.savefig(plotdir / "task_graph.png")
+    # # Plot
+    # plotdir = thisdir / "example"
+    # plotdir.mkdir(exist_ok=True)
+
+    # ax: plt.Axes = draw_gantt(schedule=schedule_online_naive)
+    # ax.figure.savefig(plotdir / "naive_online_heft_schedule.png")
+    # ax: plt.Axes = draw_gantt(schedule=schedule_online_naive_actual)
+    # ax.figure.savefig(plotdir / "naive_online_heft_schedule_actual.png")
+    # ax: plt.Axes = draw_gantt(schedule=schedule_online)
+    # ax.figure.savefig(plotdir / "online_heft_schedule.png")
+    # ax: plt.Axes = draw_gantt(schedule=schedule_offline)
+    # ax.figure.savefig(plotdir / "offline_heft_schedule.png")
+
+    # ax: plt.Axes = draw_network(network)
+    # ax.figure.savefig(plotdir / "network_graph.png")
+    # ax: plt.Axes = draw_task_graph(task_graph)
+    # ax.figure.savefig(plotdir / "task_graph.png")
 
 
 
@@ -497,8 +488,8 @@ def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    #run_example()
-    run_experiment()
+    run_example()
+    # run_experiment()
     # analyze_results()
 
     # #record end time
@@ -507,7 +498,7 @@ def main():
     # print(f"Execution time: {elapsed:.2f} seconds")
 
     
-    #workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
+    workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
 
 if __name__ == "__main__":
     main()
