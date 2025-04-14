@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, List, Tuple, Set
+from typing import Dict, Hashable, List, Optional, Tuple, Set
 
 import networkx as nx
 import numpy as np
@@ -63,12 +63,16 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
             if task not in tasks and all(pred in tasks for pred in task_graph.predecessors(task))
         }
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self,
+                 network: nx.Graph,
+                 task_graph: nx.DiGraph,
+                 clusters: Optional[List[Set[Hashable]]] = None) -> Dict[str, List[Task]]:
         """Returns the best schedule (minimizing makespan) for a problem instance using ETF
 
         Args:
             network: Network
             task_graph: Task graph
+            
 
         Returns:
             A dictionary of the schedule

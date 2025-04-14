@@ -10,6 +10,7 @@ from .hybrid import HybridScheduler
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler
 from .mct import MCTScheduler
+from .mst import MSTScheduler
 from .met import METScheduler
 from .olb import OLBScheduler
 from .smt import SMTScheduler
