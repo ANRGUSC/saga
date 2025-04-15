@@ -1,53 +1,50 @@
 import openai
 import os
-import sys
 import json
 from dotenv import load_dotenv
 from openai import OpenAI
 import networkx as nx
 import matplotlib.pyplot as plt
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-from saga.utils.tools import check_instance_simple
 from typing import Dict, List, Tuple
 from saga.scheduler import Task
 import pathlib
-import logging
-from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
-                             ETFScheduler, FastestNodeScheduler, FCPScheduler,
-                             FLBScheduler, GDLScheduler, HeftScheduler,
-                             MaxMinScheduler, MCTScheduler, METScheduler,
-                             MinMinScheduler, OLBScheduler, WBAScheduler, SDBATSScheduler)
+from src.data import (SCHEDULER_MAP, 
+                      SCHEDULER_NAME_MAP,
+                      NETWORK_GRAPH_DESCRIPTION, 
+                      TASK_GRAPH_DESCRIPTION,
+                      SCHEDULER_DESCRIPTION_MAP
+)
 
 # scheduling
-def schedule(TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph):
+def schedule(algorithm_1 : int, algorithm_2 : int, TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph, visualize: bool) -> None:
+    
+    scheduler_1 = SCHEDULER_MAP[algorithm_1]
+    scheduler_2 = SCHEDULER_MAP[algorithm_2]
 
-    cpop_scheduler = CpopScheduler()
-    heft_scheduler = HeftScheduler()
+    schedule_1 = scheduler_1.schedule(NETWORK_GRAPH, TASK_GRAPH)
+    schedule_2 = scheduler_2.schedule(NETWORK_GRAPH, TASK_GRAPH)
 
-    heft_schedule = heft_scheduler.schedule(NETWORK_GRAPH, TASK_GRAPH)
-    cpop_schedule = cpop_scheduler.schedule(NETWORK_GRAPH, TASK_GRAPH)
+    schedule_1_makespan = max([0 if not tasks else tasks[-1].end for tasks in schedule_1.values()])
+    schedule_2_makespan = max([0 if not tasks else tasks[-1].end for tasks in schedule_2.values()])
 
-    cpop_makespan = max([0 if not tasks else tasks[-1].end for tasks in cpop_schedule.values()])
-    heft_makespan = max([0 if not tasks else tasks[-1].end for tasks in heft_schedule.values()])
+    if visualize:
+        draw_schedule(schedule_1, 'scheduler_1_scaled', xmax=schedule_1_makespan)
+        draw_schedule(schedule_2, 'scheduler_2_scaled', xmax=schedule_2_makespan)
 
-    draw_schedule(heft_schedule, 'heft_gantt_scaled', xmax=heft_makespan)
-    draw_schedule(cpop_schedule, 'cpop_gantt_scaled', xmax=cpop_makespan)
-
-    print(f'CPoP makespan: {cpop_makespan}')
-    print(f'HEFT makespan: {heft_makespan}')
-    print(f"Makespan Ratio: {heft_makespan/cpop_makespan}")
+        print(f'{SCHEDULER_NAME_MAP[algorithm_1]} makespan: {schedule_1_makespan}')
+        print(f'{SCHEDULER_NAME_MAP[algorithm_2]} makespan: {schedule_2_makespan}')
+        print(f"Makespan Ratio: {schedule_1_makespan/schedule_2_makespan}")
 
     
 
 # get prompt
-def getPrompt(algorithm1: str, algorithm2: str) -> str:
+def getPrompt(algorithm_1: str, algorithm_2: str, prompt_level: int) -> str:
     return (
-        "Can you generate a detailed network graph (G = (T, D), where T is the set of tasks and D contains "
-        "the directed edges or dependencies between these tasks? An edge (t, t′) ∈ D implies that the output "
-        "from task t is required input for task t′.) and task graph (N = (V, E) denote the compute node network, "
-        "where N is a complete undirected graph. V is the set of nodes and E is the set of edges. The compute speed "
-        "of a node v ∈ V is s(v) ∈ R+ and the communication strength between nodes (v,v′) ∈ E is s(v,v′) ∈ R+). "
-        f"An example where {algorithm1} (uses upward rank) performs dramatically different compared to {algorithm2} (uses both upward and downward rank) in a scheduling makespan (we want the maximum difference in the execution time between the two algorithms). "
+        f"Can you generate a detailed network graph {NETWORK_GRAPH_DESCRIPTION if prompt_level >= 1 else ''} "
+        f"and task graph {TASK_GRAPH_DESCRIPTION if prompt_level >=1 else ''} "
+        f"An example where {SCHEDULER_NAME_MAP[algorithm_1]} {SCHEDULER_DESCRIPTION_MAP[algorithm_1] if prompt_level >= 2 else ''} performs dramatically different compared to "
+        f"{SCHEDULER_NAME_MAP[algorithm_2]} {SCHEDULER_DESCRIPTION_MAP[algorithm_2] if prompt_level >= 2 else ''} in a scheduling makespan (we want the maximum difference in the execution time between the two algorithms). "
         "Name nodes in task graph A, B, and C etc and name nodes in network graph 1, 2, and 3 etc "
         "(no limitations for the number of nodes). We want no cycle, and exactly one source (start node) and one sink (end node) for task graph."
     )
@@ -101,7 +98,7 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
     ax.get_figure().savefig(str(savepath / f'{name}.png'))
 
 # get chatgpt answer
-def query(algorithm1: str, algorithm2: str) -> Tuple[nx.DiGraph, nx.Graph]:
+def query(algorithm1: str, algorithm2: str, prompt_level: int) -> Tuple[nx.DiGraph, nx.Graph]:
     
     # load key
     load_dotenv()
@@ -112,7 +109,7 @@ def query(algorithm1: str, algorithm2: str) -> Tuple[nx.DiGraph, nx.Graph]:
         messages=[
             {
                 "role": "user",
-                "content": getPrompt(algorithm1, algorithm2)
+                "content": getPrompt(algorithm1, algorithm2, prompt_level)
             }
         ],
         functions = [
@@ -179,9 +176,13 @@ def query(algorithm1: str, algorithm2: str) -> Tuple[nx.DiGraph, nx.Graph]:
                                 }
                             },
                             "required": ["nodes", "edges"]
+                        },
+                        "explanation": {
+                            "type": "string",
+                            "description": "An detailed explanation & reasoning behind the graphs generated"
                         }
                     },
-                    "required": ["directed_graph", "undirected_graph"]
+                    "required": ["task_graph", "network_graph", "explanation"]
                 }
             }
         ]
@@ -193,35 +194,8 @@ def query(algorithm1: str, algorithm2: str) -> Tuple[nx.DiGraph, nx.Graph]:
 
     task_graph = graph_data["task_graph"]
     network_graph = graph_data ["network_graph"]
+    explanation = graph_data["explanation"]
     
     [TASK_GRAPH, NETWORK_GRAPH] = getGraphs(task_graph, network_graph)
 
-    return TASK_GRAPH, NETWORK_GRAPH
-
-
-if __name__ == "__main__":
-    
-    # get graphs from api
-    [TASK_GRAPH, NETWORK_GRAPH] = query("HEFT", "CPOP")
-
-    # visualize graphs
-    visualizeGraphs(TASK_GRAPH, NETWORK_GRAPH)
-
-    # check to see if graphs are valid
-    try:
-        check_instance_simple(NETWORK_GRAPH, TASK_GRAPH)
-    # catch errors and exit if there's problems
-    except Exception as e:
-        print(f"Error during instance check: {e}")
-        sys.exit(1)
-    else:
-        # used for debug purposes
-        # logging.basicConfig(level=logging.DEBUG)
-
-        # make schedules
-        try:
-            schedule(TASK_GRAPH, NETWORK_GRAPH)
-        except Exception as e:
-            print("Graph error")
-            sys.exit(1)
-
+    return TASK_GRAPH, NETWORK_GRAPH, explanation
