@@ -2,8 +2,16 @@ from saga.utils.tools import check_instance_simple
 from openai_api import query, visualizeGraphs, schedule
 import logging
 import argparse
+import sys
+from pathlib import Path
+import traceback
 
-def run_experiment(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize : bool) -> None:
+# add src folder to data path
+sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
+from data import SCHEDULER_MAP
+
+
+def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize : bool) -> None:
 
     # get graphs from api
     [TASK_GRAPH, NETWORK_GRAPH, explanation] = query(algorithm_1, algorithm_2, prompt_level)
@@ -28,10 +36,10 @@ def run_experiment(algorithm_1: int, algorithm_2: int, prompt_level: int, visual
             schedule(algorithm_1, algorithm_2, TASK_GRAPH, NETWORK_GRAPH, visualize)
 
             if visualize:
-                print("Explanation:", explanation)
+                print("Explanation from ChatGPT:", explanation)
             
         except Exception as e:
-            print("Graph error")
+            traceback.print_exc() 
             return
 
 def main():
@@ -48,11 +56,11 @@ def main():
     args = parser.parse_args()
 
     # run experiment
-    run_experiment(
+    run_openai(
         algorithm_1=args.algorithm_1,
         algorithm_2=args.algorithm_2,
-        prompt_level=args.prompt_level,
-        visualize=args.visualize
+        prompt_level=args.p,
+        visualize=args.v
     )
 
 if __name__ == "__main__":

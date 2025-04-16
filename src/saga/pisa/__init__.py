@@ -80,7 +80,11 @@ def run_experiments(scheduler_pairs: List[Tuple[Tuple[str, Scheduler], Tuple[str
     for (scheduler_name, scheduler), (base_scheduler_name, base_scheduler) in scheduler_pairs:
     # for base_scheduler_name, base_scheduler in base_schedulers.items(): # pylint: disable=too-many-nested-blocks
     #     for scheduler_name, scheduler in schedulers.items():
-        savepath = output_path / base_scheduler_name / f"{scheduler_name}.pkl"
+        # savepath = output_path / base_scheduler_name / f"{scheduler_name}.pkl"
+
+        # changed this for openai project, hard code it into output.pkl
+        savepath = output_path / "output.pkl"
+        
         if (savepath.exists() and skip_existing
             and not scheduler_name in rerun_schedulers
             and not base_scheduler_name in rerun_base_schedulers):
@@ -139,8 +143,8 @@ def run_experiments(scheduler_pairs: List[Tuple[Tuple[str, Scheduler], Tuple[str
                 if best_run is None or (best_run.iterations[-1].best_energy <
                                         simulated_annealing.iterations[-1].best_energy):
                     best_run = simulated_annealing
-                    savepath = output_path.joinpath(base_scheduler_name, f"{scheduler_name}.pkl")
-                    savepath.parent.mkdir(parents=True, exist_ok=True)
+                    # savepath = output_path.joinpath(base_scheduler_name, f"{scheduler_name}.pkl")
+                    # savepath.parent.mkdir(parents=True, exist_ok=True)
                     savepath.write_bytes(pickle.dumps(simulated_annealing))
         except Exception as exp:
             logging.error(

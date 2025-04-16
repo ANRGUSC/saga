@@ -6,22 +6,22 @@ from saga.schedulers import (BILScheduler, CpopScheduler, DuplexScheduler,
 
 # scheduler map
 SCHEDULER_MAP = {
-    1: BILScheduler,
-    2: CpopScheduler,
-    3: DuplexScheduler,
-    4: ETFScheduler,
-    5: FastestNodeScheduler,
-    6: FCPScheduler,
-    7: FLBScheduler,
-    8: GDLScheduler,
-    9: HeftScheduler,
-    10: MaxMinScheduler,
-    11: MCTScheduler,
-    12: METScheduler,
-    13: MinMinScheduler,
-    14: OLBScheduler,
-    15: WBAScheduler,
-    16: SDBATSScheduler
+    1: BILScheduler(),
+    2: CpopScheduler(),
+    3: DuplexScheduler(),
+    4: ETFScheduler(),
+    5: FastestNodeScheduler(),
+    6: FCPScheduler(),
+    7: FLBScheduler(),
+    8: GDLScheduler(),
+    9: HeftScheduler(),
+    10: MaxMinScheduler(),
+    11: MCTScheduler(),
+    12: METScheduler(),
+    13: MinMinScheduler(),
+    14: OLBScheduler(),
+    15: WBAScheduler(),
+    16: SDBATSScheduler()
 }
 
 # scheduler name map
