@@ -24,8 +24,8 @@ from data import (    SCHEDULER_MAP,
                       SCHEDULER_DESCRIPTION_MAP
 )
 
-# scheduling
-def schedule(algorithm_1 : int, algorithm_2 : int, TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph, visualize: bool) -> None:
+# scheduling - return the makespan difference percentage
+def schedule(algorithm_1 : int, algorithm_2 : int, TASK_GRAPH: nx.DiGraph, NETWORK_GRAPH: nx.Graph, visualize: bool) -> float:
     
     scheduler_1 = SCHEDULER_MAP[algorithm_1]
     scheduler_2 = SCHEDULER_MAP[algorithm_2]
@@ -43,6 +43,8 @@ def schedule(algorithm_1 : int, algorithm_2 : int, TASK_GRAPH: nx.DiGraph, NETWO
         print(f'{SCHEDULER_NAME_MAP[algorithm_1]} makespan: {schedule_1_makespan}')
         print(f'{SCHEDULER_NAME_MAP[algorithm_2]} makespan: {schedule_2_makespan}')
         print(f"Makespan Ratio: {schedule_1_makespan/schedule_2_makespan}")
+    
+    return abs((schedule_1_makespan - schedule_2_makespan) / schedule_2_makespan) * 100
 
     
 
@@ -72,8 +74,9 @@ def getPrompt(algorithm_1: int, algorithm_2: int, prompt_level: int) -> str:
         savepath = thisdir / 'results' / 'pisa'
         savepath.mkdir(exist_ok=True)
 
+        # algorithm 2 is the base algorithm
         run_experiments(
-            scheduler_pairs=[((SCHEDULER_NAME_MAP[1], SCHEDULER_MAP[1]), (SCHEDULER_NAME_MAP[2], SCHEDULER_MAP[2]))],
+            scheduler_pairs=[((SCHEDULER_NAME_MAP[algorithm_1], SCHEDULER_MAP[algorithm_1]), (SCHEDULER_NAME_MAP[algorithm_2], SCHEDULER_MAP[algorithm_2]))],
             max_iterations=1000,
             num_tries=10,
             max_temp=10,
@@ -101,14 +104,14 @@ def getPrompt(algorithm_1: int, algorithm_2: int, prompt_level: int) -> str:
         f"An example where {SCHEDULER_NAME_MAP[algorithm_1]} {SCHEDULER_DESCRIPTION_MAP[algorithm_1] if prompt_level >= 2 else ''} performs dramatically different compared to "
         f"{SCHEDULER_NAME_MAP[algorithm_2]} {SCHEDULER_DESCRIPTION_MAP[algorithm_2] if prompt_level >= 2 else ''} in a scheduling makespan (we want the maximum difference in the execution time between the two algorithms). "
         "Name nodes in task graph A, B, and C etc and name nodes in network graph 1, 2, and 3 etc "
-        "(no limitations for the number of nodes). We want no cycle, and exactly one source (start node) and one sink (end node) for task graph."
-        "The network graph should be all connected (there's an edge between each pair of nodes)."
+        "(no limitations for the number of nodes). Strict Rules: no cycle, and exactly one source (start node) and one sink (end node) for task graph."
+        "Strict rules: the network graph should be all connected (there's an edge between each pair of nodes)."
         f"{code_snippet if prompt_level >= 3 else ''}"
         f"{pisa_sample if prompt_level >= 4 else ''}"
     )
 
     # use for debug
-    print(prompt)
+    # print(prompt)
 
     return prompt
 
@@ -290,7 +293,7 @@ def query(algorithm1: int, algorithm2: int, prompt_level: int) -> Tuple[nx.DiGra
     graph_data = json.loads(response.choices[0].message.function_call.arguments)
 
     # use for debugging
-    print(json.dumps(graph_data, indent=2))
+    # print(json.dumps(graph_data, indent=2))
 
     task_graph = graph_data["task_graph"]
     network_graph = graph_data ["network_graph"]

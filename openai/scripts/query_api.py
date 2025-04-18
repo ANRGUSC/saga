@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
 from data import SCHEDULER_MAP
 
 
-def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize : bool) -> None:
+def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize : bool) -> float:
 
     # get graphs from api
     [TASK_GRAPH, NETWORK_GRAPH, explanation] = query(algorithm_1, algorithm_2, prompt_level)
@@ -26,22 +26,24 @@ def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize 
     # catch errors and exit if there's problems
     except Exception as e:
         print(f"Error during instance check: {e}")
-        return
+        return -1
     else:
         # used for debug purposes
         # logging.basicConfig(level=logging.DEBUG)
 
         # make schedules
         try:
-            schedule(algorithm_1, algorithm_2, TASK_GRAPH, NETWORK_GRAPH, visualize)
+            percentage_difference = schedule(algorithm_1, algorithm_2, TASK_GRAPH, NETWORK_GRAPH, visualize)
 
             if visualize:
                 print("Explanation from ChatGPT:", explanation)
             
+            return percentage_difference
+            
         except Exception as e:
             traceback.print_exc() 
-            return
-
+            return -1
+        
 def main():
     parser = argparse.ArgumentParser(description="Run scheduling experiment with given algorithms and options.")
 
@@ -57,10 +59,10 @@ def main():
 
     # run experiment
     run_openai(
-        algorithm_1=args.algorithm_1,
-        algorithm_2=args.algorithm_2,
-        prompt_level=args.p,
-        visualize=args.v
+        algorithm_1 = args.algorithm_1,
+        algorithm_2 = args.algorithm_2,
+        prompt_level = args.p,
+        visualize = args.v
     )
 
 if __name__ == "__main__":
