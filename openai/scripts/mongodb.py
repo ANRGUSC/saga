@@ -38,7 +38,7 @@ _client     = MongoClient(_mongo_uri)
 _db         = _client["scheduler_experiments"]
 _collection = _db["experiment_runs"]
 
-def store_experiment(prompt: str, alg1_name: str, alg2_name: str, task_graph: Graph, network_graph: Graph, makespan_diff: float):
+def store_experiment(prompt: str, alg1_name: str, alg2_name: str, task_graph: Graph, network_graph: Graph, makespan_diff: float, explanation: str):
     """
     Serialize graphs and insert one document into MongoDB.
     """
@@ -49,6 +49,7 @@ def store_experiment(prompt: str, alg1_name: str, alg2_name: str, task_graph: Gr
             "algorithm1": alg1_name,
             "algorithm2": alg2_name
         },
+        "explanation": explanation,
         "task_graph":    json_graph.node_link_data(task_graph),
         "network_graph": json_graph.node_link_data(network_graph),
         "makespan_diff": makespan_diff
