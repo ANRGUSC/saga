@@ -118,7 +118,10 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     return cluster
             return {task_name}
 
-        start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)      
+        #start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)
+        entry_tasks = [task for task in task_graph.nodes if task_graph.in_degree(task) == 0]
+        start_task = max(entry_tasks, key=lambda task: ranks[task])
+        
         _ = next(task for task in task_graph.nodes if task_graph.out_degree(task) == 0)
         # cp_rank is rank of tasks on critical path (rank of start task)
         cp_rank = ranks[start_task]
