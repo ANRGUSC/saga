@@ -39,6 +39,7 @@ setup(
         'wfcommons',
         'streamlit',
         'dill',
+        'pygraphviz',
         'joblib==1.3.2',
         'statsmodels==0.14.1',
         'seaborn==0.13.2',
