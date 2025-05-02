@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     texlive-fonts-extra \
     dvipng \
     g++ \
+    ca-certificates \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip to the latest version
@@ -33,7 +35,7 @@ COPY ./src /app
 # Install package dependencies and pytest-related tools
 RUN pip install -e .
 RUN pip install pytest pytest-timeout
-RUN pip install openai python-dotenv
+RUN pip install openai python-dotenv pymongo
 RUN pip install pygraphviz
 
 # Install Z3 solver

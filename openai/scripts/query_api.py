@@ -5,16 +5,17 @@ import argparse
 import sys
 from pathlib import Path
 import traceback
+from mongodb import store_experiment
 
 # add src folder to data path
 sys.path.append(str(Path(__file__).resolve().parent.parent / "src"))
-from data import SCHEDULER_MAP
+from data import SCHEDULER_MAP, SCHEDULER_NAME_MAP
 
 
 def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize : bool) -> float:
 
     # get graphs from api
-    [TASK_GRAPH, NETWORK_GRAPH, explanation] = query(algorithm_1, algorithm_2, prompt_level)
+    [TASK_GRAPH, NETWORK_GRAPH, explanation, prompt] = query(algorithm_1, algorithm_2, prompt_level)
 
     # visualize graphs
     if visualize:
@@ -33,12 +34,24 @@ def run_openai(algorithm_1: int, algorithm_2: int, prompt_level: int, visualize 
 
         # make schedules
         try:
-            percentage_difference = schedule(algorithm_1, algorithm_2, TASK_GRAPH, NETWORK_GRAPH, visualize)
+            percentage_difference, schedule_1_makespan, schedule_2_makespan = schedule(algorithm_1, algorithm_2, TASK_GRAPH, NETWORK_GRAPH, visualize)
 
             if visualize:
                 print("Explanation from ChatGPT:", explanation)
             
-            return percentage_difference
+            # add example to database if over the threshold
+            if percentage_difference >= 50:
+                store_experiment(
+                    prompt= prompt,
+                    alg1_name= SCHEDULER_NAME_MAP[algorithm_1],
+                    alg2_name= SCHEDULER_NAME_MAP[algorithm_2],
+                    task_graph= TASK_GRAPH,
+                    network_graph= NETWORK_GRAPH,
+                    makespan_diff= abs(schedule_1_makespan - schedule_2_makespan),
+                    explanation= explanation
+                )
+            
+            return percentage_difference, schedule_1_makespan, schedule_2_makespan
             
         except Exception as e:
             traceback.print_exc() 

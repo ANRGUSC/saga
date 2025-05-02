@@ -44,7 +44,7 @@ def schedule(algorithm_1 : int, algorithm_2 : int, TASK_GRAPH: nx.DiGraph, NETWO
         print(f'{SCHEDULER_NAME_MAP[algorithm_2]} makespan: {schedule_2_makespan}')
         print(f"Makespan Ratio: {schedule_1_makespan/schedule_2_makespan}")
     
-    return abs((schedule_1_makespan - schedule_2_makespan) / schedule_2_makespan) * 100
+    return abs((schedule_1_makespan - schedule_2_makespan) / schedule_2_makespan) * 100, schedule_1_makespan, schedule_2_makespan
 
     
 
@@ -95,8 +95,34 @@ def getPrompt(algorithm_1: int, algorithm_2: int, prompt_level: int) -> str:
         task_graph_pisa = pisa_result.task_graph
         network_graph_pisa = pisa_result.network
 
+        # add counter example
+        savepath = thisdir / 'results' / 'pisa'
+        run_experiments(
+            scheduler_pairs=[((SCHEDULER_NAME_MAP[algorithm_2], SCHEDULER_MAP[algorithm_2]), (SCHEDULER_NAME_MAP[algorithm_1], SCHEDULER_MAP[algorithm_1]))],
+            max_iterations=1000,
+            num_tries=10,
+            max_temp=10,
+            min_temp=0.1,
+            cooling_rate=0.99,
+            skip_existing=False,
+            output_path=savepath
+        )
+
+        # open the result
+        savepath = thisdir / 'results' / 'pisa' / 'output.pkl'
+        with open(savepath, "rb") as f:
+            pisa_result = pickle.load(f)
+        
+        task_graph_pisa_counter = pisa_result.task_graph
+        network_graph_pisa_counter = pisa_result.network
+
         description = "Here is example graphs that has difference between the makespan of those two algorithms"
-        pisa_sample = description + "\n" + summarize_graph(task_graph_pisa) + "\n\n" + summarize_graph(network_graph_pisa)
+        pisa_sample =  (description + "\n" 
+                        + summarize_graph(task_graph_pisa) + "\n\n" 
+                        + summarize_graph(network_graph_pisa) + "\n"
+                        + "Here is a counter example" + "\n"
+                        + summarize_graph(task_graph_pisa_counter) + "\n\n" 
+                        + summarize_graph(network_graph_pisa_counter))
 
     prompt = (
         f"Can you generate a detailed network graph {NETWORK_GRAPH_DESCRIPTION if prompt_level >= 1 else ''} "
@@ -205,12 +231,16 @@ def query(algorithm1: int, algorithm2: int, prompt_level: int) -> Tuple[nx.DiGra
     load_dotenv()
     openai.api_key = os.getenv("OPENAI_API_KEY")
     client = OpenAI()
+
+    # get prompt
+    prompt = getPrompt(algorithm1, algorithm2, prompt_level)
+
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {
                 "role": "user",
-                "content": getPrompt(algorithm1, algorithm2, prompt_level)
+                "content": prompt
             }
         ],
         functions = [
@@ -301,7 +331,7 @@ def query(algorithm1: int, algorithm2: int, prompt_level: int) -> Tuple[nx.DiGra
     
     [TASK_GRAPH, NETWORK_GRAPH] = getGraphs(task_graph, network_graph)
 
-    return TASK_GRAPH, NETWORK_GRAPH, explanation
+    return TASK_GRAPH, NETWORK_GRAPH, explanation, prompt
 
     
 
