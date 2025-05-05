@@ -33,7 +33,13 @@ To view the database
 """
 
 load_dotenv()
-_mongo_uri  = "mongodb+srv://andrewsykes04:1MA94EsUBU7L6DwN@cluster0.555trkl.mongodb.net/"
+_mongo_uri = (
+    "mongodb://andrewsykes04:1MA94EsUBU7L6DwN"
+    "@cluster0-shard-00-00.555trkl.mongodb.net:27017,"
+    "cluster0-shard-00-01.555trkl.mongodb.net:27017,"
+    "cluster0-shard-00-02.555trkl.mongodb.net:27017/"
+    "?ssl=true&replicaSet=atlas-555trk-shard-0&authSource=admin&retryWrites=true&w=majority"
+)
 _client     = MongoClient(_mongo_uri)
 _db         = _client["scheduler_experiments"]
 _collection = _db["experiment_runs"]
@@ -52,6 +58,8 @@ def store_experiment(prompt: str, alg1_name: str, alg2_name: str, task_graph: Gr
         "explanation": explanation,
         "task_graph":    json_graph.node_link_data(task_graph),
         "network_graph": json_graph.node_link_data(network_graph),
+        "alg1_makespan": 1,
+        "alg2_makespan": 1,
         "makespan_diff": makespan_diff
     }
     res = _collection.insert_one(doc)
