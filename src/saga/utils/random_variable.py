@@ -29,6 +29,17 @@ class RandomVariable:
             str: The formatted random variable.
         """
         return f"{self.mean():{format_spec}} ± {self.std():{format_spec}}"
+    
+    def __round__(self, n: int) -> "RandomVariable":
+        """Round the random variable to the given number of decimal places.
+
+        Args:
+            n (int): The number of decimal places.
+
+        Returns:
+            RandomVariable: The rounded random variable.
+        """
+        return self
 
     def __str__(self) -> str:
         """Get the string representation of the random variable."""
@@ -262,6 +273,30 @@ class RandomVariable:
         ]
         samples = np.max(all_samples, axis=0)
         return RandomVariable(samples)
+    
+    def __lt__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
+        """Less than comparison."""
+        if isinstance(other, (float, int)):
+            return RandomVariable(self.samples < other)
+        return RandomVariable(self.samples < other.samples)
+    
+    def __le__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
+        """Less than or equal to comparison."""
+        if isinstance(other, (float, int)):
+            return RandomVariable(self.samples <= other)
+        return RandomVariable(self.samples <= other.samples)
+    
+    def __gt__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
+        """Greater than comparison."""
+        if isinstance(other, (float, int)):
+            return RandomVariable(self.samples > other)
+        return RandomVariable(self.samples > other.samples)
+    
+    def __ge__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
+        """Greater than or equal to comparison."""
+        if isinstance(other, (float, int)):
+            return RandomVariable(self.samples >= other)
+        return RandomVariable(self.samples >= other.samples)
 
     def expectation(self):
         """The expectation of the random variable."""

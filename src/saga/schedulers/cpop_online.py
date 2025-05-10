@@ -4,6 +4,7 @@ from typing import Callable, Dict, Hashable, List, Optional, Set, Tuple
 
 import networkx as nx
 import numpy as np
+from copy import deepcopy
 
 from ..scheduler import Scheduler, Task
 from ..utils.tools import get_insert_loc
@@ -93,7 +94,10 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  transcript_callback: Callable[[str], None] = lambda x: x,
-                 clusters: Optional[List[Set[Hashable]]] = None) -> Dict[str, List[Task]]:
+                 clusters: Optional[List[Set[Hashable]]] = None,
+                 schedule: Optional[Dict[str, List[Task]]] = None, #new
+                 min_start_time: float = 0.0) -> Dict[str, List[Task]]:  #new
+
         """Computes the schedule for the task graph using the CPoP algorithm.
 
         Args:
@@ -107,6 +111,15 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Raises:
             ValueError: If instance is invalid.
         """
+        #modifying CPOP to take in schedule---------------------------------------------------------------
+        if schedule and task_map is None:
+            comp_schedule = schedule or {node: [] for node in network.nodes}
+            task_map = task_map or {}
+        else:
+            comp_schedule = deepcopy(schedule)
+            task_map = {task.name: task for node in schedule for task in schedule[node]}
+
+
         ranks = cpop_ranks(network, task_graph, transcript_callback)
         
         cluster_decisions: Dict[Hashable, Hashable] = {}
@@ -118,7 +131,10 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     return cluster
             return {task_name}
 
-        start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)      
+        #start_task = next(task for task in task_graph.nodes if task_graph.in_degree(task) == 0)
+        entry_tasks = [task for task in task_graph.nodes if task_graph.in_degree(task) == 0]
+        start_task = max(entry_tasks, key=lambda task: ranks[task])
+        
         _ = next(task for task in task_graph.nodes if task_graph.out_degree(task) == 0)
         # cp_rank is rank of tasks on critical path (rank of start task)
         cp_rank = ranks[start_task]
@@ -135,10 +151,17 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             )
         )
         transcript_callback(f"Critical path node (that which minimizes sum of execution times): {cp_node}")
-
-        pq = [(-ranks[start_task], start_task)]
+        
+        #Include tasks not scheduled yet, skip tasks that are ----------------------------------------------------
+        pq = [
+            (-ranks[task], task)
+            for task in task_graph.nodes
+            if task not in task_map and all(pred in task_map for pred in task_graph.predecessors(task))
+        ]
         heapq.heapify(pq)
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+
+    
+        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_map: Dict[Hashable, Task] = {}
         while pq:
             # get highest priority task
@@ -184,9 +207,9 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 transcript_callback(f"Task {task_name} is not on critical path")
             for node in nodes:
                 transcript_callback(f"Testing task {task_name} on node {node}")
-                max_arrival_time: float = max( #
+                max_arrival_time: float = max( 
                     [
-                        0.0, *[
+                        min_start_time, *[ #Added min_start_time -------------------------------------------------------
                             task_map[parent].end + (
                                 task_graph.edges[parent, task_name]["weight"] /
                                 network.edges[task_map[parent].node, node]["weight"]
@@ -195,10 +218,11 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                         ]
                     ]
                 )
+                
                 transcript_callback(f"All required predecessor data for task {task_name} would be available on node {node} at {max_arrival_time:0.4f}")
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]
                 transcript_callback(f"Task {task_name} execution time on node {node}: {exec_time}")
-                idx, start_time = get_insert_loc(schedule[node], max_arrival_time, exec_time)
+                idx, start_time = get_insert_loc(comp_schedule[node], max_arrival_time, exec_time)
                 transcript_callback(f"Earliest large enough slot on node {node} is at {idx} at {start_time:0.4f}")
                 end_time = start_time + exec_time
                 transcript_callback(f"Task {task_name} on node {node} would finish at {end_time:0.4f}")
@@ -214,7 +238,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             new_exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[best_node]["weight"]
             new_task = Task(best_node, task_name, min_finish_time - new_exec_time, min_finish_time)
             transcript_callback(f"Inserting {new_task}")
-            schedule[new_task.node].insert(best_idx, new_task)
+            comp_schedule[new_task.node].insert(best_idx, new_task)
             task_map[task_name] = new_task
 
             # get ready tasks
@@ -232,6 +256,6 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 for task in cluster:
                     cluster_decisions[task] = best_node
 
-            transcript_callback(f"Current schedule: {schedule}")
+            transcript_callback(f"Current schedule: {comp_schedule}")
 
-        return schedule
+        return comp_schedule
