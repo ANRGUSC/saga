@@ -113,8 +113,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         """
         #modifying CPOP to take in schedule---------------------------------------------------------------
         if schedule and task_map is None:
-            comp_schedule = schedule or {node: [] for node in network.nodes}
-            task_map = task_map or {}
+            comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+            task_map: Dict[Hashable, Task] = {}
         else:
             comp_schedule = deepcopy(schedule)
             task_map = {task.name: task for node in schedule for task in schedule[node]}
