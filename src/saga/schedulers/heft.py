@@ -1,6 +1,7 @@
+from copy import deepcopy
 import logging
 import pathlib
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
@@ -26,6 +27,7 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
     rank = {node: (rank[node] + topological_sort[node]) for node in rank}
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
+
 
 
 class HeftScheduler(Scheduler):
@@ -98,6 +100,8 @@ class HeftScheduler(Scheduler):
             Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
         ],
         schedule_order: List[Hashable],
+        schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        min_start_time: float = 0.0,
     ) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
@@ -109,6 +113,7 @@ class HeftScheduler(Scheduler):
             commtimes (Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]): A
                 dictionary mapping edges to a dictionary of task dependencies and their communication times.
             schedule_order (List[Hashable]): The order in which to schedule the tasks.
+            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
 
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
@@ -116,18 +121,24 @@ class HeftScheduler(Scheduler):
         Raises:
             ValueError: If the instance is invalid.
         """
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
+        if schedule is None:
+            comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+            task_schedule: Dict[Hashable, Task] = {}
+        else:
+            comp_schedule = deepcopy(schedule)
+            task_schedule = {task.name: task for node in schedule for task in schedule[node]}
 
         task_name: Hashable
         logging.debug("Schedule order: %s", schedule_order)
         for task_name in schedule_order:
+            if task_name in task_schedule:
+                continue
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes:  # Find the best node to run the task
                 max_arrival_time: float = max(  #
                     [
-                        0.0,
+                        min_start_time,
                         *[
                             task_schedule[parent].end
                             + (
@@ -167,14 +178,18 @@ class HeftScheduler(Scheduler):
 
         return comp_schedule
 
-    def schedule(
-        self, network: nx.Graph, task_graph: nx.DiGraph
-    ) -> Dict[str, List[Task]]:
+    def schedule(self, 
+                 network: nx.Graph, 
+                 task_graph: nx.DiGraph, 
+                 schedule: Optional[Dict[Hashable, List[Task]]] = None,
+                 min_start_time: float = 0.0) -> Dict[Hashable, List[Task]]:
         """Schedule the tasks on the network.
 
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
+            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
+            min_start_time (float, optional): The minimum start time. Defaults to 0.0.
 
         Returns:
             Dict[str, List[Task]]: The schedule.
@@ -185,4 +200,4 @@ class HeftScheduler(Scheduler):
 
         runtimes, commtimes = HeftScheduler.get_runtimes(network, task_graph)
         schedule_order = heft_rank_sort(network, task_graph)
-        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order)
+        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, schedule, min_start_time)
