@@ -8,6 +8,18 @@ This repository contains a collection of scheduling algorithms.
 The algorithms are implemented in Python using a common interface.  
 Scripts for validating and comparing the performance of the algorithms are also provided.
 
+## Package Layout
+
+The source code resides in `src/saga` and is organized as follows:
+
+- **`scheduler.py`** – defines the abstract `Scheduler` base class and the `Task` dataclass.
+- **`schedulers/`** – implementations of various algorithms such as HEFT, CPoP and others,
+  all exposed through `saga.schedulers`.
+- **`utils/`** – helper modules for generating task graphs, drawing Gantt charts and
+  validating schedules. It also includes `simulator.py` for stochastic simulations
+  and `data.py` for datasets used in experiments.
+
+
 ## Prerequisites
 
 ### Python Version
@@ -131,6 +143,8 @@ By default, the Docker image will run the tests when started.
 
 ### Running the Tests
 
+Unit tests generate random task graphs and networks to verify scheduler correctness. They also check the RandomVariable utilities used for stochastic scheduling.
+
 #### Locally
 
 You can run the tests using `pytest`. Make sure you have installed the necessary dependencies, including `pytest` and `pytest-timeout`:
@@ -191,12 +205,27 @@ network: nx.Graph = ...
 task_graph: nx.DiGraph = ...
 scheduler.schedule(network, task_graph)
 ```
+### Examples
 
-See the examples in the [examples](./scripts/examples) directory for more!
+The repository contains several example scripts illustrating different algorithms and scenarios.
+You can find them under [scripts/examples](./scripts/examples). To run an example, use:
 
-### Experiments from Papers
+```bash
+python scripts/examples/<example_name>/main.py
+```
 
+The table of contents in `scripts/examples/Readme.md` lists examples ranging from basic usage to dynamic networks and scheduler comparisons.
+
+
+### Experiments
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
+Benchmarking utilities such as `exp_benchmarking.py` and `exp_parametric.py` help run full or batched experiments, and the PISA scripts include simulated annealing for adversarial instance generation.
+
+### Workflow to get started
+1. Select an example script or create your own workflow and network using the utilities in `saga.utils.random_graphs`.
+2. Instantiate a scheduler from `saga.schedulers` and call its `schedule` method with your network and task graph.
+3. Visualize the resulting schedule with functions like `saga.utils.draw.draw_gantt` or run experiments for systematic comparisons.
+4. Use the unit tests or experiment scripts to benchmark new algorithms or reproduce results from the literature.
 
 ### Acknowledgements
 
