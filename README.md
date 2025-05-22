@@ -4,7 +4,7 @@ Saga: **S**cheduling **A**lgorithms **Ga**thered.
 
 ## Introduction
 
-Saga – Scheduling Algorithms Gathered – is a Python toolkit/library for designing, comparing, and visualising workflow-scheduler performance on heterogeneous compute networks.
+Saga – Scheduling Algorithms Gathered – is a Python toolkit/library for designing, comparing, and visualising DAG-based computational workflow-scheduler performance on heterogeneous compute networks.
 It ships with a collection of scheduling algorithms, including classic heuristics (HEFT, CPOP), brute-force baselines, SMT-based optimisers, and more, all under one cohesive API.
 
 The algorithms are all implemented in Python using a common interface.  Scripts for validating and comparing the performance of the algorithms are also provided.
