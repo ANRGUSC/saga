@@ -475,3 +475,59 @@ def get_workflows(num: int,
 
     return task_graphs
 
+def get_wfcommons_instance(recipe_name: str, ccr: float):
+    workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True, max_size_multiplier=2)[0]
+
+    # rename weight attribute to weight_rv
+    for node in workflow.nodes:
+        weight_rv: RandomVariable = workflow.nodes[node]["weight"]
+        workflow.nodes[node]["weight_rv"] = weight_rv
+        workflow.nodes[node]["weight_estimate"] = weight_rv.mean()
+        workflow.nodes[node]["weight_actual"] = weight_rv.sample()
+        workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
+
+    for (u, v) in workflow.edges:
+        weight_rv: RandomVariable = workflow.edges[u, v]["weight"]
+        workflow.edges[u, v]["weight_rv"] = weight_rv
+        workflow.edges[u, v]["weight_estimate"] = weight_rv.mean()
+        workflow.edges[u, v]["weight_actual"] = weight_rv.sample()
+        workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
+    
+    network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
+    network: nx.Graph = get_networks(
+        num=1,
+        cloud_name="chameleon",
+        network_speed=network_speed,
+        rv_weights=True
+    )[0]
+
+    for node in network.nodes:
+        weight_rv: RandomVariable = network.nodes[node]["weight"]
+        network.nodes[node]["weight_rv"] = weight_rv
+        network.nodes[node]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.nodes[node]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        weight_rv: RandomVariable = network.edges[u, v]["weight"]
+        network.edges[u, v]["weight_rv"] = weight_rv
+        network.edges[u, v]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.edges[u, v]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    avg_task_cost = np.mean([workflow.nodes[node]["weight_actual"] for node in workflow.nodes])
+    avg_dep_cost = np.mean([workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges])
+    avg_node_speed = np.mean([network.nodes[node]["weight_actual"] for node in network.nodes])
+    avg_comm_speed = np.mean([network.edges[u, v]["weight_actual"] for u, v in network.edges])
+
+    # ccr = (avg_task_cost / avg_node_speed) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_new = (avg_task_cost / ccr) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_multiplier = avg_node_speed_new / avg_comm_speed
+    for node in network.nodes:
+        network.nodes[node]["weight_rv"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_estimate"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_actual"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    return network, workflow
+
