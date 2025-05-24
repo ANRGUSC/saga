@@ -376,8 +376,8 @@ def run_experiment():
     n_samples = 50
     experiments = []
     ccrs = [1/5, 1/2, 1, 2, 5]
-    levels_range = [1, 2, 3, 4, 5]
-    branching_range = [1, 2, 3, 4, 5]
+    levels_range = [1, 2, 3, 4]
+    branching_range = [1, 2]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
 
     with counter.get_lock():
@@ -404,7 +404,7 @@ def run_experiment():
 
 def analyze_results():
     df = pd.read_csv(thisdir / "makespan_experiments.csv")
-    # get makespan ratio of (makespan_online / makespan_offline)
+    # get makespan ratio of (makespan_online / makespan_offline) <- doesnt actually do this it just get the ratio of the minimum makespan, something is not right as mean of offline heft should be 0.
     df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
     ccrs = sorted(df["ccr"].unique())
@@ -427,7 +427,7 @@ def analyze_results():
                 font_size=20,
                 ax=ax,
                 upper_threshold=10.0,
-                # cmap_lower=1.0
+                # cmap_lower=1.0F.de
             )
         
         fig.tight_layout()
@@ -438,7 +438,7 @@ def analyze_results():
     print(df.groupby("scheduler")["makespan_ratio"].describe())
 
 def run_example():
-    levels = 3
+    levels = 4
     branching_factor = 2
     ccr = 1
     sample_index = 0
@@ -488,9 +488,9 @@ def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    run_example()
-    # run_experiment()
-    # analyze_results()
+    #run_example()
+    run_experiment()
+    analyze_results()
 
     # #record end time
     # end_time = time.perf_counter()
