@@ -12,6 +12,8 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 logging.basicConfig(level=logging.DEBUG)
 thisdir = pathlib.Path(__file__).parent.absolute()
 
+FILETYPE = "png"
+
 def get_makespan(schedule: Dict[str, List[Task]]) -> float:
     """Get makespan of a schedule.
     
@@ -36,7 +38,7 @@ def main():
 
 
     axis = draw_task_graph(task_graph, use_latex=True)
-    axis.get_figure().savefig(savepath / 'task_graph.pdf')
+    axis.get_figure().savefig(savepath / f'task_graph.{FILETYPE}')
     plt.close(axis.get_figure())
 
     # simple 3-node network (complete graph)
@@ -48,7 +50,7 @@ def main():
     network.nodes[3]['weight'] = 1 + 1e-9
 
     axis = draw_network(network, draw_colors=False, use_latex=True)
-    axis.get_figure().savefig(savepath / 'network.pdf')
+    axis.get_figure().savefig(savepath / f'network.{FILETYPE}')
     plt.close(axis.get_figure())
 
     schedule_heft = HeftScheduler().schedule(network, task_graph)
@@ -62,7 +64,7 @@ def main():
     network.edges[(2, 3)]['weight'] = 1/2
 
     axis = draw_network(network, draw_colors=False, use_latex=True)
-    axis.get_figure().savefig(savepath / 'modified_network.pdf')
+    axis.get_figure().savefig(savepath / f'modified_network.{FILETYPE}')
     plt.close(axis.get_figure())
 
     schedule_heft_modified = HeftScheduler().schedule(network, task_graph)
@@ -80,19 +82,19 @@ def main():
     max_makespan = max(heft_makespan, cpop_makespan, heft_makespan_modified_network, cpop_makespan_modified_network)
     ## HEFT
     axis = draw_gantt(schedule_heft, use_latex=True, xmax=max_makespan)
-    axis.get_figure().savefig(savepath / 'heft_schedule.pdf')
+    axis.get_figure().savefig(savepath / f'heft_schedule.{FILETYPE}')
 
     ## CPOP
     axis = draw_gantt(schedule_cpop, use_latex=True, xmax=max_makespan)
-    axis.get_figure().savefig(savepath / 'cpop_schedule.pdf')
+    axis.get_figure().savefig(savepath / f'cpop_schedule.{FILETYPE}')
     
     ## HEFT (modified network)
     axis = draw_gantt(schedule_heft_modified, use_latex=True, xmax=max_makespan)
-    axis.get_figure().savefig(savepath / 'heft_schedule_modified_network.pdf')
+    axis.get_figure().savefig(savepath / f'heft_schedule_modified_network.{FILETYPE}')
 
     ## CPOP (modified network)
     axis = draw_gantt(schedule_cpop_modified, use_latex=True, xmax=max_makespan)
-    axis.get_figure().savefig(savepath / 'cpop_schedule_modified_network.pdf')
+    axis.get_figure().savefig(savepath / f'cpop_schedule_modified_network.{FILETYPE}')
 
 
 if __name__ == '__main__':

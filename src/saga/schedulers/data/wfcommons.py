@@ -3,6 +3,7 @@ import json
 import pathlib
 import pickle
 import random
+import shutil
 import tempfile
 from functools import lru_cache
 from itertools import product
@@ -11,6 +12,9 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, Call
 import git
 import networkx as nx
 from scipy import stats
+import numpy as np
+from saga.utils.random_variable import RandomVariable
+
 from wfcommons.common.workflow import Workflow, Task
 from wfcommons import wfchef
 from wfcommons.wfchef.recipes import (BlastRecipe, BwaRecipe, CyclesRecipe,
@@ -161,8 +165,6 @@ def get_real_workflows(wfname: str) -> List[Workflow]:
     for path in pathlib.Path(path_repo).glob(glob):
         workflows.append(trace_to_digraph(path))
     return workflows
-    
-
 
 def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     """Get a function that generates random numbers from the best fit distribution.
@@ -202,7 +204,8 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
 
 def get_networks(num: int,
                  cloud_name: str,
-                 network_speed: float = 100) -> List[nx.Graph]:
+                 network_speed: float = 100,
+                 rv_weights: bool = False) -> List[nx.Graph]:
     """Generate a random networkx graph.
 
     Since Chameleon cloud uses a shared file-system for communication and network speeds are very hight
@@ -214,6 +217,7 @@ def get_networks(num: int,
         num (int): The number of networks to generate.
         cloud_name (str): The name of the cloud.
         network_speed (float, optional): The speed of the network in MegaBytes per second. Defaults to 136.
+        rv_weights (bool, optional): Whether to use random variables for the weights. Defaults to False.
 
     Returns:
         List[nx.Graph]: The list of networkx graphs.
@@ -229,7 +233,10 @@ def get_networks(num: int,
         network = nx.Graph()
         node_speeds = get_node_speed(num_nodes)
         for i in range(num_nodes):
-            network.add_node(i, weight=max(1e-9, node_speeds[i]))
+            if rv_weights:
+                network.add_node(i, weight=RandomVariable(node_speeds))
+            else:
+                network.add_node(i, weight=max(1e-9, node_speeds[i]))
 
         for (src, dst) in product(network.nodes, network.nodes):
             network.add_edge(src, dst, weight=network_speed if src != dst else 1e9)
@@ -239,7 +246,57 @@ def get_networks(num: int,
     return networks
 
 
-def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
+def trace_to_digraph_15(path: Union[str, pathlib.Path],
+                        recipe_name: str,
+                        rv_weights: bool = False) -> nx.DiGraph:
+    trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    task_stats = get_workflow_task_info(recipe_name)
+
+    workflow = nx.DiGraph()
+
+    parents: Dict[str, Set[str]] = {}
+    file_outputs: Dict[str, str] = {}
+    task_names = {}
+    for task in trace["workflow"]["specification"]["tasks"]:
+        task_names[task["id"]] = task["name"]
+        for child in task["children"]:
+            parents.setdefault(child, set()).add(task["id"])
+        for file_id in task["outputFiles"]:
+            file_outputs[file_id] = task["id"]
+
+
+    for task in trace["workflow"]["execution"]["tasks"]:
+        task_name = task_names[task["id"]]
+        if rv_weights:
+            name = task_stats[task_name]["runtime"]["distribution"]["name"]
+            params = task_stats[task_name]["runtime"]["distribution"]["params"]
+            rvs: float = getattr(stats, name).rvs(*params, size=100)
+            rvs = np.clip(rvs, 1e-9, None)
+            runtime = RandomVariable(rvs)
+        else:
+            runtime = task.get('runtime', task.get('runtimeInSeconds'))
+
+        workflow.add_node(task["id"], weight=max(1e-9, runtime), color=task_name)
+    
+    file_sizes = {}
+    for file in trace["workflow"]["specification"]["files"]:
+        file_sizes[file["id"]] = file["sizeInBytes"]
+
+    for task in trace["workflow"]["specification"]["tasks"]:
+        for parent in parents.get(task["id"], []):
+            if rv_weights:
+                weight = RandomVariable([0.0])
+                for file_id in task["inputFiles"]:
+                    weight += file_sizes[file_id]
+            else:
+                weight = sum(file_sizes[file_id] for file_id in task["inputFiles"])
+            workflow.add_edge(parent, task["id"], weight=max(1e-9, weight))
+
+    return workflow
+
+def trace_to_digraph(path: Union[str, pathlib.Path],
+                     recipe_name: str,
+                     rv_weights: bool = False) -> nx.DiGraph:
     """Convert a trace to a networkx DiGraph.
 
     Args:
@@ -249,6 +306,11 @@ def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
         nx.DiGraph: The networkx DiGraph.
     """
     trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+    if float(trace["schemaVersion"]) >= 1.5:
+        return trace_to_digraph_15(path, recipe_name, rv_weights=rv_weights)
+
+    task_stats = get_workflow_task_info(recipe_name)
 
     children: Dict[str, Set[str]] = {}
     for task in trace["workflow"]["tasks"]:
@@ -262,14 +324,28 @@ def trace_to_digraph(path: Union[str, pathlib.Path]) -> nx.DiGraph:
         if "children" not in task:
             task["children"] = children.get(task["name"], set())
 
-        runtime = task.get('runtime', task.get('runtimeInSeconds'))
+        if rv_weights:
+            name = task_stats[task["name"]]["runtime"]["distribution"]["name"]
+            params = task_stats[task["name"]]["runtime"]["distribution"]["params"]
+            rvs: float = getattr(stats, name).rvs(*params, size=100)
+            rvs = np.clip(rvs, 1e-9, None)
+            runtime = RandomVariable(rvs)
+        else:
+            runtime = task.get('runtime', task.get('runtimeInSeconds'))
         if runtime is None:
             raise ValueError(f"Task {task['name']} has no 'runtime' or 'runtimeInSeconds' attribute. {list(task.keys())}. {path}")
         task_graph.add_node(task["name"], weight=max(1e-9, runtime))
 
         for io_file in task["files"]:
             if io_file["link"] == "output":
-                size_in_bytes = io_file.get("sizeInBytes", io_file.get("size"))
+                if rv_weights:
+                    name = task_stats[task["name"]]["output"]["distribution"]["name"]
+                    params = task_stats[task["name"]]["output"]["distribution"]["params"]
+                    rvs: float = getattr(stats, name).rvs(loc=params[-2], scale=params[-1], size=100)
+                    rvs = np.clip(rvs, 1e-9, None)
+                    size_in_bytes = RandomVariable(rvs)
+                else:
+                    size_in_bytes = io_file.get("sizeInBytes", io_file.get("size"))
                 if size_in_bytes is None:
                     raise ValueError(f"File {io_file['name']} has no 'sizeInBytes' or 'size' attribute. {path}")
                 outputs.setdefault(task["name"], {})[io_file["name"]] = size_in_bytes / 1e6 # convert to MB
@@ -363,13 +439,18 @@ def build_workflow(recipe: WfChefWorkflowRecipe,
 
 def get_workflows(num: int,
                   recipe_name: str,
-                  vary_weights_only: bool = False) -> List[nx.DiGraph]:
+                  vary_weights_only: bool = False,
+                  rv_weights: bool = False,
+                  max_size_multiplier: int = None) -> List[nx.DiGraph]:
     """Generate a list of network, task graph pairs for the given recipe.
 
     Args:
         num (int): The number of task graphs to generate.
         recipe_name (str): The name of the recipe.
         vary_weights_only (bool, optional): Whether to vary only the weights of the tasks. Defaults to False.
+        rv_weights (bool, optional): Whether to use random variables for the weights. Defaults to False.
+        max_size_multiplier (int, optional): The maximum size multiplier for the number of tasks. Defaults to None.
+            If None, the maximum size multiplier is determined by the real workflows.
 
     Returns:
         List[nx.DiGraph]: The list of task graphs.
@@ -380,14 +461,73 @@ def get_workflows(num: int,
     task_graphs: List[nx.DiGraph] = []
     graph = None
     for _ in range(num):
-        num_tasks = random.randint(*get_num_task_range(recipe_name))
+        min_tasks, max_tasks = get_num_task_range(recipe_name)
+        if max_size_multiplier is not None:
+            max_tasks = max_size_multiplier * min_tasks
+        num_tasks = random.randint(min_tasks, max_tasks)
         recipe = recipes[recipe_name](num_tasks=num_tasks)
         workflow = build_workflow(recipe, graph=graph)
         if vary_weights_only:
             graph = workflow.nxgraph.copy()
         with tempfile.NamedTemporaryFile() as tmp:
             workflow.write_json(tmp.name)
-            task_graphs.append(trace_to_digraph(tmp.name))
+            task_graphs.append(trace_to_digraph(tmp.name, recipe_name, rv_weights=rv_weights))
 
     return task_graphs
+
+def get_wfcommons_instance(recipe_name: str, ccr: float):
+    workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True, max_size_multiplier=2)[0]
+
+    # rename weight attribute to weight_rv
+    for node in workflow.nodes:
+        weight_rv: RandomVariable = workflow.nodes[node]["weight"]
+        workflow.nodes[node]["weight_rv"] = weight_rv
+        workflow.nodes[node]["weight_estimate"] = weight_rv.mean()
+        workflow.nodes[node]["weight_actual"] = weight_rv.sample()
+        workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
+
+    for (u, v) in workflow.edges:
+        weight_rv: RandomVariable = workflow.edges[u, v]["weight"]
+        workflow.edges[u, v]["weight_rv"] = weight_rv
+        workflow.edges[u, v]["weight_estimate"] = weight_rv.mean()
+        workflow.edges[u, v]["weight_actual"] = weight_rv.sample()
+        workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
+    
+    network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
+    network: nx.Graph = get_networks(
+        num=1,
+        cloud_name="chameleon",
+        network_speed=network_speed,
+        rv_weights=True
+    )[0]
+
+    for node in network.nodes:
+        weight_rv: RandomVariable = network.nodes[node]["weight"]
+        network.nodes[node]["weight_rv"] = weight_rv
+        network.nodes[node]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.nodes[node]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    for (u, v) in network.edges:
+        weight_rv: RandomVariable = network.edges[u, v]["weight"]
+        network.edges[u, v]["weight_rv"] = weight_rv
+        network.edges[u, v]["weight_estimate"] = weight_rv.mean() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.edges[u, v]["weight_actual"] = weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
+        network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
+
+    avg_task_cost = np.mean([workflow.nodes[node]["weight_actual"] for node in workflow.nodes])
+    avg_dep_cost = np.mean([workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges])
+    avg_node_speed = np.mean([network.nodes[node]["weight_actual"] for node in network.nodes])
+    avg_comm_speed = np.mean([network.edges[u, v]["weight_actual"] for u, v in network.edges])
+
+    # ccr = (avg_task_cost / avg_node_speed) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_new = (avg_task_cost / ccr) / (avg_dep_cost / avg_comm_speed)
+    avg_node_speed_multiplier = avg_node_speed_new / avg_comm_speed
+    for node in network.nodes:
+        network.nodes[node]["weight_rv"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_estimate"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight_actual"] *= avg_node_speed_multiplier
+        network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
+
+    return network, workflow
 
