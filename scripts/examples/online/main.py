@@ -166,7 +166,6 @@ def run_experiment():
 
 def analyze_results():
     df = pd.read_csv(thisdir / "makespan_experiments.csv")
-    # get makespan ratio of (makespan_online / makespan_offline)
     df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
 
     ccrs = sorted(df["ccr"].unique())

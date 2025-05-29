@@ -22,3 +22,4 @@ from .msbc import MsbcScheduler
 from .dps import DPSScheduler
 from .sufferage import SufferageScheduler
 from .online_heft import OnlineHeftScheduler
+from .online_cpop import OnlineCpopScheduler
