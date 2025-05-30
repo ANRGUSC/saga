@@ -1,0 +1,34 @@
+# Core scheduling and graph algorithms
+networkx
+numpy
+pandas
+
+# Scientific computing and analysis  
+scipy
+statsmodels>=0.14.1
+joblib>=1.3.2
+
+# Visualization and plotting
+matplotlib
+plotly
+seaborn>=0.13.2
+kaleido
+
+# Graph visualization
+pygraphviz
+
+# Workflow and benchmarking
+wfcommons
+
+# SMT solving (for advanced schedulers)
+pysmt
+
+# Serialization
+dill
+
+# Web interface (for dashboards/examples)
+streamlit
+
+# Testing
+pytest>=7.0.0
+pytest-timeout>=2.1.0
