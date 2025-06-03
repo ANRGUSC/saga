@@ -160,8 +160,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         heapq.heapify(pq)
 
     
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_map: Dict[Hashable, Task] = {}
+        #comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        #task_map: Dict[Hashable, Task] = {}
         while pq:
             # get highest priority task
             task_rank, task_name = heapq.heappop(pq)

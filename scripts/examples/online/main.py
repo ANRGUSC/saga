@@ -12,7 +12,7 @@ import pandas as pd
 from saga.utils.draw import gradient_heatmap
 from multiprocessing import Pool, Value, Lock, cpu_count
 from saga.schedulers import online_heft
-from saga.schedulers import HeftScheduler, online_heft, OnlineHeftScheduler
+from saga.schedulers import HeftScheduler, online_heft, OnlineHeftScheduler, CpopScheduler, OnlineCpopScheduler
 from saga.scheduler import Scheduler, Task
 from saga.utils.random_graphs import get_branching_dag, get_network
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
@@ -65,7 +65,7 @@ def get_instance(levels: int, branching_factor: int, ccr: float = 1.0) -> Tuple[
             network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
     for task in task_graph.nodes:
-        random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample() * ccr, scale=node_scale.sample())) # Do not understand what CCR is doing ???
+        random_node = RandomVariable(samples=np.random.normal(size=100000, loc=node_loc.sample() * ccr, scale=node_scale.sample())) 
         task_graph.nodes[task]["weight_estimate"] = safe_value(random_node.mean())
         task_graph.nodes[task]["weight_actual"] = safe_value(random_node.sample())
         task_graph.nodes[task]["weight"] = task_graph.nodes[task]["weight_estimate"]
@@ -102,8 +102,10 @@ def run_sample(ccr: float,
     """
     global counter, counter_lock
 
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
+    #scheduler = HeftScheduler()
+    scheduler = CpopScheduler()
+    scheduler_online = OnlineCpopScheduler()
+    #scheduler_online = OnlineHeftScheduler()
     network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
     
     # Run standard HEFT (Naive Online HEFT)
@@ -136,8 +138,8 @@ def run_experiment():
     ccrs = [1/5, 1/2, 1, 2, 5]
     #levels_range = [1, 2, 3, 4]
     #branching_range = [1, 2, 3, 4]
-    levels_range = [1, 2, 3, 4]
-    branching_range = [1, 2]
+    levels_range = [1, 2, 3, 4,5]
+    branching_range = [1, 2, 3]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
     print("TEST TEST TEST")
     print(f"Number of param combinations: {len(all_params)}")
@@ -165,8 +167,27 @@ def run_experiment():
     df.to_csv(thisdir / "makespan_experiments.csv", index=False)
 
 def analyze_results():
+    #df = pd.read_csv(thisdir / "makespan_experiments.csv")
+    #df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
     df = pd.read_csv(thisdir / "makespan_experiments.csv")
-    df["makespan_ratio"] = df.groupby(by=["ccr", "levels", "branching_factor", "instance"])["makespan"].transform(lambda x: x / x.min())
+
+    # 1) Extract the offline baseline makespan for each (ccr, levels, branching_factor, instance)
+    offline_baseline = (
+        df[df["scheduler"] == "Offline HEFT"]
+          .set_index(["ccr", "levels", "branching_factor", "instance"])["makespan"]
+          .rename("offline_makespan")
+    )
+
+    # 2) Merge the offline baseline back onto the full DataFrame
+    df = df.merge(
+        offline_baseline,
+        how="left",
+        left_on=["ccr", "levels", "branching_factor", "instance"],
+        right_index=True
+    )
+
+    # 3) Compute makespan_ratio = (this run’s makespan) / (offline makespan)
+    df["makespan_ratio"] = df["makespan"] / df["offline_makespan"]
 
     ccrs = sorted(df["ccr"].unique())
 
@@ -198,31 +219,78 @@ def analyze_results():
     print("Makespan ratio stats:")
     print(df.groupby("scheduler")["makespan_ratio"].describe())
 
+
+    #results with makespan ratios of 1 removed 
+
+    df_nonbaseline = df[df["makespan_ratio"] != 1.0]
+
+    # (C) Re‐plot or re‐summarize using only the “non‐baseline” rows:
+    for ccr in ccrs:
+        fig, (ax_naive, ax_online) = plt.subplots(1, 2, figsize=(20, 10))
+        for scheduler, ax in [("Naive Online HEFT", ax_naive), ("Online HEFT", ax_online)]:
+            # take only rows with ratio > 1.0 (i.e., scheduler ran strictly slower than offline)
+            df_sched_nonbaseline = df_nonbaseline[
+                (df_nonbaseline["scheduler"] == scheduler) & 
+                (df_nonbaseline["ccr"] == ccr)
+            ]
+            if df_sched_nonbaseline.empty:
+                # if there are no non‐baseline rows for this combo, you can skip or plot an empty heatmap
+                ax.set_title(f"{scheduler} (no worse‐than‐baseline cases)")
+                continue
+
+            gradient_heatmap(
+                df_sched_nonbaseline,
+                x="levels",
+                y="branching_factor",
+                color="makespan_ratio",
+                title=f"{scheduler} (CCR={ccr}, ratio>1)",
+                x_label="Levels", rotate_xlabels=0,
+                y_label="Branching Factor",
+                color_label="Makespan Ratio",
+                xorder=lambda x: int(x),
+                yorder=lambda x: -int(x),
+                font_size=20,
+                ax=ax,
+                upper_threshold=10.0,
+            )
+        
+        fig.tight_layout()
+        fig.savefig(thisdir / f"makespan_heatmap_nonbaseline_ccr_{ccr}.png")
+
+    # (D) Print stats restricted to ratio > 1
+    print("\nMakespan ratio stats (only ratio > 1):")
+    print(df_nonbaseline.groupby("scheduler")["makespan_ratio"].describe())
+
+    def remove_ones():
+        pass
+
 def run_example():
     levels = 4
     branching_factor = 4
     ccr = 1
     sample_index = 0
     
-    scheduler = HeftScheduler()
-    scheduler_online = OnlineHeftScheduler()
+    #scheduler = HeftScheduler()
+    scheduler = CpopScheduler()
+    scheduler_online = OnlineCpopScheduler()
+    #scheduler_online = OnlineHeftScheduler()
 
-    #network, task_graph = get_instance(levels, branching_factor)
-    network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
+    network, task_graph = get_instance(levels, branching_factor)
+    #network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
 
     network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
     makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
-    print(f"Offline HEFT makespan: {makespan_offline}")
+    print(f"Offline makespan: {makespan_offline}")
 
     schedule_online_naive = scheduler.schedule(network, task_graph)
     schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
     makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
-    print(f"Naive Online HEFT makespan: {makespan_online_naive}")
+    print(f"Naive Online makespan: {makespan_online_naive}")
 
     schedule_online = scheduler_online.schedule(network, task_graph)
     makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
-    print(f"Online HEFT makespan: {makespan_online}")
+    print(f"Online makespan: {makespan_online}")
 
 
 
@@ -231,7 +299,7 @@ def main():
     # start_time = time.perf_counter()
 
     #run_example()
-    #run_experiment()
+    run_experiment()
     analyze_results()
 
     # #record end time
