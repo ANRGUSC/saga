@@ -10,6 +10,7 @@ from .hybrid import HybridScheduler
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler
 from .mct import MCTScheduler
+from .mst import MSTScheduler
 from .met import METScheduler
 from .olb import OLBScheduler
 from .smt import SMTScheduler
@@ -20,3 +21,5 @@ from .hbmct import HbmctScheduler
 from .msbc import MsbcScheduler
 from .dps import DPSScheduler
 from .sufferage import SufferageScheduler
+from .online_heft import OnlineHeftScheduler
+from .online_cpop import OnlineCpopScheduler
