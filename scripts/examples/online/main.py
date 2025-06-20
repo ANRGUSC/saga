@@ -9,10 +9,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from saga.utils.draw import gradient_heatmap
+from saga.utils.draw import gradient_heatmap, draw_gantt, draw_network, draw_task_graph
 from multiprocessing import Pool, Value, Lock, cpu_count
 from saga.schedulers import online_heft
-from saga.schedulers import HeftScheduler, online_heft, OnlineHeftScheduler, CpopScheduler, OnlineCpopScheduler
+from saga.schedulers import HeftScheduler, online_heft, OnlineHeftScheduler, CpopScheduler, OnlineCpopScheduler, ETFScheduler, OnlineETFScheduler, SufferageScheduler, OnlineSufferageScheduler
+from saga.schedulers import TempHeftScheduler, OnlineTempHeftScheduler
 from saga.scheduler import Scheduler, Task
 from saga.utils.random_graphs import get_branching_dag, get_network
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
@@ -103,9 +104,16 @@ def run_sample(ccr: float,
     global counter, counter_lock
 
     #scheduler = HeftScheduler()
-    scheduler = CpopScheduler()
-    scheduler_online = OnlineCpopScheduler()
     #scheduler_online = OnlineHeftScheduler()
+    #scheduler = CpopScheduler()
+    #scheduler_online = OnlineCpopScheduler()
+    #scheduler = ETFScheduler()
+    #scheduler_online = OnlineETFScheduler()
+    #scheduler = SufferageScheduler()
+    #scheduler_online = OnlineSufferageScheduler()
+    scheduler = TempHeftScheduler()
+    scheduler_online = OnlineTempHeftScheduler()
+
     network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
     
     # Run standard HEFT (Naive Online HEFT)
@@ -141,7 +149,7 @@ def run_experiment():
     levels_range = [1, 2, 3, 4,5]
     branching_range = [1, 2, 3]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
-    print("TEST TEST TEST")
+    #print("TEST TEST TEST")
     print(f"Number of param combinations: {len(all_params)}")
 
     with counter.get_lock():
@@ -261,36 +269,62 @@ def analyze_results():
     print("\nMakespan ratio stats (only ratio > 1):")
     print(df_nonbaseline.groupby("scheduler")["makespan_ratio"].describe())
 
-    def remove_ones():
-        pass
+
 
 def run_example():
-    levels = 4
-    branching_factor = 4
+    levels = 3
+    branching_factor = 2
     ccr = 1
     sample_index = 0
     
     #scheduler = HeftScheduler()
-    scheduler = CpopScheduler()
-    scheduler_online = OnlineCpopScheduler()
     #scheduler_online = OnlineHeftScheduler()
+    #scheduler = CpopScheduler()
+    #scheduler_online = OnlineCpopScheduler()
+    # scheduler = ETFScheduler()
+    # scheduler_online = OnlineETFScheduler()
+    #scheduler = SufferageScheduler()
+    #scheduler_online = OnlineSufferageScheduler()
+    scheduler = TempHeftScheduler()
+    scheduler_online = OnlineTempHeftScheduler()
 
     network, task_graph = get_instance(levels, branching_factor)
     #network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
-
+    print("network")
+    print(network)
+    print("task graph")
+    print(task_graph)
     network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
+    #print(schedule_offline)
     makespan_offline = max(task.end for node_tasks in schedule_offline.values() for task in node_tasks)
     print(f"Offline makespan: {makespan_offline}")
 
     schedule_online_naive = scheduler.schedule(network, task_graph)
     schedule_online_naive_actual = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
+    #print(schedule_online_naive_actual)
     makespan_online_naive = max(task.end for node_tasks in schedule_online_naive_actual.values() for task in node_tasks)
     print(f"Naive Online makespan: {makespan_online_naive}")
 
     schedule_online = scheduler_online.schedule(network, task_graph)
     makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
+    #print(schedule_online)
     print(f"Online makespan: {makespan_online}")
+    ax = draw_gantt(
+        schedule=schedule_online
+    )
+    fig = ax.get_figure()
+    fig.savefig(thisdir / "schedule_online_naive.png")
+    ax = draw_gantt(
+        schedule=schedule_online_naive
+    )
+    fig = ax.get_figure()
+    fig.savefig(thisdir / "schedule_offline.png")
+    ax = draw_gantt(
+        schedule=schedule_offline
+    )
+    fig = ax.get_figure()
+    fig.savefig(thisdir / "schedule_online.png")
 
 
 
@@ -298,9 +332,9 @@ def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    #run_example()
-    run_experiment()
-    analyze_results()
+    run_example()
+    #run_experiment()
+    #analyze_results()
 
     # #record end time
     # end_time = time.perf_counter()
