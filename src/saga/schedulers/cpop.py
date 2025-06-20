@@ -114,6 +114,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         #initialise comp_schedule and task_map but if schedule is not None, use it
         comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         task_map: Dict[Hashable, Task] = {}
+        print("cpop testing")
+        print(schedule)
         if schedule is not None:
             comp_schedule = deepcopy(schedule)
             task_map = {task.name: task for node in schedule for task in schedule[node]}

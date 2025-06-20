@@ -78,8 +78,8 @@ GREEDY_INSERT_COMPARE_FUNCS = {
 class GreedyInsert(InsertTask):
     def __init__(self,
                  append_only: bool = False,
-                 compare: str = "EFT",
-                 critical_path: bool = False):
+                 compare: str = "EFT", #my current logic may need to be updated to account for these changes
+                 critical_path: bool = False): #QUESTION. When I add my parameters I need, should it be in the innit or the call 
         """Initialize the GreedyInsert class.
         
         Args:
@@ -100,7 +100,9 @@ class GreedyInsert(InsertTask):
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  schedule: ScheduleType,
+                 #task_map: Dict[Hashable, Task],
                  task: Hashable,
+                 current_moment: Optional[float] =0.0,
                  node: Optional[Hashable] = None,
                  dry_run: bool = False) -> Task:
         best_insert_loc, best_task = None, None
@@ -127,7 +129,7 @@ class GreedyInsert(InsertTask):
         for node in considered_nodes:
             exec_time = task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
 
-            min_start_time = 0
+            min_start_time = current_moment #!!!
             for parent in task_graph.predecessors(task):
                 parent_task: Task = task_graph.nodes[parent]['scheduled_task']
                 parent_node = parent_task.node
@@ -139,7 +141,7 @@ class GreedyInsert(InsertTask):
             if self.append_only:
                 start_time = max(
                     min_start_time,
-                    0.0 if not schedule[node] else schedule[node][-1].end
+                    current_moment if not schedule[node] else schedule[node][-1].end #!
                 )
                 insert_loc = len(schedule[node])
             else:
@@ -273,10 +275,13 @@ class ParametricSufferageScheduler(ParametricScheduler):
     def deserialize(cls, data: Dict[str, Any]) -> "ParametricSufferageScheduler":
         return cls(top_n=data["top_n"])
     
-    def schedule(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
+    def _do_schedule(self,
+            network: nx.Graph,
+            task_graph: nx.DiGraph,
+            comp_schedule: ScheduleType,
+            task_map: Dict[Hashable, Task],
+            current_moment:float,
+            **_algo_kwargs) -> ScheduleType:
         """Schedule the tasks on the network.
         
         Args:
@@ -288,30 +293,34 @@ class ParametricSufferageScheduler(ParametricScheduler):
             Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
         """
         queue = self.initial_priority(network, task_graph)
-        schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
+        #schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
         scheduled_tasks: Dict[Hashable, Task] = {}
         while queue:
+            for task in queue: #!! 
+                if task in task_map:
+                    queue.remove(task.name)
+                    
             ready_tasks = [
                 task for task in queue
                 if all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
             for task in ready_tasks[:self.top_n]:
-                best_task = self.insert_task(network, task_graph, schedule, task, dry_run=True)
+                best_task = self.insert_task(network, task_graph, comp_schedule, task, current_moment, dry_run=True)
                 node_weight = network.nodes[best_task.node]['weight']
                 try:
                     network.nodes[best_task.node]['weight'] = 1e-9
-                    second_best_task = self.insert_task(network, task_graph, schedule, task, dry_run=True)
+                    second_best_task = self.insert_task(network, task_graph, comp_schedule, task, current_moment, dry_run=True)
                 finally:
                     network.nodes[best_task.node]['weight'] = node_weight
-                sufferage = self.insert_task._compare(network, task_graph, schedule, second_best_task, best_task)
+                sufferage = self.insert_task._compare(network, task_graph, comp_schedule, second_best_task, best_task)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
-            new_task = self.insert_task(network, task_graph, schedule, max_sufferage_task.name, node=max_sufferage_task.node)
+            new_task = self.insert_task(network, task_graph, comp_schedule, max_sufferage_task.name, current_moment, node=max_sufferage_task.node)
             scheduled_tasks[new_task.name] = new_task
             queue.remove(new_task.name)
 
-        return schedule
+        return comp_schedule 
 
 
 insert_funcs: Dict[str, GreedyInsert] = {}

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List, Tuple, Optional
 
 import networkx as nx
 import numpy as np
@@ -64,6 +64,10 @@ def schedule_estimate_to_actual(network: nx.Graph,
 
         #If current task is already in actual, set start time to either current calculated, or the end time in the last thing that actually finished
         if schedule_actual[task_node]: 
+            print("checking function")
+            print(schedule_actual[task_node])
+            print(start_time)
+            print(schedule_actual[task_node][-1].end)
             start_time = max(start_time, schedule_actual[task_node][-1].end)#
 
         #calculating runtime of current task 
@@ -96,3 +100,52 @@ def get_offline_instance(network: nx.Graph, task_graph: nx.DiGraph) -> Tuple[nx.
         task_graph.edges[src, dst]["weight"] = task_graph.edges[src, dst]["weight_actual"]
 
     return network, task_graph
+
+
+#maybe move this to a different file in utils 
+class ScheduleInjector:
+    def schedule(
+        self,
+        network: nx.Graph,
+        task_graph: nx.DiGraph,
+        schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        min_start_time: float = 0.0,
+        **algo_kwargs
+    ) -> Dict[Hashable, List[Task]]:
+        # 1. Initialize or clone
+        if schedule is None:
+            comp_schedule: Dict[Hashable, List[Task]] = {
+                node: [] for node in network.nodes
+            }
+            task_map: Dict[Hashable, Task] = {}
+            current_moment = min_start_time
+            
+        else:
+            comp_schedule = deepcopy(schedule)
+            # Flatten out all Task objects for quick look-ups
+            task_map = {
+                t.name: t
+                for node_tasks in comp_schedule.values()
+                for t in node_tasks
+            }
+            # Advance clock to the latest end-time seen
+            current_moment = min(
+                (t.end for t in task_map.values() if t.end > min_start_time),
+                default=min_start_time
+            )
+            
+
+        # 2. Delegate to algorithm core
+        #    Pass along comp_schedule, task_map, current_moment, plus any extra args
+        updated_schedule = self._do_schedule(
+            network,
+            task_graph,
+            comp_schedule,
+            task_map,
+            current_moment,
+            **algo_kwargs
+        )
+
+        # 3. Return the mutated schedule
+        #print(updated_schedule)
+        return updated_schedule
