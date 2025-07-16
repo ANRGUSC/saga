@@ -7,7 +7,10 @@ import time
 import pathlib
 import networkx as nx
 import matplotlib.pyplot as plt
+from statistics import mean
+import seaborn as sns
 import numpy as np
+from pathlib import Path
 import pandas as pd
 from saga.utils.draw import gradient_heatmap, draw_gantt, draw_network, draw_task_graph
 from multiprocessing import Pool, Value, Lock, cpu_count
@@ -21,6 +24,9 @@ from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_ins
 
 from saga.schedulers.data.wfcommons import get_workflows, get_networks, get_wfcommons_instance
 from saga.utils.random_variable import RandomVariable
+from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
+from saga.schedulers.parametric.components import ArbitraryTopological, GreedyInsert, CPoPRanking, UpwardRanking, ArbitraryTopological
+from saga.schedulers.parametric import ParametricScheduler
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -111,8 +117,25 @@ def run_sample(ccr: float,
     #scheduler_online = OnlineETFScheduler()
     #scheduler = SufferageScheduler()
     #scheduler_online = OnlineSufferageScheduler()
-    scheduler = TempHeftScheduler()
-    scheduler_online = OnlineTempHeftScheduler()
+    #scheduler = TempHeftScheduler()
+    #scheduler_online = OnlineTempHeftScheduler()
+    scheduler = ParametricScheduler(
+        initial_priority=UpwardRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare="EFT",
+            critical_path=False
+        )
+    )
+    scheduler_online = OnlineParametricScheduler(
+        initial_priority=UpwardRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare="EFT",
+            critical_path=False
+        )
+    )
+    
 
     network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
     
@@ -146,8 +169,8 @@ def run_experiment():
     ccrs = [1/5, 1/2, 1, 2, 5]
     #levels_range = [1, 2, 3, 4]
     #branching_range = [1, 2, 3, 4]
-    levels_range = [1, 2, 3, 4,5]
-    branching_range = [1, 2, 3]
+    levels_range = [1, 2, 3, 4]
+    branching_range = [1, 2, 3,4]
     all_params = list(product(ccrs, levels_range, branching_range, range(n_samples)))
     #print("TEST TEST TEST")
     print(f"Number of param combinations: {len(all_params)}")
@@ -272,7 +295,7 @@ def analyze_results():
 
 
 def run_example():
-    levels = 3
+    levels = 4
     branching_factor = 2
     ccr = 1
     sample_index = 0
@@ -285,15 +308,27 @@ def run_example():
     # scheduler_online = OnlineETFScheduler()
     #scheduler = SufferageScheduler()
     #scheduler_online = OnlineSufferageScheduler()
-    scheduler = TempHeftScheduler()
-    scheduler_online = OnlineTempHeftScheduler()
+    scheduler = ParametricScheduler(
+        initial_priority=UpwardRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare="EFT",
+            critical_path=False
+        )
+    )
+    # scheduler_online = OnlineTempHeftScheduler()
+    scheduler_online = OnlineParametricScheduler(
+        initial_priority=UpwardRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare="EFT",
+            critical_path=False
+        )
+    )
 
     network, task_graph = get_instance(levels, branching_factor)
     #network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
-    print("network")
-    print(network)
-    print("task graph")
-    print(task_graph)
+    
     network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)
     #print(schedule_offline)
@@ -310,29 +345,173 @@ def run_example():
     makespan_online = max(task.end for node_tasks in schedule_online.values() for task in node_tasks)
     #print(schedule_online)
     print(f"Online makespan: {makespan_online}")
-    ax = draw_gantt(
-        schedule=schedule_online
-    )
-    fig = ax.get_figure()
-    fig.savefig(thisdir / "schedule_online_naive.png")
-    ax = draw_gantt(
-        schedule=schedule_online_naive
-    )
-    fig = ax.get_figure()
-    fig.savefig(thisdir / "schedule_offline.png")
-    ax = draw_gantt(
-        schedule=schedule_offline
-    )
-    fig = ax.get_figure()
-    fig.savefig(thisdir / "schedule_online.png")
+     #1. Prepare the actual‐time schedules
+    sched_off    = schedule_offline
+    sched_naive  = schedule_estimate_to_actual(network, task_graph, schedule_online_naive)
+    sched_online = schedule_estimate_to_actual(network, task_graph, schedule_online)
 
+   
+    # 3. Helper to compute makespan
+    def makespan(schedule: Dict[Hashable, List[Task]]) -> float:
+        return max(
+            task.end
+            for tasks in schedule.values()
+            for task in tasks
+        )
+
+    # 4. Find the global max end‐time across all three
+    all_schedules = [sched_off, sched_naive, sched_online]
+    global_max    = max(makespan(s) for s in all_schedules)
+
+    # 5. Draw each Gantt with identical x‐limits
+    for filename, sched in [
+        ("schedule_offline.png",      sched_off),
+        ("schedule_online_naive.png", sched_naive),
+        ("schedule_online.png",       sched_online),
+    ]:
+        ax = draw_gantt(schedule=sched)
+        ax.set_xlim(0, global_max)
+        ax.get_figure().savefig(thisdir / filename)
+        
+    # ax = draw_gantt(
+    #     schedule=schedule_online
+    # )
+    # fig = ax.get_figure()
+    # fig.savefig(thisdir / "schedule_online.png")
+    # ax = draw_gantt(
+    #     schedule=schedule_online_naive
+    # )
+    # fig = ax.get_figure()
+    # fig.savefig(thisdir / "schedule_online_naive.png")
+    # ax = draw_gantt(
+    #     schedule=schedule_offline
+    # )
+    # fig = ax.get_figure()
+    # fig.savefig(thisdir / "schedule_offline.png")
+        
+def run_fixed_suite(scheduler: Scheduler, n_samples: int = 50) -> List[float]:
+    """
+    Runs n_samples of the 4-level, branching-4 DAG on the given scheduler,
+    returning the list of makespans.
+    """
+    makespans = []
+    for i in range(n_samples):
+        network, task_graph = get_instance(levels=4, branching_factor=4, ccr=1.0)
+        # schedule & turn estimates into actual‐time
+        sched_est = scheduler.schedule(network, task_graph)
+        sched_act = schedule_estimate_to_actual(network, task_graph, sched_est)
+        # compute makespan
+        mp = max(t.end for tasks in sched_act.values() for t in tasks)
+        makespans.append(mp)
+    return makespans
+
+def evaluate_parametric_schedulers(n_samples: int = 50):
+    rows = []
+
+    priorities = [("Upward",   UpwardRanking),
+                  ("Arbitrary Topological", ArbitraryTopological),
+                  ("Cpop",     CPoPRanking)]
+    compares   = ["EFT", "EST", "Quickest"]
+    combos = list(product(priorities, [False, True], compares, [False, True]))
+    total = len(combos)
+
+    for idx, ((pname, Pclass), append_only, compare, critical) in enumerate(combos, start=1):
+        # progress print
+        print(
+            f"Combo {idx}/{total}: {pname}, append_only={append_only}, "
+            f"compare={compare}, critical_path={critical}", end="\r"
+                )
+
+        # build scheduler
+        sched = ParametricScheduler(
+            initial_priority=Pclass(),
+            insert_task=GreedyInsert(
+                append_only=append_only,
+                compare=compare,
+                critical_path=critical
+            )
+        )
+
+        # run and record
+        mps = run_fixed_suite(sched, n_samples=n_samples)
+        rows.append({
+            "priority":      pname,
+            "append_only":   append_only,
+            "compare":       compare,
+            "critical_path": critical,
+            "avg_makespan":  mean(mps)
+        })
+
+    print("\nDone.\n")  # move to new line when finished
+    df = pd.DataFrame(rows)
+    df.to_csv(thisdir / "parametric_makespan_comparison.csv", index=False)
+    print("Wrote results to parametric_makespan_comparison.csv")
+
+def plot_performance_histogram(
+    csv_path: Path,
+    output_path: Path
+):
+    """
+    Reads the CSV of average makespans, creates full descriptive labels, selects the top 3,
+    bottom 3, and 3 middle configurations, and plots a vertical bar chart with bars colored
+    by performance (blue=fastest, red=slowest), saving as a PNG.
+    """
+    df = pd.read_csv(csv_path)
+
+    def make_label(row):
+        priority = {"Upward": "Upward", "Downward": "Downward", "Custom": "Custom"}.get(row["priority"], row["priority"])
+        append = "Append-Only" if row["append_only"] else "Insert"
+        compare = {
+            "EFT": "Earliest Finish Time",
+            "EST": "Earliest Start Time",
+            "Quickest": "Quickest Path"
+        }.get(row["compare"], row["compare"])
+        critical = "Critical Path First" if row["critical_path"] else "No Critical Path"
+        return f"{priority}, {append}, {compare}, {critical}"
+
+    df["label"] = df.apply(make_label, axis=1)
+    df_sorted = df.sort_values("avg_makespan").reset_index(drop=True)
+
+    total = len(df_sorted)
+    top3 = df_sorted.iloc[:3]
+    bottom3 = df_sorted.iloc[-3:]
+    mid_start = total // 2 - 1
+    mid3 = df_sorted.iloc[mid_start:mid_start + 3]
+
+    selected = pd.concat([top3, mid3, bottom3])
+    selected = selected.reset_index(drop=True)
+
+    labels = selected["label"].tolist()
+    makespans = selected["avg_makespan"].values
+
+    norm = plt.Normalize(vmin=makespans.min(), vmax=makespans.max())
+    cmap = plt.cm.get_cmap("coolwarm")
+    colors = cmap(norm(makespans))
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.bar(range(len(labels)), makespans, color=colors)
+    ax.set_title("Online Parametric Performance (4x4 Task Graph, CCR = 1.0, Best, Median, and Worst Results)", fontsize=14)
+    ax.set_ylabel("Average Makespan", fontsize=12)
+    ax.set_xlabel("Scheduler Configuration", fontsize=12)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=90, fontsize=7)
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax, pad=0.02)
+    cbar.set_label("Relative Makespan", fontsize=12)
+
+    plt.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    print(f"Saved performance histogram to {output_path}")
 
 
 def main():
     # #record start time
     # start_time = time.perf_counter()
 
-    run_example()
+    #run_example()
     #run_experiment()
     #analyze_results()
 
@@ -340,9 +519,13 @@ def main():
     # end_time = time.perf_counter()
     # elapsed = end_time - start_time
     # print(f"Execution time: {elapsed:.2f} seconds")
-
+    plot_performance_histogram(
+    csv_path=thisdir/"parametric_makespan_comparison.csv",
+    output_path=thisdir/"parametric_performance_histogram.png"
+    )
     
     workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
+
 
 if __name__ == "__main__":
     main()
