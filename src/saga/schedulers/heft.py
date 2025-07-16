@@ -26,7 +26,7 @@ def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
     rank = upward_rank(network, task_graph)
     topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
     rank = {node: (rank[node] + topological_sort[node]) for node in rank}
-    print(rank)
+    #print(rank)
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
 

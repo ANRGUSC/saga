@@ -11,8 +11,9 @@ import numpy as np
 import pandas as pd
 from saga.utils.draw import gradient_heatmap
 from multiprocessing import Pool, Value, Lock, cpu_count
+from saga.schedulers.parametric import ParametricScheduler
+from saga.schedulers.parametric.components import ArbitraryTopological, GreedyInsert, CPoPRanking
 
-from .parametric import TempHeftScheduler
 from saga.scheduler import Scheduler, Task
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 
@@ -20,9 +21,12 @@ from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_ins
 
 
 
-class OnlineParametricScheduler(Scheduler):
-    def __init__(self, param):
-        self.heft_scheduler = TempHeftScheduler()
+class OnlineParametricScheduler(Scheduler):#need to add check for sufferage scheduler 
+    def __init__(self, initial_priority, insert_task): 
+        self.parametric_scheduler = ParametricScheduler(
+                initial_priority=initial_priority,
+                insert_task=insert_task
+            )
 
     def schedule(self,
                  network: nx.Graph,
@@ -48,13 +52,13 @@ class OnlineParametricScheduler(Scheduler):
         current_time = 0
         iteration = 0
 
-        #need to add another if statement that schecks if it is sufferage or not 
+        #need to add another if statement that checks if it is sufferage or not 
         
         while len(tasks_actual) < len(task_graph.nodes):
             schedule_actual_hypothetical = schedule_estimate_to_actual(
                 network,
                 task_graph,
-                self.heft_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time) 
+                self.parametric_scheduler.schedule(network, task_graph, schedule_actual, min_start_time=current_time) 
             )
 
             tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)

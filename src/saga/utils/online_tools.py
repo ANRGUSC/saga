@@ -64,10 +64,10 @@ def schedule_estimate_to_actual(network: nx.Graph,
 
         #If current task is already in actual, set start time to either current calculated, or the end time in the last thing that actually finished
         if schedule_actual[task_node]: 
-            print("checking function")
-            print(schedule_actual[task_node])
-            print(start_time)
-            print(schedule_actual[task_node][-1].end)
+            # print("checking function")
+            # print(schedule_actual[task_node])
+            # print(start_time)
+            # print(schedule_actual[task_node][-1].end)
             start_time = max(start_time, schedule_actual[task_node][-1].end)#
 
         #calculating runtime of current task 
