@@ -136,8 +136,8 @@ def run_sample(ccr: float,
         )
     )
     
-
-    network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
+    network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
+    #network, task_graph = get_instance(levels, branching_factor, ccr=ccr)
     
     # Run standard HEFT (Naive Online HEFT)
     schedule_online_naive = scheduler.schedule(network, task_graph)
@@ -166,7 +166,8 @@ def run_experiment():
     cores = int(os.cpu_count() * 0.8)
     n_samples = 50
     experiments = []
-    ccrs = [1/5, 1/2, 1, 2, 5]
+    #ccrs = [1/5, 1/2, 1, 2, 5]
+    ccrs = [1/5]
     #levels_range = [1, 2, 3, 4]
     #branching_range = [1, 2, 3, 4]
     levels_range = [1, 2, 3, 4]
@@ -512,17 +513,17 @@ def main():
     # start_time = time.perf_counter()
 
     #run_example()
-    #run_experiment()
+    run_experiment()
     #analyze_results()
 
     # #record end time
     # end_time = time.perf_counter()
     # elapsed = end_time - start_time
     # print(f"Execution time: {elapsed:.2f} seconds")
-    plot_performance_histogram(
-    csv_path=thisdir/"parametric_makespan_comparison.csv",
-    output_path=thisdir/"parametric_performance_histogram.png"
-    )
+    #plot_performance_histogram(
+    #csv_path=thisdir/"parametric_makespan_comparison.csv",
+    #output_path=thisdir/"parametric_performance_histogram.png"
+    #)
     
     workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
 
