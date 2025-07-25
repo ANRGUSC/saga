@@ -62,13 +62,9 @@ def schedule_estimate_to_actual(network: nx.Graph,
             #current task node. This is basically making sure we dont try and start before all parent nodes have finished and communicated
             start_time = max(start_time, end_time + comm_time)
 
-        #If current task is already in actual, set start time to either current calculated, or the end time in the last thing that actually finished
+        #If current node already has tasks scheduled, we set the start time to be the end of the last task on that node
         if schedule_actual[task_node]: 
-            # print("checking function")
-            # print(schedule_actual[task_node])
-            # print(start_time)
-            # print(schedule_actual[task_node][-1].end)
-            start_time = max(start_time, schedule_actual[task_node][-1].end)#
+            start_time = max(start_time, schedule_actual[task_node][-1].end)
 
         #calculating runtime of current task 
         runtime = task_graph.nodes[task_name]["weight_actual"] / network.nodes[task_node]["weight_actual"]
@@ -147,5 +143,4 @@ class ScheduleInjector:
         )
 
         # 3. Return the mutated schedule
-        #print(updated_schedule)
         return updated_schedule

@@ -1,22 +1,16 @@
-from functools import partial
 from typing import Dict, Hashable, List, Tuple
 from copy import deepcopy
 from itertools import product
 import os
-import time
 import pathlib
 import networkx as nx
 import matplotlib.pyplot as plt
 from statistics import mean
-import seaborn as sns
 import numpy as np
 from pathlib import Path
 import pandas as pd
 from saga.utils.draw import gradient_heatmap, draw_gantt, draw_network, draw_task_graph
-from multiprocessing import Pool, Value, Lock, cpu_count
-from saga.schedulers import online_heft
-from saga.schedulers import HeftScheduler, online_heft, OnlineHeftScheduler, CpopScheduler, OnlineCpopScheduler, ETFScheduler, OnlineETFScheduler, SufferageScheduler, OnlineSufferageScheduler
-from saga.schedulers import TempHeftScheduler, OnlineTempHeftScheduler
+from multiprocessing import Pool, Value, Lock
 from saga.scheduler import Scheduler, Task
 from saga.utils.random_graphs import get_branching_dag, get_network
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
@@ -509,23 +503,23 @@ def plot_performance_histogram(
 
 
 def main():
-    # #record start time
+    # # record start time
     # start_time = time.perf_counter()
 
-    #run_example()
-    run_experiment()
-    #analyze_results()
+    run_example()
+    # run_experiment()
+    # analyze_results()
 
-    # #record end time
+    # # record end time
     # end_time = time.perf_counter()
     # elapsed = end_time - start_time
     # print(f"Execution time: {elapsed:.2f} seconds")
-    #plot_performance_histogram(
-    #csv_path=thisdir/"parametric_makespan_comparison.csv",
-    #output_path=thisdir/"parametric_performance_histogram.png"
+    # plot_performance_histogram(
+    # csv_path=thisdir/"parametric_makespan_comparison.csv",
+    # output_path=thisdir/"parametric_performance_histogram.png"
     #)
     
-    workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
+    # workflow = get_wfcommons_instance(recipe_name="montage", ccr=1)
 
 
 if __name__ == "__main__":
