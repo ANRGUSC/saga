@@ -313,7 +313,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
                     second_best_task = self.insert_task(network, task_graph, comp_schedule, task, current_moment, dry_run=True)
                 finally:
                     network.nodes[best_task.node]['weight'] = node_weight
-                sufferage = self.insert_task._compare(network, task_graph, comp_schedule, second_best_task, best_task)
+                sufferage = self.insert_task._compare(second_best_task, best_task)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
             new_task = self.insert_task(network, task_graph, comp_schedule, max_sufferage_task.name, current_moment, node=max_sufferage_task.node)

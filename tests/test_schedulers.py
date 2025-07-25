@@ -9,9 +9,7 @@ from saga.schedulers import (
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
     BILScheduler, FLBScheduler, GDLScheduler
 )
-from saga.schedulers.parametric import (
-    ParametricScheduler, IntialPriority, InsertTask
-)
+from saga.schedulers.parametric.components import schedulers as parametric_schedulers
 from saga.schedulers.parametric.online_parametric import schedulers as online_schedulers
 from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
@@ -77,6 +75,7 @@ schedulers = [
     BILScheduler(),
     FLBScheduler(),
     GDLScheduler(),
+    *parametric_schedulers.values(),
 ]
 
 # Parametrize the task graphs for common schedulers
@@ -104,18 +103,18 @@ network = add_random_weights(get_network())
 rv_network = add_rv_weights(network.copy())
 
 
-# @pytest.mark.parametrize("scheduler", schedulers)
-# @pytest.mark.parametrize("task_graph_name, task_graph", common_task_graphs.items())
-# def test_common_schedulers(scheduler, task_graph_name, task_graph):
-#     """Test common schedulers on predefined task graphs."""
-#     assert run_test(scheduler, network.copy(), task_graph.copy()), f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
+@pytest.mark.parametrize("scheduler", schedulers)
+@pytest.mark.parametrize("task_graph_name, task_graph", common_task_graphs.items())
+def test_common_schedulers(scheduler, task_graph_name, task_graph):
+    """Test common schedulers on predefined task graphs."""
+    assert run_test(scheduler, network.copy(), task_graph.copy()), f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
 
 
-# @pytest.mark.parametrize("scheduler", stochastic_schedulers)
-# @pytest.mark.parametrize("task_graph_name, task_graph", stochastic_task_graphs.items())
-# def test_stochastic_schedulers(scheduler: Scheduler, task_graph_name: str, task_graph: nx.DiGraph):
-#     """Test stochastic schedulers on predefined task graphs."""
-#     assert run_stochastic_test(scheduler, rv_network.copy(), task_graph.copy()), f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
+@pytest.mark.parametrize("scheduler", stochastic_schedulers)
+@pytest.mark.parametrize("task_graph_name, task_graph", stochastic_task_graphs.items())
+def test_stochastic_schedulers(scheduler: Scheduler, task_graph_name: str, task_graph: nx.DiGraph):
+    """Test stochastic schedulers on predefined task graphs."""
+    assert run_stochastic_test(scheduler, rv_network.copy(), task_graph.copy()), f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
 
 @pytest.mark.parametrize("scheduler", online_schedulers.values())
 @pytest.mark.parametrize("task_graph_name, task_graph", common_task_graphs.items())
