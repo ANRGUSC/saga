@@ -12,7 +12,7 @@ from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
 from saga.schedulers.parametric.components import (
-    UpwardRanking, GreedyInsert
+    CPoPRanking, UpwardRanking, GreedyInsert
 )
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 from saga.schedulers.data.wfcommons import get_wfcommons_instance, recipes
@@ -71,12 +71,12 @@ def get_scheduler_variants() -> List[Tuple[str, Scheduler, Scheduler]]:
     variants.append((
         "CPoP",
         ParametricScheduler(
-            initial_priority=UpwardRanking(),
-            insert_task=GreedyInsert(append_only=True, compare="EFT", critical_path=True)
+            initial_priority=CPoPRanking(),
+            insert_task=GreedyInsert(append_only=False, compare="EFT", critical_path=True)
         ),
         OnlineParametricScheduler(
-            initial_priority=UpwardRanking(),
-            insert_task=GreedyInsert(append_only=True, compare="EFT", critical_path=True)
+            initial_priority=CPoPRanking(),
+            insert_task=GreedyInsert(append_only=False, compare="EFT", critical_path=True)
         )
     ))
 
