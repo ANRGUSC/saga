@@ -47,6 +47,7 @@ class CPoPRanking(IntialPriority):
             for ready_task in ready_tasks:
                 heapq.heappush(pq, (-ranks[ready_task], ready_task))
         
+        # print(f"CPoPRanking: {queue}")
         return queue
     
     def serialize(self) -> Dict[str, Any]:

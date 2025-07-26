@@ -50,6 +50,7 @@ def schedule_estimate_to_actual(network: nx.Graph,
     tasks_actual: Dict[str, Task] = {} #Creating an empty dict to store our actual tasks once they are completed
 
     task_order = sorted(task_graph.nodes, key=lambda task: tasks_estimate[task].start) #ordering our nodes based on their estimated start times
+    # print(f"Task order: {[(task, tasks_estimate[task].start, tasks_estimate[task].end) for task in task_order]}") #debugging print to see the order of tasks
     for task_name in task_order:#looping through our sorted tasks 
         start_time = 0 #setting start time to be used later. Start time resets with each task due to how it is later calculated
         task_node = tasks_estimate[task_name].node#pulling out the current task from our estimated and setting it to our current

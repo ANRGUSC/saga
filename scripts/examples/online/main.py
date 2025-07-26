@@ -304,7 +304,7 @@ def run_example():
     #scheduler = SufferageScheduler()
     #scheduler_online = OnlineSufferageScheduler()
     scheduler = ParametricScheduler(
-        initial_priority=UpwardRanking(),
+        initial_priority=CPoPRanking(),
         insert_task=GreedyInsert(
             append_only=False,
             compare="EFT",
@@ -313,7 +313,7 @@ def run_example():
     )
     # scheduler_online = OnlineTempHeftScheduler()
     scheduler_online = OnlineParametricScheduler(
-        initial_priority=UpwardRanking(),
+        initial_priority=CPoPRanking(),
         insert_task=GreedyInsert(
             append_only=False,
             compare="EFT",
@@ -321,8 +321,8 @@ def run_example():
         )
     )
 
-    network, task_graph = get_instance(levels, branching_factor)
-    #network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
+    # network, task_graph = get_instance(levels, branching_factor)
+    network, task_graph = get_wfcommons_instance(recipe_name="montage", ccr=ccr)
     
     network_offline, task_graph_offline = get_offline_instance(network, task_graph)
     schedule_offline = scheduler.schedule(network_offline, task_graph_offline)

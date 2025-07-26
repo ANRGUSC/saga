@@ -492,7 +492,18 @@ def get_wfcommons_instance(recipe_name: str, ccr: float):
         workflow.edges[u, v]["weight_estimate"] = weight_rv.mean()
         workflow.edges[u, v]["weight_actual"] = weight_rv.sample()
         workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
-    
+
+            # add src and dst task
+    workflow.add_node("SRC", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
+    workflow.add_node("DST", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
+    for node in workflow.nodes:
+        if node not in ["SRC", "DST"] and not workflow.in_degree(node):
+            workflow.add_edge("SRC", node, weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable([1e9]))
+    for node in workflow.nodes:
+        if node not in ["SRC", "DST"] and not workflow.out_degree(node):
+            workflow.add_edge(node, "DST", weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable([1e9]))
+
+
     network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
     network: nx.Graph = get_networks(
         num=1,
