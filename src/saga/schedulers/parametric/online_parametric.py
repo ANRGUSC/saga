@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, List, Set
+from typing import Dict, Hashable, List, Set, Tuple
 import networkx as nx
 from saga.schedulers.parametric import (
     ParametricScheduler, IntialPriority, InsertTask
@@ -17,23 +17,26 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
             insert_task=insert_task
         )
 
-    def schedule(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
-        """
-        A 'live' scheduling loop using HEFT in a dynamic manner.
-        We assume each node/task has 'weight_actual' and 'weight_estimate' attributes.
-        
-        1) No longer needed
-        2) Calls the standard HEFT for an 'estimated' schedule.
-        3) Converts that schedule to 'actual' times using schedule_estimate_to_actual.
-        4) Commits the earliest-finishing new task to schedule_actual.
-        5) Repeats until all tasks are scheduled.        
+    def schedule_iterative(self,
+                           network: nx.Graph,
+                           task_graph: nx.DiGraph) -> Tuple[List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]]]:
+        """Online scheduling algorithm that produces a schedule, then waits for
+        the next task to finish before producing the next schedule.
 
-        comp_schedule = {
-        "Node1": [Task(node="Node1", name="TaskA", start=0, end=5)],
-        "Node2": [Task(node="Node2", name="TaskB", start=3, end=8)],
+        Args:
+            network (nx.Graph): The network graph where tasks will be scheduled.
+            task_graph (nx.DiGraph): The directed task graph containing tasks and their dependencies.
+
+        Returns:
+            Tuple[List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]]]:
+                A tuple containing three lists:
+                - schedules_estimate: The estimated schedules based on the parametric scheduler.
+                - schedules_hypothetical: The hypothetical schedules based on the estimates.
+                - schedules_actual: The actual schedules after all tasks have been scheduled.
         """
+        schedules_estimate: List[Dict[Hashable, List[Task]]] = []
+        schedules_hypothetical: List[Dict[Hashable, List[Task]]] = []
+        schedules_actual: List[Dict[Hashable, List[Task]]] = []
         schedule_actual: Dict[Hashable, List[Task]] = {
             node: [] for node in network.nodes
         }
@@ -43,16 +46,19 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
 
         while len(tasks_actual) < len(task_graph.nodes):
             # Generate a schedule estimate using the parametric scheduler
+            schedule_estimate = self._parametric_scheduler.schedule(
+                network=network,
+                task_graph=task_graph,
+                schedule=schedule_actual,       # Passing in the already-scheduled tasks
+                min_start_time=current_time     # Tasks shouldn't be scheduled before this time
+            )
+            schedules_estimate.append(schedule_estimate)
             schedule_actual_hypothetical = schedule_estimate_to_actual(
                 network=network,
                 task_graph=task_graph,
-                schedule_estimate=self._parametric_scheduler.schedule(
-                    network=network,
-                    task_graph=task_graph,
-                    schedule=schedule_actual,       # Passing in the already-scheduled tasks
-                    min_start_time=current_time     # Tasks shouldn't be scheduled before this time
-                )
+                schedule_estimate=schedule_estimate
             )
+            schedules_hypothetical.append(schedule_actual_hypothetical)
 
             # Get the next task that will finish executing
             tasks: List[Task] = sorted(
@@ -80,9 +86,27 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
                 if task.start <= current_time:
                     schedule_actual[task.node].append(task)
                     tasks_actual[task.name] = task
+            schedules_actual.append(schedule_actual)
 
-        return schedule_actual
+        return schedules_estimate, schedules_hypothetical, schedules_actual
 
+    def schedule(self,
+                 network: nx.Graph,
+                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+        """Online scheduling algorithm that produces a schedule, then waits for
+        the next task to finish before producing the next schedule. This method
+        returns only the final schedule after all tasks have been scheduled.
+
+        Args:
+            network (nx.Graph): The network graph where tasks will be scheduled.
+            task_graph (nx.DiGraph): The directed task graph containing tasks and their dependencies.
+        
+        Returns:
+            Dict[Hashable, List[Task]]: A dictionary mapping nodes to lists of tasks scheduled on those nodes.
+        """
+        schedules, _, _ = self.schedule_iterative(network, task_graph)
+        # Return the last schedule in the list
+        return schedules[-1]
 
 
 schedulers: Dict[str, ParametricScheduler] = {}

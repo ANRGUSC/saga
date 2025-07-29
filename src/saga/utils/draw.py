@@ -54,6 +54,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     draw_node_labels: bool = True,
                     draw_edge_weights: bool = True,
                     draw_node_weights: bool = True,
+                    node_weight_offset: float = 0.2,
                     pos = None) -> plt.Axes:
     """Draws a task graph
 
@@ -71,6 +72,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         draw_node_labels: Whether to draw node labels. Defaults to True.
         draw_edge_weights: Whether to draw edge weights. Defaults to True.
         draw_node_weights: Whether to draw node weights. Defaults to True.
+        node_weight_offset: Offset for node weight labels. Defaults to 0.2.
         pos: Position of nodes. Defaults to None.
     """
     if use_latex and not is_latex_installed():
@@ -154,7 +156,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                 axis.annotate(
                     cost_label,
                     xy=pos[task_name],
-                    xytext=(pos[task_name][0] + 0.15, pos[task_name][1]),
+                    xytext=(pos[task_name][0] + node_weight_offset, pos[task_name][1]),
                     fontsize=weight_font_size,
                 )
 
