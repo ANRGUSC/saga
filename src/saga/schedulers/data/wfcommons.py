@@ -475,25 +475,28 @@ def get_workflows(num: int,
 
     return task_graphs
 
-def get_wfcommons_instance(recipe_name: str, ccr: float):
+
+def get_wfcommons_instance(recipe_name: str,
+                           ccr: float,
+                           estimate_method: Callable[[RandomVariable], float] = lambda x: x.mean()) -> Tuple[nx.Graph, nx.DiGraph]:
     workflow = get_workflows(num=1, recipe_name=recipe_name, rv_weights=True, max_size_multiplier=2)[0]
 
     # rename weight attribute to weight_rv
     for node in workflow.nodes:
         weight_rv: RandomVariable = workflow.nodes[node]["weight"]
         workflow.nodes[node]["weight_rv"] = weight_rv
-        workflow.nodes[node]["weight_estimate"] = weight_rv.mean()
+        workflow.nodes[node]["weight_estimate"] = estimate_method(weight_rv)
         workflow.nodes[node]["weight_actual"] = weight_rv.sample()
         workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
 
     for (u, v) in workflow.edges:
         weight_rv: RandomVariable = workflow.edges[u, v]["weight"]
         workflow.edges[u, v]["weight_rv"] = weight_rv
-        workflow.edges[u, v]["weight_estimate"] = weight_rv.mean()
+        workflow.edges[u, v]["weight_estimate"] = estimate_method(weight_rv)
         workflow.edges[u, v]["weight_actual"] = weight_rv.sample()
         workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
 
-            # add src and dst task
+    # add src and dst task
     workflow.add_node("SRC", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
     workflow.add_node("DST", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
     for node in workflow.nodes:
@@ -502,7 +505,6 @@ def get_wfcommons_instance(recipe_name: str, ccr: float):
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.out_degree(node):
             workflow.add_edge(node, "DST", weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable([1e9]))
-
 
     network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
     network: nx.Graph = get_networks(

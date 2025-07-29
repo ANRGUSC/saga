@@ -3,7 +3,7 @@ import csv
 import pathlib
 import multiprocessing as mp
 from itertools import product
-from typing import List, Tuple
+from typing import Callable, Dict, List, Tuple
 from multiprocessing import Value, Lock
 
 import pandas as pd
@@ -16,21 +16,29 @@ from saga.schedulers.parametric.components import (
 )
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 from saga.schedulers.data.wfcommons import get_wfcommons_instance, recipes
+from saga.utils.random_variable import RandomVariable
 
 # ---------------------- Config ----------------------
 THISDIR = pathlib.Path(__file__).resolve().parent
 CSV_PATH = THISDIR / "results.csv"
-# WORKFLOWS = ["montage", "blast", "epigenomics"]
 WORKFLOWS = list(recipes.keys())
 CCRS = [0.2, 0.5, 1.0, 2.0, 5.0]
-N_SAMPLES = 50
+N_SAMPLES = 100
+ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable], float]] = {
+    "mean": lambda x: x.mean(),
+    "SHEFT": lambda x: x.mean() + x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + 1/x.std())
+}
 # ----------------------------------------------------
 
 # Shared progress state
 progress_counter = Value("i", 0)
 progress_lock = Lock()
-
 def print_progress(total_jobs: int):
+    """ Print the progress of the experiments.
+
+    Args:
+        total_jobs (int): The total number of jobs to complete.
+    """
     with progress_lock:
         progress_counter.value += 1
         current = progress_counter.value
@@ -39,22 +47,33 @@ def print_progress(total_jobs: int):
 
 
 def init_csv(lock: mp.Lock):
+    """ Initialize the CSV file for storing results.
+    This function checks if the CSV file exists, and if not, creates it with the appropriate headers.
+    
+    Args:
+        lock (mp.Lock): A multiprocessing lock to ensure thread-safe writing to the CSV file.
+    """
     with lock:
         if not CSV_PATH.exists():
             with open(CSV_PATH, mode='w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow([
-                    "workflow", "ccr", "sample", "scheduler_variant", "scheduler_type", "makespan"
+                    "workflow", "estimate_method", "ccr", "sample", "scheduler_variant", "scheduler_type", "makespan"
                 ])
 
 
 def get_scheduler_variants() -> List[Tuple[str, Scheduler, Scheduler]]:
     """
     Returns a list of (variant_name, offline_scheduler, online_scheduler)
+
+    Returns:
+        List[Tuple[str, Scheduler, Scheduler]]: A list of tuples where each tuple contains
+            the name of the scheduler variant, an instance of the offline scheduler,
+            and an instance of the online scheduler.
     """
     variants = []
 
-    # HEFT-like (standard)
+    # HEFT
     variants.append((
         "HEFT",
         ParametricScheduler(
@@ -67,7 +86,7 @@ def get_scheduler_variants() -> List[Tuple[str, Scheduler, Scheduler]]:
         )
     ))
 
-    # CPoP-like
+    # CPoP
     variants.append((
         "CPoP",
         ParametricScheduler(
@@ -83,12 +102,27 @@ def get_scheduler_variants() -> List[Tuple[str, Scheduler, Scheduler]]:
     return variants
 
 
-def run_one_experiment(
-    workflow: str, ccr: float, sample_index: int, lock: mp.Lock
-):
+def run_one_experiment(workflow: str,
+                       estimate_method_name: str,
+                       ccr: float,
+                       sample_index: int,
+                       lock: mp.Lock) -> None:
+    """
+    Run a single experiment for the given workflow, CCR, and sample index.
+    This function will schedule the tasks using both offline and online schedulers,
+    and write the results to a CSV file.
+
+    Args:
+        workflow (str): The name of the workflow to run.
+        estimate_method_name (str): The name of the method to estimate task weights.
+        ccr (float): The communication-to-computation ratio for the workflow.
+        sample_index (int): The index of the sample to run.
+        lock (mp.Lock): A multiprocessing lock to ensure thread-safe writing to the CSV file.
+    """
     try:
         scheduler_variants = get_scheduler_variants()
-        network, task_graph = get_wfcommons_instance(recipe_name=workflow, ccr=ccr)
+        estimate_method = ESTIMATE_METHODS[estimate_method_name]
+        network, task_graph = get_wfcommons_instance(recipe_name=workflow, ccr=ccr, estimate_method=estimate_method)
         results = []
 
         for variant_name, offline_sched, online_sched in scheduler_variants:
@@ -96,19 +130,19 @@ def run_one_experiment(
             net_off, tg_off = get_offline_instance(network, task_graph)
             sched_offline = offline_sched.schedule(net_off, tg_off)
             ms_offline = max(task.end for tasks in sched_offline.values() for task in tasks)
-            results.append((workflow, ccr, sample_index, variant_name, "Offline", ms_offline))
+            results.append((workflow, estimate_method_name, ccr, sample_index, variant_name, "Offline", ms_offline))
 
             # Online
             sched_online = online_sched.schedule(network, task_graph)
             sched_online_actual = schedule_estimate_to_actual(network, task_graph, sched_online)
             ms_online = max(task.end for tasks in sched_online_actual.values() for task in tasks)
-            results.append((workflow, ccr, sample_index, variant_name, "Online", ms_online))
+            results.append((workflow, estimate_method_name, ccr, sample_index, variant_name, "Online", ms_online))
 
             # Naive Online
             sched_naive = offline_sched.schedule(network, task_graph)
             sched_naive_actual = schedule_estimate_to_actual(network, task_graph, sched_naive)
             ms_naive = max(task.end for tasks in sched_naive_actual.values() for task in tasks)
-            results.append((workflow, ccr, sample_index, variant_name, "Naive Online", ms_naive))
+            results.append((workflow, estimate_method_name, ccr, sample_index, variant_name, "Naive Online", ms_naive))
 
         # Write to CSV
         with lock:
@@ -120,14 +154,27 @@ def run_one_experiment(
         print(f"Error in ({workflow}, {ccr}, {sample_index}): {e}")
 
 
-def wrapped(args):
-    workflow, ccr, sample_index, lock, total_jobs = args
-    run_one_experiment(workflow, ccr, sample_index, lock)
+def wrapped(args: Tuple[str, str, float, int, mp.Lock, int]) -> None:
+    """
+    Wrapper function to run an experiment in a multiprocessing context.
+    This function unpacks the arguments and calls `run_one_experiment`.
+
+    Args:
+        args (Tuple[str, float, int, mp.Lock, int]): A tuple containing the
+            workflow name, CCR, sample index, lock, and total number of jobs.
+    """
+    workflow, estimate_method_name, ccr, sample_index, lock, total_jobs = args
+    run_one_experiment(workflow, estimate_method_name, ccr, sample_index, lock)
     print_progress(total_jobs)
 
 
 def run_all_experiments():
-    all_params = list(product(WORKFLOWS, CCRS, range(N_SAMPLES)))
+    """
+    Run all experiments for all workflows, CCRs, and samples.
+    This function initializes the CSV file, creates a pool of workers,
+    and maps the wrapped function to all combinations of parameters.
+    """
+    all_params = list(product(WORKFLOWS, ESTIMATE_METHODS.keys(), CCRS, range(N_SAMPLES)))
     total_jobs = len(all_params)
     print(f"Total experiments: {total_jobs}")
 
@@ -135,7 +182,7 @@ def run_all_experiments():
     lock = manager.Lock()
     init_csv(lock)
 
-    wrapped_args = [(w, c, s, lock, total_jobs) for w, c, s in all_params]
+    wrapped_args = [(w, em, c, s, lock, total_jobs) for w, em, c, s in all_params]
 
     with mp.Pool(processes=int(os.cpu_count() * 0.8)) as pool:
         pool.map(wrapped, wrapped_args)
