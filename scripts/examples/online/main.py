@@ -10,7 +10,7 @@ from saga.schedulers.parametric.components import (
 import networkx as nx
 import matplotlib.pyplot as plt
 
-from saga.utils.online_tools import schedule_estimate_to_actual
+from saga.utils.online_tools import schedule_estimate_to_actual, set_weights
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
 # ---------------------- Config ----------------------
@@ -44,16 +44,6 @@ def get_network() -> nx.Graph:
     network.add_edge("2", "2", weight_estimate=1e9, weight_actual=1e9)
     network.add_edge("1", "2", weight_estimate=1, weight_actual=1)
     return network
-
-GraphType = TypeVar('GraphType', bound=Union[nx.DiGraph, nx.Graph])
-def set_weights(graph: GraphType,
-                weight_str: str = "weight_actual") -> GraphType:
-    graph = graph.copy()
-    for node in graph.nodes:
-        graph.nodes[node]['weight'] = graph.nodes[node][weight_str]
-    for u, v in graph.edges:
-        graph[u][v]['weight'] = graph[u][v][weight_str]
-    return graph
 
 def main():
     task_graph = get_task_graph()

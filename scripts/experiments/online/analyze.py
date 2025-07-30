@@ -18,7 +18,7 @@ def analyze():
 
     # Pivot: (workflow, ccr, sample, variant, estimate_method) → scheduler_type → makespan
     pivot = df.pivot_table(
-        index=["workflow", "ccr", "sample", "scheduler_variant", "estimate_method"],
+        index=["workflow", "ccr", "sample", "scheduler", "estimate_method"],
         columns="scheduler_type",
         values="makespan"
     ).reset_index()
@@ -33,10 +33,10 @@ def analyze():
     # Plot boxplots of normalized makespan ratios
     sns.set(style="whitegrid", font_scale=1.2)
     for estimate in sorted(pivot["estimate_method"].unique()):
-        for variant in sorted(pivot["scheduler_variant"].unique()):
+        for variant in sorted(pivot["scheduler"].unique()):
             df_subset = pivot[
                 (pivot["estimate_method"] == estimate) &
-                (pivot["scheduler_variant"] == variant)
+                (pivot["scheduler"] == variant)
             ]
 
             if df_subset.empty:
@@ -76,18 +76,18 @@ def analyze():
     # Export summary stats of normalized ratios
     COL_NAMES = {
         "estimate_method": "Estimator",
-        "scheduler_variant": "Scheduler",
+        "scheduler": "Scheduler",
         "online_ratio": "Online / Offline",
         "naive_online_ratio": "Naive Online / Offline",
     }
-    summary_mean = pivot.groupby(["estimate_method", "scheduler_variant"])[
+    summary_mean = pivot.groupby(["estimate_method", "scheduler"])[
         ["online_ratio", "naive_online_ratio"]
     ].mean().reset_index()
-    summary_std = pivot.groupby(["estimate_method", "scheduler_variant"])[
+    summary_std = pivot.groupby(["estimate_method", "scheduler"])[
         ["online_ratio", "naive_online_ratio"]
     ].std().reset_index()
     # Merge mean and std into a single DataFrame with cell values <mean> \pm <std>
-    summary = pd.merge(summary_mean, summary_std, on=["estimate_method", "scheduler_variant"], suffixes=("", "_std"))
+    summary = pd.merge(summary_mean, summary_std, on=["estimate_method", "scheduler"], suffixes=("", "_std"))
     summary["online_ratio"] = summary.apply(
         lambda row: f"${row['online_ratio']:.3f} \pm {row['online_ratio_std']:.3f}$",
         axis=1

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Hashable, List, Tuple, Optional
+from typing import Dict, Hashable, List, Tuple, Optional, TypeVar, Union
 
 import networkx as nx
 import numpy as np
@@ -145,3 +145,13 @@ class ScheduleInjector:
 
         # 3. Return the mutated schedule
         return updated_schedule
+
+GraphType = TypeVar('GraphType', bound=Union[nx.DiGraph, nx.Graph])
+def set_weights(graph: GraphType,
+                weight_str: str = "weight_actual") -> GraphType:
+    graph = graph.copy()
+    for node in graph.nodes:
+        graph.nodes[node]['weight'] = graph.nodes[node][weight_str]
+    for u, v in graph.edges:
+        graph[u][v]['weight'] = graph[u][v][weight_str]
+    return graph
