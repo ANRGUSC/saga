@@ -1,3 +1,14 @@
+"""
+Online vs Offline Scheduling Example
+
+This script demonstrates how online scheduling works compared to offline scheduling.
+It creates a simple 5-task workflow and shows the difference between:
+- Offline scheduling (perfect knowledge)
+- Naive online scheduling (use estimates, convert to actual)
+- True online scheduling (iteratively adapt to actual execution times)
+"""
+
+
 import pathlib
 from typing import Callable, Dict, List, Tuple, Union, TypeVar
 from multiprocessing import Value, Lock
@@ -117,14 +128,30 @@ def main():
     draw_network(network_estimate, draw_colors=False).get_figure().savefig(SAVEPATH / "network_estimate.png")
 
     # Draw Gantt Charts
-    draw_gantt(sched_offline, xmax=max_makespan).get_figure().savefig(SAVEPATH / "gantt_offline.png")
-    draw_gantt(sched_naive_estimate, xmax=max_makespan).get_figure().savefig(SAVEPATH / "gantt_naive_estimate.png")
-    draw_gantt(sched_naive_actual, xmax=max_makespan).get_figure().savefig(SAVEPATH / "gantt_naive_actual.png")
+    fig = draw_gantt(sched_offline, xmax=max_makespan).get_figure()
+    fig.savefig(SAVEPATH / "gantt_offline.png")
+    plt.close(fig)
+
+    fig = draw_gantt(sched_naive_estimate, xmax=max_makespan).get_figure()
+    fig.savefig(SAVEPATH / "gantt_naive_estimate.png")
+    plt.close(fig)
+
+    fig = draw_gantt(sched_naive_actual, xmax=max_makespan).get_figure()
+    fig.savefig(SAVEPATH / "gantt_naive_actual.png")
+    plt.close(fig)
 
     for i, (sched_estimate, sched_hypothetical, sched_actual) in enumerate(zip(scheds_online_estimate, scheds_online_hypothetical, scheds_online_actual)):
-        draw_gantt(sched_estimate, xmax=max_makespan).get_figure().savefig(SAVEPATH / f"gantt_online_estimate_{i}.png")
-        draw_gantt(sched_hypothetical, xmax=max_makespan).get_figure().savefig(SAVEPATH / f"gantt_online_hypothetical_{i}.png")
-        draw_gantt(sched_actual, xmax=max_makespan).get_figure().savefig(SAVEPATH / f"gantt_online_actual_{i}.png")
+        fig = draw_gantt(sched_estimate, xmax=max_makespan).get_figure()
+        fig.savefig(SAVEPATH / f"gantt_online_estimate_{i}.png")
+        plt.close(fig)
+
+        fig = draw_gantt(sched_hypothetical, xmax=max_makespan).get_figure()
+        fig.savefig(SAVEPATH / f"gantt_online_hypothetical_{i}.png")
+        plt.close(fig)
+
+        fig = draw_gantt(sched_actual, xmax=max_makespan).get_figure()
+        fig.savefig(SAVEPATH / f"gantt_online_actual_{i}.png")
+        plt.close(fig)
 
 if __name__ == "__main__":
     main()
