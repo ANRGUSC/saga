@@ -38,6 +38,7 @@ ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable, bool], float]] = {
     "SHEFT": lambda x, is_cost: x.mean() + (-1 if is_cost else 1) * x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + (-1 if is_cost else 1) * 1/x.std())
 }
 IGNORE_ERRORS = True  # Set to False to raise exceptions during experiments
+RUN_RESTRICTED = True  # If True, only run HEFT and CPoP variants; otherwise run all combinations
 # ----------------------------------------------------
 
 # Shared progress state
@@ -173,7 +174,7 @@ def run_one_experiment(workflow: str,
         lock (mp.Lock): A multiprocessing lock to ensure thread-safe writing to the CSV file.
     """
     try:
-        scheduler_variants = get_scheduler_variants_restricted()
+        scheduler_variants = get_scheduler_variants_restricted() if RUN_RESTRICTED else get_scheduler_variants_all()
         estimate_method = ESTIMATE_METHODS[estimate_method_name]
 
         # Create problem instance: network + task graph with estimated weights
