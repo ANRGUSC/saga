@@ -15,9 +15,6 @@ from typing import Callable, Dict, Hashable, List, Tuple
 from multiprocessing import Value, Lock
 import networkx as nx
 
-import pandas as pd
-import numpy as np
-from saga.scheduler import Scheduler, Task
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -57,22 +54,35 @@ def print_progress(total_jobs: int):
         print(f"Progress: {current}/{total_jobs} ({pct:.1f}%)", end="\r")
 
 
-def init_csv(lock: mp.Lock):
+def init_csv(lock: mp.Lock) -> bool:
     """ Initialize the CSV file for storing results.
     This function checks if the CSV file exists, and if not, creates it with the appropriate headers.
     
     Args:
         lock (mp.Lock): A multiprocessing lock to ensure thread-safe writing to the CSV file.
+
+    Returns:
+        bool: True if the CSV was initialized successfully, False if it already exists and user chose not to overwrite.
     """
     with lock:
-        if not CSV_PATH.exists():
-            with open(CSV_PATH, mode='w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([
-                    "workflow", "estimate_method", "ccr", "sample", "scheduler", "scheduler_type",
-                    "ranking_function", "append_only", "compare", "critical_path",
-                    "makespan"
-                ])
+        if CSV_PATH.exists():
+            while True:
+                res = input(f"CSV file {CSV_PATH} already exists. Overwrite? (y/n): ").strip().lower()
+                if res == "y":
+                    CSV_PATH.unlink()
+                elif res == "n":
+                    return False
+                else:
+                    print("Invalid input. Please enter 'y' or 'n'.")
+        with CSV_PATH.open(mode='w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "workflow", "estimate_method", "ccr", "sample", "scheduler", "scheduler_type",
+                "ranking_function", "append_only", "compare", "critical_path",
+                "makespan"
+            ])
+
+    return True
 
 
 @dataclass
@@ -283,7 +293,9 @@ def run_restricted_experiments():
     # Set up multiprocessing infrastructure
     manager = mp.Manager()
     lock = manager.Lock()
-    init_csv(lock)
+
+    if not init_csv(lock):
+        return
 
     # Prepare arguments for each experiment
     wrapped_args = [(w, em, c, s, lock, total_jobs) for w, em, c, s in all_params]
