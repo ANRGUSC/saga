@@ -1,3 +1,10 @@
+"""
+Online vs Offline Scheduling Experiments
+
+This script runs systematic experiments comparing online and offline scheduling algorithms.
+It tests how well online schedulers perform compared to offline schedulers when task
+execution times are uncertain (estimated vs actual).
+"""
 from dataclasses import dataclass
 import os
 import csv
@@ -23,8 +30,8 @@ from saga.utils.random_variable import RandomVariable
 # ---------------------- Config ----------------------
 THISDIR = pathlib.Path(__file__).resolve().parent
 CSV_PATH = THISDIR / "results.csv"
-WORKFLOWS = list(recipes.keys())
-CCRS = [0.2, 0.5, 1.0, 2.0, 5.0]
+WORKFLOWS = list(recipes.keys()) # Available workflows from the WfCommons dataset (Montage, CyberShake, etc.)
+CCRS = [0.2, 0.5, 1.0, 2.0, 5.0] # Low CCR = computation intensive, High CCR = communication intensive
 N_SAMPLES = 100
 ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable, bool], float]] = {
     "mean": lambda x, is_cost: x.mean(),
@@ -152,6 +159,12 @@ def run_one_experiment(workflow: str,
     This function will schedule the tasks using both offline and online schedulers,
     and write the results to a CSV file.
 
+    This is the core function that:
+    1. Creates a problem instance (network + task graph)
+    2. Runs offline, online, and naive online schedulers
+    3. Measures makespan (total execution time) for each
+    4. Writes results to CSV
+    
     Args:
         workflow (str): The name of the workflow to run.
         estimate_method_name (str): The name of the method to estimate task weights.
@@ -162,6 +175,8 @@ def run_one_experiment(workflow: str,
     try:
         scheduler_variants = get_scheduler_variants_restricted()
         estimate_method = ESTIMATE_METHODS[estimate_method_name]
+
+        # Create problem instance: network + task graph with estimated weights
         network, task_graph = get_wfcommons_instance(recipe_name=workflow, ccr=ccr, estimate_method=estimate_method)
         results = []
 
@@ -250,20 +265,29 @@ def wrapped(args: Tuple[str, str, float, int, mp.Lock, int]) -> None:
 
 def run_restricted_experiments():
     """
-    Run all experiments for all workflows, CCRs, and samples but with a restricted set of schedulers (HEFT and CPoP).
-    This function initializes the CSV file, creates a pool of workers,
-    and maps the wrapped function to all combinations of parameters.
+    Main function that orchestrates all experiments.
+    
+    This function:
+    1. Creates all parameter combinations (workflows * estimation methods * CCRs * samples)
+    2. Sets up multiprocessing for parallel execution
+    3. Runs all experiments in parallel
+    4. Saves results to CSV for analysis
     """
+    # Create all parameter combinations
+    # This generates: (workflow, estimate_method, ccr, sample_index) for each experiment
     all_params = list(product(WORKFLOWS, ESTIMATE_METHODS.keys(), CCRS, range(N_SAMPLES)))
     total_jobs = len(all_params)
     print(f"Total experiments: {total_jobs}")
 
+    # Set up multiprocessing infrastructure
     manager = mp.Manager()
     lock = manager.Lock()
     init_csv(lock)
 
+    # Prepare arguments for each experiment
     wrapped_args = [(w, em, c, s, lock, total_jobs) for w, em, c, s in all_params]
 
+    # Run experiments in parallel (using 80% of CPU cores)
     with mp.Pool(processes=int(os.cpu_count() * 0.8)) as pool:
         pool.map(wrapped, wrapped_args)
 
