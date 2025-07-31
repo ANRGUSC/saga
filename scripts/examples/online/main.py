@@ -27,6 +27,10 @@ from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 # ---------------------- Config ----------------------
 THISDIR = pathlib.Path(__file__).resolve().parent
 SAVEPATH = THISDIR / "example"
+FILETYPE = "pdf"  # Change to "pdf" if needed
+SAVEPATH.mkdir(parents=True, exist_ok=True)
+plt.rcParams["font.size"] = 12
+# -----------------------------------------------------
 
 
 def get_task_graph() -> nx.DiGraph:
@@ -112,35 +116,35 @@ def main():
 
     # Draw Task Graph and Network
     SAVEPATH.mkdir(parents=True, exist_ok=True)
-    draw_task_graph(task_graph_actual, figsize=(7, 7), node_weight_offset=10).get_figure().savefig(SAVEPATH / "task_graph_actual.png")
-    draw_network(network_actual, draw_colors=False).get_figure().savefig(SAVEPATH / "network_actual.png")
-    draw_task_graph(task_graph_estimate, figsize=(7, 7), node_weight_offset=10).get_figure().savefig(SAVEPATH / "task_graph_estimate.png")
-    draw_network(network_estimate, draw_colors=False).get_figure().savefig(SAVEPATH / "network_estimate.png")
+    draw_task_graph(task_graph_actual, figsize=(7, 7), node_weight_offset=10).get_figure().savefig(SAVEPATH / f"task_graph_actual.{FILETYPE}")
+    draw_network(network_actual, draw_colors=False).get_figure().savefig(SAVEPATH / f"network_actual.{FILETYPE}")
+    draw_task_graph(task_graph_estimate, figsize=(7, 7), node_weight_offset=10).get_figure().savefig(SAVEPATH / f"task_graph_estimate.{FILETYPE}")
+    draw_network(network_estimate, draw_colors=False).get_figure().savefig(SAVEPATH / f"network_estimate.{FILETYPE}")
 
     # Draw Gantt Charts
     fig = draw_gantt(sched_offline, xmax=max_makespan).get_figure()
-    fig.savefig(SAVEPATH / "gantt_offline.png")
+    fig.savefig(SAVEPATH / f"gantt_offline.{FILETYPE}")
     plt.close(fig)
 
     fig = draw_gantt(sched_naive_estimate, xmax=max_makespan).get_figure()
-    fig.savefig(SAVEPATH / "gantt_naive_estimate.png")
+    fig.savefig(SAVEPATH / f"gantt_naive_estimate.{FILETYPE}")
     plt.close(fig)
 
     fig = draw_gantt(sched_naive_actual, xmax=max_makespan).get_figure()
-    fig.savefig(SAVEPATH / "gantt_naive_actual.png")
+    fig.savefig(SAVEPATH / f"gantt_naive_actual.{FILETYPE}")
     plt.close(fig)
 
     for i, (sched_estimate, sched_hypothetical, sched_actual) in enumerate(zip(scheds_online_estimate, scheds_online_hypothetical, scheds_online_actual)):
         fig = draw_gantt(sched_estimate, xmax=max_makespan).get_figure()
-        fig.savefig(SAVEPATH / f"gantt_online_estimate_{i}.png")
+        fig.savefig(SAVEPATH / f"gantt_online_estimate_{i}.{FILETYPE}")
         plt.close(fig)
 
         fig = draw_gantt(sched_hypothetical, xmax=max_makespan).get_figure()
-        fig.savefig(SAVEPATH / f"gantt_online_hypothetical_{i}.png")
+        fig.savefig(SAVEPATH / f"gantt_online_hypothetical_{i}.{FILETYPE}")
         plt.close(fig)
 
         fig = draw_gantt(sched_actual, xmax=max_makespan).get_figure()
-        fig.savefig(SAVEPATH / f"gantt_online_actual_{i}.png")
+        fig.savefig(SAVEPATH / f"gantt_online_actual_{i}.{FILETYPE}")
         plt.close(fig)
 
 if __name__ == "__main__":
