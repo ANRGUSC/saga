@@ -26,7 +26,7 @@ from saga.utils.random_variable import RandomVariable
 
 # ---------------------- Config ----------------------
 THISDIR = pathlib.Path(__file__).resolve().parent
-CSV_PATH = THISDIR / "results.csv"
+CSV_PATH = THISDIR / "results-full.csv"
 WORKFLOWS = list(recipes.keys()) # Available workflows from the WfCommons dataset (Montage, CyberShake, etc.)
 CCRS = [0.2, 0.5, 1.0, 2.0, 5.0] # Low CCR = computation intensive, High CCR = communication intensive
 N_SAMPLES = 100
@@ -35,7 +35,7 @@ ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable, bool], float]] = {
     "SHEFT": lambda x, is_cost: x.mean() + (-1 if is_cost else 1) * x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + (-1 if is_cost else 1) * 1/x.std())
 }
 IGNORE_ERRORS = True  # Set to False to raise exceptions during experiments
-RUN_RESTRICTED = True  # If True, only run HEFT and CPoP variants; otherwise run all combinations
+RUN_RESTRICTED = False  # If True, only run HEFT and CPoP variants; otherwise run all combinations
 # ----------------------------------------------------
 
 # Shared progress state

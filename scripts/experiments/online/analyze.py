@@ -31,7 +31,7 @@ def analyze():
     pivot["naive_online_ratio"] = pivot["Naive Online"] / pivot["Offline"]
 
     # Plot boxplots of normalized makespan ratios
-    sns.set(style="whitegrid", font_scale=1.2)
+    sns.set_theme(style="whitegrid", font_scale=1.2)
     for estimate in sorted(pivot["estimate_method"].unique()):
         for variant in sorted(pivot["scheduler"].unique()):
             df_subset = pivot[
@@ -99,7 +99,6 @@ def analyze():
     summary = summary.rename(columns=COL_NAMES)
     summary = summary[["Estimator", "Scheduler", "Online / Offline", "Naive Online / Offline"]]
 
-    print(summary.columns)
     summary.to_latex(
         OUTDIR / "normalized_makespan_stats.tex",
         index=False,
