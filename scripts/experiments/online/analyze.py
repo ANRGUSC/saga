@@ -23,27 +23,24 @@ def analyze():
         print("CSV is empty. Exiting.")
         return
 
-    # Pivot: (workflow, ccr, sample, variant, estimate_method) → scheduler_type → makespan
     pivot = df.pivot_table(
         index=["workflow", "ccr", "sample", "scheduler", "estimate_method"],
         columns="scheduler_type",
         values="makespan"
     ).reset_index()
 
-    # Keep only rows where all scheduler types are present
     pivot = pivot.dropna(subset=["Offline", "Online", "Naive Online"])
 
-    # Normalize Online and Naive Online by Offline
     pivot["online_ratio"] = pivot["Online"] / pivot["Offline"]
     pivot["naive_online_ratio"] = pivot["Naive Online"] / pivot["Offline"]
 
-    # Plot boxplots of normalized makespan ratios
+    # Plot boxplots of Makespan Ratio ratios
     sns.set_theme(style="whitegrid", font_scale=1.6)
     for estimate in sorted(pivot["estimate_method"].unique()):
-        for variant in sorted(pivot["scheduler"].unique()):
+        for scheduler in sorted(pivot["scheduler"].unique()):
             df_subset = pivot[
                 (pivot["estimate_method"] == estimate) &
-                (pivot["scheduler"] == variant)
+                (pivot["scheduler"] == scheduler)
             ]
 
             if df_subset.empty:
@@ -54,7 +51,7 @@ def analyze():
                 id_vars=["ccr", "workflow"],
                 value_vars=["online_ratio", "naive_online_ratio"],
                 var_name="Scheduler",
-                value_name="Normalized Makespan"
+                value_name="Makespan Ratio"
             )
             scheduler_labels = {
                 "online_ratio": r"$\text{MR}_{\text{Online}}$",
@@ -66,11 +63,11 @@ def analyze():
             ax = sns.boxplot(
                 data=melted,
                 x="ccr",
-                y="Normalized Makespan",
+                y="Makespan Ratio",
                 hue="Scheduler",
                 showfliers=False
             )
-            ax.set_title(f"Normalized Makespan vs Offline ({estimate}, {variant})")
+            ax.set_title(f"Makespan Ratio vs Offline ({estimate}, {scheduler})")
             ax.set_ylabel("Makespan Ratio")
             ax.set_xlabel("CCR")
             plt.legend(
@@ -81,7 +78,7 @@ def analyze():
             )
             plt.tight_layout()
 
-            out_path = OUTDIR / f"boxplot_normalized_makespan_{estimate}_{variant}.{FILETYPE}"
+            out_path = OUTDIR / f"boxplot_normalized_makespan_{estimate}_{scheduler}.{FILETYPE}"
             plt.savefig(out_path)
             plt.close()
 
@@ -92,14 +89,12 @@ def analyze():
         "online_ratio": r"$\text{MR}_{\text{Online}}$",
         "naive_online_ratio": r"$\text{MR}_{\text{Naive}}$"
     }
-    summary_mean = pivot.groupby(["estimate_method", "scheduler"])[
-        ["online_ratio", "naive_online_ratio"]
-    ].mean().reset_index()
-    summary_std = pivot.groupby(["estimate_method", "scheduler"])[
-        ["online_ratio", "naive_online_ratio"]
-    ].std().reset_index()
-    # Merge mean and std into a single DataFrame with cell values <mean> \pm <std>
-    summary = pd.merge(summary_mean, summary_std, on=["estimate_method", "scheduler"], suffixes=("", "_std"))
+    summary = pivot.groupby(["estimate_method", "scheduler"]).agg(
+        online_ratio=("online_ratio", "mean"),
+        online_ratio_std=("online_ratio", "std"),
+        naive_online_ratio=("naive_online_ratio", "mean"),
+        naive_online_ratio_std=("naive_online_ratio", "std")
+    ).reset_index()
     summary["online_ratio"] = summary.apply(
         lambda row: f"${row['online_ratio']:.3f} \pm {row['online_ratio_std']:.3f}$",
         axis=1
@@ -117,7 +112,7 @@ def analyze():
         escape=False,
         float_format="%.3f",
         label="tab:normalized_makespan_stats",
-        caption="Normalized makespan statistics for online scheduling experiments.",
+        caption="Makespan Ratio statistics for online scheduling experiments.",
         position="ht!"
     )
 
@@ -129,10 +124,10 @@ def analyze():
     nrows = -(-n_workflows // ncols)  # Ceiling division
 
     for estimate in sorted(pivot["estimate_method"].unique()):
-        for variant in sorted(pivot["scheduler"].unique()):
+        for scheduler in sorted(pivot["scheduler"].unique()):
             df_subset = pivot[
                 (pivot["estimate_method"] == estimate) &
-                (pivot["scheduler"] == variant)
+                (pivot["scheduler"] == scheduler)
             ]
             if df_subset.empty:
                 continue
@@ -141,7 +136,7 @@ def analyze():
                 id_vars=["ccr", "workflow"],
                 value_vars=["online_ratio", "naive_online_ratio"],
                 var_name="Scheduler",
-                value_name="Normalized Makespan"
+                value_name="Makespan Ratio"
             )
             scheduler_labels = {
                 "online_ratio": r"$\text{MR}_{\text{Online}}$",
@@ -150,7 +145,7 @@ def analyze():
             melted["Scheduler"] = melted["Scheduler"].map(scheduler_labels)
 
             fig, axes = plt.subplots(
-                nrows=nrows, ncols=ncols, figsize=(5 * ncols, 3 * nrows), sharey=True
+                nrows=nrows, ncols=ncols, figsize=(6 * ncols, 3 * nrows), sharey=True
             )
             axes: List[plt.Axes] = axes.flatten()
             
@@ -163,7 +158,7 @@ def analyze():
                 sns.boxplot(
                     data=data,
                     x="ccr",
-                    y="Normalized Makespan",
+                    y="Makespan Ratio",
                     hue="Scheduler",
                     showfliers=False,
                     ax=ax
@@ -171,7 +166,7 @@ def analyze():
                 ax.set_title(workflow)
                 ax.set_xlabel("CCR")
                 if i % ncols == 0:
-                    ax.set_ylabel("Normalized Makespan")
+                    ax.set_ylabel("Makespan Ratio")
                 else:
                     ax.set_ylabel("")
 
@@ -187,10 +182,10 @@ def analyze():
                 borderaxespad=0.
             )
 
-            fig.suptitle(f"Normalized Makespan by Workflow ({estimate}, {variant})")
+            fig.suptitle(f"Makespan Ratio by Workflow ({estimate}, {scheduler})")
             fig.tight_layout(rect=[0, 0, 1, 0.96])
 
-            out_path = OUTDIR / f"subplot_normalized_makespan_{estimate}_{variant}.{FILETYPE}"
+            out_path = OUTDIR / f"subplot_normalized_makespan_{estimate}_{scheduler}.{FILETYPE}"
             fig.savefig(out_path)
             plt.close(fig)
 

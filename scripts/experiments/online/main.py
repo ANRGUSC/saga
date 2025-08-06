@@ -11,6 +11,7 @@ import csv
 import pathlib
 import multiprocessing as mp
 from itertools import product
+import traceback
 from typing import Callable, Dict, Hashable, List, Tuple
 from multiprocessing import Value, Lock
 import networkx as nx
@@ -25,17 +26,18 @@ from saga.schedulers.data.wfcommons import get_wfcommons_instance, recipes
 from saga.utils.random_variable import RandomVariable
 
 # ---------------------- Config ----------------------
+NCORES = int(os.cpu_count() * 0.8) # Use 80% of CPU cores for parallel processing
 THISDIR = pathlib.Path(__file__).resolve().parent
-CSV_PATH = THISDIR / "results-full.csv"
 WORKFLOWS = list(recipes.keys()) # Available workflows from the WfCommons dataset (Montage, CyberShake, etc.)
 CCRS = [0.2, 0.5, 1.0, 2.0, 5.0] # Low CCR = computation intensive, High CCR = communication intensive
 N_SAMPLES = 100
 ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable, bool], float]] = {
-    "mean": lambda x, is_cost: x.mean(),
-    "SHEFT": lambda x, is_cost: x.mean() + (-1 if is_cost else 1) * x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + (-1 if is_cost else 1) * 1/x.std())
+    "mean": lambda x, is_speed: x.mean(),
+    "SHEFT": lambda x, is_speed: x.mean() + (-1 if is_speed else 1) * x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + (-1 if is_speed else 1) * 1/x.std())
 }
-IGNORE_ERRORS = True  # Set to False to raise exceptions during experiments
-RUN_RESTRICTED = False  # If True, only run HEFT and CPoP variants; otherwise run all combinations
+IGNORE_ERRORS = False  # Set to False to raise exceptions during experiments
+RUN_RESTRICTED = True  # If True, only run HEFT and CPoP variants; otherwise run all combinations
+CSV_PATH = THISDIR / "results.csv" if RUN_RESTRICTED else THISDIR / "results-full.csv"
 # ----------------------------------------------------
 
 # Shared progress state
@@ -70,11 +72,12 @@ def init_csv(lock: mp.Lock) -> bool:
                 res = input(f"CSV file {CSV_PATH} already exists. Overwrite? (y/n): ").strip().lower()
                 if res == "y":
                     CSV_PATH.unlink()
+                    break
                 elif res == "n":
                     return False
                 else:
                     print("Invalid input. Please enter 'y' or 'n'.")
-        with CSV_PATH.open(mode='w', newline='') as f:
+        with CSV_PATH.open(mode='w+', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
                 "workflow", "estimate_method", "ccr", "sample", "scheduler", "scheduler_type",
@@ -256,6 +259,7 @@ def run_one_experiment(workflow: str,
 
     except Exception as e:
         print(f"Error in ({workflow}, {ccr}, {sample_index}): {e}")
+        traceback.print_exc()
         if not IGNORE_ERRORS:
             raise e
 
@@ -300,9 +304,14 @@ def run_restricted_experiments():
     # Prepare arguments for each experiment
     wrapped_args = [(w, em, c, s, lock, total_jobs) for w, em, c, s in all_params]
 
-    # Run experiments in parallel (using 80% of CPU cores)
-    with mp.Pool(processes=int(os.cpu_count() * 0.8)) as pool:
-        pool.map(wrapped, wrapped_args)
+    if NCORES > 1:
+        # Run experiments in parallel (using 80% of CPU cores)
+        with mp.Pool(processes=int(os.cpu_count() * 0.8)) as pool:
+            pool.map(wrapped, wrapped_args)
+    else:
+        # Run experiments sequentially (single core)
+        for args in wrapped_args:
+            wrapped(args)
 
     print("\nAll experiments complete.")
 
