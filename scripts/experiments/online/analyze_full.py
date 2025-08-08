@@ -86,6 +86,76 @@ def main():
         plt.savefig(out_path)
         plt.close()
 
+    # Additional analysis
+    print("Generating extra analysis...")
+    
+ 
+    
+    # Average performance by CCR
+    plt.figure(figsize=(10, 6))
+    ccr_summary = pivot.groupby('ccr')[['online_ratio', 'naive_online_ratio']].mean()
+    ccr_summary.plot(kind='bar')
+    plt.title('Average Performance by CCR')
+    plt.ylabel('Ratio to Best Makespan')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'average_performance_by_ccr.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Performance variance by CCR
+    plt.figure(figsize=(10, 6))
+    ccr_variance = pivot.groupby('ccr')['online_ratio'].std()
+    ccr_variance.plot(kind='bar')
+    plt.title('Performance Variance by CCR')
+    plt.ylabel('Standard Deviation')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'performance_variance_by_ccr.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
+    # Average performance by workflow
+    plt.figure(figsize=(12, 8))
+    workflow_summary = pivot.groupby('workflow')[['online_ratio', 'naive_online_ratio']].mean()
+    workflow_summary.plot(kind='bar')
+    plt.title('Average Performance by Workflow')
+    plt.ylabel('Ratio to Best Makespan')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'average_performance_by_workflow.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Performance variance by workflow
+    plt.figure(figsize=(12, 8))
+    workflow_variance = pivot.groupby('workflow')['online_ratio'].std()
+    workflow_variance.plot(kind='bar')
+    plt.title('Performance Variance by Workflow')
+    plt.ylabel('Standard Deviation')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'performance_variance_by_workflow.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Heatmap: workflow vs CCR
+    plt.figure(figsize=(10, 8))
+    heatmap_data = pivot.groupby(['workflow', 'ccr'])['online_ratio'].mean().unstack()
+    sns.heatmap(heatmap_data, annot=True, cmap='RdYlBu_r', center=1.0, fmt='.3f')
+    plt.title('Online Performance Heatmap')
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'workflow_ccr_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Component effectiveness by workflow
+    plt.figure(figsize=(12, 8))
+    component_workflow = pivot.groupby(['workflow', 'ranking_function'])['online_ratio'].mean().unstack()
+    component_workflow.plot(kind='bar')
+    plt.title('Component Effectiveness by Workflow')
+    plt.ylabel('Online/Best Ratio')
+    plt.xticks(rotation=45)
+    plt.legend(title='Ranking Function', bbox_to_anchor=(1.05, 1))
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'component_effectiveness_by_workflow.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
     print(f"Done. Plots saved to: {OUTDIR}")
 
 if __name__ == "__main__":
