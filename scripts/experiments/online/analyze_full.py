@@ -86,6 +86,39 @@ def main():
         plt.savefig(out_path)
         plt.close()
 
+    # Scheduler type comparison by workflow
+    print("Generating scheduler comparison...")
+    
+    # Boxplot comparing scheduler types
+    plt.figure(figsize=(12, 8))
+    scheduler_comparison = pivot.melt(
+        id_vars=['workflow'], 
+        value_vars=['Offline', 'Online', 'Naive Online'],
+        var_name='Scheduler_Type', 
+        value_name='Makespan'
+    )
+    sns.boxplot(data=scheduler_comparison, x='workflow', y='Makespan', hue='Scheduler_Type')
+    plt.title('Scheduler Performance by Workflow')
+    plt.xlabel('Workflow')
+    plt.ylabel('Makespan')
+    plt.xticks(rotation=45)
+    plt.legend(title='Scheduler Type', bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'scheduler_comparison_by_workflow.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    
+    # Heatmap of scheduler performance
+    plt.figure(figsize=(12, 8))
+    scheduler_workflow_summary = pivot.groupby(['workflow', 'scheduler'])['online_ratio'].mean().unstack()
+    sns.heatmap(scheduler_workflow_summary, annot=True, cmap='RdYlBu_r', center=1.0, fmt='.3f')
+    plt.title('Online Scheduler Performance Heatmap')
+    plt.xlabel('Scheduler Algorithm')
+    plt.ylabel('Workflow')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(OUTDIR / 'scheduler_workflow_heatmap.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
     # Additional analysis
     print("Generating extra analysis...")
     
