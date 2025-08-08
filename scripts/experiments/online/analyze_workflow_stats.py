@@ -62,7 +62,15 @@ def main():
         ("task_variance_mean", "Task Variance (Mean)"),
         ("dep_variance_max", "Dependency Variance (Max)"),
         ("node_variance_mean", "Node Variance (Mean)"),
-        ("link_variance_max", "Link Variance (Max)")
+        ("link_variance_max", "Link Variance (Max)"),
+        ("task_cost_mean", "Task Cost (Mean)"),
+        ("task_cost_max", "Task Cost (Max)"),
+        ("dep_cost_mean", "Dependency Cost (Mean)"),
+        ("dep_cost_max", "Dependency Cost (Max)"),
+        ("node_speed_mean", "Node Speed (Mean)"),
+        ("node_speed_max", "Node Speed (Max)"),
+        ("link_speed_mean", "Link Speed (Mean)"),
+        ("link_speed_max", "Link Speed (Max)"),
     ]
 
     for stat_col, ylabel in metrics:

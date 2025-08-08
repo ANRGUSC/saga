@@ -17,7 +17,7 @@ N_SAMPLES = 100
 
 def process_instance(args: Tuple[str, int]) -> Dict:
     workflow, sample = args
-    task_graph, network = get_wfcommons_instance(
+    network, task_graph = get_wfcommons_instance(
         recipe_name=workflow,
         ccr=5,
         max_size_multiplier=2
@@ -46,8 +46,8 @@ def process_instance(args: Tuple[str, int]) -> Dict:
 
     task_costs = [data["weight_estimate"] for _, data in task_graph.nodes(data=True)]
     dep_costs = [data["weight_estimate"] for _, _, data in task_graph.edges(data=True)]
-    node_costs = [data["weight_estimate"] for _, data in network.nodes(data=True)]
-    link_costs = [data["weight_estimate"] for _, _, data in network.edges(data=True)]
+    node_speeds = [data["weight_estimate"] for _, data in network.nodes(data=True)]
+    link_speeds = [data["weight_estimate"] for _, _, data in network.edges(data=True)]
 
     return {
         "workflow": workflow,
@@ -64,16 +64,16 @@ def process_instance(args: Tuple[str, int]) -> Dict:
         "task_cost_max": max(task_costs) if task_costs else 0,
         "dep_cost_mean": sum(dep_costs) / (len(dep_costs) or 1),
         "dep_cost_max": max(dep_costs) if dep_costs else 0,
-        "node_cost_mean": sum(node_costs) / (len(node_costs) or 1),
-        "node_cost_max": max(node_costs) if node_costs else 0,
-        "link_cost_mean": sum(link_costs) / (len(link_costs) or 1),
-        "link_cost_max": max(link_costs) if link_costs else 0
+        "node_speed_mean": sum(node_speeds) / (len(node_speeds) or 1),
+        "node_speed_max": max(node_speeds) if node_speeds else 0,
+        "link_speed_mean": sum(link_speeds) / (len(link_speeds) or 1),
+        "link_speed_max": max(link_speeds) if link_speeds else 0
     }
 
 
 def main():
     instances = list(product(WORKFLOWS, range(N_SAMPLES)))
-    processes = 1 # max(1, int(0.9 * cpu_count()))
+    processes = max(1, int(0.9 * cpu_count()))
     print(f"Processing {len(instances)} instances across {processes} cores...")
 
     # Prepare CSV file with headers
@@ -85,8 +85,8 @@ def main():
         "link_variance_mean", "link_variance_max",
         "task_cost_mean", "task_cost_max",
         "dep_cost_mean", "dep_cost_max",
-        "node_cost_mean", "node_cost_max",
-        "link_cost_mean", "link_cost_max"
+        "node_speed_mean", "node_speed_max",
+        "link_speed_mean", "link_speed_max"
     ]
     CSV_PATH.write_text(','.join(columns) + '\n')
 

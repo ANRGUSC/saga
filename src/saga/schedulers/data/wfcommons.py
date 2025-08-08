@@ -103,6 +103,7 @@ clouds = {
         "glob": "*/chameleon-cloud/*.json"
     }
 }
+@lru_cache(maxsize=None)
 def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     """Get graphs representing the specified cloud_name.
 
@@ -526,7 +527,6 @@ def get_wfcommons_instance(recipe_name: str,
     avg_comm_speed = ccr * avg_dep_cost / (avg_task_cost / avg_node_speed)
     for (u, v) in network.edges:
         weight_rv: RandomVariable = RandomVariable([avg_comm_speed] * 100)
-        network.edges[u, v]["weight"] = weight_rv
         network.edges[u, v]["weight_rv"] = weight_rv
         network.edges[u, v]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, is_speed=True) if isinstance(weight_rv, RandomVariable) else weight_rv)
         network.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
