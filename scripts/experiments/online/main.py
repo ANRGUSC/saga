@@ -35,8 +35,8 @@ ESTIMATE_METHODS: Dict[str, Callable[[RandomVariable, bool], float]] = {
     "mean": lambda x, is_speed: x.mean(),
     "SHEFT": lambda x, is_speed: x.mean() + (-1 if is_speed else 1) * x.std() if x.var()/x.mean() <= 1 else x.mean() * (1 + (-1 if is_speed else 1) * 1/x.std())
 }
-IGNORE_ERRORS = False  # Set to False to raise exceptions during experiments
-RUN_RESTRICTED = True  # If True, only run HEFT and CPoP variants; otherwise run all combinations
+IGNORE_ERRORS = True  # Set to False to raise exceptions during experiments
+RUN_RESTRICTED = False  # If True, only run HEFT and CPoP variants; otherwise run all combinations
 CSV_PATH = THISDIR / "results.csv" if RUN_RESTRICTED else THISDIR / "results-full.csv"
 # ----------------------------------------------------
 
