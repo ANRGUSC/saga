@@ -1,9 +1,9 @@
 import copy
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Hashable, List, Set, Tuple
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from saga.scheduler import Schedule, Scheduler, Task
 
 
 class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -20,7 +20,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """
     def schedule(self, # pylint: disable=too-many-locals
                  network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+                 task_graph: nx.DiGraph) -> Schedule:
         """Returns the schedule for the given task graph on the given network using the BIL algorithm.
 
         Args:
@@ -30,7 +30,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             A dictionary of the schedule
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        schedule: Schedule = Schedule(schedule={node: [] for node in network.nodes})
         scheduled_tasks: Dict[Hashable, Task] = {}
 
         bils: Dict[Hashable, float] = {}
@@ -52,7 +52,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     default=0
                 )
 
-        ready_tasks = {task for task in task_graph.nodes if task_graph.in_degree(task) == 0}
+        ready_tasks: Set[Hashable] = {task for task in task_graph.nodes if task_graph.in_degree(task) == 0}
         while len(scheduled_tasks) < len(task_graph.nodes):
             # Section 3.1: Node Selection
             bims: Dict[Hashable, List[Tuple[Hashable, float]]] = {

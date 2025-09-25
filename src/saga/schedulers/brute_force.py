@@ -3,14 +3,14 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, Task, Schedule
 
 
 class BruteForceScheduler(Scheduler):
     """Brute force scheduler"""
     def schedule(self,
                  network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+                 task_graph: nx.DiGraph) -> Schedule:
         """Returns the best schedule (minimizing makespan) for a problem
            instance using brute force
 
@@ -34,7 +34,7 @@ class BruteForceScheduler(Scheduler):
         for mapping in mappings:
             for top_sort in topological_sorts:
                 tasks: Dict[int, Task] = {}
-                schedule: Dict[int, List[Task]] = {}
+                schedule: Schedule = Schedule()
                 for task in top_sort:
                     node = mapping[task]
                     task_cost = task_graph.nodes[task]["weight"]
