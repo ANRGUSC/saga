@@ -7,10 +7,10 @@ import networkx as nx
 @dataclass
 class Task:
     """A task."""
-    node: str
-    name: str
-    start: Optional[float]
-    end: Optional[float]
+    node: Hashable
+    name: Hashable
+    start: float
+    end: float
 
 
 class Scheduler(ABC): # pylint: disable=too-few-public-methods

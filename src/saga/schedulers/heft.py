@@ -5,6 +5,7 @@ from typing import Dict, Hashable, List, Optional, Tuple
 
 import networkx as nx
 import numpy as np
+from queue import PriorityQueue
 
 from ..scheduler import Scheduler, Task
 from ..utils.tools import get_insert_loc
@@ -34,6 +35,10 @@ class HeftScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
+    def __init__(self, duplicate_factor: int = 1) -> None:
+        super().__init__()
+        self.duplicate_factor = duplicate_factor
 
     @staticmethod
     def get_runtimes(
@@ -120,30 +125,33 @@ class HeftScheduler(Scheduler):
         Raises:
             ValueError: If the instance is invalid.
         """
+        comp_schedule: Dict[Hashable, List[Task]]
+        task_schedule: Dict[Hashable, List[Task]]
         if schedule is None:
-            comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-            task_schedule: Dict[Hashable, Task] = {}
+            comp_schedule = {node: [] for node in network.nodes} # node -> List[Task]
+            task_schedule = {}                                   # task_name -> List[Task] (with same name)
         else:
             comp_schedule = deepcopy(schedule)
-            task_schedule = {task.name: task for node in schedule for task in schedule[node]}
+            task_schedule = {}
+            for node in comp_schedule:
+                for task in comp_schedule[node]:
+                    task_schedule.setdefault(task.name, []).append(task)
 
         task_name: Hashable
         logging.debug("Schedule order: %s", schedule_order)
         for task_name in schedule_order:
             if task_name in task_schedule:
                 continue
-            min_finish_time = np.inf
-            best_node = None
+            duplicate_factor = 1 if task_graph.out_degree(task_name) <= 1 else self.duplicate_factor
+            best_nodes = PriorityQueue()
             for node in network.nodes:  # Find the best node to run the task
                 max_arrival_time: float = max(  #
                     [
                         min_start_time,
                         *[
-                            task_schedule[parent].end
-                            + (
-                                commtimes[(task_schedule[parent].node, node)][
-                                    (parent, task_name)
-                                ]
+                            min(
+                                task.end + commtimes[(task.node, node)][(parent, task_name)]
+                                for task in task_schedule[parent]
                             )
                             for parent in task_graph.predecessors(task_name)
                         ],
@@ -164,16 +172,16 @@ class HeftScheduler(Scheduler):
                 )
 
                 finish_time = start_time + runtime
-                if finish_time < min_finish_time:
-                    min_finish_time = finish_time
-                    best_node = node, idx
+                best_nodes.put((finish_time, (node, idx)))
 
-            new_runtime = runtimes[best_node[0]][task_name]
-            task = Task(
-                best_node[0], task_name, min_finish_time - new_runtime, min_finish_time
-            )
-            comp_schedule[best_node[0]].insert(best_node[1], task)
-            task_schedule[task_name] = task
+            for _ in range(duplicate_factor):
+                if best_nodes.empty():
+                    break
+                finish_time, (node, idx) = best_nodes.get()
+                runtime = runtimes[node][task_name]
+                task = Task(node, task_name, finish_time - runtime, finish_time)
+                comp_schedule[node].insert(idx, task)
+                task_schedule.setdefault(task_name, []).append(task)
 
         return comp_schedule
 
