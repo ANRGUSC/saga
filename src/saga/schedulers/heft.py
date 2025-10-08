@@ -38,7 +38,7 @@ class HeftScheduler(Scheduler):
 
     def __init__(self, duplicate_factor: int = 1) -> None:
         super().__init__()
-        self.duplicate_factor = duplicate_factor
+        self.duplicate_factor = duplicate_factor # Can a task be duplicated on multiple nodes?
 
     @staticmethod
     def get_runtimes(
@@ -129,7 +129,7 @@ class HeftScheduler(Scheduler):
         task_schedule: Dict[Hashable, List[Task]]
         if schedule is None:
             comp_schedule = {node: [] for node in network.nodes} # node -> List[Task]
-            task_schedule = {}                                   # task_name -> List[Task] (with same name)
+            task_schedule = {}                                   # task_name -> List[Task] (with same name), to support duplication
         else:
             comp_schedule = deepcopy(schedule)
             task_schedule = {}
@@ -142,14 +142,14 @@ class HeftScheduler(Scheduler):
         for task_name in schedule_order:
             if task_name in task_schedule:
                 continue
-            duplicate_factor = 1 if task_graph.out_degree(task_name) <= 1 else self.duplicate_factor
+            duplicate_factor = 1 if task_graph.out_degree(task_name) <= 1 else self.duplicate_factor #checks for duplicates only if task has multiple children
             best_nodes = PriorityQueue()
             for node in network.nodes:  # Find the best node to run the task
-                max_arrival_time: float = max(  #
+                max_arrival_time: float = max(  #Can only start after all parents, take max 
                     [
-                        min_start_time,
+                        min_start_time, #lower bound on when a task can start 
                         *[
-                            min(
+                            min( # the earliest time data can arrive from any of the duplicates of the parent task
                                 task.end + commtimes[(task.node, node)][(parent, task_name)]
                                 for task in task_schedule[parent]
                             )

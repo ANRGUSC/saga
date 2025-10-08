@@ -4,6 +4,7 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 import numpy as np
+from queue import PriorityQueue
 
 from ..scheduler import Scheduler, Task
 from ..utils.tools import get_insert_loc
@@ -77,6 +78,11 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
+    def __init__(self, duplicate_factor: int = 1):
+        super().__init__()
+        self.duplicate_factor = duplicate_factor # Can a task be duplicated on multiple nodes?
+    
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Computes the schedule for the task graph using the CPoP algorithm.
 
@@ -113,15 +119,25 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
 
         pq = [(-ranks[start_task], start_task)]
         heapq.heapify(pq)
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_map: Dict[Hashable, Task] = {}
+        #schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
+        #task_map: Dict[Hashable, Task] = {}
+
+        schedule: Dict[Hashable, List[Task]]
+        task_map: Dict[Hashable, List[Task]]
+
+        schedule = {node: [] for node in network.nodes}
+        task_map = {}
+
         while pq:
             # get highest priority task
             task_rank, task_name = heapq.heappop(pq)
             logging.debug("Processing task %s (predecessors: %s)", task_name, list(task_graph.predecessors(task_name)))
 
-            min_finish_time = np.inf
-            best_node, best_idx = None, None
+            if task_graph.out_degree(task_name) <= 1: 
+                duplicate_factor = 1
+            
+            best_nodes = PriorityQueue()
+            
             if np.isclose(-task_rank, cp_rank):
                 # assign task to cp_node
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
@@ -136,11 +152,12 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                         ]
                     ]
                 )
-                best_node = cp_node
+                #best_node = cp_node
                 best_idx, start_time = get_insert_loc(schedule[cp_node], max_arrival_time, exec_time)
                 min_finish_time = start_time + exec_time
             else:
                 # schedule on node with earliest completion time
+                finish_times = []
                 for node in network.nodes:
                     max_arrival_time: float = max( #
                         [
@@ -156,6 +173,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]
                     idx, start_time = get_insert_loc(schedule[node], max_arrival_time, exec_time)
                     end_time = start_time + exec_time
+                    finish_times.append((end_time, node, idx, start_time))
+                    
                     if end_time < min_finish_time:
                         min_finish_time = end_time
                         best_node, best_idx = node, idx
