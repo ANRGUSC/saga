@@ -122,26 +122,28 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         #schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
         #task_map: Dict[Hashable, Task] = {}
 
-        schedule: Dict[Hashable, List[Task]]
-        task_map: Dict[Hashable, List[Task]]
+        schedule: Dict[Hashable, List[Task]] # maps compute nodes to list of tasks that run on them
+        task_map: Dict[Hashable, List[Task]] # maps task tanes to the task objects
 
         schedule = {node: [] for node in network.nodes}
-        task_map = {}
+        task_map = {task: [] for task in task_graph.nodes}
 
-        if task_name not in task_map: 
-            task_map[task_name] = []
-        task_map[task_name].append(new_task)
+        #if task_name not in task_map: 
+         #   task_map[task_name] = []
+        #task_map[task_name].append(new_task)
 
         while pq:
             # get highest priority task
             task_rank, task_name = heapq.heappop(pq)
             logging.debug("Processing task %s (predecessors: %s)", task_name, list(task_graph.predecessors(task_name)))
 
+            duplicate_factor = self.duplicate_factor
             if task_graph.out_degree(task_name) <= 1: 
                 duplicate_factor = 1
             
             best_nodes = PriorityQueue()
             
+            nodes = set(network.nodes)
             if np.isclose(-task_rank, cp_rank):
                 # assign task to cp_node
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
@@ -158,21 +160,28 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     ]
                 )
                 
-                #best_node = cp_node
                 best_idx, start_time = get_insert_loc(schedule[cp_node], max_arrival_time, exec_time)
-                min_finish_time = start_time + exec_time
-                best_node, best_idx, best_start_time = node, idx, start_time
+                min_finish_time = start_time + exec_time                
+                new_task = Task(cp_node, task_name, start_time, min_finish_time)
+                schedule[new_task.node].insert(best_idx, new_task)
+                task_map[task_name].append(new_task)
+
+                duplicate_factor -= 1
+                nodes.remove(cp_node)
     
-            else:
+            if duplicate_factor > 0:
                 # schedule on node with earliest completion time
                 finish_times = []
-                for node in network.nodes:
+                for node in nodes:
                     max_arrival_time: float = max( #
                         [
                             0.0, *[
-                                task_map[parent].end + (
-                                    task_graph.edges[parent, task_name]["weight"] /
-                                    network.edges[task_map[parent].node, node]["weight"]
+                                min(
+                                    parent_task.end + (
+                                        task_graph.edges[parent, task_name]["weight"] /
+                                        network.edges[parent_task.node, cp_node]["weight"]
+                                    )
+                                    for parent_task in task_map[parent]
                                 )
                                 for parent in task_graph.predecessors(task_name)
                             ]
@@ -194,10 +203,6 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                         task_map[task_name] = []
                     task_map[task_name].append(new_task)
                 
-            new_exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[best_node]["weight"]
-            new_task = Task(best_node, task_name, min_finish_time - new_exec_time, min_finish_time)
-            schedule[new_task.node].insert(best_idx, new_task)
-            task_map[task_name] = new_task
 
             # get ready tasks
             ready_tasks = [

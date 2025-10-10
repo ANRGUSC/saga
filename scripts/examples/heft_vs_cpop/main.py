@@ -4,8 +4,11 @@ from saga.schedulers.heft import HeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 import pathlib
 import matplotlib.pyplot as plt
+import logging
 
 thisdir = pathlib.Path(__file__).parent.absolute()
+
+logging.basicConfig(level=logging.DEBUG)
 
 def cpop_vs_heft():
     cpop_scheduler = CpopScheduler()
