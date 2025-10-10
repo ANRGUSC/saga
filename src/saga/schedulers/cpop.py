@@ -128,6 +128,10 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         schedule = {node: [] for node in network.nodes}
         task_map = {}
 
+        if task_name not in task_map: 
+            task_map[task_name] = []
+        task_map[task_name].append(new_task)
+
         while pq:
             # get highest priority task
             task_rank, task_name = heapq.heappop(pq)
@@ -141,20 +145,24 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             if np.isclose(-task_rank, cp_rank):
                 # assign task to cp_node
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
-                max_arrival_time: float = max( #
-                    [
-                        0.0, *[
-                            task_map[parent].end + (
-                                (task_graph.edges[parent, task_name]["weight"] /
-                                 network.edges[task_map[parent].node, cp_node]["weight"])
+                max_arrival_time = max(
+                    [0.0] + [
+                        min(
+                            parent_task.end + (
+                                task_graph.edges[parent, task_name]["weight"] /
+                                network.edges[parent_task.node, cp_node]["weight"]
                             )
-                            for parent in task_graph.predecessors(task_name)
-                        ]
+                            for parent_task in task_map[parent]
+                        )
+                        for parent in task_graph.predecessors(task_name)
                     ]
                 )
+                
                 #best_node = cp_node
                 best_idx, start_time = get_insert_loc(schedule[cp_node], max_arrival_time, exec_time)
                 min_finish_time = start_time + exec_time
+                best_node, best_idx, best_start_time = node, idx, start_time
+    
             else:
                 # schedule on node with earliest completion time
                 finish_times = []
@@ -174,11 +182,18 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     idx, start_time = get_insert_loc(schedule[node], max_arrival_time, exec_time)
                     end_time = start_time + exec_time
                     finish_times.append((end_time, node, idx, start_time))
-                    
-                    if end_time < min_finish_time:
-                        min_finish_time = end_time
-                        best_node, best_idx = node, idx
 
+                finish_times.sort()
+                best_nodes = finish_times[:self.duplicate_factor]
+                
+                for end_time, node, idx, start_time in best_nodes:
+                    exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]
+                    new_task = Task(node, task_name, start_time, end_time)
+                    schedule[node].insert(idx, new_task)
+                    if task_name not in task_map:
+                        task_map[task_name] = []
+                    task_map[task_name].append(new_task)
+                
             new_exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[best_node]["weight"]
             new_task = Task(best_node, task_name, min_finish_time - new_exec_time, min_finish_time)
             schedule[new_task.node].insert(best_idx, new_task)
