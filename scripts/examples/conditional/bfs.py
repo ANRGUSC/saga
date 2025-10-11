@@ -44,6 +44,10 @@ def add_scaled_weights(dag: nx.DiGraph):
 
 
 def main():
+    '''
+    test function to make sure that the add_scaled_weights, get_possible_graphs
+    functions are working
+    '''
     dag = nx.DiGraph()
 
     for node in ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]:

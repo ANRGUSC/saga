@@ -4,6 +4,7 @@ from .cpop import CpopScheduler
 from .duplex import DuplexScheduler
 from .etf import ETFScheduler
 from .heft import HeftScheduler
+from .conditional_heft import ConditionalHeftScheduler
 from .fastest_node import FastestNodeScheduler
 from .fcp import FCPScheduler
 from .hybrid import HybridScheduler
