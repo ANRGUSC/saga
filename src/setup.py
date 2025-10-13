@@ -42,6 +42,7 @@ setup(
         'joblib==1.3.2',
         'statsmodels==0.14.1',
         'seaborn==0.13.2',
+        'pydantic'
     ],
     python_requires='>=3.6',
     entry_points={

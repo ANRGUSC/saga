@@ -25,5 +25,3 @@ from .online_heft import OnlineHeftScheduler
 from .online_cpop import OnlineCpopScheduler
 from .online_etf import OnlineETFScheduler
 from .online_sufferage import OnlineSufferageScheduler
-from .online_heft_temp import OnlineTempHeftScheduler
-from .temp_heft import TempHeftScheduler
