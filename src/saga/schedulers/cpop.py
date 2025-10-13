@@ -207,7 +207,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             # get ready tasks
             ready_tasks = [
                 succ for succ in task_graph.successors(task_name)
-                if all(pred in task_map for pred in task_graph.predecessors(succ))
+                if all(len(task_map[pred]) > 0 for pred in task_graph.predecessors(succ))
             ]
             for ready_task in ready_tasks:
                 heapq.heappush(pq, (-ranks[ready_task], ready_task))

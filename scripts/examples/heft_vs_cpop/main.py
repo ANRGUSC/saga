@@ -8,11 +8,11 @@ import logging
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def cpop_vs_heft():
-    cpop_scheduler = CpopScheduler()
-    heft_scheduler = HeftScheduler()
+    cpop_scheduler = CpopScheduler(duplicate_factor=2)
+    heft_scheduler = HeftScheduler(duplicate_factor=2)
 
     # scheduler=CPoP, baseline=HEFT
     network = nx.Graph()
