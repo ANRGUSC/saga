@@ -25,10 +25,10 @@ thisdir = pathlib.Path(__file__).parent.absolute()
 
 def get_random_instance(ccr: float) -> Tuple[nx.Graph, nx.DiGraph]:
     network = get_network(num_nodes=2)
-    task_graph = get_branching_dag(
-        levels=2,
-        branching_factor=2
-    )
+    # task_graph = get_branching_dag(
+    #     levels=3,
+    #     branching_factor=2
+    # )
     task_graph = get_fork_dag()
     # task_graph = get_diamond_dag()
     add_random_weights(network, weight_range=(1,1))
@@ -107,13 +107,16 @@ def main():
     duplicate_factors = [1,2]
 
     schedulers = {
-        "HEFT": HeftScheduler,
-        # "CPoP": CpopScheduler
+        # "HEFT": HeftScheduler,
+        "CPoP": CpopScheduler
     }
     
     rows = []
     for i in range(num_instances):
         for ccr in ccr_values:
+            network, task_graph = get_random_instance(ccr)
+            draw_instance(network=network, task_graph=task_graph)
+
             for dup_factor in duplicate_factors:
                 for scheduler_name, Scheduler in schedulers.items():
                     scheduler = Scheduler(duplicate_factor=dup_factor)
@@ -122,6 +125,8 @@ def main():
                     makespan = get_makespan(schedule = schedule) 
                     rows.append([i, ccr, scheduler_name, str(dup_factor), makespan])
 
+                    filename = f"{scheduler_name}_dup{dup_factor}"
+                    draw_schedule(schedule, filename, xmax = makespan)
 
 
     df = pd.DataFrame(rows, columns=["Instance", "CCR", "Scheduler", "Dup Factor", "Makespan"])
@@ -147,12 +152,12 @@ def main():
     )
     fig.write_image(thisdir / "results.pdf")
     fig.write_image(thisdir / "results.png")
-
+    print("Performed ", {num_instances}," instances")
 
     draw_instance(network= network, task_graph= task_graph)
     draw_schedule(schedule, 'schedule')
 
-    print(f"Saved to {thisdir}, used {scheduler_name}")
+    # print(f"Saved to {thisdir}, used {scheduler_name}, with CCR: {ccr}")
 
 def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):
     logging.basicConfig(level=logging.INFO)
@@ -170,7 +175,7 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
     ax: plt.Axes = draw_gantt(schedule, use_latex=True, xmax=xmax)
     fig = ax.get_figure()
     fig.savefig(str(thisdir / f'{name}.png'), dpi=300, bbox_inches='tight')
-    fig.savefig(str(thisdir / f'{name}.pdf'), bbox_inches='tight')
+    fig.savefig(str(thisdir / f'{name}.pdf'), bbox_inches='tight') 
 
 
 if __name__ == '__main__':
