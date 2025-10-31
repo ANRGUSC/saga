@@ -145,6 +145,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             
             nodes = set(network.nodes)
             if np.isclose(-task_rank, cp_rank):
+                print(f"CP Node: {cp_node} for task {task_name}")
                 # assign task to cp_node
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
                 max_arrival_time = max(
@@ -179,7 +180,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                                 min(
                                     parent_task.end + (
                                         task_graph.edges[parent, task_name]["weight"] /
-                                        network.edges[parent_task.node, cp_node]["weight"]
+                                        network.edges[parent_task.node, node]["weight"]
                                     )
                                     for parent_task in task_map[parent]
                                 )
@@ -192,8 +193,10 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     end_time = start_time + exec_time
                     finish_times.append((end_time, node, idx, start_time))
 
+                    print(f"Node {node} can finish task {task_name} at time {end_time}")
+
                 finish_times.sort()
-                best_nodes = finish_times[:self.duplicate_factor]
+                best_nodes = finish_times[:duplicate_factor]
                 
                 for end_time, node, idx, start_time in best_nodes:
                     exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[node]["weight"]

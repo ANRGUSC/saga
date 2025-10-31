@@ -25,11 +25,11 @@ thisdir = pathlib.Path(__file__).parent.absolute()
 
 def get_random_instance(ccr: float) -> Tuple[nx.Graph, nx.DiGraph]:
     network = get_network(num_nodes=2)
-    # task_graph = get_branching_dag(
-    #     levels=3,
-    #     branching_factor=2
-    # )
-    task_graph = get_fork_dag()
+    task_graph = get_branching_dag(
+        levels=3,
+        branching_factor=2
+    )
+    # task_graph = get_fork_dag()
     # task_graph = get_diamond_dag()
     add_random_weights(network, weight_range=(1,1))
     add_random_weights(task_graph)
@@ -100,14 +100,30 @@ def remove_outliers_iqr_grouped(df: pd.DataFrame, group_cols, value_col: str, k:
         mask.loc[group.index] = group[value_col].between(lower, upper)
     return df2[mask]
 
+def draw_one():
+    ccr = 10
+    
+    network, task_graph = get_random_instance(ccr)
+    draw_instance(network=network, task_graph=task_graph)
 
-def main():
-    num_instances = 1
-    ccr_values = [10]
-    duplicate_factors = [1,2]
+    scheduler = CpopScheduler(duplicate_factor=1)
+    schedule = scheduler.schedule(network, task_graph)
+    makespan = get_makespan(schedule = schedule) 
+    draw_schedule(schedule, 'cpop_schedule', xmax = makespan)
+
+    scheduler_dup2 = CpopScheduler(duplicate_factor=2)
+    schedule_dup2 = scheduler_dup2.schedule(network, task_graph)
+    makespan_dup2 = get_makespan(schedule = schedule_dup2) 
+    draw_schedule(schedule_dup2, 'cpop_schedule_dup2', xmax = makespan_dup2)
+
+
+def run_experiment():
+    num_instances = 10
+    ccr_values = [1/2, 1, 2, 5, 10]
+    duplicate_factors = [1, 2]
 
     schedulers = {
-        # "HEFT": HeftScheduler,
+        "HEFT": HeftScheduler,
         "CPoP": CpopScheduler
     }
     
@@ -115,19 +131,12 @@ def main():
     for i in range(num_instances):
         for ccr in ccr_values:
             network, task_graph = get_random_instance(ccr)
-            draw_instance(network=network, task_graph=task_graph)
-
             for dup_factor in duplicate_factors:
                 for scheduler_name, Scheduler in schedulers.items():
                     scheduler = Scheduler(duplicate_factor=dup_factor)
-                    network, task_graph = get_random_instance(ccr)
                     schedule = scheduler.schedule(network, task_graph)
                     makespan = get_makespan(schedule = schedule) 
                     rows.append([i, ccr, scheduler_name, str(dup_factor), makespan])
-
-                    filename = f"{scheduler_name}_dup{dup_factor}"
-                    draw_schedule(schedule, filename, xmax = makespan)
-
 
     df = pd.DataFrame(rows, columns=["Instance", "CCR", "Scheduler", "Dup Factor", "Makespan"])
 
@@ -152,12 +161,7 @@ def main():
     )
     fig.write_image(thisdir / "results.pdf")
     fig.write_image(thisdir / "results.png")
-    print("Performed ", {num_instances}," instances")
 
-    draw_instance(network= network, task_graph= task_graph)
-    draw_schedule(schedule, 'schedule')
-
-    # print(f"Saved to {thisdir}, used {scheduler_name}, with CCR: {ccr}")
 
 def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):
     logging.basicConfig(level=logging.INFO)
@@ -177,6 +181,10 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
     fig.savefig(str(thisdir / f'{name}.png'), dpi=300, bbox_inches='tight')
     fig.savefig(str(thisdir / f'{name}.pdf'), bbox_inches='tight') 
 
+
+def main():
+    draw_one()
+    # run_experiment()
 
 if __name__ == '__main__':
     main()
