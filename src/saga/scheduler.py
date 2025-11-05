@@ -1,13 +1,10 @@
 from abc import ABC, abstractmethod
 import math
-from typing import Dict, FrozenSet, Generator, Hashable, Iterable, List, Optional, Set, Tuple, Type
-from typing_extensions import Unpack
+from typing import Any, Dict, FrozenSet, Generator, Hashable, Iterable, List, Optional, Set, Tuple, Type
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, PrivateAttr, RootModel, computed_field, model_validator, validate_call, Field
+from pydantic import BaseModel, RootModel, computed_field, Field
 import bisect
 from itertools import combinations
-
-from functools import cached_property, lru_cache
 
 class Task(BaseModel):
     """A scheduled task."""
@@ -21,14 +18,20 @@ class Task(BaseModel):
 
 class Schedule(RootModel[Dict[Hashable, List[Task]]]):
     """A schedule of tasks on nodes."""
-    @validate_call
-    def __init__(self, nodes: Iterable[Hashable]) -> None:
-        """Initialize the schedule.
-        
+
+    root: Dict[Hashable, List[Task]]
+
+    @classmethod
+    def create(cls, nodes: Iterable[Hashable]) -> 'Schedule':
+        """Create a new schedule.
+
         Args:
             nodes (Iterable[Hashable]): The nodes in the schedule.
+
+        Returns:
+            Schedule: A new schedule with empty task lists for each node.
         """
-        super().__init__(root={node: [] for node in nodes})
+        return cls(root={node: [] for node in nodes})
 
     @computed_field
     @property
@@ -39,14 +42,6 @@ class Schedule(RootModel[Dict[Hashable, List[Task]]]):
             float: The makespan of the schedule.
         """
         return max((tasks[-1].end for tasks in self.root.values() if tasks), default=0.0)
-    
-    def __iter__(self) -> Generator[Tuple[Hashable, List[Task]], None, None]: # type: ignore
-        """Iterate over the schedule.
-
-        Yields:
-            Generator[Tuple[Hashable, List[Task]], None, None]: A generator of tuples of node and list of tasks.
-        """
-        yield from self.root.items()
 
     def __getitem__(self, node: Hashable) -> List[Task]:
         """Get the tasks scheduled on a node.
@@ -86,8 +81,7 @@ class Schedule(RootModel[Dict[Hashable, List[Task]]]):
                 return left.end
         return max(min_start_time, self.root[node][-1].end)
 
-    @validate_call
-    def add_task(self, task: Task) -> None: # type: ignore
+    def add_task(self, task: Task) -> None:
         """Add a task to the schedule.
 
         Args:
@@ -103,55 +97,49 @@ class Schedule(RootModel[Dict[Hashable, List[Task]]]):
 
 class NetworkNode(BaseModel):
     """A node in the network."""
+    model_config = {'frozen': False}
+
     name: Hashable = Field(..., description="The name of the node.")
     speed: float = Field(..., description="The speed of the node.")
 
     def __hash__(self) -> int:
         return hash(self.name)
-    
-    def __init__(self, name: Hashable, speed: float) -> None:
-        """Initialize the network node.
-
-        Args:
-            name (Hashable): The name of the node.
-            speed (float): The speed of the node.
-        """
-        super().__init__(name=name, speed=speed)
 
 class NetworkEdge(BaseModel):
     """An edge in the network."""
+    model_config = {'frozen': False}
+
     source: Hashable = Field(..., description="The source node of the edge.")
     target: Hashable = Field(..., description="The target node of the edge.")
-    speed: float = Field(..., description="The speed (bandwidth) of the edge.")
+    speed: float = Field(default=0.0, description="The speed (bandwidth) of the edge.")
 
     def __hash__(self) -> int:
         return hash((self.source, self.target))
 
-    def __init__(self, source: Hashable, target: Hashable, speed: Optional[float] = None) -> None:
-        """Initialize the network edge.
-
-        Args:
-            source (Hashable): The source node of the edge.
-            target (Hashable): The target node of the edge.
-            speed (Optional[float], optional): The speed (bandwidth) of the edge. Defaults to None, which sets speed to infinity if source == target, else 0.
-        """
-        super().__init__(
-            source=source,
-            target=target,
-            speed=speed if speed is not None else (
-                math.inf if source == target else 0.0
-            )
-        )
+    def model_post_init(self, __context: Any) -> None:
+        """Set default speed based on source and target if not explicitly provided."""
+        if self.speed == 0.0 and self.source == self.target:
+            object.__setattr__(self, 'speed', math.inf)
 
 class Network(BaseModel):
     """A network of nodes and edges."""
+    model_config = {'frozen': False, 'arbitrary_types_allowed': True}
+
     nodes: FrozenSet[NetworkNode] = Field(..., description="The nodes in the network.")
     edges: FrozenSet[NetworkEdge] = Field(..., description="The edges in the network.")
 
-    def __init__(self,
-                 nodes: Iterable[NetworkNode | Tuple[Hashable, float]],
-                 edges: Iterable[NetworkEdge | Tuple[Hashable, Hashable, float] | Tuple[Hashable, Hashable]]) -> None:
-        """Initialize the network.
+    @classmethod
+    def create(cls,
+               nodes: Iterable[NetworkNode | Tuple[Hashable, float]],
+               edges: Iterable[NetworkEdge | Tuple[Hashable, Hashable, float] | Tuple[Hashable, Hashable]]) -> 'Network':
+        """Create a new network from nodes and edges.
+
+        Args:
+            nodes: An iterable of NetworkNode objects or tuples (name, speed).
+            edges: An iterable of NetworkEdge objects or tuples (source, target) or (source, target, speed).
+
+        Returns:
+            Network: A new network instance.
         """
         node_set: Set[NetworkNode] = set()
         for n in nodes:
@@ -171,7 +159,7 @@ class Network(BaseModel):
                 edge_set.add(NetworkEdge(source=e[0], target=e[1]))
             else:
                 raise ValueError(f"Invalid edge: {e}")
-            
+
         # for any edge that does not exist, add the default edge
         existing_edges = {(edge.source, edge.target) for edge in edge_set}
         for u, v in combinations(node_set, 2):
@@ -182,8 +170,8 @@ class Network(BaseModel):
         for n in node_set:
             if (n.name, n.name) not in existing_edges:
                 edge_set.add(NetworkEdge(source=n.name, target=n.name))
-            
-        super().__init__(nodes=node_set, edges=edge_set)
+
+        return cls(nodes=frozenset(node_set), edges=frozenset(edge_set))
 
 
     def to_networkx(self) -> nx.Graph:
@@ -213,7 +201,7 @@ class Network(BaseModel):
         """
         nodes = [NetworkNode(name=n, speed=G.nodes[n][node_speed_attr]) for n in G.nodes]
         edges = [NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr]) for u, v in G.edges]
-        return cls(nodes=nodes, edges=edges)
+        return cls(nodes=frozenset(nodes), edges=frozenset(edges))
 
 
 class Scheduler(ABC): # pylint: disable=too-few-public-methods

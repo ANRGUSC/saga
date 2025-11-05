@@ -1,11 +1,16 @@
 from functools import lru_cache
 import logging
 import shutil
-from typing import Dict, Hashable, List, Optional, Tuple, Union, Callable, Iterable
+from typing import (
+    Any, Dict, Hashable, List, Optional, Set, Tuple, Union,
+    Callable, Iterable, TypeVar, cast
+)
 
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib import cm
+import matplotlib.colors
 from matplotlib.patches import Rectangle
 from matplotlib import rc_context
 import networkx as nx
@@ -17,7 +22,8 @@ from saga.scheduler import Task
 # create logger with SAGA:saga.utils.draw: prefix
 logger = logging.getLogger("SAGA:saga.utils.draw")
 
-def format_graph(graph: Union[nx.DiGraph, nx.Graph]) -> Union[nx.DiGraph, nx.Graph]:
+TGraphType = TypeVar("TGraphType", bound=Union[nx.DiGraph, nx.Graph])
+def format_graph(graph: TGraphType) -> TGraphType:
     """Formats the graph
 
     copies weight attribute to label attribute
@@ -38,11 +44,11 @@ def format_graph(graph: Union[nx.DiGraph, nx.Graph]) -> Union[nx.DiGraph, nx.Gra
     return graph
 
 @lru_cache(maxsize=None)
-def is_latex_installed():
+def is_latex_installed() -> bool:
     return shutil.which("latex") is not None
 
 def draw_task_graph(task_graph: nx.DiGraph,
-                    axis: Optional[plt.Axes] = None,
+                    axis: Optional[Axes] = None,
                     schedule: Optional[Dict[Hashable, List[Task]]] = None,
                     use_latex: bool = False,
                     node_size: int = 2000,
@@ -50,12 +56,12 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     arrowsize: int = 20,
                     font_size: int = 20,
                     weight_font_size: int = 12,
-                    figsize: Tuple[int, int] = None,
+                    figsize: Optional[Tuple[int, int]] = None,
                     draw_node_labels: bool = True,
                     draw_edge_weights: bool = True,
                     draw_node_weights: bool = True,
                     node_weight_offset: float = 0.1,
-                    pos = None) -> plt.Axes:
+                    pos: Optional[Dict[Hashable, Tuple[float, float]]] = None) -> Axes:
     """Draws a task graph
 
     Args:
@@ -93,10 +99,10 @@ def draw_task_graph(task_graph: nx.DiGraph,
         colors, tasks = {}, {}
         if schedule is not None:
             tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
-            network_nodes = set(schedule.keys())
+            network_nodes: Set[Hashable] = set(schedule.keys())
 
             cmap = plt.get_cmap("tab20", len(network_nodes))
-            sorted_nodes = sorted(network_nodes)
+            sorted_nodes = sorted(map(str, network_nodes)) # sort as strings for consistent coloring
             sorted_colors = [cmap(i) for i in range(len(network_nodes))]
             colors = dict(zip(sorted_nodes, sorted_colors))
         # if nodes have "color" attribute, use that
@@ -108,7 +114,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         nx.draw_networkx_nodes(
             task_graph, pos=pos, ax=axis,
             node_size=1 if draw_node_labels else node_size,
-            node_color=[colors.get(node, "white") for node in task_graph.nodes],
+            node_color=[colors.get(str(node), "white") for node in task_graph.nodes],
             edgecolors="black",
             linewidths=linewidths,
         )
@@ -124,9 +130,9 @@ def draw_task_graph(task_graph: nx.DiGraph,
             if draw_node_labels:
                 color = "white"
                 if schedule is not None and task_name in tasks:
-                    color = colors[tasks[task_name].node]
+                    color = colors[str(tasks[task_name].node)]
                 elif task_name in colors:
-                    color = colors[task_name]
+                    color = colors[str(task_name)]
                 task_label = r"$%s$" % task_name if use_latex else task_name
                 nx.draw_networkx_labels(
                     task_graph, pos=pos, ax=axis,
@@ -185,17 +191,17 @@ def draw_task_graph(task_graph: nx.DiGraph,
         return axis
 
 def draw_network(network: nx.Graph,
-                 axis: Optional[plt.Axes] = None,
+                 axis: Optional[Axes] = None,
                  draw_colors: bool = True,
                  use_latex: bool = False,
                  node_size: int = 3000,
                  linewidths: int = 2,
                  font_size: int = 20,
                  weight_font_size: int = 12,
-                 figsize: Tuple[int, int] = None,
+                 figsize: Optional[Tuple[int, int]] = None,
                  draw_node_labels: bool = True,
                  draw_edge_weights: bool = True,
-                 draw_node_weights: bool = True) -> plt.Axes:
+                 draw_node_weights: bool = True) -> Axes:
     """Draws a network
 
     Args:
@@ -227,6 +233,7 @@ def draw_network(network: nx.Graph,
 
         # use same colors as task graph
         sorted_nodes = sorted(network.nodes)
+        colors = ["white"] * len(sorted_nodes)
         if draw_colors:
             cmap = plt.get_cmap("tab20", len(network.nodes))
             sorted_colors = [cmap(i) for i in range(len(network.nodes))]
@@ -239,7 +246,7 @@ def draw_network(network: nx.Graph,
         nx.draw_networkx_nodes(
             network, pos=pos, ax=axis,
             nodelist=sorted_nodes,
-            node_color=colors if draw_colors else "white",
+            node_color=colors,
             edgecolors="black",
             node_size=node_size,
             linewidths=linewidths,
@@ -261,7 +268,7 @@ def draw_network(network: nx.Graph,
                 
                 axis.annotate(
                     weight_label,
-                    xy=pos[node],
+                    xy=(pos[node][0], pos[node][1]),
                     xytext=(font_size*1.5, 0),
                     textcoords="offset points",
                     fontsize=weight_font_size,
@@ -308,10 +315,10 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
                use_latex: bool = False,
                font_size: int = 20,
                tick_font_size: int = 20,
-               xmax: float = None,
-               axis: Optional[plt.Axes] = None,
+               xmax: Optional[float] = None,
+               axis: Optional[Axes] = None,
                figsize: Tuple[int, int] = (10, 4),
-               draw_task_labels: bool = True) -> plt.Axes:
+               draw_task_labels: bool = True) -> Axes:
     """Draws a gantt chart
 
     Args:
@@ -427,22 +434,22 @@ def gradient_heatmap(data: pd.DataFrame,
                      color: str, # pylint: disable=invalid-name
                      cmap: str = "coolwarm",
                      upper_threshold: float = np.inf,
-                     title: str = None,
-                     x_label: str = None,
+                     title: Optional[str] = None,
+                     x_label: Optional[str] = None,
                      rotate_xlabels: int = 90,
-                     y_label: str = None,
-                     color_label: str = None,
-                     cell_text: str = None,
-                     cell_font_size: float = None,
-                     xorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
-                     yorder: Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]] = None,
-                     ax: plt.Axes = None,
+                     y_label: Optional[str] = None,
+                     color_label: Optional[str] = None,
+                     cell_text: Optional[str] = None,
+                     cell_font_size: Optional[float] = None,
+                     xorder: Optional[Callable[[Any], Any]] = None,
+                     yorder: Optional[Callable[[Any], Any]] = None,
+                     ax: Optional[Axes] = None,
                      font_size: float = 20.0,
                      figsize: Tuple[float, float] = (12, 8),
                      linewidth: int = 1,
                      cmap_lower: float = 0.0,
                      cmap_upper: float = 1.0,
-                     use_latex: bool = False) -> plt.Axes:
+                     use_latex: bool = False) -> Axes:
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -457,10 +464,10 @@ def gradient_heatmap(data: pd.DataFrame,
         y_label (str, optional): y-axis label. Defaults to None.
         color_label (str, optional): colorbar label. Defaults to None.
         cell_text (str, optional): indicates the column name to use for cell labels. None indicates no label. Default is None.
-        cell_font_size (bool, optional): font size for makespan ratio cell labels. None indicates no label. Default is None.
-        xorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order x-axis. Defaults to None.
-        yorder (Callable[[Union[str, Iterable[str]]], Union[str, Iterable[str]]], optional): function to order y-axis. Defaults to None.
-        ax (plt.Axes, optional): matplotlib axes. Defaults to None.
+        cell_font_size (float, optional): font size for cell labels. None indicates no label. Default is None.
+        xorder (Callable[[Any], Any], optional): sort key function to order x-axis values. Defaults to None.
+        yorder (Callable[[Any], Any], optional): sort key function to order y-axis values. Defaults to None.
+        ax (Axes, optional): matplotlib axes. Defaults to None.
         font_size (float, optional): font size. Defaults to 20.0.
         figsize (Tuple[float, float], optional): figure size. Defaults to (12, 8).
         linewidth (int, optional): linewidth for cell borders. Defaults to 1.
@@ -469,7 +476,7 @@ def gradient_heatmap(data: pd.DataFrame,
         use_latex (bool, optional): use LaTeX for text rendering. Defaults to False.
 
     Returns:
-        plt.Axes: matplotlib axes
+        Axes: matplotlib axes
     """
     if use_latex and not is_latex_installed():
         logger.warning("LaTeX is not installed. Falling back to non-LaTeX rendering.")
@@ -487,7 +494,7 @@ def gradient_heatmap(data: pd.DataFrame,
             categories = [
                 "/".join(map(str, row))
                 for row in sorted(
-                    data[x].drop_duplicates().itertuples(index=False),
+                    map(str, data[x].drop_duplicates().itertuples(index=False)),
                     key=xorder
                 )
             ]
@@ -504,7 +511,7 @@ def gradient_heatmap(data: pd.DataFrame,
             categories = [
                 "/".join(map(str, row))
                 for row in sorted(
-                    data[y].drop_duplicates().itertuples(index=False),
+                    map(str, data[y].drop_duplicates().itertuples(index=False)),
                     key=yorder
                 )
             ]
@@ -522,24 +529,28 @@ def gradient_heatmap(data: pd.DataFrame,
 
         _cmap = cm.get_cmap(cmap)
         _cmap = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
-        cmap = matplotlib.colors.ListedColormap(_cmap)
+        listed_cmap = matplotlib.colors.ListedColormap(_cmap)
 
         # Get unique values for x and y in the correct order (by category)
         xvals = data[x].drop_duplicates().sort_values()
         yvals = data[y].drop_duplicates().sort_values(ascending=False)
+
+        # Initialize im to None - it will be set when we have data to plot
+        im = None
+
         for i, yval in enumerate(yvals):
             for j, xval in enumerate(xvals):
-                df_color = data.loc[(data[x] == xval) & (data[y] == yval), color].sort_values()
+                df_color = cast(pd.Series[Any], data.loc[(data[x] == xval) & (data[y] == yval), color]).sort_values()
                 if df_color.empty: # add a white cell if there is no data
                     rect = Rectangle((j, i), 1, 1, linewidth=linewidth, edgecolor='black', facecolor='white')
                 else:
-                    gradient = df_color.values.reshape(1, -1)
+                    gradient = np.asarray(df_color.values).reshape(1, -1)
 
                     im = ax.imshow(
                         gradient,
-                        cmap=cmap,
+                        cmap=listed_cmap,
                         aspect='auto',
-                        extent=[j, j+1, i, i+1],
+                        extent=(float(j), float(j+1), float(i), float(i+1)),
                         vmin=global_min,
                         vmax=global_max
                     )
@@ -549,7 +560,7 @@ def gradient_heatmap(data: pd.DataFrame,
                         edgecolor='black',
                         facecolor='none'
                     )
-                
+
                 ax.add_patch(rect)
 
                 if not df_color.empty and cell_font_size is not None:
@@ -581,24 +592,27 @@ def gradient_heatmap(data: pd.DataFrame,
         ax.tick_params(axis='x', which='both', bottom=False, top=False)  # Optional: remove bottom ticks
         ax.tick_params(axis='y', which='both', left=False, right=False)  # Optional: remove left ticks
 
-        ax.set_xlim([0, len(xvals)])  # Set x-axis limits
-        ax.set_ylim([0, len(yvals)])  # Set y-axis limits
+        ax.set_xlim(0, len(xvals))  # Set x-axis limits
+        ax.set_ylim(0, len(yvals))  # Set y-axis limits
 
-        # Add colorbar
-        cbar = ax.get_figure().colorbar(
-            im, 
-            ax=ax,
-            orientation='vertical',
-            label=color_label if color_label else color
-        )
+        # Add colorbar if we have data to plot
+        if im is not None:
+            fig = ax.get_figure()
+            if fig is not None:
+                cbar = fig.colorbar(
+                    im,
+                    ax=ax,
+                    orientation='vertical',
+                    label=color_label if color_label else color
+                )
 
-        # Make upper bound label of colorbar ">{upper_threshold}"
-        if upper_threshold < np.inf:
-            cbar.ax.set_yticklabels(
-                [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
-                + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}'],
-                fontsize=font_size
-            )
+                # Make upper bound label of colorbar ">{upper_threshold}"
+                if upper_threshold < np.inf:
+                    cbar.ax.set_yticklabels(
+                        [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
+                        + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}'],
+                        fontsize=font_size
+                    )
 
         if title:
             ax.set_title(title)
