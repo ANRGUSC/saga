@@ -38,19 +38,17 @@ def main():
 
     print(schedule)
 
-    ax: plt.Axes = draw_gantt(schedule, use_latex=True)
+    ax: plt.Axes = draw_gantt(schedule, use_latex=False)
     ax.get_figure().savefig(str(thisdir / 'gantt.pdf'))
     plt.close(ax.get_figure())
 
-    network.edges[1, 2]['weight'] = "$x$"
-
     # make logging level higher to remove debug messages
     logging.basicConfig(level=logging.INFO)
-    ax: plt.Axes = draw_task_graph(task_graph, use_latex=True)
+    ax: plt.Axes = draw_task_graph(task_graph, use_latex=False)
     ax.get_figure().savefig(str(thisdir / 'task_graph.pdf'))
     plt.close(ax.get_figure())
 
-    ax: plt.Figure = draw_network(network, draw_colors=False, use_latex=True)
+    ax: plt.Figure = draw_network(network, draw_colors=False, use_latex=False)
     ax.get_figure().savefig(str(thisdir / 'network.pdf'))
     plt.close(ax.get_figure())
 

@@ -9,6 +9,8 @@ RUN apt-get update && apt-get install -y \
     libgsl-dev \
     curl \
     g++ \
+    graphviz \
+    libgraphviz-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip to the latest version
@@ -27,7 +29,6 @@ RUN pip install -e . \
 # Install Z3 solver
 RUN pysmt-install --z3 --confirm-agreement
 
+COPY ./scripts /app/scripts
 COPY ./tests /app/tests
 
-# Run the tests on container startup
-CMD ["pytest", "./tests", "--timeout=60"]

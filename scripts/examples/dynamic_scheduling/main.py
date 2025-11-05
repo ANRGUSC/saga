@@ -37,8 +37,13 @@ def main():
     task_graph.add_edges_from([(2, 5), (3, 5), (4, 5)], weight=3)
 
 
+<<<<<<< HEAD
     axis = draw_task_graph(task_graph, use_latex=True)
     axis.get_figure().savefig(savepath / f'task_graph.{FILETYPE}')
+=======
+    axis = draw_task_graph(task_graph, use_latex=False)
+    axis.get_figure().savefig(savepath / 'task_graph.pdf')
+>>>>>>> main
     plt.close(axis.get_figure())
 
     # simple 3-node network (complete graph)
@@ -49,8 +54,13 @@ def main():
 
     network.nodes[3]['weight'] = 1 + 1e-9
 
+<<<<<<< HEAD
     axis = draw_network(network, draw_colors=False, use_latex=True)
     axis.get_figure().savefig(savepath / f'network.{FILETYPE}')
+=======
+    axis = draw_network(network, draw_colors=False, use_latex=False)
+    axis.get_figure().savefig(savepath / 'network.pdf')
+>>>>>>> main
     plt.close(axis.get_figure())
 
     schedule_heft = HeftScheduler().schedule(network, task_graph)
@@ -63,8 +73,13 @@ def main():
     network.edges[(1, 3)]['weight'] = 1/2
     network.edges[(2, 3)]['weight'] = 1/2
 
+<<<<<<< HEAD
     axis = draw_network(network, draw_colors=False, use_latex=True)
     axis.get_figure().savefig(savepath / f'modified_network.{FILETYPE}')
+=======
+    axis = draw_network(network, draw_colors=False, use_latex=False)
+    axis.get_figure().savefig(savepath / 'modified_network.pdf')
+>>>>>>> main
     plt.close(axis.get_figure())
 
     schedule_heft_modified = HeftScheduler().schedule(network, task_graph)
@@ -81,6 +96,7 @@ def main():
     # Draw schedules
     max_makespan = max(heft_makespan, cpop_makespan, heft_makespan_modified_network, cpop_makespan_modified_network)
     ## HEFT
+<<<<<<< HEAD
     axis = draw_gantt(schedule_heft, use_latex=True, xmax=max_makespan)
     axis.get_figure().savefig(savepath / f'heft_schedule.{FILETYPE}')
 
@@ -95,6 +111,22 @@ def main():
     ## CPOP (modified network)
     axis = draw_gantt(schedule_cpop_modified, use_latex=True, xmax=max_makespan)
     axis.get_figure().savefig(savepath / f'cpop_schedule_modified_network.{FILETYPE}')
+=======
+    axis = draw_gantt(schedule_heft, use_latex=False, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'heft_schedule.pdf')
+
+    ## CPOP
+    axis = draw_gantt(schedule_cpop, use_latex=False, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'cpop_schedule.pdf')
+    
+    ## HEFT (modified network)
+    axis = draw_gantt(schedule_heft_modified, use_latex=False, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'heft_schedule_modified_network.pdf')
+
+    ## CPOP (modified network)
+    axis = draw_gantt(schedule_cpop_modified, use_latex=False, xmax=max_makespan)
+    axis.get_figure().savefig(savepath / 'cpop_schedule_modified_network.pdf')
+>>>>>>> main
 
 
 if __name__ == '__main__':
