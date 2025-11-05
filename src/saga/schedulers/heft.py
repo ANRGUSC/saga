@@ -6,7 +6,7 @@ from typing import Dict, Hashable, List, Optional, Tuple
 import networkx as nx
 import numpy as np
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 from ..utils.tools import get_insert_loc
 from .cpop import upward_rank
 
@@ -101,9 +101,9 @@ class HeftScheduler(Scheduler):
             Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
         ],
         schedule_order: List[Hashable],
-        schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
         min_start_time: float = 0.0,
-    ) -> Dict[Hashable, List[Task]]:
+    ) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedule the tasks on the network.
 
         Args:
@@ -123,8 +123,8 @@ class HeftScheduler(Scheduler):
             ValueError: If the instance is invalid.
         """
         if schedule is None:
-            comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-            task_schedule: Dict[Hashable, Task] = {}
+            comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+            task_schedule: Dict[Hashable, ScheduledTask] = {}
         else:
             comp_schedule = deepcopy(schedule)
             task_schedule = {task.name: task for node in schedule for task in schedule[node]}
@@ -171,7 +171,7 @@ class HeftScheduler(Scheduler):
                     best_node = node, idx
 
             new_runtime = runtimes[best_node[0]][task_name]
-            task = Task(
+            task = ScheduledTask(
                 best_node[0], task_name, min_finish_time - new_runtime, min_finish_time
             )
             comp_schedule[best_node[0]].insert(best_node[1], task)
@@ -182,8 +182,8 @@ class HeftScheduler(Scheduler):
     def schedule(self, 
                  network: nx.Graph, 
                  task_graph: nx.DiGraph, 
-                 schedule: Optional[Dict[Hashable, List[Task]]] = None,
-                 min_start_time: float = 0.0) -> Dict[Hashable, List[Task]]:
+                 schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
+                 min_start_time: float = 0.0) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedule the tasks on the network.
 
         Args:

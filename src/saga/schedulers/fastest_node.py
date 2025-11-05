@@ -1,12 +1,12 @@
 from typing import Dict, Hashable, List
 import networkx as nx
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class FastestNodeScheduler(Scheduler):
     """Schedules all tasks on the node with the highest processing speed"""
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedules all tasks on the node with the highest processing speed
 
         Args:
@@ -21,7 +21,7 @@ class FastestNodeScheduler(Scheduler):
         """
         fastest_node = max(network.nodes, key=lambda node: network.nodes[node]["weight"])
         schedule = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         # add tasks to fastest node in order (topological sort)
         free_time = 0
         for task_name in nx.topological_sort(task_graph):
@@ -40,7 +40,7 @@ class FastestNodeScheduler(Scheduler):
                 )
             start_time = max(free_time, data_arrival_time)
 
-            new_task = Task(fastest_node, task_name, start_time, start_time + exec_time)
+            new_task = ScheduledTask(fastest_node, task_name, start_time, start_time + exec_time)
             schedule[fastest_node].append(new_task)
             scheduled_tasks[task_name] = new_task
             free_time = new_task.end

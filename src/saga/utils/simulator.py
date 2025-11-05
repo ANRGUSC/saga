@@ -2,13 +2,13 @@ from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 from saga.utils.random_variable import RandomVariable
 
 
 class Simulator:
     """Simulates stochastic task graph execution over a network."""
-    def __init__(self, network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[str, List[Task]]):
+    def __init__(self, network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[str, List[ScheduledTask]]):
         """Initializes the simulator.
 
         Args:
@@ -74,7 +74,7 @@ class Simulator:
 
         return instances
 
-    def run(self, num_simulations: int = 1) -> List[Dict[Hashable, List[Task]]]:
+    def run(self, num_simulations: int = 1) -> List[Dict[Hashable, List[ScheduledTask]]]:
         """Runs the simulation.
 
         Returns:
@@ -84,7 +84,7 @@ class Simulator:
         results = []
 
         for network, task_graph in instances:
-            schedule: Dict[Hashable, List[Task]] = {}
+            schedule: Dict[Hashable, List[ScheduledTask]] = {}
             for task_name in self.schedule_order:
                 runtime = task_graph.nodes[task_name]["weight"] / network.nodes[self.tasks[task_name].node]["weight"]
                 parent_arrival_times = [
@@ -103,7 +103,7 @@ class Simulator:
                         schedule[self.tasks[task_name].node][-1].end,
                         max_parent_arrival_time
                     )
-                task = Task(
+                task = ScheduledTask(
                     name=task_name,
                     node=self.tasks[task_name].node,
                     start=start_time,

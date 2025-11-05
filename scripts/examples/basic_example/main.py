@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 from saga.schedulers import HeftScheduler, BruteForceScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
@@ -49,14 +49,14 @@ def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):
     ax: plt.Figure = draw_network(network, draw_colors=False, use_latex=True)
     ax.get_figure().savefig(str(thisdir / 'network.png'))
 
-def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None):
+def draw_schedule(schedule: Dict[str, List[ScheduledTask]], name: str, xmax: float = None):
     ax: plt.Axes = draw_gantt(schedule, use_latex=True, xmax=xmax)
     ax.get_figure().savefig(str(thisdir / f'{name}.png'))
 
-def my_schedule() -> Dict[str, List[Task]]:
+def my_schedule() -> Dict[str, List[ScheduledTask]]:
     network, task_graph = get_instance()
     task_name_map = {"t_1": "v_1", "t_2": "v_1", "t_3": "v_2", "t_4": "v_2"}
-    task_map: Dict[str, Task] = {}
+    task_map: Dict[str, ScheduledTask] = {}
     schedule = {node: [] for node in network.nodes}
     for task_name, node_name in task_name_map.items():
         min_start_time = max(
@@ -70,7 +70,7 @@ def my_schedule() -> Dict[str, List[Task]]:
             default=0
         )
         start_time = max(min_start_time, 0 if not schedule[node_name] else schedule[node_name][-1].end)
-        task = Task(
+        task = ScheduledTask(
             name=task_name,
             node=node_name,
             start=start_time,

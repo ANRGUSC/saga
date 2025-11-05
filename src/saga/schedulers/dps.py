@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 from ..utils.tools import check_instance_simple, get_insert_loc
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -136,13 +136,13 @@ class DPSScheduler(Scheduler):
 
         return runtimes, commtimes
 
-    def _schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[Task]]:
+    def _schedule(self, task_graph: nx.DiGraph, network: nx.Graph) -> Dict[str, List[ScheduledTask]]:
         task_list = list(nx.topological_sort(task_graph))
         assigned_tasks = {}
         task_list.sort(key=lambda x: calc_priority(x, network, task_graph,assigned_tasks), reverse=True)
         ready_list = task_list.copy()
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
+        comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[Hashable, ScheduledTask] = {}
         runtimes, commtimes = DPSScheduler.get_runtimes(network, task_graph)
 
         while len(ready_list) > 0:
@@ -174,13 +174,13 @@ class DPSScheduler(Scheduler):
                     best_node = node, idx 
 
             new_runtime = runtimes[best_node[0]][task]
-            task_ob = Task(best_node[0], task, min_finish_time - new_runtime, min_finish_time)
+            task_ob = ScheduledTask(best_node[0], task, min_finish_time - new_runtime, min_finish_time)
             comp_schedule[best_node[0]].insert(best_node[1], task_ob)
             task_schedule[task] = task_ob
             assigned_tasks[task] = best_node[0]
             ready_list.sort(key=lambda x: calc_priority(x, network, task_graph, assigned_tasks), reverse=True)
         return comp_schedule
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
         check_instance_simple(network, task_graph)
         return self._schedule(task_graph, network)

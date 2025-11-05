@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Optional, Set
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Returns the priorities of the tasks on the network
@@ -77,7 +77,7 @@ class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
         super().__init__()
         self.priority_queue_size = priority_queue_size
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the best schedule (minimizing makespan) for a problem instance using FCP(Fastest Critical Path)
 
         Args:
@@ -87,8 +87,8 @@ class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             A dictionary of the schedule
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
 
         queue_priority = PriorityQueue(maxsize=self.priority_queue_size or len(network.nodes))
         queue_fifo = []
@@ -159,7 +159,7 @@ class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
             node = select_processor(task)
             start_time = get_start_time(task, node)
             exec_time = get_exec_time(task, node)
-            scheduled_tasks[task] = Task(
+            scheduled_tasks[task] = ScheduledTask(
                 node=node,
                 name=task,
                 start=start_time,

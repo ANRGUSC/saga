@@ -3,22 +3,22 @@ from typing import Dict, Hashable, List
 import networkx as nx
 from saga.utils.online_tools import ScheduleInjector
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
-class SufferageScheduler(ScheduleInjector, Scheduler):
+class SufferageScheduler(Scheduler):
     """Implements a sufferage scheduler.
     
     Source: https://dx.doi.org/10.1007/978-3-540-69277-5_7
     """
-    def _do_schedule(
+    def schedule(
         self,
         network: nx.Graph,
         task_graph: nx.DiGraph,
-        comp_schedule: Dict[Hashable, List[Task]],
-        task_map: Dict[Hashable, Task],
+        comp_schedule: Dict[Hashable, List[ScheduledTask]],
+        task_map: Dict[Hashable, ScheduledTask],
         current_moment: float,
         **algo_kwargs
-    ) -> Dict[Hashable, List[Task]]:
+    ) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedules the task graph on the network
 
         Args:
@@ -74,7 +74,7 @@ class SufferageScheduler(ScheduleInjector, Scheduler):
             sched_node = min(network.nodes, key=lambda node: get_ect(sched_task, node))
 
             comp_schedule.setdefault(sched_node, [])
-            new_task = Task(
+            new_task = ScheduledTask(
                 node=sched_node,
                 name=sched_task,
                 start=max(get_eat(sched_node), get_fat(sched_task, sched_node)),

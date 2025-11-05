@@ -4,9 +4,9 @@ import networkx as nx
 import numpy as np
 from copy import deepcopy
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
-from ..scheduler import Task
+from ..scheduler import ScheduledTask
 from ..scheduler import Scheduler
 
 
@@ -14,7 +14,7 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Earliest Task First scheduler"""
 
     def _get_start_times(self,
-                         task_map: Dict[Hashable, Task],
+                         task_map: Dict[Hashable, ScheduledTask],
                          ready_tasks: Set[Hashable],
                          ready_nodes: Set[Hashable],
                          task_graph: nx.DiGraph,
@@ -50,7 +50,7 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
             start_times[task] = min_node, mini_min_start_time
         return start_times
 
-    def _get_ready_tasks(self, tasks: Dict[Hashable, Task], task_graph: nx.DiGraph) -> Set[Hashable]:
+    def _get_ready_tasks(self, tasks: Dict[Hashable, ScheduledTask], task_graph: nx.DiGraph) -> Set[Hashable]:
         """Returns the ready tasks
 
         Args:
@@ -69,8 +69,8 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  #clusters: Optional[List[Set[Hashable]]] = None,
-                 schedule: Optional[Dict[str, List[Task]]] = None, #new
-                 min_start_time: float = 0.0) -> Dict[str, List[Task]]: #new
+                 schedule: Optional[Dict[str, List[ScheduledTask]]] = None, #new
+                 min_start_time: float = 0.0) -> Dict[str, List[ScheduledTask]]: #new
         """Returns the best schedule (minimizing makespan) for a problem instance using ETF
 
         Args:
@@ -85,8 +85,8 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
         next_moment = np.inf
 
         #new
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes} #changed name for consistancy 
-        task_map: Dict[Hashable, Task] = {} #changed from tasks to task_map for consistancy 
+        comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes} #changed name for consistancy 
+        task_map: Dict[Hashable, ScheduledTask] = {} #changed from tasks to task_map for consistancy 
 
         print("testing")
         print(schedule)
@@ -125,7 +125,7 @@ class ETFScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 start_time = max(start_time, current_moment)
 
                 if start_time <= next_moment:
-                    new_task = Task(
+                    new_task = ScheduledTask(
                         node=node_to_schedule_on,
                         name=task_to_schedule,
                         start=start_time,

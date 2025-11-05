@@ -12,7 +12,7 @@ from changes import (
 )
 
 from common import standardize_instance
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 
 
 # data class for simulated annealing iteration
@@ -25,14 +25,14 @@ class SimulatedAnnealingIteration:
     neighbor_energy: float
     best_energy: float
 
-    current_schedule: Dict[str, List[Task]]
-    current_base_schedule: Dict[str, List[Task]]
+    current_schedule: Dict[str, List[ScheduledTask]]
+    current_base_schedule: Dict[str, List[ScheduledTask]]
 
-    neighbor_schedule: Dict[str, List[Task]]
-    neighbor_base_schedule: Dict[str, List[Task]]
+    neighbor_schedule: Dict[str, List[ScheduledTask]]
+    neighbor_base_schedule: Dict[str, List[ScheduledTask]]
 
-    best_schedule: Dict[str, List[Task]]
-    best_base_schedule: Dict[str, List[Task]]
+    best_schedule: Dict[str, List[ScheduledTask]]
+    best_base_schedule: Dict[str, List[ScheduledTask]]
 
     accept_probability: float
     accepted: bool
@@ -58,7 +58,7 @@ class SimulatedAnnealing:
 
     @staticmethod
     def default_get_makespan(_network: nx.Graph, _task_graph: nx.DiGraph,
-                             schedule: Dict[Hashable, List[Task]]) -> float:
+                             schedule: Dict[Hashable, List[ScheduledTask]]) -> float:
         """Get makespan from schedule
 
         Args:
@@ -80,7 +80,7 @@ class SimulatedAnnealing:
                  scheduler: Scheduler,
                  base_scheduler: Scheduler,
                  get_makespan: Callable[[nx.Graph, nx.DiGraph,
-                                         Dict[Hashable, List[Task]]], float] = None,
+                                         Dict[Hashable, List[ScheduledTask]]], float] = None,
                  max_iterations: int = 1000,
                  max_temp: float = 100,
                  min_temp: float = 0.1,
@@ -135,7 +135,7 @@ class SimulatedAnnealing:
         """Reset simulated annealing algorithm"""
         self.iterations = []
 
-    def get_schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def get_schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
         """Get schedule for network and task graph
 
         Args:
@@ -148,7 +148,7 @@ class SimulatedAnnealing:
         network, task_graph = standardize_instance(network.copy(), task_graph.copy())
         return self.scheduler.schedule(network, task_graph)
 
-    def get_base_schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def get_base_schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
         """Get base schedule for network and task graph
 
         Args:

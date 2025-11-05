@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 from saga.schedulers import HeftScheduler, CpopScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
@@ -49,7 +49,7 @@ def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):
     ax: plt.Figure = draw_network(network, draw_colors=False, use_latex=True)
     ax.get_figure().savefig(str(thisdir / 'network.png'))
 
-def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None):
+def draw_schedule(schedule: Dict[str, List[ScheduledTask]], name: str, xmax: float = None):
     ax: plt.Axes = draw_gantt(schedule, use_latex=True, xmax=xmax)
     ax.get_figure().savefig(str(thisdir / f'{name}.png'))
 

@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 from .heft import heft_rank_sort
 
 def hbmct_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:    
@@ -49,8 +49,8 @@ def calculate_est(network: nx.Graph,
                   task_graph: nx.DiGraph,
                   group:List[Hashable],
                   commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-                  comp_schedule: Dict[Hashable, List[Task]],
-                  task_schedule: Dict[Hashable, Task]) -> Dict[Hashable, Dict[Hashable, float]]:
+                  comp_schedule: Dict[Hashable, List[ScheduledTask]],
+                  task_schedule: Dict[Hashable, ScheduledTask]) -> Dict[Hashable, Dict[Hashable, float]]:
     """
     Calculate the earliest start times for the given group on all nodes. 
 
@@ -109,7 +109,7 @@ def get_initial_assignments(network: nx.Graph,
         assignments[node].sort(key= lambda x, node=node: est_table[x][node])
     return assignments
     
-def get_ft(node_schedule: List[Task]) -> float:
+def get_ft(node_schedule: List[ScheduledTask]) -> float:
     """
     Calculate finish time for a node in a given schedule
 
@@ -126,10 +126,10 @@ def get_ft(node_schedule: List[Task]) -> float:
 def get_ft_after_insert(new_task_name: Hashable,
                         node: Hashable,
                         assignments: List[Hashable],
-                        node_schedule: List[Task],
+                        node_schedule: List[ScheduledTask],
                         est_table: Dict[Hashable, Dict[Hashable, float]],
                         runtimes: Dict[Hashable, Dict[Hashable, float]],
-                        insert_position:int) -> (float, List[Task], Task):
+                        insert_position:int) -> (float, List[ScheduledTask], ScheduledTask):
     """
     Calculate the finish time after inserting task in the schedule of a node.
 
@@ -161,7 +161,7 @@ def get_ft_after_insert(new_task_name: Hashable,
         start_time = est_table[task_name][node]
         if new_schedule:
             start_time = max(start_time, new_schedule[-1].end)
-        task = Task(node, task_name, start_time, start_time + runtimes[node][task_name])
+        task = ScheduledTask(node, task_name, start_time, start_time + runtimes[node][task_name])
         new_schedule.append(task)
         if task_name == new_task_name:
             new_task = task
@@ -169,10 +169,10 @@ def get_ft_after_insert(new_task_name: Hashable,
 
 def delete_task_from_schedule(task_name:Hashable,
                               node: Hashable,
-                              node_schedule: List[Task],
+                              node_schedule: List[ScheduledTask],
                               est_table: Dict[Hashable, Dict[Hashable, float]],
                               runtimes: Dict[Hashable, Dict[Hashable, float]]
-                              )-> (float, List[Task]):
+                              )-> (float, List[ScheduledTask]):
     """
     Calculate the new schedule after removing task from a node schedule.
 
@@ -198,7 +198,7 @@ def delete_task_from_schedule(task_name:Hashable,
         start_time = est_table[task.name][node]
         if j!=0:
             start_time = max(start_time, new_schedule[j-1].end)
-        new_schedule[j] = Task(node, task.name, start_time, start_time + runtimes[node][task.name])
+        new_schedule[j] = ScheduledTask(node, task.name, start_time, start_time + runtimes[node][task.name])
 
     new_ft = 0
     logging.debug("Schedule of %s after remoiving %s : %s",node, task_name, new_schedule)
@@ -260,7 +260,7 @@ class HbmctScheduler(Scheduler):
                   task_graph: nx.DiGraph,
                   groups:List[List[Hashable]],
                   runtimes: Dict[Hashable, Dict[Hashable, float]],
-                  commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]) -> Dict[Hashable, List[Task]]:
+                  commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]) -> Dict[Hashable, List[ScheduledTask]]:
         """
         Schedule all the groups independently
 
@@ -274,8 +274,8 @@ class HbmctScheduler(Scheduler):
         Returns:
             Dict[Hashable, List[Task]]: The schedule for each node
         """
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
+        comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[Hashable, ScheduledTask] = {}
         for group in groups:
             comp_group_start_positions = {node: len(comp_schedule[node]) for node in comp_schedule}
             est_table = calculate_est(network, task_graph, group, commtimes, comp_schedule, task_schedule)
@@ -288,7 +288,7 @@ class HbmctScheduler(Scheduler):
                     start_time = est_table[task_name][node]
                     if comp_schedule[node]:
                         start_time = max(start_time, comp_schedule[node][-1].end)
-                    task = Task(node, task_name, start_time, start_time + runtimes[node][task_name])
+                    task = ScheduledTask(node, task_name, start_time, start_time + runtimes[node][task_name])
                     comp_schedule[node].append(task)
                     task_schedule[task_name] = task
             logging.debug("Initial assignment for group %s: %s", group, comp_schedule)
@@ -346,7 +346,7 @@ class HbmctScheduler(Scheduler):
 
 
         
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
         """Computes the schedule for the task graph using the CPoP algorithm.
 
         Args:

@@ -1,9 +1,9 @@
 import itertools
-from typing import Dict, Hashable, List
+from typing import Dict
 
 import networkx as nx
-
-from saga.scheduler import Scheduler, Task, Schedule
+import networkx.algorithms.dag as dag
+from saga.scheduler import Scheduler, ScheduledTask, Schedule
 
 
 class BruteForceScheduler(Scheduler):
@@ -22,7 +22,7 @@ class BruteForceScheduler(Scheduler):
             A dictionary of the schedule
         """
         # get all topological sorts of the task graph
-        topological_sorts = list(nx.algorithms.dag.all_topological_sorts(task_graph))
+        topological_sorts = list(dag.all_topological_sorts(task_graph))
         # get all valid mappings of the task graph nodes to the network nodes
         mappings = [
             dict(zip(task_graph.nodes, mapping))
@@ -33,8 +33,8 @@ class BruteForceScheduler(Scheduler):
         best_makespan = float("inf")
         for mapping in mappings:
             for top_sort in topological_sorts:
-                tasks: Dict[int, Task] = {}
-                schedule: Schedule = Schedule()
+                tasks: Dict[int, ScheduledTask] = {}
+                schedule: Schedule = Schedule.create(network.nodes)
                 for task in top_sort:
                     node = mapping[task]
                     task_cost = task_graph.nodes[task]["weight"]
@@ -50,14 +50,13 @@ class BruteForceScheduler(Scheduler):
 
                     node_speed = network.nodes[node]["weight"]
                     end_time = ready_time + task_cost / node_speed
-                    tasks[task] = Task(node, task, ready_time, end_time)
-                    schedule.setdefault(node, []).append(tasks[task])
+                    tasks[task] = ScheduledTask(node=node, name=task, start=ready_time, end=end_time)
+                    schedule.add_task(tasks[task])
 
-                makespan = max([max([task.end for task in tasks]) for tasks in schedule.values() if len(tasks) > 0])
-                if makespan < best_makespan:
-                    best_makespan = makespan
+                if schedule.makespan < best_makespan:
+                    best_makespan = schedule.makespan
                     best_schedule = schedule
 
-        # fill empty nodes with empty lists
-        best_schedule = {node: best_schedule.get(node, []) for node in network.nodes}
+        if best_schedule is None:
+            raise RuntimeError("Brute force scheduler failed to find a schedule")
         return best_schedule

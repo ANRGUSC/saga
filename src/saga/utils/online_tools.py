@@ -1,17 +1,15 @@
-import logging
 from typing import Dict, Hashable, List, Tuple, Optional, TypeVar, Union
 
 import networkx as nx
-import numpy as np
 
 from copy import deepcopy
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
 
 def schedule_estimate_to_actual(network: nx.Graph,
                                 task_graph: nx.DiGraph,
-                                schedule_estimate: Dict[Hashable, List[Task]]) -> Dict[Hashable, List[Task]]:
+                                schedule_estimate: Dict[Hashable, List[ScheduledTask]]) -> Dict[Hashable, List[ScheduledTask]]:
     """
     Converts an 'estimated' schedule (using mean or estimate-based runtimes)
     into an 'actual' schedule, using hidden static true values stored in the
@@ -37,17 +35,17 @@ def schedule_estimate_to_actual(network: nx.Graph,
     """
 
     #intitiate schedule_actual
-    schedule_actual: Dict[Hashable, List[Task]] = {
+    schedule_actual: Dict[Hashable, List[ScheduledTask]] = {
         node: [] for node in network.nodes #creating an empty schedule
     }
     #creating a dict of tasks and filling it with the tasks in estimate schedule I believe this is done simply 
     #to make it easier to access our tasks, which is something he said he does throughout the code
-    tasks_estimate: Dict[str, Task] = { 
+    tasks_estimate: Dict[str, ScheduledTask] = { 
         task.name: task
         for node, tasks in schedule_estimate.items()
         for task in tasks
     }
-    tasks_actual: Dict[str, Task] = {} #Creating an empty dict to store our actual tasks once they are completed
+    tasks_actual: Dict[str, ScheduledTask] = {} #Creating an empty dict to store our actual tasks once they are completed
 
     task_order = sorted(task_graph.nodes, key=lambda task: tasks_estimate[task].start) #ordering our nodes based on their estimated start times
     # print(f"Task order: {[(task, tasks_estimate[task].start, tasks_estimate[task].end) for task in task_order]}") #debugging print to see the order of tasks
@@ -69,7 +67,7 @@ def schedule_estimate_to_actual(network: nx.Graph,
 
         #calculating runtime of current task 
         runtime = task_graph.nodes[task_name]["weight_actual"] / network.nodes[task_node]["weight_actual"]
-        new_task = Task( #creating a "new" task with all of our calculated attributes 
+        new_task = ScheduledTask( #creating a "new" task with all of our calculated attributes 
             node=task_node,
             name=task_name,
             start=start_time,
@@ -105,16 +103,16 @@ class ScheduleInjector:
         self,
         network: nx.Graph,
         task_graph: nx.DiGraph,
-        schedule: Optional[Dict[Hashable, List[Task]]] = None,
+        schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
         min_start_time: float = 0.0,
         **algo_kwargs
-    ) -> Dict[Hashable, List[Task]]:
+    ) -> Dict[Hashable, List[ScheduledTask]]:
         # 1. Initialize or clone
         if schedule is None:
-            comp_schedule: Dict[Hashable, List[Task]] = {
+            comp_schedule: Dict[Hashable, List[ScheduledTask]] = {
                 node: [] for node in network.nodes
             }
-            task_map: Dict[Hashable, Task] = {}
+            task_map: Dict[Hashable, ScheduledTask] = {}
             current_moment = min_start_time
             
         else:

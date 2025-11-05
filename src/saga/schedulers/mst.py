@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Optional, Set
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class MSTScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -12,7 +12,7 @@ class MSTScheduler(Scheduler): # pylint: disable=too-few-public-methods
     def schedule(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
-                 clusters: Optional[List[Set[Hashable]]] = None) -> Dict[Hashable, List[Task]]:
+                 clusters: Optional[List[Set[Hashable]]] = None) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the schedule of the tasks on the network
 
         Args:
@@ -22,8 +22,8 @@ class MSTScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: The schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}  # Initialize list for each node
-        scheduled_tasks: Dict[Hashable, Task] = {}  # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}  # Initialize list for each node
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}  # Map from task_name to Task
         cluster_decisions: Dict[Hashable, Hashable] = {}
         def get_cluster(task_name: Hashable) -> Set[Hashable]:
             if clusters is None:
@@ -66,7 +66,7 @@ class MSTScheduler(Scheduler): # pylint: disable=too-few-public-methods
             end_time = start_time + get_exec_time(task, sched_node)
 
             # Add task to the schedule
-            new_task = Task(node=sched_node, name=task, start=start_time, end=end_time)
+            new_task = ScheduledTask(node=sched_node, name=task, start=start_time, end=end_time)
             schedule[sched_node].append(new_task)
             scheduled_tasks[task] = new_task
 

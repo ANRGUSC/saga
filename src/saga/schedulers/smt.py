@@ -6,9 +6,9 @@ from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, Or, Plus,
                              Real, Symbol, get_model)
 from pysmt.typing import REAL
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class SMTScheduler(Scheduler):
@@ -45,7 +45,7 @@ class SMTScheduler(Scheduler):
     def _schedule(self,
                   network: nx.Graph,
                   task_graph: nx.DiGraph,
-                  makespan: float) -> Optional[Dict[Hashable, List[Task]]]:
+                  makespan: float) -> Optional[Dict[Hashable, List[ScheduledTask]]]:
         """Returns the schedule of the tasks on the network if one exists within the makespan
 
         Args:
@@ -131,14 +131,14 @@ class SMTScheduler(Scheduler):
             )
 
         model = get_model(And(constraints), solver_name=self.solver_name)
-        schedule: Dict[Hashable, List[Task]] = {}
+        schedule: Dict[Hashable, List[ScheduledTask]] = {}
         if model:
             for node in network.nodes:
                 schedule[node] = []
                 for task in task_graph.nodes:
                     if model.get_py_value(start_time[node][task]) >= 0:
                         schedule[node].append(
-                            Task(
+                            ScheduledTask(
                                 node=node,
                                 name=task,
                                 start=float(model.get_py_value(start_time[node][task])),
@@ -154,7 +154,7 @@ class SMTScheduler(Scheduler):
             return None
 
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns an epsilon-optimal schedule of the tasks on the network.
 
         Args:

@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -21,7 +21,7 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
         super(WBAScheduler, self).__init__()
         self.alpha = alpha
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the schedule of the given task graph on the given network.
 
         Args:
@@ -31,8 +31,8 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
         """
-        schedule: Dict[Hashable, List[Task]] = {}
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
 
         @lru_cache(maxsize=None)
         def get_eet(task: Hashable, node: Hashable) -> float:
@@ -103,7 +103,7 @@ class WBAScheduler(Scheduler): # pylint: disable=too-few-public-methods
 
                 sched_task, sched_node = random.choice(avail_pairs)
                 schedule.setdefault(sched_node, [])
-                new_task = Task(
+                new_task = ScheduledTask(
                     node=sched_node,
                     name=sched_task,
                     start=get_est(sched_task, sched_node),

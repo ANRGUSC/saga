@@ -10,7 +10,7 @@ from saga.utils.draw import gradient_heatmap
 from multiprocessing import Pool, Value, Lock, cpu_count
 
 from saga.schedulers import ETFScheduler
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 
 class OnlineETFScheduler(Scheduler): 
@@ -19,12 +19,12 @@ class OnlineETFScheduler(Scheduler):
 
     def schedule(self,
                  network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
-        schedule_actual: Dict[Hashable, List[Task]] = {
+                 task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
+        schedule_actual: Dict[Hashable, List[ScheduledTask]] = {
             node: [] for node in network.nodes
         }
 
-        tasks_actual: Dict[str, Task] = {}
+        tasks_actual: Dict[str, ScheduledTask] = {}
         current_time = 0
         iteration = 0
 
@@ -37,8 +37,8 @@ class OnlineETFScheduler(Scheduler):
                 self.etf_scheduler.schedule(network, task_graph, schedule = schedule_actual, min_start_time=current_time)
             )
 
-            tasks: List[Task] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
-            next_task: Task = min(
+            tasks: List[ScheduledTask] = sorted([task for node_tasks in schedule_actual_hypothetical.values() for task in node_tasks], key=lambda x: x.start)
+            next_task: ScheduledTask = min(
                 [task for task in tasks if task.name not in tasks_actual],
                 key=lambda x: x.end
             )

@@ -5,7 +5,7 @@ from typing import Any, Dict, Hashable, List, Optional, Tuple
 import networkx as nx
 from saga.utils.online_tools import ScheduleInjector
 
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 
 class IntialPriority(ABC):
     @abstractmethod
@@ -45,7 +45,7 @@ class IntialPriority(ABC):
         """
         pass
 
-ScheduleType = Dict[Hashable, List[Task]]
+ScheduleType = Dict[Hashable, List[ScheduledTask]]
 class InsertTask(ABC): 
     @abstractmethod
     def __call__(self,
@@ -56,7 +56,7 @@ class InsertTask(ABC):
                  task: Hashable,
                  current_moment: float,
     
-                 node: Optional[Hashable] = None) -> Task:
+                 node: Optional[Hashable] = None) -> ScheduledTask:
         
         """Insert a task into the schedule.
 
@@ -106,7 +106,7 @@ class ParametricScheduler(ScheduleInjector, Scheduler):
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  comp_schedule: ScheduleType,
-                 task_map: Dict[Hashable, Task],
+                 task_map: Dict[Hashable, ScheduledTask],
                  current_moment:float,
                  **_algo_kwargs) -> ScheduleType:
         """Schedule the tasks on the network.

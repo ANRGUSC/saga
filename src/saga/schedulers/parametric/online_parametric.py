@@ -4,7 +4,7 @@ from saga.schedulers.parametric import (
     ParametricScheduler, IntialPriority, InsertTask
 )
 
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 from saga.schedulers.parametric.components import (
     insert_funcs, initial_priority_funcs
@@ -19,7 +19,7 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
 
     def schedule_iterative(self,
                            network: nx.Graph,
-                           task_graph: nx.DiGraph) -> Tuple[List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]], List[Dict[Hashable, List[Task]]]]:
+                           task_graph: nx.DiGraph) -> Tuple[List[Dict[Hashable, List[ScheduledTask]]], List[Dict[Hashable, List[ScheduledTask]]], List[Dict[Hashable, List[ScheduledTask]]]]:
         """Online scheduling algorithm that produces a schedule, then waits for
         the next task to finish before producing the next schedule.
 
@@ -34,13 +34,13 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
                 - schedules_hypothetical: The hypothetical schedules based on the estimates.
                 - schedules_actual: The actual schedules after all tasks have been scheduled.
         """
-        schedules_estimate: List[Dict[Hashable, List[Task]]] = []
-        schedules_hypothetical: List[Dict[Hashable, List[Task]]] = []
-        schedules_actual: List[Dict[Hashable, List[Task]]] = []
-        schedule_actual: Dict[Hashable, List[Task]] = {
+        schedules_estimate: List[Dict[Hashable, List[ScheduledTask]]] = []
+        schedules_hypothetical: List[Dict[Hashable, List[ScheduledTask]]] = []
+        schedules_actual: List[Dict[Hashable, List[ScheduledTask]]] = []
+        schedule_actual: Dict[Hashable, List[ScheduledTask]] = {
             node: [] for node in network.nodes
         }
-        tasks_actual: Dict[str, Task] = {}
+        tasks_actual: Dict[str, ScheduledTask] = {}
         finished_tasks: Set[str] = set()
         current_time = 0
 
@@ -61,14 +61,14 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
             schedules_hypothetical.append(schedule_actual_hypothetical)
 
             # Get the next task that will finish executing
-            tasks: List[Task] = sorted(
+            tasks: List[ScheduledTask] = sorted(
                 [
                     task for node_tasks in schedule_actual_hypothetical.values()
                     for task in node_tasks
                 ],
                 key=lambda x: x.start
             )
-            next_task: Task = min(
+            next_task: ScheduledTask = min(
                 [task for task in tasks if task.name not in finished_tasks],
                 key=lambda x: x.end
             )
@@ -92,7 +92,7 @@ class OnlineParametricScheduler(Scheduler):#need to add check for sufferage sche
 
     def schedule(self,
                  network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+                 task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Online scheduling algorithm that produces a schedule, then waits for
         the next task to finish before producing the next schedule. This method
         returns only the final schedule after all tasks have been scheduled.

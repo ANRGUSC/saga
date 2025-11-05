@@ -9,7 +9,7 @@ import fcntl
 
 import numpy as np
 import pandas as pd
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks
@@ -105,7 +105,7 @@ class GreedyInsert(InsertTask):
         # self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
         self.critical_path = critical_path
 
-    def _compare(self, new: Task, cur: Task) -> float:
+    def _compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
         return GREEDY_INSERT_COMPARE_FUNCS[self.compare](new, cur)
 
     def __call__(self,
@@ -114,7 +114,7 @@ class GreedyInsert(InsertTask):
                  schedule: ScheduleType,
                  task: Hashable,
                  node: Optional[Hashable] = None,
-                 dry_run: bool = False) -> Task:
+                 dry_run: bool = False) -> ScheduledTask:
         best_insert_loc, best_task = None, None
         # second_best_task = None
         # TODO: This is a bit inefficient adds O(n) per iteration,
@@ -146,7 +146,7 @@ class GreedyInsert(InsertTask):
 
             min_start_time = 0
             for parent in task_graph.predecessors(task):
-                parent_task: Task = task_graph.nodes[parent]['scheduled_task']
+                parent_task: ScheduledTask = task_graph.nodes[parent]['scheduled_task']
                 parent_node = parent_task.node
                 data_size = task_graph.edges[parent, task]["weight"]
                 comm_strength = network.edges[parent_node, node]["weight"]
@@ -162,7 +162,7 @@ class GreedyInsert(InsertTask):
             else:
                 insert_loc, start_time  = get_insert_loc(schedule[node], min_start_time, exec_time)
 
-            new_task = Task(node, task, start_time, start_time + exec_time)
+            new_task = ScheduledTask(node, task, start_time, start_time + exec_time)
             if best_task is None or self._compare(new_task, best_task) < 0:
                 best_insert_loc, best_task = insert_loc, new_task
 
@@ -211,7 +211,7 @@ class ParametricKDepthScheduler(Scheduler):
         """
         queue = self.scheduler.initial_priority(network, task_graph)
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         while queue:
             task_name = queue.pop(0)
             k_depth_successors = nx.single_source_shortest_path_length(
@@ -306,7 +306,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
         """
         queue = self.initial_priority(network, task_graph)
         schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         while queue:
             ready_tasks = [
                 task for task in queue

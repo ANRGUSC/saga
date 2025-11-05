@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List, Set, Tuple
 
 import networkx as nx
 
-from saga.scheduler import Schedule, Scheduler, Task
+from saga.scheduler import Schedule, Scheduler, ScheduledTask
 
 
 class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -30,8 +30,8 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             A dictionary of the schedule
         """
-        schedule: Schedule = Schedule(schedule={node: [] for node in network.nodes})
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        schedule: Schedule = Schedule({node: [] for node in network.nodes})
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
 
         bils: Dict[Hashable, float] = {}
         for task in reversed(list(nx.topological_sort(task_graph))):
@@ -96,7 +96,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
             }
 
             # select node with lowest revised bim
-            selected_node = min(revised_bims, key=revised_bims.get)
+            selected_node = min(revised_bims, key=lambda node: revised_bims[node])
             # If more than one processor have the same revised BIM value, we select the
             # processor that makes the sum of the revised BIM values of other nodes on the
             # processor maximum.
@@ -117,7 +117,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 ), default=0)
             )
             end_time = start_time + task_graph.nodes[selected_task]['weight'] / network.nodes[selected_node]['weight']
-            new_task = Task(
+            new_task = ScheduledTask(
                 node=selected_node,
                 name=selected_task,
                 start=start_time,

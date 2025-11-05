@@ -17,7 +17,7 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
 # create logger with SAGA:saga.utils.draw: prefix
 logger = logging.getLogger("SAGA:saga.utils.draw")
@@ -49,7 +49,7 @@ def is_latex_installed() -> bool:
 
 def draw_task_graph(task_graph: nx.DiGraph,
                     axis: Optional[Axes] = None,
-                    schedule: Optional[Dict[Hashable, List[Task]]] = None,
+                    schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
                     use_latex: bool = False,
                     node_size: int = 2000,
                     linewidths: int = 2,
@@ -311,7 +311,7 @@ def draw_network(network: nx.Graph,
         plt.tight_layout()
         return axis
 
-def draw_gantt(schedule: Dict[Hashable, List[Task]],
+def draw_gantt(schedule: Dict[Hashable, List[ScheduledTask]],
                use_latex: bool = False,
                font_size: int = 20,
                tick_font_size: int = 20,
@@ -364,7 +364,7 @@ def draw_gantt(schedule: Dict[Hashable, List[Task]],
         # insert dummy tasks to make sure all nodes have at least one task
         for node in schedule:
             if len(schedule[node]) == 0:
-                schedule[node].append(Task(name=r"", start=0, end=0, node=node))
+                schedule[node].append(ScheduledTask(name=r"", start=0, end=0, node=node))
 
         data_frame = pd.DataFrame(
             [

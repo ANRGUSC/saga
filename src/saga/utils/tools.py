@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
 
 def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
@@ -56,7 +56,7 @@ def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
         raise ValueError("Task graph does not have exactly one sink.")
     
 
-def get_insert_loc(schedule: List[Task], 
+def get_insert_loc(schedule: List[ScheduledTask], 
                    min_start_time: float, 
                    exec_time: float) -> Tuple[int, float]:
     """Get the location where the task should be inserted in the list of tasks.
@@ -86,7 +86,7 @@ class InvalidScheduleError(Exception):
     def __init__(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
-                 schedule: Dict[Hashable, List[Task]],
+                 schedule: Dict[Hashable, List[ScheduledTask]],
                  message: str = "Invalid schedule.") -> None:
         self.network = network
         self.task_graph = task_graph
@@ -141,7 +141,7 @@ def standardize_network(network: nx.Graph) -> nx.Graph:
 
     return network
 
-def validate_simple_schedule(network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[Hashable, List[Task]]) -> None:
+def validate_simple_schedule(network: nx.Graph, task_graph: nx.DiGraph, schedule: Dict[Hashable, List[ScheduledTask]]) -> None:
     """Validate a simple schedule.
 
     Args:

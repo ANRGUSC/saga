@@ -2,14 +2,14 @@ from functools import lru_cache
 from typing import Dict, Hashable, List
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Max-Min scheduler"""
     def schedule(self,
                  network: nx.Graph,
-                 task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+                 task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedules the task graph on the network
 
         Args:
@@ -19,8 +19,8 @@ class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: The schedule.
         """
-        schedule: Dict[Hashable, List[Task]] = {}
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
 
         @lru_cache(maxsize=None)
         def get_eet(task: Hashable, node: Hashable) -> float:
@@ -65,7 +65,7 @@ class MaxMinScheduler(Scheduler): # pylint: disable=too-few-public-methods
                 sched_node = min(network.nodes, key=lambda node: get_ect(sched_task, node))
 
                 schedule.setdefault(sched_node, [])
-                new_task = Task(
+                new_task = ScheduledTask(
                     node=sched_node,
                     name=sched_task,
                     start=max(get_eat(sched_node), get_fat(sched_task, sched_node)),

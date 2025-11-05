@@ -5,7 +5,7 @@ from typing import Dict, Iterable, List
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 
 
 class HybridScheduler(Scheduler):
@@ -18,7 +18,7 @@ class HybridScheduler(Scheduler):
         """
         self.schedulers = schedulers
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
         """Returns the best schedule of the given schedule functions.
 
         Args:

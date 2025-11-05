@@ -11,7 +11,6 @@ from saga.schedulers import (
 )
 from saga.schedulers.parametric.components import schedulers as parametric_schedulers
 from saga.schedulers.parametric.online_parametric import schedulers as online_schedulers
-from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
 from saga.schedulers.stochastic.improved_sheft import ImprovedSheftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler
 from saga.schedulers.stochastic.stoch_heft import StochHeftScheduler

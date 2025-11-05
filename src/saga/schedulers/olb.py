@@ -1,7 +1,7 @@
 from typing import Dict, Hashable, List
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Opportunistic Load Balancing scheduler
@@ -11,7 +11,7 @@ class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
         to be available, regardless of the task's expected execution time on that machine"
         (from source).
     """
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedule tasks on nodes using the OLB algorithm.
 
         Args:
@@ -21,8 +21,8 @@ class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: Schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         for task in nx.topological_sort(task_graph):
             next_available_node = min(
                 network.nodes,
@@ -41,7 +41,7 @@ class OLBScheduler(Scheduler): # pylint: disable=too-few-public-methods
             ]
             start_time = max(times)
             exec_time = task_graph.nodes[task]['weight'] / network.nodes[next_available_node]['weight']
-            new_task = Task(
+            new_task = ScheduledTask(
                 name=task,
                 node=next_available_node,
                 start=start_time,

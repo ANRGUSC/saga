@@ -8,7 +8,7 @@ from saga.schedulers.parametric.components import (
     ParametricSufferageScheduler, UpwardRanking, get_insert_loc,
     initial_priority_funcs, insert_funcs
 )
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 from saga.schedulers.parametric import ScheduleType
 import networkx as nx
 from saga.utils.draw import draw_gantt
@@ -30,7 +30,7 @@ SCHEDULER_RENAMES = {
 class ConstrainedGreedyInsert(InsertTask):
     def __init__(self,
                  append_only: bool = False,
-                 compare: Callable[[nx.Graph, nx.DiGraph, ScheduleType, Task, Task], float] = lambda new, cur: new.end - cur.end,
+                 compare: Callable[[nx.Graph, nx.DiGraph, ScheduleType, ScheduledTask, ScheduledTask], float] = lambda new, cur: new.end - cur.end,
                  critical_path: bool = False):
         """Initialize the GreedyInsert class.
         
@@ -50,7 +50,7 @@ class ConstrainedGreedyInsert(InsertTask):
                  schedule: ScheduleType,
                  task: Hashable,
                  node: Optional[Hashable] = None,
-                 dry_run: bool = False) -> Task:
+                 dry_run: bool = False) -> ScheduledTask:
         """Insert a task into the schedule.
 
         Args:
@@ -72,8 +72,8 @@ class ConstrainedGreedyInsert(InsertTask):
         if self.critical_path and node is None:
             fastest_node = list(network.nodes)[0]
             for _node in network.nodes:
-                fnode_task = Task(fastest_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[fastest_node]['weight'])
-                cnode_task = Task(_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[_node]['weight'])
+                fnode_task = ScheduledTask(fastest_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[fastest_node]['weight'])
+                cnode_task = ScheduledTask(_node, task, 0, task_graph.nodes[task]['weight'] / network.nodes[_node]['weight'])
                 if self._compare(network, task_graph, schedule, fnode_task, cnode_task) < 0:
                     node = _node
                     break
@@ -84,7 +84,7 @@ class ConstrainedGreedyInsert(InsertTask):
 
             min_start_time = 0
             for parent in task_graph.predecessors(task):
-                parent_task: Task = task_graph.nodes[parent]['scheduled_task']
+                parent_task: ScheduledTask = task_graph.nodes[parent]['scheduled_task']
                 parent_node = parent_task.node
                 data_size = task_graph.edges[parent, task]["weight"]
                 comm_strength = network.edges[parent_node, node]["weight"]
@@ -100,7 +100,7 @@ class ConstrainedGreedyInsert(InsertTask):
             else:
                 insert_loc, start_time  = get_insert_loc(schedule[node], min_start_time, exec_time)
 
-            new_task = Task(node, task, start_time, start_time + exec_time)
+            new_task = ScheduledTask(node, task, start_time, start_time + exec_time)
             if best_task is None or self._compare(network, task_graph, schedule, new_task, best_task) < 0:
                 best_insert_loc, best_task = insert_loc, new_task
 
@@ -146,7 +146,7 @@ def example():
     def compare(network: nx.Graph,
                 task_graph: nx.DiGraph,
                 schedule: ScheduleType,
-                new: Task, cur: Task) -> float:
+                new: ScheduledTask, cur: ScheduledTask) -> float:
         if new.node in schedule_restrictions[new.name]:
             return 1e9 # return high number, indicating new is bad
         elif cur.node in schedule_restrictions[cur.name]:
@@ -188,7 +188,7 @@ def experiment_1():
     def compare(network: nx.Graph,
                 task_graph: nx.DiGraph,
                 schedule: ScheduleType,
-                new: Task, cur: Task,
+                new: ScheduledTask, cur: ScheduledTask,
                 max_tasks_per_node: int) -> float:
         if len(schedule[new.node]) >= max_tasks_per_node:
             return 1e9
@@ -280,7 +280,7 @@ def experiment_2():
         def compare_eft(network: nx.Graph,
                         task_graph: nx.DiGraph,
                         schedule: ScheduleType,
-                        new: Task, cur: Task) -> float:
+                        new: ScheduledTask, cur: ScheduledTask) -> float:
             if new.node in schedule_restrictions[new.name]:
                 return 1e9
             elif cur.node in schedule_restrictions[cur.name]:
@@ -290,7 +290,7 @@ def experiment_2():
         def compare_est(network: nx.Graph,
                         task_graph: nx.DiGraph,
                         schedule: ScheduleType,
-                        new: Task, cur: Task) -> float:
+                        new: ScheduledTask, cur: ScheduledTask) -> float:
             if new.node in schedule_restrictions[new.name]:
                 return 1e9
             elif cur.node in schedule_restrictions[cur.name]:
@@ -327,7 +327,7 @@ def experiment_2():
         def compare_arbitrary(network: nx.Graph,
                               task_graph: nx.DiGraph,
                               schedule: ScheduleType,
-                              new: Task, cur: Task) -> float:
+                              new: ScheduledTask, cur: ScheduledTask) -> float:
             if new.node in schedule_restrictions[new.name]:
                 return 1e9
             elif cur.node in schedule_restrictions[cur.name]:
@@ -383,7 +383,7 @@ def experiment_full():
             def compare(network: nx.Graph,
                         task_graph: nx.DiGraph,
                         schedule: ScheduleType,
-                        new: Task, cur: Task) -> float:
+                        new: ScheduledTask, cur: ScheduledTask) -> float:
                 schedule_restrictions = task_graph.graph.get("schedule_restrictions", {})
                 if new.node in schedule_restrictions[new.name]:
                     return 1e9

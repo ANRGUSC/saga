@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class GDLScheduler(Scheduler):
@@ -19,9 +19,9 @@ class GDLScheduler(Scheduler):
         if dynamic_level not in (1, 2):
             raise ValueError("dynamic_level must be 1 or 2")
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, Task] = {}
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
 
         execution_time = {}
         for task in task_graph.nodes:
@@ -187,7 +187,7 @@ class GDLScheduler(Scheduler):
                 node_available(node)
             )
             exec_time = execution_time[task, node]
-            new_task = Task(
+            new_task = ScheduledTask(
                 node=node,
                 name=task,
                 start=start_time,

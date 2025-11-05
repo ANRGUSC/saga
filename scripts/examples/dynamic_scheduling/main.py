@@ -5,7 +5,7 @@ from typing import Dict, List
 import networkx as nx
 from matplotlib import pyplot as plt
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 from saga.schedulers import CpopScheduler, HeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
@@ -14,7 +14,7 @@ thisdir = pathlib.Path(__file__).parent.absolute()
 
 FILETYPE = "png"
 
-def get_makespan(schedule: Dict[str, List[Task]]) -> float:
+def get_makespan(schedule: Dict[str, List[ScheduledTask]]) -> float:
     """Get makespan of a schedule.
     
     Args:

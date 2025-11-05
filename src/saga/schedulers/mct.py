@@ -3,7 +3,7 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -11,7 +11,7 @@ class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
     
     Source: https://doi.org/10.1006/jpdc.2000.1714
     """
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the schedule of the tasks on the network
 
         Args:
@@ -21,8 +21,8 @@ class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: The schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}  # Initialize list for each node
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}  # Initialize list for each node
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
 
         def get_exec_time(task: Hashable, node: Hashable) -> float:
             return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
@@ -54,7 +54,7 @@ class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
             end_time = start_time + get_exec_time(task, sched_node)
 
             # Add task to the schedule
-            new_task = Task(node=sched_node, name=task, start=start_time, end=end_time)
+            new_task = ScheduledTask(node=sched_node, name=task, start=start_time, end=end_time)
             schedule[sched_node].append(new_task)
             scheduled_tasks[task] = new_task
         return schedule

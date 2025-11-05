@@ -8,12 +8,12 @@ import streamlit as st
 
 from saga.utils.draw import draw_network, draw_task_graph, draw_gantt
 from saga.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
 
 # Define the results directory
 RESULTS_DIR = pathlib.Path("results")  # Update if necessary
-ScheduleType = Dict[Hashable, List[Task]]
+ScheduleType = Dict[Hashable, List[ScheduledTask]]
 
 
 st.set_page_config(layout="wide")

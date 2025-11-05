@@ -7,9 +7,9 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 from networkx import DiGraph, Graph
 
-from saga.scheduler import Task
+from saga.scheduler import ScheduledTask
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class FLBScheduler(Scheduler):
@@ -20,12 +20,12 @@ class FLBScheduler(Scheduler):
         by the average (but it will still perform poorly on heterogeneous networks). We also schedule
         to the fastest node whenever the original algorithm schedules to an arbitrary node.
     """
-    def schedule(self, network: Graph, task_graph: DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: Graph, task_graph: DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         network = network.copy()
         task_graph = task_graph.copy()
 
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, Task] = {}
+        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
 
         avg_comm_speed = sum(
             network.edges[edge]['weight'] for edge in network.edges
@@ -156,7 +156,7 @@ class FLBScheduler(Scheduler):
 
                 raise RuntimeError(f"No tasks to schedule. proc1={proc1}, task1={task1}, proc2={proc2}, task2={task2}")
             if est_t1_p1 <= est_t2_p2:
-                new_task = Task(
+                new_task = ScheduledTask(
                     node=proc1,
                     name=task1,
                     start=est_t1_p1,
@@ -174,7 +174,7 @@ class FLBScheduler(Scheduler):
                 return task1, proc1
             else:
                 # schedule task t2 on processor p2
-                new_task = Task(
+                new_task = ScheduledTask(
                     node=proc2,
                     name=task2,
                     start=est_t2_p2,

@@ -3,7 +3,7 @@ from typing import Callable, Dict, Hashable, List, Union
 import networkx as nx
 
 from saga.utils.random_variable import RandomVariable
-from saga.scheduler import Scheduler, Task
+from saga.scheduler import Scheduler, ScheduledTask
 from saga.utils.random_variable import RandomVariable
 
 class Determinizer(Scheduler):
@@ -19,7 +19,7 @@ class Determinizer(Scheduler):
             return self._determinize(rv)
         return float(rv)
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedule the tasks on the network.
 
         Args:

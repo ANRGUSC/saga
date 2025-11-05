@@ -4,12 +4,12 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 
 
 class MinMinScheduler(Scheduler):
     """Minimum Completion Time scheduler"""
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the schedule of the tasks on the network
 
         Args:
@@ -19,8 +19,8 @@ class MinMinScheduler(Scheduler):
         Returns:
             Dict[Hashable, List[Task]]: The schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[Task]] = {}
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        schedule: Dict[Hashable, List[ScheduledTask]] = {}
+        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
 
         @lru_cache(maxsize=None)
         def get_eet(task: Hashable, node: Hashable) -> float:
@@ -66,7 +66,7 @@ class MinMinScheduler(Scheduler):
                     key=lambda instance: get_ect(instance[0], instance[1])
                 )
                 schedule.setdefault(sched_node, [])
-                new_task = Task(
+                new_task = ScheduledTask(
                     node=sched_node,
                     name=sched_task,
                     start=max(get_eat(sched_node), get_fat(sched_task, sched_node)),

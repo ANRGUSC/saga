@@ -2,14 +2,14 @@ from typing import Dict, Hashable, List
 
 import networkx as nx
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler
 
 
 class DuplexScheduler(Scheduler): # pylint: disable=too-few-public-methods
     """Duplex scheduler"""
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Returns the best schedule (minimizing makespan) for a problem instance using dupkex
 
         Args:

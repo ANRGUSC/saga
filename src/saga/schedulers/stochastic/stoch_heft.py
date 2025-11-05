@@ -8,7 +8,7 @@ import numpy as np
 from saga.utils.random_variable import RandomVariable
 from saga.utils.tools import get_insert_loc
 
-from ...scheduler import Scheduler, Task
+from ...scheduler import Scheduler, ScheduledTask
 
 
 def stoch_heft_rank_sort(network: nx.Graph, 
@@ -91,7 +91,7 @@ class StochHeftScheduler(Scheduler):
 
         return runtimes, commtimes
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedules all tasks on the node with the highest processing speed
 
         Args:
@@ -106,15 +106,15 @@ class StochHeftScheduler(Scheduler):
         """
         runtimes, commtimes = self.get_runtimes(network, task_graph)
         
-        comp_schedule: Dict[str, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[str, Task] = {}
+        comp_schedule: Dict[str, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[str, ScheduledTask] = {}
 
         task_eft_rvs: Dict[str, RandomVariable] = {}
         task_name: str
         for task_name in stoch_heft_rank_sort(network, task_graph, runtimes, commtimes):
             task_size: RandomVariable = task_graph.nodes[task_name]["weight"] 
 
-            candidate_tasks: List[Tuple[int, Task]] = []
+            candidate_tasks: List[Tuple[int, ScheduledTask]] = []
             for node in network.nodes: # Find the best node to run the task
                 node_speed: RandomVariable = network.nodes[node]["weight"] 
                 exp_max_arrival_time = 0
@@ -143,7 +143,7 @@ class StochHeftScheduler(Scheduler):
 
                 _idx, start_time = get_insert_loc(comp_schedule[node], exp_max_arrival_time, runtimes[node][task_name])
                 exp_end_time = start_time + runtimes[node][task_name]
-                candidate_task = Task(node, task_name, start_time, exp_end_time)
+                candidate_task = ScheduledTask(node, task_name, start_time, exp_end_time)
 
                 exp_delay = start_time - exp_max_arrival_time
                 logging.debug(f"Task {task_name} on node {node} has expected delay {exp_delay}")

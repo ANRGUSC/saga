@@ -5,7 +5,7 @@ from scipy.stats import rv_continuous
 
 from saga.utils.random_variable import RandomVariable
 
-from ...scheduler import Scheduler, Task
+from ...scheduler import Scheduler, ScheduledTask
 from ..heft import HeftScheduler
 
 
@@ -44,7 +44,7 @@ class SheftScheduler(Scheduler):
 
         return new_network, new_task_graph
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
         """Schedules all tasks on the node with the highest processing speed
 
         Args:

@@ -4,7 +4,7 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from ..scheduler import Scheduler, Task
+from ..scheduler import Scheduler, ScheduledTask
 from ..utils.tools import get_insert_loc
 
 
@@ -238,7 +238,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
         ],
         priorities: Dict[Hashable, float],
-    ) -> Dict[Hashable, List[Task]]:
+    ) -> Dict[Hashable, List[ScheduledTask]]:
         """Computes the schedule for the task graph using the MSBC algorithm.
 
         Args:
@@ -253,8 +253,8 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
         Returns:
             Dict[Hashable, List[Task]]: The schedule for the task graph.
         """
-        comp_schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}
-        task_schedule: Dict[Hashable, Task] = {}
+        comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
+        task_schedule: Dict[Hashable, ScheduledTask] = {}
         ready_set = set(
             [
                 task_name
@@ -297,7 +297,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
                     best_node = node, idx
 
             new_runtime = runtimes[best_node[0]][task_name]
-            task = Task(
+            task = ScheduledTask(
                 best_node[0], task_name, min_start_time, min_start_time + new_runtime
             )
             comp_schedule[best_node[0]].insert(best_node[1], task)
@@ -315,7 +315,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
 
     def schedule(
         self, network: nx.Graph, task_graph: nx.DiGraph
-    ) -> Dict[Hashable, List[Task]]:
+    ) -> Dict[Hashable, List[ScheduledTask]]:
         """Computes the schedule for the task graph using the MSBC algorithm.
 
         Args:
