@@ -1,81 +1,99 @@
 from functools import lru_cache
 from itertools import product
-from typing import Dict, Hashable, List
+from typing import Dict, Optional
 
-import networkx as nx
-
-from ..scheduler import Scheduler, ScheduledTask
+from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class MinMinScheduler(Scheduler):
     """Minimum Completion Time scheduler"""
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
+    def schedule(self,
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Optional[Schedule] = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Returns the schedule of the tasks on the network
 
         Args:
-            network (nx.Graph): The network.
-            task_graph (nx.DiGraph): The task graph.
+            network (Network): The network.
+            task_graph (TaskGraph): The task graph.
+            schedule (Optional[Schedule]): Optional initial schedule. Defaults to None.
+            min_start_time (float): Minimum start time for tasks. Defaults to 0.0.
 
         Returns:
-            Dict[Hashable, List[Task]]: The schedule of the tasks on the network.
+            Schedule: The schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[ScheduledTask]] = {}
-        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
+        comp_schedule = Schedule(task_graph, network)
+        scheduled_tasks: Dict[str, ScheduledTask] = {}
+
+        if schedule is not None:
+            comp_schedule = schedule.model_copy()
+            scheduled_tasks = {task.name: task for _, tasks in schedule.items() for task in tasks}
 
         @lru_cache(maxsize=None)
-        def get_eet(task: Hashable, node: Hashable) -> float:
-            return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
+        def get_eet(task_name: str, node_name: str) -> float:
+            task = task_graph.get_task(task_name)
+            node = network.get_node(node_name)
+            return task.cost / node.speed
 
         @lru_cache(maxsize=None)
-        def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
-            return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
+        def get_commtime(task1: str, task2: str, node1: str, node2: str) -> float:
+            dep = task_graph.get_dependency(task1, task2)
+            edge = network.get_edge(node1, node2)
+            return dep.size / edge.speed
 
         @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
-        def get_eat(node: Hashable) -> float:
-            eat = schedule[node][-1].end if schedule.get(node) else 0
+        def get_eat(node_name: str) -> float:
+            tasks = comp_schedule[node_name]
+            eat = tasks[-1].end if tasks else min_start_time
             return eat
 
         @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
-        def get_fat(task: Hashable, node: Hashable) -> float:
-            fat = 0 if task_graph.in_degree(task) <= 0 else max([
-                scheduled_tasks[pred_task].end +
-                get_commtime(pred_task, task, scheduled_tasks[pred_task].node, node)
-                for pred_task in task_graph.predecessors(task)
+        def get_fat(task_name: str, node_name: str) -> float:
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
+                return min_start_time
+            fat = max([
+                scheduled_tasks[in_edge.source].end +
+                get_commtime(in_edge.source, task_name, scheduled_tasks[in_edge.source].node, node_name)
+                for in_edge in in_edges
             ])
             return fat
 
         @lru_cache(maxsize=None) # Must clear cache after each iteration since schedule changes
-        def get_ect(task: Hashable, node: Hashable) -> float:
-            return get_eet(task, node) + max(get_eat(node), get_fat(task, node))
-        
+        def get_ect(task_name: str, node_name: str) -> float:
+            return get_eet(task_name, node_name) + max(get_eat(node_name), get_fat(task_name, node_name))
+
         def clear_caches():
             """Clear all caches."""
             get_eat.cache_clear()
             get_fat.cache_clear()
             get_ect.cache_clear()
 
-        while len(scheduled_tasks) < task_graph.order():
+        num_tasks = len(list(task_graph.tasks))
+        node_names = [node.name for node in network.nodes]
+
+        while len(scheduled_tasks) < num_tasks:
             available_tasks = [
-                task for task in task_graph.nodes
-                if (task not in scheduled_tasks and
-                    set(task_graph.predecessors(task)).issubset(set(scheduled_tasks.keys())))
+                task.name for task in task_graph.tasks
+                if (task.name not in scheduled_tasks and
+                    all(in_edge.source in scheduled_tasks for in_edge in task_graph.in_edges(task.name)))
             ]
             while available_tasks:
                 sched_task, sched_node = min(
-                    product(available_tasks, network.nodes),
+                    product(available_tasks, node_names),
                     key=lambda instance: get_ect(instance[0], instance[1])
                 )
-                schedule.setdefault(sched_node, [])
                 new_task = ScheduledTask(
                     node=sched_node,
                     name=sched_task,
                     start=max(get_eat(sched_node), get_fat(sched_task, sched_node)),
                     end=get_ect(sched_task, sched_node)
                 )
-                schedule[sched_node].append(new_task)
+                comp_schedule.add_task(new_task)
                 scheduled_tasks[sched_task] = new_task
                 available_tasks.remove(sched_task)
 
                 clear_caches()
 
-        return schedule
+        return comp_schedule

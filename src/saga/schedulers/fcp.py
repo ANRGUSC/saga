@@ -1,71 +1,61 @@
 from queue import PriorityQueue
-from typing import Dict, Hashable, List, Optional, Set
+from typing import Dict, List, Optional, Set
 
-import networkx as nx
+from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
-from ..scheduler import Scheduler, ScheduledTask
 
-def get_mcp_priorities(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
+def get_mcp_priorities(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
     """Returns the priorities of the tasks on the network
 
     Args:
-        network (nx.Graph): The network.
-        task_graph (nx.DiGraph): The task graph.
+        network (Network): The network.
+        task_graph (TaskGraph): The task graph.
 
     Returns:
-        Dict[Hashable, float]: The priorities of the tasks on the network.
+        Dict[str, float]: The priorities of the tasks on the network.
     """
-    network = network.copy()
-    task_graph = task_graph.copy()
+    avg_node_speed = sum(node.speed for node in network.nodes) / len(list(network.nodes))
 
-    avg_node_speed = sum(
-        network.nodes[node]['weight'] for node in network.nodes
-    ) / len(network.nodes)
-    avg_comm_speed = sum(
-        network.edges[edge]['weight'] for edge in network.edges
-        # if there is only one node, the avg is the self-loop edge weight
-        if edge[0] != edge[1] or len(network.nodes) == 1
-    ) / len(network.edges)
+    # Filter edges: exclude self-loops unless there's only one node
+    num_nodes = len(list(network.nodes))
+    non_self_edges = [edge for edge in network.edges if edge.source != edge.target or num_nodes == 1]
+    avg_comm_speed = sum(edge.speed for edge in non_self_edges) / len(non_self_edges) if non_self_edges else 1.0
 
-    # scale task weights by average speeds
-    for task in task_graph.nodes:
-        task_graph.nodes[task]['weight'] /= avg_node_speed
-    for edge in task_graph.edges:
-        task_graph.edges[edge]['weight'] /= avg_comm_speed
+    # Build scaled task weights and edge weights
+    scaled_task_weights: Dict[str, float] = {
+        task.name: task.cost / avg_node_speed for task in task_graph.tasks
+    }
+    scaled_edge_weights: Dict[tuple, float] = {
+        (dep.source, dep.target): dep.size / avg_comm_speed for dep in task_graph.dependencies
+    }
 
-    # add dummy src and sink tasks
-    src = '__mcp_src__'
-    sink = '__mcp_sink__'
-    task_graph.add_node(src, weight=1e-9)
-    task_graph.add_node(sink, weight=1e-9)
-    for task in task_graph.nodes:
-        if task not in (src, sink) and task_graph.in_degree(task) == 0:
-            task_graph.add_edge(src, task, weight=1e-9)
-        if task not in (src, sink) and task_graph.out_degree(task) == 0:
-            task_graph.add_edge(task, sink, weight=1e-9)
+    # Find entry and exit tasks
+    entry_tasks = [task.name for task in task_graph.tasks if task_graph.in_degree(task.name) == 0]
+    exit_tasks = [task.name for task in task_graph.tasks if task_graph.out_degree(task.name) == 0]
 
-    longest_path_lengths = {}
-    for task in reversed(list(nx.topological_sort(task_graph))):
-        avg_exec_time = task_graph.nodes[task]['weight'] / avg_node_speed
-        if task == sink:
-            longest_path_lengths[task] = avg_exec_time
+    # Compute longest path lengths from each task to exit
+    longest_path_lengths: Dict[str, float] = {}
+    for task in reversed(task_graph.topological_sort()):
+        avg_exec_time = scaled_task_weights[task.name]
+        out_edges = task_graph.out_edges(task.name)
+        if not out_edges:
+            longest_path_lengths[task.name] = avg_exec_time
         else:
-            longest_path_lengths[task] = avg_exec_time + max(
-                longest_path_lengths[succ] + task_graph.edges[task, succ]['weight'] / avg_comm_speed
-                for succ in task_graph.successors(task)
+            longest_path_lengths[task.name] = avg_exec_time + max(
+                longest_path_lengths[out_edge.target] + scaled_edge_weights[(out_edge.source, out_edge.target)]
+                for out_edge in out_edges
             )
 
     critical_path_length = max(longest_path_lengths.values())
     # paths with greatest priority have the least critical path length - longest path length
     priorities = {
-        task: critical_path_length - longest_path_lengths[task]
-        for task in task_graph.nodes
-        if task not in (src, sink)
+        task_name: critical_path_length - longest_path_lengths[task_name]
+        for task_name in longest_path_lengths
     }
     return priorities
 
 
-class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
+class FCPScheduler(Scheduler):
     """Fast Critical Path Scheduler
 
     Source: https://doi.org/10.1145/305138.305162
@@ -77,98 +67,118 @@ class FCPScheduler(Scheduler): # pylint: disable=too-few-public-methods
         super().__init__()
         self.priority_queue_size = priority_queue_size
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
+    def schedule(self,
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Optional[Schedule] = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Returns the best schedule (minimizing makespan) for a problem instance using FCP(Fastest Critical Path)
 
         Args:
             network: Network
             task_graph: Task graph
+            schedule: Optional initial schedule. Defaults to None.
+            min_start_time: Minimum start time. Defaults to 0.0.
 
         Returns:
-            A dictionary of the schedule
+            A Schedule object containing the computed schedule.
         """
-        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, ScheduledTask] = {} # Map from task_name to Task
+        comp_schedule = Schedule(task_graph, network)
+        scheduled_tasks: Dict[str, ScheduledTask] = {}
 
-        queue_priority = PriorityQueue(maxsize=self.priority_queue_size or len(network.nodes))
-        queue_fifo = []
-        queued_tasks: Set[Hashable] = set()
+        if schedule is not None:
+            comp_schedule = schedule.model_copy()
+            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
+
+        queue_priority: PriorityQueue = PriorityQueue(maxsize=self.priority_queue_size or len(list(network.nodes)))
+        queue_fifo: List[str] = []
+        queued_tasks: Set[str] = set()
         priorities = get_mcp_priorities(network, task_graph)
 
-        def add_ready_task(task: Hashable):
+        def add_ready_task(task_name: str):
             if queue_priority.qsize() < queue_priority.maxsize:
-                queue_priority.put((priorities[task], task))
+                queue_priority.put((priorities[task_name], task_name))
             else:
-                queue_fifo.append(task)
-            queued_tasks.add(task)
+                queue_fifo.append(task_name)
+            queued_tasks.add(task_name)
 
-        def select_ready_task() -> Hashable:
-            task = queue_priority.get()[1]
+        def select_ready_task() -> str:
+            task_name = queue_priority.get()[1]
             if queue_fifo:
                 fifo_task = queue_fifo.pop(0)
                 queue_priority.put((priorities[fifo_task], fifo_task))
-            return task
+            return task_name
 
-        def get_exec_time(task: Hashable, node: Hashable) -> float:
-            return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
+        def get_exec_time(task_name: str, node_name: str) -> float:
+            task = task_graph.get_task(task_name)
+            node = network.get_node(node_name)
+            return task.cost / node.speed
 
-        def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
-            return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
+        def get_commtime(task1: str, task2: str, node1: str, node2: str) -> float:
+            dep = task_graph.get_dependency(task1, task2)
+            edge = network.get_edge(node1, node2)
+            return dep.size / edge.speed
 
-        def get_eat(node: Hashable) -> float:
-            eat = schedule[node][-1].end if schedule.get(node) else 0
-            return eat
+        def get_eat(node_name: str) -> float:
+            tasks = comp_schedule[node_name]
+            return tasks[-1].end if tasks else min_start_time
 
-        def get_fat(task: Hashable, node: Hashable) -> float:
-            fat = 0 if task_graph.in_degree(task) <= 0 else max(
-                scheduled_tasks[pred_task].end +
-                get_commtime(pred_task, task, scheduled_tasks[pred_task].node, node)
-                for pred_task in task_graph.predecessors(task)
+        def get_fat(task_name: str, node_name: str) -> float:
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
+                return min_start_time
+            return max(
+                scheduled_tasks[in_edge.source].end +
+                get_commtime(in_edge.source, task_name, scheduled_tasks[in_edge.source].node, node_name)
+                for in_edge in in_edges
             )
-            return fat
 
-        def get_start_time(task: Hashable, node: Hashable) -> float:
-            return max(get_eat(node), get_fat(task, node))
+        def get_start_time(task_name: str, node_name: str) -> float:
+            return max(get_eat(node_name), get_fat(task_name, node_name))
 
-        def select_processor(task: Hashable) -> Hashable:
+        def select_processor(task_name: str) -> str:
             # processor that becomes idle first
             p_start = min(
                 network.nodes,
-                key=lambda node: schedule[node][-1].end if schedule[node] else 0
-            )
+                key=lambda node: comp_schedule[node.name][-1].end if comp_schedule[node.name] else min_start_time
+            ).name
             # processor with predecessor that last finishes
-            predecessors: List[Hashable] = list(task_graph.predecessors(task))
-            if not predecessors:
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
                 return p_start
             pred = max(
-                predecessors,
-                key=lambda task: scheduled_tasks[task].end
+                [in_edge.source for in_edge in in_edges],
+                key=lambda t: scheduled_tasks[t].end
             )
             p_arrive = scheduled_tasks[pred].node
 
-            if get_start_time(task, p_start) <= get_start_time(task, p_arrive):
+            if get_start_time(task_name, p_start) <= get_start_time(task_name, p_arrive):
                 return p_start
             return p_arrive
 
-        for task in task_graph.nodes:
-            if task_graph.in_degree(task) == 0:
-                add_ready_task(task)
+        for task in task_graph.tasks:
+            if task.name not in scheduled_tasks and task_graph.in_degree(task.name) == 0:
+                add_ready_task(task.name)
 
-        while len(scheduled_tasks) < len(task_graph.nodes):
-            task = select_ready_task()
-            node = select_processor(task)
-            start_time = get_start_time(task, node)
-            exec_time = get_exec_time(task, node)
-            scheduled_tasks[task] = ScheduledTask(
-                node=node,
-                name=task,
+        num_tasks = len(list(task_graph.tasks))
+        while len(scheduled_tasks) < num_tasks:
+            task_name = select_ready_task()
+            node_name = select_processor(task_name)
+            start_time = get_start_time(task_name, node_name)
+            exec_time = get_exec_time(task_name, node_name)
+            new_task = ScheduledTask(
+                node=node_name,
+                name=task_name,
                 start=start_time,
-                end=start_time+exec_time
+                end=start_time + exec_time
             )
-            schedule.setdefault(node, []).append(scheduled_tasks[task])
-            for succ in task_graph.successors(task):
-                if all(pred in scheduled_tasks for pred in task_graph.predecessors(succ)):
+            scheduled_tasks[task_name] = new_task
+            comp_schedule.add_task(new_task)
+
+            for out_edge in task_graph.out_edges(task_name):
+                succ = out_edge.target
+                if all(in_edge.source in scheduled_tasks for in_edge in task_graph.in_edges(succ)):
                     if succ not in queued_tasks:
                         add_ready_task(succ)
 
-        return schedule
+        return comp_schedule

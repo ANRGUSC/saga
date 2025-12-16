@@ -2,8 +2,8 @@ from functools import lru_cache
 import logging
 import shutil
 from typing import (
-    Any, Dict, Hashable, List, Optional, Set, Tuple, Union,
-    Callable, Iterable, TypeVar, cast
+    Any, Dict, List, Optional, Set, Tuple, Union,
+    Callable, TypeVar, cast, TYPE_CHECKING
 )
 
 import matplotlib
@@ -49,7 +49,7 @@ def is_latex_installed() -> bool:
 
 def draw_task_graph(task_graph: nx.DiGraph,
                     axis: Optional[Axes] = None,
-                    schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
+                    schedule: Optional[Dict[str, List["ScheduledTask"]]] = None,
                     use_latex: bool = False,
                     node_size: int = 2000,
                     linewidths: int = 2,
@@ -61,7 +61,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     draw_edge_weights: bool = True,
                     draw_node_weights: bool = True,
                     node_weight_offset: float = 0.1,
-                    pos: Optional[Dict[Hashable, Tuple[float, float]]] = None) -> Axes:
+                    pos: Optional[Dict[str, Tuple[float, float]]] = None) -> Axes:
     """Draws a task graph
 
     Args:
@@ -90,6 +90,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
         if axis is None:
             # make size slightly larger than default
             _, axis = plt.subplots(figsize=figsize)
+        if axis is None:
+            raise ValueError("Axis could not be created.")
 
         task_graph = format_graph(task_graph.copy())
 
@@ -99,7 +101,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         colors, tasks = {}, {}
         if schedule is not None:
             tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
-            network_nodes: Set[Hashable] = set(schedule.keys())
+            network_nodes: Set[str] = set(schedule.keys())
 
             cmap = plt.get_cmap("tab20", len(network_nodes))
             sorted_nodes = sorted(map(str, network_nodes)) # sort as strings for consistent coloring
@@ -311,7 +313,7 @@ def draw_network(network: nx.Graph,
         plt.tight_layout()
         return axis
 
-def draw_gantt(schedule: Dict[Hashable, List[ScheduledTask]],
+def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
                use_latex: bool = False,
                font_size: int = 20,
                tick_font_size: int = 20,

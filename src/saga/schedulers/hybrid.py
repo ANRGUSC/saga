@@ -1,11 +1,6 @@
 
-import logging
-from typing import Dict, Iterable, List
-
-import networkx as nx
-import numpy as np
-
-from saga.scheduler import Scheduler, ScheduledTask
+from typing import Iterable
+from saga.scheduler import Schedule, Scheduler, TaskGraph, Network
 
 
 class HybridScheduler(Scheduler):
@@ -18,21 +13,17 @@ class HybridScheduler(Scheduler):
         """
         self.schedulers = schedulers
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[str, List[ScheduledTask]]:
+    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
         """Returns the best schedule of the given schedule functions.
-
+    
         Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
+            network (Network): The network graph.
+            task_graph (TaskGraph): The task graph.
 
         Returns:
             Dict[str, List[Task]]: The best schedule.
-        """
-        best_scheduler, best_schedule, best_makespan = None, None, np.inf
-        for scheduler in self.schedulers:
-            schedule = scheduler.schedule(network, task_graph)
-            makespan = max(tasks[-1].end if tasks else 0 for tasks in schedule.values())
-            if makespan < best_makespan:
-                best_scheduler, best_schedule, best_makespan = scheduler, schedule, makespan
-        logging.debug("Best Scheduler: %s", best_scheduler.__class__.__name__)
-        return best_schedule
+        # """
+        return min(
+            (scheduler.schedule(network, task_graph) for scheduler in self.schedulers),
+            key=lambda s: s.makespan
+        )

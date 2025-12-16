@@ -1,34 +1,28 @@
-from copy import deepcopy
-import logging
 import pathlib
-from typing import Dict, Hashable, List, Optional, Tuple
-
-import networkx as nx
+from typing import List, Optional
 import numpy as np
 
-from ..scheduler import Scheduler, ScheduledTask
-from ..utils.tools import get_insert_loc
-from .cpop import upward_rank
+from saga.scheduler import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
+from saga.schedulers.cpop import upward_rank
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
 
-def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+def heft_rank_sort(network: Network, task_graph: TaskGraph) -> List[str]:
     """Sort tasks based on their rank (as defined in the HEFT paper).
 
     Args:
-        network (nx.Graph): The network graph.
-        task_graph (nx.DiGraph): The task graph.
+        network (Network): The network graph.
+        task_graph (TaskGraph): The task graph.
 
     Returns:
-        List[Hashable]: The sorted list of tasks.
+        List[str]: The sorted list of tasks.
     """
     rank = upward_rank(network, task_graph)
-    topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
-    rank = {node: (rank[node] + topological_sort[node]) for node in rank}
-    #print(rank)
-    return sorted(list(rank.keys()), key=rank.get, reverse=True)
-
+    topological_sort = {node.name: i for i, node in enumerate(reversed(task_graph.topological_sort()))}
+    rank = {node: (rank[node], topological_sort[node]) for node in rank}
+    order = sorted(list(rank.keys()), key=lambda x: rank.get(x, 0.0), reverse=True)
+    return order
 
 
 class HeftScheduler(Scheduler):
@@ -36,156 +30,13 @@ class HeftScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
-
-    @staticmethod
-    def get_runtimes(
-        network: nx.Graph, task_graph: nx.DiGraph
-    ) -> Tuple[
-        Dict[Hashable, Dict[Hashable, float]],
-        Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-    ]:
-        """Get the expected runtimes of all tasks on all nodes.
-
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-
-        Returns:
-            Tuple[Dict[Hashable, Dict[Hashable, float]],
-                  Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]]:
-                A tuple of dictionaries mapping nodes to a dictionary of tasks and their runtimes
-                and edges to a dictionary of tasks and their communication times. The first dictionary
-                maps nodes to a dictionary of tasks and their runtimes. The second dictionary maps edges
-                to a dictionary of task dependencies and their communication times.
-        """
-        runtimes = {}
-        for node in network.nodes:
-            runtimes[node] = {}
-            speed: float = network.nodes[node]["weight"]
-            for task in task_graph.nodes:
-                cost: float = task_graph.nodes[task]["weight"]
-                runtimes[node][task] = cost / speed
-                logging.debug(
-                    "Task %s on node %s has runtime %s",
-                    task,
-                    node,
-                    runtimes[node][task],
-                )
-
-        commtimes = {}
-        for src, dst in network.edges:
-            commtimes[src, dst] = {}
-            commtimes[dst, src] = {}
-            speed: float = network.edges[src, dst]["weight"]
-            for src_task, dst_task in task_graph.edges:
-                cost = task_graph.edges[src_task, dst_task]["weight"]
-                commtimes[src, dst][src_task, dst_task] = cost / speed
-                commtimes[dst, src][src_task, dst_task] = cost / speed
-                logging.debug(
-                    "Task %s on node %s to task %s on node %s has communication time %s",
-                    src_task,
-                    src,
-                    dst_task,
-                    dst,
-                    commtimes[src, dst][src_task, dst_task],
-                )
-
-        return runtimes, commtimes
-
-    def _schedule(
-        self,
-        network: nx.Graph,
-        task_graph: nx.DiGraph,
-        runtimes: Dict[Hashable, Dict[Hashable, float]],
-        commtimes: Dict[
-            Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]
-        ],
-        schedule_order: List[Hashable],
-        schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
-        min_start_time: float = 0.0,
-    ) -> Dict[Hashable, List[ScheduledTask]]:
-        """Schedule the tasks on the network.
-
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            runtimes (Dict[Hashable, Dict[Hashable, float]]): A dictionary mapping nodes to a
-                dictionary of tasks and their runtimes.
-            commtimes (Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]): A
-                dictionary mapping edges to a dictionary of task dependencies and their communication times.
-            schedule_order (List[Hashable]): The order in which to schedule the tasks.
-            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
-
-        Returns:
-            Dict[Hashable, List[Task]]: The schedule.
-
-        Raises:
-            ValueError: If the instance is invalid.
-        """
-        if schedule is None:
-            comp_schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
-            task_schedule: Dict[Hashable, ScheduledTask] = {}
-        else:
-            comp_schedule = deepcopy(schedule)
-            task_schedule = {task.name: task for node in schedule for task in schedule[node]}
-
-        task_name: Hashable
-        logging.debug("Schedule order: %s", schedule_order)
-        for task_name in schedule_order:
-            if task_name in task_schedule:
-                continue
-            min_finish_time = np.inf
-            best_node = None
-            for node in network.nodes:  # Find the best node to run the task
-                max_arrival_time: float = max(  #
-                    [
-                        min_start_time,
-                        *[
-                            task_schedule[parent].end
-                            + (
-                                commtimes[(task_schedule[parent].node, node)][
-                                    (parent, task_name)
-                                ]
-                            )
-                            for parent in task_graph.predecessors(task_name)
-                        ],
-                    ]
-                )
-
-                runtime = runtimes[node][task_name]
-                idx, start_time = get_insert_loc(
-                    comp_schedule[node], max_arrival_time, runtime
-                )
-
-                logging.debug(
-                    "Testing task %s on node %s: start time %s, finish time %s",
-                    task_name,
-                    node,
-                    start_time,
-                    start_time + runtime,
-                )
-
-                finish_time = start_time + runtime
-                if finish_time < min_finish_time:
-                    min_finish_time = finish_time
-                    best_node = node, idx
-
-            new_runtime = runtimes[best_node[0]][task_name]
-            task = ScheduledTask(
-                best_node[0], task_name, min_finish_time - new_runtime, min_finish_time
-            )
-            comp_schedule[best_node[0]].insert(best_node[1], task)
-            task_schedule[task_name] = task
-
-        return comp_schedule
-
     def schedule(self, 
-                 network: nx.Graph, 
-                 task_graph: nx.DiGraph, 
-                 schedule: Optional[Dict[Hashable, List[ScheduledTask]]] = None,
-                 min_start_time: float = 0.0) -> Dict[Hashable, List[ScheduledTask]]:
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Optional[Schedule] = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Schedule the tasks on the network.
-
+    
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
@@ -198,7 +49,36 @@ class HeftScheduler(Scheduler):
         Raises:
             ValueError: If the instance is invalid.
         """
-
-        runtimes, commtimes = HeftScheduler.get_runtimes(network, task_graph)
         schedule_order = heft_rank_sort(network, task_graph)
-        return self._schedule(network, task_graph, runtimes, commtimes, schedule_order, schedule, min_start_time)
+        schedule = Schedule(task_graph, network)
+
+        for task_name in schedule_order:
+            if schedule.is_scheduled(task_name):
+                continue
+            min_finish_time = np.inf
+            best_node = next(iter(network.nodes))  # arbitrary initialization
+            for node in network.nodes:
+                start_time = schedule.get_earliest_start_time(
+                    task=task_name,
+                    node=node,
+                    append_only=False
+                )
+                start_time = max(start_time, min_start_time)
+                runtime = task_graph.get_task(task_name).cost / network.get_node(node).speed
+                finish_time = start_time + runtime
+                if finish_time < min_finish_time:
+                    min_finish_time = finish_time
+                    best_node = node
+            new_task = ScheduledTask(
+                node=best_node.name,
+                name=task_name,
+                start=min_finish_time - (
+                    task_graph.get_task(task_name).cost / 
+                    network.get_node(best_node).speed
+                ),
+                end=min_finish_time
+            )
+            schedule.add_task(new_task)
+
+        return schedule
+                

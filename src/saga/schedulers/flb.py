@@ -1,15 +1,9 @@
-import json
 import logging
 from pprint import pformat
 from queue import PriorityQueue
-from typing import Dict, Hashable, List, Tuple
+from typing import Dict, Optional, Tuple
 
-import networkx as nx
-from networkx import DiGraph, Graph
-
-from saga.scheduler import ScheduledTask
-
-from ..scheduler import Scheduler, ScheduledTask
+from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class FLBScheduler(Scheduler):
@@ -20,118 +14,77 @@ class FLBScheduler(Scheduler):
         by the average (but it will still perform poorly on heterogeneous networks). We also schedule
         to the fastest node whenever the original algorithm schedules to an arbitrary node.
     """
-    def schedule(self, network: Graph, task_graph: DiGraph) -> Dict[Hashable, List[ScheduledTask]]:
-        network = network.copy()
-        task_graph = task_graph.copy()
+    def schedule(self,
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Optional[Schedule] = None,
+                 min_start_time: float = 0.0) -> Schedule:
+        comp_schedule = Schedule(task_graph, network)
+        scheduled_tasks: Dict[str, ScheduledTask] = {}
 
-        schedule: Dict[Hashable, List[ScheduledTask]] = {node: [] for node in network.nodes}
-        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
+        if schedule is not None:
+            comp_schedule = schedule.model_copy()
+            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
 
-        avg_comm_speed = sum(
-            network.edges[edge]['weight'] for edge in network.edges
-            if edge[0] != edge[1] or len(network.nodes) == 1
-        ) / len(network.edges)
+        # Calculate average comm speed (exclude self-loops unless single node)
+        num_nodes = len(list(network.nodes))
+        non_self_edges = [edge for edge in network.edges if edge.source != edge.target or num_nodes == 1]
+        avg_comm_speed = sum(edge.speed for edge in non_self_edges) / len(non_self_edges) if non_self_edges else 1.0
 
-        fastest_node = max(network.nodes, key=lambda node: network.nodes[node]['weight'])
-
-        def getEP(task: Hashable) -> Hashable: # pylint: disable=invalid-name
-            """Get Enabling Processor (EP) of a task.
-
-            The enabling processor of a ready task t, EP (t) is the processor from which
-            the last message arrives.
-
-            NOTE: Because this algorithm assumes homogenous comp/comm speeds, the EP is
-            *not* the processor from which the last message actually arrives, but rather
-            the processor from which the last message *would* arrive if the network was
-            homogenous (with comm speed equal to the average comm speed).
-
-            Args:
-                task (Hashable): The task.
-
-            Returns:
-                Hashable: The enabling processor of the task.
-            """
-            enabling_task = max(
-                task_graph.predecessors(task),
-                key=lambda pred: scheduled_tasks[pred].end + task_graph.edges[pred, task]['weight'] / avg_comm_speed
+        def getEP(task_name: str) -> str: # pylint: disable=invalid-name
+            """Get Enabling Processor (EP) of a task."""
+            in_edges = task_graph.in_edges(task_name)
+            enabling_edge = max(
+                in_edges,
+                key=lambda in_edge: scheduled_tasks[in_edge.source].end + in_edge.size / avg_comm_speed
             )
-            return scheduled_tasks[enabling_task].node
+            return scheduled_tasks[enabling_edge.source].node
 
-
-        def getLMT(task: Hashable) -> float: # pylint: disable=invalid-name
-            """Get the Last Message Arrival Time (LMT)
-
-            NOTE: Because this original algorithm assumes homogenous comp/comm speeds, we will
-            modify it to use the *actual* communication time between the tasks, rather than
-            assume they are all equal to the average communication time.
-
-            Args:
-                task (Hashable): The task.
-
-            Returns:
-                float: The LMT of the task.
-            """
-            if task_graph.in_degree(task) == 0:
-                return 0
+        def getLMT(task_name: str) -> float: # pylint: disable=invalid-name
+            """Get the Last Message Arrival Time (LMT)"""
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
+                return min_start_time
 
             return max(
-                scheduled_tasks[pred].end + (
-                    task_graph.edges[pred, task]['weight'] /
-                    avg_comm_speed
-                )
-                for pred in task_graph.predecessors(task)
+                scheduled_tasks[in_edge.source].end + (in_edge.size / avg_comm_speed)
+                for in_edge in in_edges
             )
 
-        def getEMT(task: Hashable, node: Hashable) -> float: # pylint: disable=invalid-name
-            """Get the Effective Message Arrival Time (EMT)
-
-            Since our networks have 0 comm delay between nodes and we extend for
-            heterogeneous networks, this is just getLMT(task).
-
-            Args:
-                task (Hashable): The task.
-                node (Hashable): The node.
-
-            Returns:
-                float: The EMT of the task.
-            """
-            if task_graph.in_degree(task) == 0:
-                return 0
+        def getEMT(task_name: str, node_name: str) -> float: # pylint: disable=invalid-name
+            """Get the Effective Message Arrival Time (EMT)"""
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
+                return min_start_time
 
             return max(
-                scheduled_tasks[pred].end + (
-                    task_graph.edges[pred, task]['weight'] /
-                    network.edges[scheduled_tasks[pred].node, node]['weight']
+                scheduled_tasks[in_edge.source].end + (
+                    in_edge.size / network.get_edge(scheduled_tasks[in_edge.source].node, node_name).speed
                 )
-                for pred in task_graph.predecessors(task)
+                for in_edge in in_edges
             )
 
-        def getPRT(node: Hashable) -> float: # pylint: disable=invalid-name
-            return 0 if not schedule[node] else schedule[node][-1].end
+        def getPRT(node_name: str) -> float: # pylint: disable=invalid-name
+            tasks = comp_schedule[node_name]
+            return min_start_time if not tasks else tasks[-1].end
 
-        def getEST(task: Hashable, node: Hashable) -> float: # pylint: disable=invalid-name
-            return max(getPRT(node), getEMT(task, node))
+        def getEST(task_name: str, node_name: str) -> float: # pylint: disable=invalid-name
+            return max(getPRT(node_name), getEMT(task_name, node_name))
 
-        non_ep_tasks = PriorityQueue()
-        emt_ep_tasks = {
-            node: PriorityQueue()
-            for node in network.nodes
-        }
-        lmt_ep_tasks = {
-            node: PriorityQueue()
-            for node in network.nodes
-        }
-        all_procs = PriorityQueue()
-        active_procs = PriorityQueue()
+        non_ep_tasks: PriorityQueue = PriorityQueue()
+        emt_ep_tasks: Dict[str, PriorityQueue] = {node.name: PriorityQueue() for node in network.nodes}
+        lmt_ep_tasks: Dict[str, PriorityQueue] = {node.name: PriorityQueue() for node in network.nodes}
+        all_procs: PriorityQueue = PriorityQueue()
+        active_procs: PriorityQueue = PriorityQueue()
 
-        for task in task_graph.nodes:
-            if task_graph.in_degree(task) == 0:
-                non_ep_tasks.put((0, task))
+        for task in task_graph.tasks:
+            if task.name not in scheduled_tasks and task_graph.in_degree(task.name) == 0:
+                non_ep_tasks.put((min_start_time, task.name))
 
         for node in network.nodes:
-            all_procs.put((0, node))
+            all_procs.put((min_start_time, node.name))
 
-        def schedule_task() -> Tuple[Hashable, Hashable]:
+        def schedule_task() -> Tuple[str, str]:
             # get head of active_procs without removing
             _, proc1 = active_procs.queue[0] if active_procs.queue else (0, None)
             task1 = None
@@ -143,131 +96,119 @@ class FLBScheduler(Scheduler):
             est_t1_p1 = getEST(task1, proc1) if proc1 is not None and task1 is not None else float('inf')
             est_t2_p2 = getEST(task2, proc2) if proc2 is not None and task2 is not None else float('inf')
             if est_t1_p1 == float('inf') and est_t2_p2 == float('inf'):
-                # NOTE: This should never happen. If it does, it means that there is a bug in the algorithm.
-                # log queue values
                 logging.debug("active_procs: %s", pformat(active_procs.queue))
                 logging.debug("all_procs: %s", pformat(all_procs.queue))
                 logging.debug("non_ep_tasks: %s", pformat(non_ep_tasks.queue))
                 logging.debug("emt_ep_tasks: %s", pformat({node: pformat(emt_ep_tasks[node].queue) for node in emt_ep_tasks}))
-                logging.debug("schedule: %s", pformat(schedule))
-                logging.debug("task_graph: %s", json.dumps(nx.readwrite.json_graph.node_link_data(task_graph)))
-                logging.debug("network: %s", json.dumps(nx.readwrite.json_graph.node_link_data(network)))
-
+                logging.debug("schedule: %s", pformat(comp_schedule))
 
                 raise RuntimeError(f"No tasks to schedule. proc1={proc1}, task1={task1}, proc2={proc2}, task2={task2}")
+
             if est_t1_p1 <= est_t2_p2:
+                if task1 is None or proc1 is None:
+                    raise RuntimeError("Inconsistent state in active_procs or emt_ep_tasks.") # Should not happen
+                task_obj = task_graph.get_task(task1)
+                node_obj = network.get_node(proc1)
                 new_task = ScheduledTask(
                     node=proc1,
                     name=task1,
                     start=est_t1_p1,
-                    end=est_t1_p1 + task_graph.nodes[task1]['weight'] / network.nodes[proc1]['weight']
+                    end=est_t1_p1 + task_obj.cost / node_obj.speed
                 )
-                schedule[proc1].append(new_task)
+                comp_schedule.add_task(new_task)
                 scheduled_tasks[task1] = new_task
 
                 assert active_procs.get()[1] == proc1
-                assert emt_ep_tasks[proc1].get()[1] == task1 # dequeue task from emt_ep_tasks[p1]
-                lmt_ep_tasks[proc1].queue = [ # remove task1 from lmt_ep_tasks[p1]
+                assert emt_ep_tasks[proc1].get()[1] == task1
+                lmt_ep_tasks[proc1].queue = [
                     (priority, task) for priority, task in lmt_ep_tasks[proc1].queue
                     if task != task1
                 ]
                 return task1, proc1
             else:
-                # schedule task t2 on processor p2
+                if task2 is None or proc2 is None:
+                    raise RuntimeError("Inconsistent state in all_procs or non_ep_tasks.") # Should not happen
+                task_obj = task_graph.get_task(task2)
+                node_obj = network.get_node(proc2)
                 new_task = ScheduledTask(
                     node=proc2,
                     name=task2,
                     start=est_t2_p2,
-                    end=est_t2_p2 + task_graph.nodes[task2]['weight'] / network.nodes[proc2]['weight']
+                    end=est_t2_p2 + task_obj.cost / node_obj.speed
                 )
-                schedule[proc2].append(new_task)
+                comp_schedule.add_task(new_task)
                 scheduled_tasks[task2] = new_task
 
-                assert all_procs.get()[1] == proc2 # dequeue proc2 from all_procs
-
-                # NOTE: this is not in the original algorithm, but it seems necessary
-                all_procs.put((getPRT(proc2), proc2)) # add proc2 with new priority PRT
-
-                assert non_ep_tasks.get()[1] == task2 # dequeue task from non_ep_tasks
+                assert all_procs.get()[1] == proc2
+                all_procs.put((getPRT(proc2), proc2))
+                assert non_ep_tasks.get()[1] == task2
                 return task2, proc2
 
-        def update_task_lists(task: Hashable, proc: Hashable):
+        def update_task_lists(task_name: str, proc: str):
             while True:
                 _, task = lmt_ep_tasks[proc].queue[0] if lmt_ep_tasks[proc].queue else (0, None)
                 if task is None:
                     break
-                if getLMT(task) >= getPRT(proc): # last message arrival time of t >= processor ready time
+                if getLMT(task) >= getPRT(proc):
                     break
 
-                assert lmt_ep_tasks[proc].get()[1] == task # dequeue task from lmt_ep_tasks[p]
-                emt_ep_tasks[proc].queue = [ # remove task from emt_ep_tasks[p]
+                assert lmt_ep_tasks[proc].get()[1] == task
+                emt_ep_tasks[proc].queue = [
                     (priority, _task) for priority, _task in emt_ep_tasks[proc].queue
                     if _task != task
                 ]
-                non_ep_tasks.put((getLMT(task), task)) # enqueue task in non_ep_tasks
+                non_ep_tasks.put((getLMT(task), task))
 
-        def update_proc_lists(task: Hashable, proc: Hashable):
+        def update_proc_lists(task_name: str, proc: str):
             _, task = emt_ep_tasks[proc].queue[0] if emt_ep_tasks[proc].queue else (0, None)
             if task is None:
-                # remove proc from active_procs
                 active_procs.queue = [
                     (priority, _proc) for priority, _proc in active_procs.queue
                     if _proc != proc
                 ]
             else:
-                # remove proc from active_procs and add back with priority est
                 active_procs.queue = [
                     (priority, _proc) for priority, _proc in active_procs.queue
                     if _proc != proc
                 ]
                 active_procs.put((getEST(task, proc), proc))
 
-        def update_ready_tasks(task: Hashable, proc: Hashable):
-            for succ in task_graph.successors(task):
-                if succ in scheduled_tasks: # not in original algorithm, is it necessary?
+        def update_ready_tasks(task_name: str, proc: str):
+            for out_edge in task_graph.out_edges(task_name):
+                succ = out_edge.target
+                if succ in scheduled_tasks:
                     continue
 
-                if not all(pred in scheduled_tasks for pred in task_graph.predecessors(succ)):
+                if not all(in_edge.source in scheduled_tasks for in_edge in task_graph.in_edges(succ)):
                     continue
 
-                enabling_proc = getEP(succ) # get enabling processor of succ
-                lmt = getLMT(succ) # get last message arrival time of succ
-                emt = getEMT(succ, enabling_proc) # get effective message arrival time of succ on enabling processor
-                if lmt < getPRT(enabling_proc): # if lmt < processor ready time
-                    # task perhaps should not execute on ep, since this indicates that the ep is not ready
-                    # when the task is ready to execute
-                    # enqueue succ with priority lmt in non_ep_tasks
+                enabling_proc = getEP(succ)
+                lmt = getLMT(succ)
+                emt = getEMT(succ, enabling_proc)
+                if lmt < getPRT(enabling_proc):
                     non_ep_tasks.put((lmt, succ))
                 else:
                     _, head_proc = emt_ep_tasks[enabling_proc].queue[0] if emt_ep_tasks[enabling_proc].queue else (0, None)
                     if head_proc is None:
-                        # enqueue ep with priority est in active_procs
                         active_procs.put((getEST(succ, enabling_proc), enabling_proc))
                     else:
-                        # get next task to execute on ep (according to current priorities)
                         head_task = emt_ep_tasks[enabling_proc].queue[0][1]
-                        # get the emt of this task
                         _emt = getEMT(head_task, enabling_proc)
                         if emt < _emt:
-                            # succ should execute before head_task on ep because it becomes ready before head_task
-                            # update ep with priority max(EMT, prt) in active_procs
-                            #   first, remove ep from active_procs
                             new_priority = max(emt, getPRT(enabling_proc))
                             active_procs.queue = [
                                 (priority, _proc) for priority, _proc in active_procs.queue
                                 if _proc != enabling_proc
                             ]
                             active_procs.put((new_priority, enabling_proc))
-                    # enqueue succ with priority emt in emt_ep_tasks[ep]
                     emt_ep_tasks[enabling_proc].put((emt, succ))
-                    # enqueue succ with priority lmt in lmt_ep_tasks[ep]
                     lmt_ep_tasks[enabling_proc].put((lmt, succ))
 
-        while len(scheduled_tasks) < len(task_graph.nodes):
+        num_tasks = len(list(task_graph.tasks))
+        while len(scheduled_tasks) < num_tasks:
             task, proc = schedule_task()
             update_task_lists(task, proc)
             update_proc_lists(task, proc)
             update_ready_tasks(task, proc)
 
-        return schedule
-
+        return comp_schedule

@@ -3,137 +3,12 @@ from functools import lru_cache, cached_property
 import math
 from typing import Any, Dict, FrozenSet, Generator, Iterable, List, Optional, Set, Tuple, Type
 import networkx as nx
-from pydantic import BaseModel, RootModel, computed_field, Field
+from pydantic import BaseModel, PrivateAttr, RootModel, computed_field, Field
 import bisect
-from itertools import combinations
+from itertools import combinations, product
+import math 
 
-class ScheduledTask(BaseModel):
-    """A scheduled task."""
-    node: str = Field(..., description="The node the task is scheduled on.")
-    name: str = Field(..., description="The name of the task.")
-    start: float = Field(..., description="The start time of the task.")
-    end: float = Field(..., description="The end time of the task.")
 
-    def __str__(self) -> str:
-        return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
-
-class Schedule(RootModel[Dict[str, List[ScheduledTask]]], ABC):
-    """A schedule of tasks on nodes."""
-
-    root: Dict[str, List[ScheduledTask]] = Field(
-        default_factory=dict,
-        description="The mapping of nodes to their scheduled tasks."
-    )
-
-    @classmethod
-    def create(cls, nodes: Iterable[str]) -> 'Schedule':
-        """Create a new schedule.
-
-        Args:
-            nodes (Iterable[str]): The nodes in the schedule.
-
-        Returns:
-            Schedule: A new schedule with empty task lists for each node.
-        """
-        return cls(root={node: [] for node in nodes})
-
-    @computed_field
-    @property
-    def makespan(self) -> float:
-        """Get the makespan of the schedule.
-
-        Returns:
-            float: The makespan of the schedule.
-        """
-        return max((tasks[-1].end for tasks in self.root.values() if tasks), default=0.0)
-
-    def __getitem__(self, node: str) -> List[ScheduledTask]:
-        """Get the tasks scheduled on a node.
-
-        Args:
-            node (str): The node to get the tasks for.
-
-        Returns:
-            List[Task]: A list of tasks scheduled on the node.
-        """
-        if node not in self.root:
-            raise ValueError(f"Node {node} not in schedule. Nodes are {set(self.root.keys())}.")
-        return self.root[node]
-    
-    def items(self):
-        """Get the items of the schedule.
-
-        Returns:
-            Iterable[Tuple[str, List[ScheduledTask]]]: An iterable of (node, tasks) pairs.
-        """
-        return self.root.items()
-
-    def get_earliest_start_time(self,
-                                node: str,
-                                min_start_time: float,
-                                exec_time: float) -> float:
-        """Get the earliest start time for a task on a node given the minimum start time and execution time.
-        
-        Args:
-            node (str): The node to insert the task on.
-            min_start_time (float): The minimum start time of the task.
-            exec_time (float): The execution time of the task.
-            
-        Returns:
-            float: The earliest start time of the task.
-        """
-        if node not in self.root:
-            raise ValueError(f"Node {node} not in schedule. Nodes are {set(self.root.keys())}.")
-        if not self.root[node] or min_start_time + exec_time <= self.root[node][0].start:
-            return min_start_time
-        for left, right in zip(self.root[node], self.root[node][1:]):
-            if min_start_time >= left.end and min_start_time + exec_time <= right.start:
-                return min_start_time
-            elif min_start_time < left.end and left.end + exec_time <= right.start:
-                return left.end
-        return max(min_start_time, self.root[node][-1].end)
-
-    def add_task(self, task: ScheduledTask) -> None:
-        """Add a task to the schedule.
-
-        Args:
-            task (Task): The task to add.
-        """
-        if task.node not in self.root:
-            raise ValueError(f"Node {task.node} not in schedule. Nodes are {set(self.root.keys())}.")
-        idx = bisect.bisect_left([t.start for t in self.root[task.node]], task.start)
-        self.root[task.node].insert(idx, task)
-        # check that next task starts after this task ends
-        if idx + 1 < len(self.root[task.node]) and self.root[task.node][idx + 1].start < task.end:
-            raise ValueError(f"Task {task} overlaps with next task {self.root[task.node][idx + 1]}.")
-        
-    def get_schedulers(self,
-                       recursive: bool = False,
-                       concrete_only: bool = True) -> Generator[Type['Scheduler'], None, None]:
-        """Get all schedulers in the hierarchy.
-
-        Args:
-            recursive (bool): Whether to include schedulers from sub-classes.
-            concrete_only (bool): Whether to include only concrete schedulers.
-
-        Yields:
-            Type['Scheduler']: A scheduler class.
-        """
-        from saga.scheduler import Scheduler
-        for subclass in Scheduler.__subclasses__():
-            if not concrete_only or not hasattr(subclass, '__abstractmethods__') or not subclass.__abstractmethods__:
-                yield subclass 
-            if recursive:
-                yield from subclass().get_loaded_schedulers()
-
-    def __str__(self) -> str:
-        result = "Schedule:\n"
-        for node, tasks in self.root.items():
-            result += f"  Node {node}:\n"
-            for task in tasks:
-                result += f"    {task}\n"
-        result += f"  Makespan: {self.makespan:0.2f}\n"
-        return result
 
 class NetworkNode(BaseModel):
     """A node in the network."""
@@ -151,7 +26,7 @@ class NetworkEdge(BaseModel):
 
     source: str = Field(..., description="The source node of the edge.")
     target: str = Field(..., description="The target node of the edge.")
-    speed: float = Field(default=1e-9, description="The speed (bandwidth) of the edge.")
+    speed: float = Field(default=math.inf, description="The speed (bandwidth) of the edge.")
 
     def __hash__(self) -> int:
         return hash((self.source, self.target))
@@ -168,10 +43,9 @@ class Network(BaseModel):
     nodes: FrozenSet[NetworkNode] = Field(..., description="The nodes in the network.")
     edges: FrozenSet[NetworkEdge] = Field(..., description="The edges in the network.")
 
-    @classmethod
-    def create(cls,
-               nodes: Iterable[NetworkNode | Tuple[str, float]],
-               edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]]) -> 'Network':
+    def __init__(self,
+                 nodes: Iterable[NetworkNode | Tuple[str, float]],
+                 edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]]) -> None:
         """Create a new network from nodes and edges.
 
         Args:
@@ -181,45 +55,49 @@ class Network(BaseModel):
         Returns:
             Network: A new network instance.
         """
-        # Create Network
-        # - ensure there are not duplicate edges
-        # - all edges are undirected
-        # - should be fully connected, if not add all missing edges (even self edges)
-        # - if edge speed is not provided, default to 1e-9
-        # - set all self edges (unless explicitly provided) to 1e9 (speed infinity)
-        node_set: Set[NetworkNode] = set()
+        node_speeds: Dict[str, float] = {}
         for n in nodes:
             if isinstance(n, NetworkNode):
-                node_set.add(n)
+                node_speeds[n.name] = n.speed
             elif isinstance(n, tuple) and len(n) == 2:
-                node_set.add(NetworkNode(name=n[0], speed=n[1]))
+                node_speeds[n[0]] = n[1]
             else:
                 raise ValueError(f"Invalid node: {n}")
             
-        edge_set: Set[NetworkEdge] = set()
+        edge_dict: Dict[Tuple[str, str], float] = {}
         for e in edges:
-            if isinstance(e, NetworkEdge):
-                edge_set.add(e)
-                edge_set.add(NetworkEdge(source=e.target, target=e.source, speed=e.speed))
-            elif isinstance(e, tuple) and len(e) == 3:
-                edge_set.add(NetworkEdge(source=e[0], target=e[1], speed=e[2]))
-                edge_set.add(NetworkEdge(source=e[1], target=e[0], speed=e[2]))
-            elif isinstance(e, tuple) and len(e) == 2:
-                edge_set.add(NetworkEdge(source=e[0], target=e[1], speed=1e-9))
-                edge_set.add(NetworkEdge(source=e[1], target=e[0], speed=1e-9))
-            else:
-                raise ValueError(f"Invalid edge: {e}")
+            src, dst = sorted((e.source, e.target)) if isinstance(e, NetworkEdge) else sorted((e[0], e[1]))
+            default_speed = 0.0 if src != dst else math.inf
+            speed = (
+                e.speed if isinstance(e, NetworkEdge) else
+                e[2] if isinstance(e, tuple) and len(e) == 3 else
+                default_speed
+            )
+            if (src, dst) in edge_dict:
+                raise ValueError(f"Duplicate edge between {src} and {dst}")
+            edge_dict[(src, dst)] = speed
+
+        for n1, n2 in product(node_speeds.keys(), repeat=2):
+            src, dst = sorted((n1, n2))
+            if (src, dst) not in edge_dict:
+                default_speed = 0.0 if src != dst else math.inf
+                edge_dict[(src, dst)] = default_speed
+
+        node_set: Set[NetworkNode] = {
+            NetworkNode(name=name, speed=speed)
+            for name, speed in node_speeds.items()
+        }
+        edge_set: Set[NetworkEdge] = {
+            NetworkEdge(source=src, target=dst, speed=speed)
+            for (src, dst), speed in edge_dict.items()
+        }
+
+        super().__init__(
+            nodes=frozenset(node_set),
+            edges=frozenset(edge_set)
+        )
             
-        for n1, n2 in combinations(node_set, 2):
-            if not any(e.source == n1.name and e.target == n2.name for e in edge_set):
-                edge_set.add(NetworkEdge(source=n1.name, target=n2.name, speed=1e-9))
-                edge_set.add(NetworkEdge(source=n2.name, target=n1.name, speed=1e-9))
-        for n in node_set:
-            if not any(e.source == n.name and e.target == n.name for e in edge_set):
-                edge_set.add(NetworkEdge(source=n.name, target=n.name, speed=1e9))
-
-        return cls(nodes=frozenset(node_set), edges=frozenset(edge_set))
-
+    
     @cached_property
     def graph(self) -> nx.Graph:
         """Convert the network to a NetworkX graph.
@@ -229,13 +107,13 @@ class Network(BaseModel):
         """
         G = nx.Graph()
         for node in self.nodes:
-            G.add_node(node.name, speed=node.speed)
+            G.add_node(node.name, weight=node.speed)
         for edge in self.edges:
-            G.add_edge(edge.source, edge.target, speed=edge.speed)
+            G.add_edge(edge.source, edge.target, weight=edge.speed)
         return G
     
     @classmethod
-    def from_networkx(cls, G: nx.Graph, node_speed_attr: str = "speed", edge_speed_attr: str = "speed") -> 'Network':
+    def from_nx(cls, G: nx.Graph, node_speed_attr: str = "weight", edge_speed_attr: str = "weight") -> 'Network':
         """Create a Network from a NetworkX graph.
 
         Args:
@@ -246,15 +124,21 @@ class Network(BaseModel):
         Returns:
             Network: The Network representation of the graph.
         """
-        nodes = [NetworkNode(name=n, speed=G.nodes[n][node_speed_attr]) for n in G.nodes]
-        edges = [NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr]) for u, v in G.edges]
+        nodes = [
+            NetworkNode(name=n, speed=G.nodes[n][node_speed_attr])
+            for n in G.nodes
+        ]
+        edges = [
+            NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr])
+            for u, v in G.edges
+        ]
         return cls(nodes=frozenset(nodes), edges=frozenset(edges))
-    
-    def get_node(self, name: str) -> NetworkNode:
-        """Get a node by name.
+
+    def get_node(self, node: str | NetworkNode) -> NetworkNode:
+        """Get a node
 
         Args:
-            name (str): The name of the node.
+            node (str | NetworkNode): The node or the name of the node.
 
         Returns:
             NetworkNode: The node with the given name.
@@ -262,12 +146,13 @@ class Network(BaseModel):
         Raises:
             ValueError: If the node does not exist.
         """
-        for node in self.nodes:
-            if node.name == name:
-                return node
+        name = node.name if isinstance(node, NetworkNode) else node
+        for _node in self.nodes:
+            if _node.name == name:
+                return _node
         raise ValueError(f"Node {name} does not exist in the network.")
 
-    def get_edge(self, source: str, target: str) -> NetworkEdge:
+    def get_edge(self, source: str | NetworkNode, target: str | NetworkNode) -> NetworkEdge:
         """Get the edge between two nodes.
 
         Args:
@@ -280,10 +165,12 @@ class Network(BaseModel):
         Raises:
             ValueError: If the edge does not exist.
         """
+        source = source.name if isinstance(source, NetworkNode) else source
+        target = target.name if isinstance(target, NetworkNode) else target
         edge = self.graph.get_edge_data(source, target)
         if edge is None:
             raise ValueError(f"Edge from {source} to {target} does not exist.")
-        return NetworkEdge(source=source, target=target, speed=edge['speed'])
+        return NetworkEdge(source=source, target=target, speed=edge['weight'])
 
 class TaskGraphNode(BaseModel):
     """A task in the task graph."""
@@ -362,7 +249,7 @@ class TaskGraph(BaseModel):
         return G
     
     @classmethod
-    def from_networkx(cls, G: nx.DiGraph, node_weight_attr: str = "weight", edge_weight_attr: str = "weight") -> 'TaskGraph':
+    def from_nx(cls, G: nx.DiGraph, node_weight_attr: str = "weight", edge_weight_attr: str = "weight") -> 'TaskGraph':
         """Create a TaskGraph from a NetworkX directed graph.
 
         Args:
@@ -387,91 +274,283 @@ class TaskGraph(BaseModel):
         name_to_task = {task.name: task for task in self.tasks}
         return [name_to_task[name] for name in sorted_task_names]
     
-    def in_degree(self, task_name: str) -> int:
+    def all_topological_sorts(self) -> Generator[List[TaskGraphNode], None, None]:
+        """Generate all topological sorts of the task graph.
+
+        Yields:
+            Generator[List[TaskGraphNode], None, None]: A generator of lists of tasks in topological order.
+        """
+        import networkx.algorithms.dag as dag
+        name_to_task = {task.name: task for task in self.tasks}
+        for sort in dag.all_topological_sorts(self.graph):
+            yield [name_to_task[name] for name in sort]
+    
+    def in_degree(self, task: str | TaskGraphNode) -> int:
         """Get the in-degree of a task.
 
         Args:
-            task_name (str): The name of the task.
+            task (str | TaskGraphNode): The task or the name of the task.
         Returns:
             int: The in-degree of the task.
         """
-        return self.graph.in_degree(task_name)
+        task = task.name if isinstance(task, TaskGraphNode) else task
+        return self.graph.in_degree(task)
     
-    def in_edges(self, task_name: str) -> List[TaskGraphEdge]:
+    def in_edges(self, task: str | TaskGraphNode) -> List[TaskGraphEdge]:
         """Get the incoming edges of a task.
 
         Args:
-            task_name (str): The name of the task.
+            task (str | TaskGraphNode): The task or the name of the task.
         Returns:
             List[TaskGraphEdge]: A list of incoming edges to the task.
         """
+        task = task.name if isinstance(task, TaskGraphNode) else task
         edges = []
-        for src, tgt in self.graph.in_edges(task_name):
+        for src, tgt in self.graph.in_edges(task):
             edge_data = self.graph.get_edge_data(src, tgt)
             edges.append(TaskGraphEdge(source=src, target=tgt, size=edge_data['weight']))
         return edges
     
-    def out_degree(self, task_name: str) -> int:
+    def out_degree(self, task: str | TaskGraphNode) -> int:
         """Get the out-degree of a task.
 
         Args:
-            task_name (str): The name of the task.
+            task (str | TaskGraphNode): The task or the name of the task.
         Returns:
             int: The out-degree of the task.
         """
-        out_degree = self.graph.out_degree(task_name)
-        print(f"Out degree of task {task_name}: {out_degree}")  # Debug print
+        task = task.name if isinstance(task, TaskGraphNode) else task
+        out_degree = self.graph.out_degree(task)
         return out_degree
-        return self.graph.out_degree(task_name)
     
-    def out_edges(self, task_name: str) -> List[TaskGraphEdge]:
+    def out_edges(self, task: str | TaskGraphNode) -> List[TaskGraphEdge]:
         """Get the outgoing edges of a task.
 
         Args:
-            task_name (str): The name of the task.
+            task (str | TaskGraphNode): The task or the name of the task.
         Returns:
             List[TaskGraphEdge]: A list of outgoing edges from the task.
         """
+        task = task.name if isinstance(task, TaskGraphNode) else task
         edges = []
-        for src, tgt in self.graph.out_edges(task_name):
+        for src, tgt in self.graph.out_edges(task):
             edge_data = self.graph.get_edge_data(src, tgt)
             edges.append(TaskGraphEdge(source=src, target=tgt, size=edge_data['weight']))
         return edges
     
-    def get_task(self, name: str) -> TaskGraphNode:
+    def get_task(self, name: str | TaskGraphNode) -> TaskGraphNode:
         """Get a task by name.
 
         Args:
-            name (str): The name of the task.
-
+            name (str | TaskGraphNode): The task or the name of the task.
         Returns:
             TaskGraphNode: The task with the given name.
 
         Raises:
             ValueError: If the task does not exist.
         """
+        name = name.name if isinstance(name, TaskGraphNode) else name
         for task in self.tasks:
             if task.name == name:
                 return task
         raise ValueError(f"Task {name} does not exist in the task graph.")
     
-    def get_dependency(self, source: str, target: str) -> TaskGraphEdge:
+    def get_dependency(self, source: str | TaskGraphNode, target: str | TaskGraphNode) -> TaskGraphEdge:
         """Get the dependency edge between two tasks.
 
         Args:
-            source (str): The source task.
-            target (str): The target task.
-
+            source (str | TaskGraphNode): The source task.
+            target (str | TaskGraphNode): The target task.
         Returns:
             TaskGraphEdge: The dependency edge between the source and target tasks.
 
         Raises:
             ValueError: If the dependency does not exist.
         """
+        source = source.name if isinstance(source, TaskGraphNode) else source
+        target = target.name if isinstance(target, TaskGraphNode) else target
         edge = self.graph.get_edge_data(source, target)
         if edge is None:
             raise ValueError(f"Dependency from {source} to {target} does not exist.")
         return TaskGraphEdge(source=source, target=target, size=edge['weight'])
+
+
+class ScheduledTask(BaseModel):
+    """A scheduled task."""
+    node: str = Field(..., description="The node the task is scheduled on.")
+    name: str = Field(..., description="The name of the task.")
+    start: float = Field(..., description="The start time of the task.")
+    end: float = Field(..., description="The end time of the task.")
+
+    def __str__(self) -> str:
+        return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
+
+class Schedule(BaseModel):
+    """A schedule of tasks on nodes."""
+
+    task_graph: "TaskGraph" = Field(..., description="The task graph being scheduled.")
+    network: "Network" = Field(..., description="The network the tasks are scheduled on.")
+    mapping: Dict[str, List[ScheduledTask]] = Field(..., description="The mapping of tasks to nodes.")
+
+    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict)
+
+    def __init__(self,
+                 task_graph: "TaskGraph",
+                 network: "Network",
+                 mapping: Optional[Dict[str, List[ScheduledTask]]] = None) -> None:
+        super().__init__(
+            task_graph=task_graph,
+            network=network,
+            mapping=(
+                mapping if mapping is not None else
+                {node.name: [] for node in network.nodes}
+            )
+        )
+
+    @computed_field
+    @property
+    def makespan(self) -> float:
+        """Get the makespan of the schedule.
+
+        Returns:
+            float: The makespan of the schedule.
+        """
+        return max((tasks[-1].end for tasks in self.mapping.values() if tasks), default=0.0)
+
+    def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
+        """Get the tasks scheduled on a node.
+
+        Args:
+            node (str): The node to get the tasks for.
+
+        Returns:
+            List[Task]: A list of tasks scheduled on the node.
+        """
+        node = node.name if isinstance(node, NetworkNode) else node
+        if node not in self.mapping:
+            raise ValueError(f"Node {node} not in schedule. Nodes are {set(self.mapping.keys())}.")
+        return self.mapping[node]
+    
+    def items(self) -> Iterable[Tuple[str, List[ScheduledTask]]]:
+        """Get the items of the schedule.
+
+        Returns:
+            Iterable[Tuple[str, List[ScheduledTask]]]: An iterable of (node, tasks) pairs.
+        """
+        return self.mapping.items()
+
+    def get_earliest_start_time(self,
+                                task: str | TaskGraphNode,
+                                node: str | NetworkNode,
+                                append_only: bool = False) -> float:
+        """Get the earliest start time for a task on a node given the minimum start time and execution time.
+        
+        Args:
+            task (str | TaskGraphNode): The task or the name of the task.
+            node (str | NetworkNode): The node or the name of the node.
+            append_only (bool): If True, only consider appending the task at the end of the schedule.
+            
+        Returns:
+            float: The earliest start time of the task.
+        """
+        node = self.network.get_node(node)
+        task = self.task_graph.get_task(task)
+
+        exec_time = task.cost / node.speed
+        min_start_time = 0.0
+        for dependency in self.task_graph.in_edges(task):
+            if not self.is_scheduled(dependency.source):
+                raise ValueError(f"Parent task {dependency.source} is not scheduled yet.")
+            parent_task = self._task_map[dependency.source]
+            network_edge = self.network.get_edge(parent_task.node, node.name)
+            arrival_time = parent_task.end + (dependency.size / network_edge.speed)
+            min_start_time = max(min_start_time, arrival_time)
+    
+        if append_only:
+            return (
+                max(min_start_time, self.mapping[node.name][-1].end)
+                if self.mapping[node.name] else min_start_time
+            )
+        else:
+            if not self.mapping[node.name] or min_start_time + exec_time <= self.mapping[node.name][0].start:
+                return min_start_time
+            for left, right in zip(self.mapping[node.name], self.mapping[node.name][1:]):
+                if min_start_time >= left.end and min_start_time + exec_time <= right.start:
+                    return min_start_time
+                elif min_start_time < left.end and left.end + exec_time <= right.start:
+                    return left.end
+            return max(min_start_time, self.mapping[node.name][-1].end)
+
+    def add_task(self, task: ScheduledTask) -> None:
+        """Add a task to the schedule.
+
+        Args:
+            task (Task): The task to add.
+        """
+        if task.node not in self.mapping:
+            raise ValueError(f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}.")
+        idx = bisect.bisect_left([t.start for t in self.mapping[task.node]], task.start)
+        self.mapping[task.node].insert(idx, task)
+        # check that next task starts after this task ends
+        if idx + 1 < len(self.mapping[task.node]) and self.mapping[task.node][idx + 1].start < task.end:
+            raise ValueError(f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}.")
+        
+        self._task_map[task.name] = task
+
+    def remove_task(self, task_name: str | TaskGraphNode) -> None:
+        """Remove a task from the schedule.
+
+        Args:
+            task_name (str | TaskGraphNode): The task or the name of the task to remove.
+        """
+        task_name = task_name.name if isinstance(task_name, TaskGraphNode) else task_name
+        if task_name not in self._task_map:
+            raise ValueError(f"Task {task_name} not in schedule.")
+        scheduled_task = self._task_map[task_name]
+        self.mapping[scheduled_task.node].remove(scheduled_task)
+        del self._task_map[task_name]
+        
+    def get_schedulers(self,
+                       recursive: bool = False,
+                       concrete_only: bool = True) -> Generator[Type['Scheduler'], None, None]:
+        """Get all schedulers in the hierarchy.
+
+        Args:
+            recursive (bool): Whether to include schedulers from sub-classes.
+            concrete_only (bool): Whether to include only concrete schedulers.
+
+        Yields:
+            Type['Scheduler']: A scheduler class.
+        """
+        from saga.scheduler import Scheduler
+        for subclass in Scheduler.__subclasses__():
+            if not concrete_only or not hasattr(subclass, '__abstractmethods__') or not subclass.__abstractmethods__:
+                yield subclass 
+            if recursive:
+                yield from subclass().get_loaded_schedulers()
+
+    def is_scheduled(self, task_name: str) -> bool:
+        """Check if a task is scheduled.
+
+        Args:
+            task_name (str): The name of the task. 
+        Returns:
+            bool: True if the task is scheduled, False otherwise.
+        """
+        for tasks in self.mapping.values():
+            if any(task.name == task_name for task in tasks):
+                return True
+        return False
+
+    def __str__(self) -> str:
+        result = "Schedule:\n"
+        for node, tasks in self.mapping.items():
+            result += f"  Node {node}:\n"
+            for task in tasks:
+                result += f"    {task}\n"
+        result += f"  Makespan: {self.makespan:0.2f}\n"
+        return result
+
 
 class Scheduler(ABC): # pylint: disable=too-few-public-methods
     """An abstract class for a scheduler."""

@@ -1,21 +1,17 @@
 import heapq
-from typing import Dict, List, Optional, Set
-
-import networkx as nx
+from typing import Dict, Optional
 import numpy as np
 
 from saga.scheduler import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
-from saga.utils.tools import get_insert_loc
 
 def upward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
     ranks: Dict[str, float] = {}
 
     topological_order = task_graph.topological_sort()
     for task in topological_order[::-1]:
-        # rank = avg_comp_time + max(rank of successors + avg_comm_time w/ successors)
         avg_comp_time = np.mean([
-            task.cost / neighbor.speed
-            for neighbor in network.nodes
+            task.cost / node.speed
+            for node in network.nodes
         ])
         max_comm_time = 0 if task_graph.out_degree(task.name) <= 0 else max(
             [
@@ -93,7 +89,7 @@ class CpopScheduler(Scheduler):
             ValueError: If instance is invalid.
         """
         #initialise comp_schedule and task_map but if schedule is not None, use it
-        comp_schedule = Schedule.create([node.name for node in network.nodes])
+        comp_schedule = Schedule(task_graph, network)
         task_map: Dict[str, ScheduledTask] = {}
         if schedule is not None:
             comp_schedule = schedule.model_copy()
@@ -148,14 +144,12 @@ class CpopScheduler(Scheduler):
                     ]
                 )
                 
-                exec_time = task.cost / node.speed
-                # idx, start_time = get_insert_loc(comp_schedule[node], max_arrival_time, exec_time)
                 start_time = comp_schedule.get_earliest_start_time(
-                    node=node.name,
-                    min_start_time=max_arrival_time,
-                    exec_time=exec_time
+                    task=task,
+                    node=node,
+                    append_only=False
                 )
-                end_time = start_time + exec_time
+                end_time = start_time + (task.cost / node.speed)
                 if end_time < min_finish_time:
                     min_finish_time = end_time
                     best_node = node
