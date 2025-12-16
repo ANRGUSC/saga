@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import logging
 from typing import Any, Dict, FrozenSet, Generator, Iterable, List, Optional, Set, Tuple, Type
 from pydantic import BaseModel, PrivateAttr, computed_field, Field
 from functools import cached_property
@@ -72,7 +73,9 @@ class Network(BaseModel):
                 default_speed
             )
             if (src, dst) in edge_dict:
-                raise ValueError(f"Duplicate edge between {src} and {dst}")
+                if edge_dict[(src, dst)] != speed:
+                    raise ValueError(f"Duplicate edge between {src} and {dst}")
+                continue
             edge_dict[(src, dst)] = speed
 
         for n1, n2 in product(node_speeds.keys(), repeat=2):
@@ -94,6 +97,32 @@ class Network(BaseModel):
             nodes=frozenset(node_set),
             edges=frozenset(edge_set)
         )
+
+    def scale_to_ccr(self, task_graph: "TaskGraph", target_ccr: float) -> "Network":
+        """Scale the network to achieve a target communication-to-computation ratio (CCR) with respect to a task graph.
+
+        Args:
+            task_graph (TaskGraph): The task graph to compute CCR against.
+            target_ccr (float): The target CCR.
+
+        Returns:
+            Network: A new scaled network.
+        """
+        if target_ccr <= 0:
+            raise ValueError("Target CCR must be positive.")
+        avg_node_speed = sum(node.speed for node in self.nodes) / len(self.nodes)
+        avg_task_cost = sum(task.cost for task in task_graph.tasks) / len(task_graph.tasks)
+        avg_data_size = sum(dep.size for dep in task_graph.dependencies) / len(task_graph.dependencies)
+        avg_comp_time = avg_task_cost / avg_node_speed
+        link_speed = avg_data_size / (target_ccr * avg_comp_time)
+        scaled_edges: Set[NetworkEdge] = set()
+        for edge in self.edges:
+            scaled_edges.add(NetworkEdge(
+                source=edge.source,
+                target=edge.target,
+                speed=link_speed
+            ))
+        return Network(nodes=self.nodes, edges=frozenset(scaled_edges))
             
     
     @cached_property
@@ -232,8 +261,18 @@ class TaskGraph(BaseModel):
         # ensure there is one source and one sink
         sources = [t for t in task_set if all(d.target != t.name for d in dependency_set)]
         sinks = [t for t in task_set if all(d.source != t.name for d in dependency_set)]
-        if len(sources) != 1 or len(sinks) != 1:
-            raise ValueError("Task graph must have exactly one source and one sink.")
+        if len(sources) != 1:
+            logging.warning("Task graph has multiple sources; adding super source.")
+            super_source = TaskGraphNode(name="__super_source__", cost=0.0)
+            task_set.add(super_source)
+            for source in sources:
+                dependency_set.add(TaskGraphEdge(source=super_source.name, target=source.name, size=0.0))
+        if len(sinks) != 1:
+            logging.warning("Task graph has multiple sinks; adding super sink.")
+            super_sink = TaskGraphNode(name="__super_sink__", cost=0.0)
+            task_set.add(super_sink)
+            for sink in sinks:
+                dependency_set.add(TaskGraphEdge(source=sink.name, target=super_sink.name, size=0.0))
         super().__init__(
             tasks=frozenset(task_set),
             dependencies=frozenset(dependency_set)

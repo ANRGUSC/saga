@@ -1,8 +1,11 @@
 from functools import partial
 from itertools import product
 from typing import Callable, List
-import networkx as nx
+
 import numpy as np
+
+from saga import Network, TaskGraph
+
 
 def get_fog_networks(num: int,
                      num_edges_nodes: int = 100,
@@ -14,7 +17,7 @@ def get_fog_networks(num: int,
                      edge_fog_bw: float = 60,
                      fog_cloud_bw: float = 100,
                      fog_fog_bw: float = 100,
-                     cloud_cloud_bw: float = 1e9) -> List[nx.DiGraph]:
+                     cloud_cloud_bw: float = 1e9) -> List[Network]:
     """Generate a fog network with the given parameters.
 
     Args:
@@ -35,44 +38,50 @@ def get_fog_networks(num: int,
     """
     networks = []
     for _ in range(num):
-        network = nx.Graph()
         edge_nodes = {f"E{i}" for i in range(num_edges_nodes)}
         fog_nodes = {f"F{i}" for i in range(num_fog_nodes)}
         cloud_nodes = {f"C{i}" for i in range(num_cloud_nodes)}
-        network.add_nodes_from(edge_nodes, weight=edge_node_cpu)
-        network.add_nodes_from(fog_nodes, weight=fog_node_cpu)
-        network.add_nodes_from(cloud_nodes, weight=cloud_node_cpu)
+
+        nodes = (
+            [(name, edge_node_cpu) for name in edge_nodes] +
+            [(name, fog_node_cpu) for name in fog_nodes] +
+            [(name, cloud_node_cpu) for name in cloud_nodes]
+        )
+        all_node_names = edge_nodes | fog_nodes | cloud_nodes
 
         edge_edge_bw = edge_fog_bw
-        edge_cloud = min(edge_fog_bw, fog_cloud_bw)
-        for (src, dst) in product(network.nodes, network.nodes):
+        edge_cloud_bw = min(edge_fog_bw, fog_cloud_bw)
+
+        edges = []
+        for (src, dst) in product(all_node_names, all_node_names):
             if src == dst:
-                network.add_edge(src, dst, weight=1e9)
-            has_edge = any(n in edge_nodes for n in (src, dst))
-            has_fog = any(n in fog_nodes for n in (src, dst))
-            has_cloud = any(n in cloud_nodes for n in (src, dst))
-            if has_edge and not (has_fog or has_cloud): # edge to edge
-                network.add_edge(src, dst, weight=edge_edge_bw)
-            elif has_edge and has_fog: # edge to fog
-                network.add_edge(src, dst, weight=edge_fog_bw)
-            elif has_edge and has_cloud: # edge to cloud
-                network.add_edge(src, dst, weight=edge_cloud)
-            elif has_fog and not (has_edge or has_cloud): # fog to fog
-                network.add_edge(src, dst, weight=fog_fog_bw)
-            elif has_fog and has_cloud: # fog to cloud
-                network.add_edge(src, dst, weight=fog_cloud_bw)
-            elif has_cloud and not (has_edge or has_fog): # cloud to cloud
-                network.add_edge(src, dst, weight=cloud_cloud_bw)
-        networks.append(network)
+                edges.append((src, dst, 1e9))
+                continue
 
-        # Scale all edge weights by 125 so units are KiloBytes per second
-        # to match the units of the task graph.
-        for (src, dst) in network.edges:
-            network.edges[src, dst]["weight"] *= 125
+            has_edge = src in edge_nodes or dst in edge_nodes
+            has_fog = src in fog_nodes or dst in fog_nodes
+            has_cloud = src in cloud_nodes or dst in cloud_nodes
 
-        # Make self-loops infinite
-        for node in network.nodes:
-            network.edges[node, node]["weight"] = 1e9
+            if has_edge and not (has_fog or has_cloud):  # edge to edge
+                bw = edge_edge_bw
+            elif has_edge and has_fog:  # edge to fog
+                bw = edge_fog_bw
+            elif has_edge and has_cloud:  # edge to cloud
+                bw = edge_cloud_bw
+            elif has_fog and not (has_edge or has_cloud):  # fog to fog
+                bw = fog_fog_bw
+            elif has_fog and has_cloud:  # fog to cloud
+                bw = fog_cloud_bw
+            elif has_cloud and not (has_edge or has_fog):  # cloud to cloud
+                bw = cloud_cloud_bw
+            else:
+                bw = 0.0
+
+            # Scale by 125 so units are KiloBytes per second
+            edges.append((src, dst, bw * 125))
+
+        networks.append(Network(nodes=nodes, edges=edges))
+
     return networks
 
 def gaussian(min_value: float, max_value: float) -> float:
@@ -87,7 +96,7 @@ def get_etl_task_graphs(num: int,
                         get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
                         get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
                         window_1_size: int = 10,
-                        window_2_size: int = 10) -> List[nx.DiGraph]:
+                        window_2_size: int = 10) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -102,32 +111,37 @@ def get_etl_task_graphs(num: int,
     """
     task_graphs = []
     for _ in range(num):
-        task_graph = nx.DiGraph()
-        task_graph.add_node("Source", weight=get_task_cost())
-        task_graph.add_node("SenMLParse", weight=get_task_cost())
-        task_graph.add_node("RangeFilter", weight=get_task_cost())
-        task_graph.add_node("BloomFilter", weight=get_task_cost())
-        task_graph.add_node("Interpolation", weight=get_task_cost())
-        task_graph.add_node("Join", weight=get_task_cost())
-        task_graph.add_node("Annotate", weight=get_task_cost())
-        task_graph.add_node("CsvToSenML", weight=get_task_cost())
-        task_graph.add_node("AzureTableInsert", weight=get_task_cost())
-        task_graph.add_node("MQTTPublish", weight=get_task_cost())
-        task_graph.add_node("Sink", weight=get_task_cost())
-
         input_size = get_input_size()
-        task_graph.add_edge("Source", "SenMLParse", weight=input_size)
-        task_graph.add_edge("SenMLParse", "RangeFilter", weight=window_1_size*input_size)
-        task_graph.add_edge("RangeFilter", "BloomFilter", weight=window_1_size*input_size)
-        task_graph.add_edge("BloomFilter", "Interpolation", weight=window_1_size*input_size)
-        task_graph.add_edge("Interpolation", "Join", weight=window_1_size*input_size)
-        task_graph.add_edge("Join", "Annotate", weight=input_size)
-        task_graph.add_edge("Annotate", "CsvToSenML", weight=input_size)
-        task_graph.add_edge("Annotate", "AzureTableInsert", weight=window_2_size*input_size)
-        task_graph.add_edge("CsvToSenML", "MQTTPublish", weight=input_size)
-        task_graph.add_edge("AzureTableInsert", "Sink", weight=window_2_size*input_size)
 
-        task_graphs.append(task_graph)
+        tasks = [
+            ("Source", get_task_cost()),
+            ("SenMLParse", get_task_cost()),
+            ("RangeFilter", get_task_cost()),
+            ("BloomFilter", get_task_cost()),
+            ("Interpolation", get_task_cost()),
+            ("Join", get_task_cost()),
+            ("Annotate", get_task_cost()),
+            ("CsvToSenML", get_task_cost()),
+            ("AzureTableInsert", get_task_cost()),
+            ("MQTTPublish", get_task_cost()),
+            ("Sink", get_task_cost()),
+        ]
+
+        dependencies = [
+            ("Source", "SenMLParse", input_size),
+            ("SenMLParse", "RangeFilter", window_1_size * input_size),
+            ("RangeFilter", "BloomFilter", window_1_size * input_size),
+            ("BloomFilter", "Interpolation", window_1_size * input_size),
+            ("Interpolation", "Join", window_1_size * input_size),
+            ("Join", "Annotate", input_size),
+            ("Annotate", "CsvToSenML", input_size),
+            ("Annotate", "AzureTableInsert", window_2_size * input_size),
+            ("CsvToSenML", "MQTTPublish", input_size),
+            ("AzureTableInsert", "Sink", window_2_size * input_size),
+            ("MQTTPublish", "Sink", input_size),  # Added to ensure single sink
+        ]
+
+        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -135,7 +149,7 @@ def get_stats_task_graphs(num: int,
                           get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
                           get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
                           window_1_size: int = 10,
-                          window_2_size: int = 10) -> List[nx.DiGraph]:
+                          window_2_size: int = 10) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -150,32 +164,35 @@ def get_stats_task_graphs(num: int,
     """
     task_graphs = []
     for _ in range(num):
-        task_graph = nx.DiGraph()
-        task_graph.add_node("Source", weight=get_task_cost())
-        task_graph.add_node("SenMLParse", weight=get_task_cost())
-        task_graph.add_node("Average", weight=get_task_cost())
-        task_graph.add_node("KalmanFilter", weight=get_task_cost())
-        task_graph.add_node("DistinctCount", weight=get_task_cost())
-        task_graph.add_node("SlidingLinearReg", weight=get_task_cost())
-        task_graph.add_node("GroupViz", weight=get_task_cost())
-        task_graph.add_node("BlobUpload", weight=get_task_cost())
-        task_graph.add_node("Sink", weight=get_task_cost())
-
         input_size = get_input_size()
-        task_graph.add_edge("Source", "SenMLParse", weight=input_size)
-        task_graph.add_edge("SenMLParse", "Average", weight=window_1_size*input_size)
-        task_graph.add_edge("SenMLParse", "KalmanFilter", weight=input_size)
-        task_graph.add_edge("SenMLParse", "DistinctCount", weight=input_size)
-        task_graph.add_edge("KalmanFilter", "SlidingLinearReg", weight=input_size)
-        task_graph.add_edge("Average", "GroupViz", weight=window_1_size*input_size)
-        task_graph.add_edge("SlidingLinearReg", "GroupViz", weight=input_size)
-        task_graph.add_edge("DistinctCount", "GroupViz", weight=input_size)
+        input_size_group_viz = (window_1_size * input_size + 2 * input_size) * window_2_size
 
-        input_size_group_viz = (window_1_size*input_size + 2*input_size) * window_2_size
-        task_graph.add_edge("GroupViz", "BlobUpload", weight=input_size_group_viz)
-        task_graph.add_edge("BlobUpload", "Sink", weight=input_size_group_viz)
+        tasks = [
+            ("Source", get_task_cost()),
+            ("SenMLParse", get_task_cost()),
+            ("Average", get_task_cost()),
+            ("KalmanFilter", get_task_cost()),
+            ("DistinctCount", get_task_cost()),
+            ("SlidingLinearReg", get_task_cost()),
+            ("GroupViz", get_task_cost()),
+            ("BlobUpload", get_task_cost()),
+            ("Sink", get_task_cost()),
+        ]
 
-        task_graphs.append(task_graph)
+        dependencies = [
+            ("Source", "SenMLParse", input_size),
+            ("SenMLParse", "Average", window_1_size * input_size),
+            ("SenMLParse", "KalmanFilter", input_size),
+            ("SenMLParse", "DistinctCount", input_size),
+            ("KalmanFilter", "SlidingLinearReg", input_size),
+            ("Average", "GroupViz", window_1_size * input_size),
+            ("SlidingLinearReg", "GroupViz", input_size),
+            ("DistinctCount", "GroupViz", input_size),
+            ("GroupViz", "BlobUpload", input_size_group_viz),
+            ("BlobUpload", "Sink", input_size_group_viz),
+        ]
+
+        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -183,7 +200,7 @@ def get_train_task_graphs(num: int,
                           get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
                           get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
                           window_1_size: int = 10,
-                          window_2_size: int = 10) -> List[nx.DiGraph]:
+                          window_2_size: int = 10) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -198,26 +215,30 @@ def get_train_task_graphs(num: int,
     """
     task_graphs = []
     for _ in range(num):
-        task_graph = nx.DiGraph()
-        task_graph.add_node("TimerSource", weight=get_task_cost())
-        task_graph.add_node("TableRead", weight=get_task_cost())
-        task_graph.add_node("Annotation", weight=get_task_cost())
-        task_graph.add_node("Multi-Var Linear Reg. Train", weight=get_task_cost())
-        task_graph.add_node("Decision Tree Train", weight=get_task_cost())
-        task_graph.add_node("Blob Write", weight=get_task_cost())
-        task_graph.add_node("MQTT Publish", weight=get_task_cost())
-        task_graph.add_node("Sink", weight=get_task_cost())
-
         input_size = get_input_size()
-        task_graph.add_edge("TimerSource", "TableRead", weight=input_size)
-        task_graph.add_edge("TableRead", "Annotation", weight=input_size)
-        task_graph.add_edge("TableRead", "Multi-Var Linear Reg. Train", weight=input_size)
-        task_graph.add_edge("Annotation", "Blob Write", weight=input_size)
-        task_graph.add_edge("Multi-Var Linear Reg. Train", "Blob Write", weight=input_size)
-        task_graph.add_edge("Blob Write", "MQTT Publish", weight=2*input_size)
-        task_graph.add_edge("MQTT Publish", "Sink", weight=2*input_size)
 
-        task_graphs.append(task_graph)
+        tasks = [
+            ("TimerSource", get_task_cost()),
+            ("TableRead", get_task_cost()),
+            ("Annotation", get_task_cost()),
+            ("MultiVarLinearRegTrain", get_task_cost()),
+            ("DecisionTreeTrain", get_task_cost()),
+            ("BlobWrite", get_task_cost()),
+            ("MQTTPublish", get_task_cost()),
+            ("Sink", get_task_cost()),
+        ]
+
+        dependencies = [
+            ("TimerSource", "TableRead", input_size),
+            ("TableRead", "Annotation", input_size),
+            ("TableRead", "MultiVarLinearRegTrain", input_size),
+            ("Annotation", "BlobWrite", input_size),
+            ("MultiVarLinearRegTrain", "BlobWrite", input_size),
+            ("BlobWrite", "MQTTPublish", 2 * input_size),
+            ("MQTTPublish", "Sink", 2 * input_size),
+        ]
+
+        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -225,7 +246,7 @@ def get_predict_task_graphs(num: int,
                             get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
                             get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
                             window_1_size: int = 10,
-                            window_2_size: int = 10) -> List[nx.DiGraph]:
+                            window_2_size: int = 10) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -240,45 +261,49 @@ def get_predict_task_graphs(num: int,
     """
     task_graphs = []
     for _ in range(num):
-        task_graph = nx.DiGraph()
-        task_graph.add_node("Source", weight=get_task_cost())
-        task_graph.add_node("MQTTSubscribe", weight=get_task_cost())
-        task_graph.add_node("BlobRead", weight=get_task_cost())
-        task_graph.add_node("SenMLParse", weight=get_task_cost())
-        task_graph.add_node("DecisionTree", weight=get_task_cost())
-        task_graph.add_node("Multi-Var Linear Reg", weight=get_task_cost())
-        task_graph.add_node("Average", weight=get_task_cost())
-        task_graph.add_node("ErrorEstimate", weight=get_task_cost())
-        task_graph.add_node("MQTTPublish", weight=get_task_cost())
-        task_graph.add_node("Sink", weight=get_task_cost())
-
         input_size = get_input_size()
-        task_graph.add_edge("Source", "SenMLParse", weight=input_size)
-        task_graph.add_edge("MQTTSubscribe", "BlobRead", weight=input_size)
 
-        task_graph.add_edge("BlobRead", "DecisionTree", weight=input_size)
-        task_graph.add_edge("BlobRead", "Multi-Var Linear Reg", weight=input_size)
-        task_graph.add_edge("SenMLParse", "DecisionTree", weight=input_size)
-        task_graph.add_edge("SenMLParse", "Multi-Var Linear Reg", weight=input_size)
-        task_graph.add_edge("SenMLParse", "Average", weight=window_1_size*input_size)
+        # Original has two sources (Source, MQTTSubscribe), so we add a virtual source
+        tasks = [
+            ("VirtualSource", 1e-9),  # Virtual source to ensure single source
+            ("Source", get_task_cost()),
+            ("MQTTSubscribe", get_task_cost()),
+            ("BlobRead", get_task_cost()),
+            ("SenMLParse", get_task_cost()),
+            ("DecisionTree", get_task_cost()),
+            ("MultiVarLinearReg", get_task_cost()),
+            ("Average", get_task_cost()),
+            ("ErrorEstimate", get_task_cost()),
+            ("MQTTPublish", get_task_cost()),
+            ("Sink", get_task_cost()),
+        ]
 
-        task_graph.add_edge("Multi-Var Linear Reg", "ErrorEstimate", weight=2*input_size)
-        task_graph.add_edge("Average", "ErrorEstimate", weight=2*input_size)
+        dependencies = [
+            ("VirtualSource", "Source", 1e-9),
+            ("VirtualSource", "MQTTSubscribe", 1e-9),
+            ("Source", "SenMLParse", input_size),
+            ("MQTTSubscribe", "BlobRead", input_size),
+            ("BlobRead", "DecisionTree", input_size),
+            ("BlobRead", "MultiVarLinearReg", input_size),
+            ("SenMLParse", "DecisionTree", input_size),
+            ("SenMLParse", "MultiVarLinearReg", input_size),
+            ("SenMLParse", "Average", window_1_size * input_size),
+            ("MultiVarLinearReg", "ErrorEstimate", 2 * input_size),
+            ("Average", "ErrorEstimate", 2 * input_size),
+            ("ErrorEstimate", "MQTTPublish", 2 * input_size),
+            ("DecisionTree", "MQTTPublish", 2 * input_size),
+            ("MQTTPublish", "Sink", 2 * input_size),
+        ]
 
-        task_graph.add_edge("ErrorEstimate", "MQTTPublish", weight=2*input_size)
-        task_graph.add_edge("DecisionTree", "MQTTPublish", weight=2*input_size)
-
-        task_graph.add_edge("MQTTPublish", "Sink", weight=2*input_size)
-
-        task_graphs.append(task_graph)
+        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
-
 
 
 def test():
     """Test the fog network generator."""
     network = get_fog_networks(num=1)[0]
+    print(f"Network has {len(network.nodes)} nodes")
 
 if __name__ == "__main__":
     test()
