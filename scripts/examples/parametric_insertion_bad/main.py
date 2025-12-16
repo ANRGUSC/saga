@@ -2,11 +2,13 @@ from typing import Any, Dict, Hashable, List
 
 from matplotlib import pyplot as plt
 from saga.schedulers.parametric import ParametricScheduler
+from saga.schedulers.parametric.online_parametric import OnlineParametricScheduler
 from saga.schedulers.parametric.components import ArbitraryTopological, GreedyInsert, CPoPRanking
 from saga.pisa import run_experiments
 from saga.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
 from saga.pisa.changes import TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight
 from saga.schedulers.parametric import IntialPriority
+
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 import networkx as nx
 
@@ -79,7 +81,7 @@ def example():
         def deserialize(cls, data: Dict[str, Any]) -> "ArbitraryTopological":
             return cls()
 
-    scheduler = ParametricScheduler(
+    scheduler = OnlineParametricScheduler(
         initial_priority=PriorityOrder(),
         insert_task=GreedyInsert(
             append_only=False,
@@ -87,7 +89,7 @@ def example():
             critical_path=False
         )
     )
-    scheduler_append_only = ParametricScheduler(
+    scheduler_append_only = OnlineParametricScheduler(
         initial_priority=scheduler.initial_priority,
         insert_task=GreedyInsert(
             append_only=True,
@@ -201,5 +203,5 @@ def bad_example():
 
 if __name__ == "__main__":
     # main()
-    # example()
-    bad_example()
+    example()
+    # bad_example()

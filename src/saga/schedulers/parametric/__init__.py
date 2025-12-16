@@ -3,6 +3,7 @@ from copy import deepcopy
 import logging
 from typing import Any, Dict, Hashable, List, Optional, Tuple
 import networkx as nx
+from saga.utils.online_tools import ScheduleInjector
 
 from saga.scheduler import Scheduler, Task
 
@@ -45,14 +46,18 @@ class IntialPriority(ABC):
         pass
 
 ScheduleType = Dict[Hashable, List[Task]]
-class InsertTask(ABC):
+class InsertTask(ABC): 
     @abstractmethod
     def __call__(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
                  schedule: ScheduleType,
+                 #task_map: Dict[Hashable, Task],
                  task: Hashable,
+                 current_moment: float,
+    
                  node: Optional[Hashable] = None) -> Task:
+        
         """Insert a task into the schedule.
 
         Args:
@@ -89,7 +94,7 @@ class InsertTask(ABC):
         """
         pass
 
-class ParametricScheduler(Scheduler):
+class ParametricScheduler(ScheduleInjector, Scheduler):
     def __init__(self,
                  initial_priority: IntialPriority,
                  insert_task: InsertTask) -> None:
@@ -97,10 +102,13 @@ class ParametricScheduler(Scheduler):
             self.initial_priority = initial_priority
             self.insert_task = insert_task
     
-    def schedule(self,
+    def _do_schedule(self,
                  network: nx.Graph,
                  task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
+                 comp_schedule: ScheduleType,
+                 task_map: Dict[Hashable, Task],
+                 current_moment:float,
+                 **_algo_kwargs) -> ScheduleType:
         """Schedule the tasks on the network.
         
         Args:
@@ -112,10 +120,14 @@ class ParametricScheduler(Scheduler):
             Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
         """
         queue = self.initial_priority(network, task_graph)
-        schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        while queue:
-            self.insert_task(network, task_graph, schedule, queue.pop(0))
-        return schedule
+        #schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
+        while queue: #!!
+            task_name = queue.pop(0)
+            if task_name in task_map:
+                continue
+            else:
+                self.insert_task(network, task_graph, comp_schedule, task_name, current_moment)
+        return comp_schedule
 
     def serialize(self) -> Dict[str, Any]:
         """Return a dictionary representation of the initial priority.

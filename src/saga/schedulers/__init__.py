@@ -4,12 +4,14 @@ from .cpop import CpopScheduler
 from .duplex import DuplexScheduler
 from .etf import ETFScheduler
 from .heft import HeftScheduler
+from .conditional_heft import ConditionalHeftScheduler
 from .fastest_node import FastestNodeScheduler
 from .fcp import FCPScheduler
 from .hybrid import HybridScheduler
 from .maxmin import MaxMinScheduler
 from .minmin import MinMinScheduler
 from .mct import MCTScheduler
+from .mst import MSTScheduler
 from .met import METScheduler
 from .olb import OLBScheduler
 from .smt import SMTScheduler
@@ -20,3 +22,9 @@ from .hbmct import HbmctScheduler
 from .msbc import MsbcScheduler
 from .dps import DPSScheduler
 from .sufferage import SufferageScheduler
+from .online_heft import OnlineHeftScheduler
+from .online_cpop import OnlineCpopScheduler
+from .online_etf import OnlineETFScheduler
+from .online_sufferage import OnlineSufferageScheduler
+from .online_heft_temp import OnlineTempHeftScheduler
+from .temp_heft import TempHeftScheduler
