@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import numpy as np
 from scipy import integrate
@@ -11,11 +11,11 @@ class RandomVariable:
     probability density function.
     """
     DEFAULT_NUM_SAMPLES = 1000
-    def __init__(self, samples: np.ndarray) -> None:
+    def __init__(self, samples: np.ndarray | List[float]) -> None:
         """Initialize a random variable.
 
         Args:
-            samples (np.ndarray): The samples.
+            samples (np.ndarray | List[float]): The samples.
         """
         self.samples = np.array(samples)
 
@@ -230,8 +230,9 @@ class RandomVariable:
 
     def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
         """Divide two random variables."""
-        if np.isclose(self.std(), 0):
-            if np.isclose(other.std(), 0):
+        other = other if isinstance(other, RandomVariable) else RandomVariable([other])
+        if np.isclose(self.std(), 0.0):
+            if np.isclose(other.std(), 0.0):
                 return RandomVariable([other.mean() / self.mean()])
             else:
                 return RandomVariable(other.samples / self.mean())
@@ -264,12 +265,13 @@ class RandomVariable:
         Returns:
             RandomVariable: The maximum of the random variables.
         """
-        max_num_samples = max(len(rv.samples) for rv in rvs)
+        _rvs = [rv if isinstance(rv, RandomVariable) else RandomVariable([rv]) for rv in rvs]
+        max_num_samples = max(len(rv.samples) for rv in _rvs)
         all_samples = [
             np.concatenate([
                 rv.samples,
                 np.random.choice(rv.samples, max_num_samples - len(rv.samples), replace=True)
-            ]) for rv in rvs
+            ]) for rv in _rvs
         ]
         samples = np.max(all_samples, axis=0)
         return RandomVariable(samples)
@@ -298,22 +300,22 @@ class RandomVariable:
             return RandomVariable(self.samples >= other)
         return RandomVariable(self.samples >= other.samples)
 
-    def expectation(self):
+    def expectation(self) -> float:
         """The expectation of the random variable."""
-        return np.mean(self.samples)
+        return float(np.mean(self.samples))
 
-    def mean(self):
+    def mean(self) -> float:
         """The mean of the random variable."""
         return self.expectation()
 
-    def variance(self):
+    def variance(self) -> float:
         """The variance of the random variable."""
-        return np.var(self.samples)
+        return float(np.var(self.samples))
 
-    def var(self):
+    def var(self) -> float:
         """The variance of the random variable."""
         return self.variance()
 
-    def std(self):
+    def std(self) -> float:
         """The standard deviation of the random variable."""
         return np.sqrt(self.variance())
