@@ -3,7 +3,7 @@ from typing import Callable, Dict, Hashable, List, Union
 import networkx as nx
 
 from saga.utils.random_variable import RandomVariable
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 from saga.utils.random_variable import RandomVariable
 
 class Determinizer(Scheduler):

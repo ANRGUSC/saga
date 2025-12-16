@@ -2,7 +2,7 @@ import pathlib
 from typing import List, Optional
 import numpy as np
 
-from saga.scheduler import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
+from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
 from saga.schedulers.cpop import upward_rank
 
 thisdir = pathlib.Path(__file__).resolve().parent

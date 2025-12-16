@@ -2,7 +2,7 @@ from functools import lru_cache
 import random
 from typing import Dict, Optional, Tuple
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class WBAScheduler(Scheduler):

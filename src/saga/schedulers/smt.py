@@ -5,7 +5,7 @@ from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, Or, Plus,
                              Real, Symbol, get_model)
 from pysmt.typing import REAL
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class SMTScheduler(Scheduler):

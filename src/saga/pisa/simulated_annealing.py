@@ -12,7 +12,7 @@ from .changes import (
 )
 
 from .common import standardize_instance
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 
 
 # data class for simulated annealing iteration

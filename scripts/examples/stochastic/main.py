@@ -2,7 +2,7 @@ import pathlib
 from typing import Dict
 from matplotlib import pyplot as plt
 import pandas as pd
-from saga.scheduler import Scheduler
+from saga import Scheduler
 from saga.schedulers.cpop import CpopScheduler
 from saga.schedulers.heft import HeftScheduler
 from saga.schedulers.stochastic.sheft import SheftScheduler

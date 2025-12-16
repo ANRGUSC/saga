@@ -1,6 +1,6 @@
 from typing import Optional
 
-from saga.scheduler import Network, Schedule, Scheduler, TaskGraph
+from saga import Network, Schedule, Scheduler, TaskGraph
 from saga.schedulers.maxmin import MaxMinScheduler
 from saga.schedulers.minmin import MinMinScheduler
 

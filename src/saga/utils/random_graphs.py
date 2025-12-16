@@ -1,37 +1,72 @@
 from itertools import product
-import random
-from typing import Tuple, TypeVar
-
+from typing import Callable, TypeVar
 import networkx as nx
 import numpy as np
+from saga import Network, TaskGraph
 from scipy.stats import norm
 
-from saga.utils.random_variable import RandomVariable
+from saga.utils.random_variable import RandomVariable, UniformRandomVariable
 
 
-def  get_diamond_dag() -> nx.DiGraph:
+DEFAULT_WEIGHT_DISTRIBUTION = UniformRandomVariable(0.1, 1.0)
+
+T = TypeVar("T", nx.DiGraph, nx.Graph)
+def add_random_weights(graph: T, weight_distribution: RandomVariable) -> T:
+    """Adds random weights to the DAG."""
+    for node in graph.nodes:
+        graph.nodes[node]["weight"] = weight_distribution.sample()
+    for edge in graph.edges:
+        if not graph.is_directed() and edge[0] == edge[1]:
+            graph.edges[edge]["weight"] = 1e9 * weight_distribution.sample() # very large communication speed
+        else:
+            graph.edges[edge]["weight"] = weight_distribution.sample()
+    return graph
+
+def default_get_rv(num_samples: int = 100) -> RandomVariable:
+    std = np.random.uniform(1e-9, 0.01)
+    loc = np.random.uniform(0.5)
+    x_vals = np.linspace(1e-9, 1, num_samples)
+    pdf = norm.pdf(x_vals, loc, std)
+    return RandomVariable.from_pdf(x_vals, pdf)
+
+def add_rv_weights(graph: T,
+                   get_rv: Callable[[], RandomVariable] = default_get_rv) -> T:
+    """Adds random variable weights to the DAG."""
+    for node in graph.nodes:
+        graph.nodes[node]["weight"] = get_rv()
+    for edge in graph.edges:
+        if not graph.is_directed() and edge[0] == edge[1]:
+            graph.edges[edge]["weight"] = RandomVariable([1e9])
+        else:
+            graph.edges[edge]["weight"] = get_rv()
+    return graph
+
+def get_diamond_dag(weight_distribution: RandomVariable = DEFAULT_WEIGHT_DISTRIBUTION) -> TaskGraph:
     """Returns a diamond DAG."""
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D"])
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
-    return dag
+    dag = add_random_weights(dag, weight_distribution)
+    return TaskGraph.from_nx(dag)
 
-def get_chain_dag(num_nodes: int = 4) -> nx.DiGraph:
+def get_chain_dag(num_nodes: int = 4, weight_distribution: RandomVariable = DEFAULT_WEIGHT_DISTRIBUTION) -> TaskGraph:
     """Returns a chain DAG."""
     dag = nx.DiGraph()
     nodes = [chr(ord("A") + i) for i in range(num_nodes)]
     dag.add_nodes_from(nodes)
     dag.add_edges_from([(nodes[i], nodes[i+1]) for i in range(num_nodes - 1)])
-    return dag
+    dag = add_random_weights(dag, weight_distribution)
+    return TaskGraph.from_nx(dag)
 
-def get_fork_dag() -> nx.DiGraph:
+def get_fork_dag(weight_distribution: RandomVariable = DEFAULT_WEIGHT_DISTRIBUTION) -> TaskGraph:
     """Returns a fork DAG."""
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D", "E", "F"])
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")])
-    return dag
+    dag = add_random_weights(dag, weight_distribution)
+    return TaskGraph.from_nx(dag)
 
-def get_branching_dag(levels: int = 3, branching_factor: int = 2) -> nx.DiGraph:
+def get_branching_dag(levels: int = 3, branching_factor: int = 2, weight_distribution: RandomVariable = DEFAULT_WEIGHT_DISTRIBUTION) -> TaskGraph:
     """Returns a branching DAG.
 
     Args:
@@ -65,43 +100,13 @@ def get_branching_dag(levels: int = 3, branching_factor: int = 2) -> nx.DiGraph:
     graph.add_node(dst_node)
     graph.add_edges_from([(node, dst_node) for node in level_nodes])
 
-    return graph
+    graph = add_random_weights(graph, weight_distribution)
+    return TaskGraph.from_nx(graph)
 
-def get_network(num_nodes = 4) -> nx.Graph:
+def get_network(num_nodes = 4, weight_distribution: RandomVariable = DEFAULT_WEIGHT_DISTRIBUTION) -> Network:
     """Returns a network."""
     network = nx.Graph()
     network.add_nodes_from(range(num_nodes))
-    # fully connected
     network.add_edges_from(product(range(num_nodes), range(num_nodes)))
-    return network
-
-# template T nx.DiGraph or nx.Graph
-T = TypeVar("T", nx.DiGraph, nx.Graph)
-def add_random_weights(graph: T, weight_range: Tuple[float, float] = (0, 1)) -> T:
-    """Adds random weights to the DAG."""
-    for node in graph.nodes:
-        graph.nodes[node]["weight"] = np.random.uniform(*weight_range)
-    for edge in graph.edges:
-        if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = 1e9 * weight_range[1] # very large communication speed
-        else:
-            graph.edges[edge]["weight"] = np.random.uniform(*weight_range)
-    return graph
-
-def add_rv_weights(graph: T, num_samples: int = 100) -> T:
-    """Adds random variable weights to the DAG."""
-    def get_rv():
-        std = np.random.uniform(1e-9, 0.01)
-        loc = np.random.uniform(0.5)
-        x_vals = np.linspace(1e-9, 1, num_samples)
-        pdf = norm.pdf(x_vals, loc, std)
-        return RandomVariable.from_pdf(x_vals, pdf)
-
-    for node in graph.nodes:
-        graph.nodes[node]["weight"] = get_rv()
-    for edge in graph.edges:
-        if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = RandomVariable([1e9]) # very large communication speed
-        else:
-            graph.edges[edge]["weight"] = get_rv()
-    return graph
+    network = add_random_weights(network, weight_distribution)
+    return Network.from_nx(network)

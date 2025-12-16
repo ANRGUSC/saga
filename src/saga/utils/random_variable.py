@@ -319,3 +319,31 @@ class RandomVariable:
     def std(self) -> float:
         """The standard deviation of the random variable."""
         return np.sqrt(self.variance())
+
+
+class UniformRandomVariable(RandomVariable):
+    """A uniform random variable."""
+    def __init__(self, low: float, high: float, num_samples: int = RandomVariable.DEFAULT_NUM_SAMPLES) -> None:
+        """Initialize a uniform random variable.
+
+        Args:
+            low (float): The lower bound.
+            high (float): The upper bound.
+            num_samples (int, optional): The number of samples. Defaults to RandomVariable.DEFAULT_NUM_SAMPLES.
+        """
+        samples = np.random.uniform(low, high, num_samples)
+        super().__init__(samples)
+
+class NormalRandomVariable(RandomVariable):
+    """A normal random variable."""
+    def __init__(self, mean: float, std: float, num_samples: int = RandomVariable.DEFAULT_NUM_SAMPLES) -> None:
+        """Initialize a normal random variable.
+
+        Args:
+            mean (float): The mean.
+            std (float): The standard deviation.
+            num_samples (int, optional): The number of samples. Defaults to RandomVariable.DEFAULT_NUM_SAMPLES.
+        """
+        samples = np.random.normal(mean, std, num_samples)
+        super().__init__(samples)
+

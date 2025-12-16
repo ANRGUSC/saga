@@ -1,7 +1,7 @@
 import copy
 from typing import Dict, List, Optional, Set, Tuple
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods

@@ -2,7 +2,7 @@ from copy import deepcopy
 import heapq
 
 import numpy as np
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort, get_insert_loc
 from saga.schedulers.cpop import cpop_ranks

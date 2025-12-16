@@ -9,9 +9,9 @@ import fcntl
 
 import numpy as np
 import pandas as pd
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
-from saga.schedulers.heft import heft_rank_sort, get_insert_loc
+from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
 import concurrent.futures
 

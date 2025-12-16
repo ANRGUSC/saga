@@ -4,7 +4,7 @@ import pathlib
 from typing import Tuple
 import networkx as nx
 
-from saga.scheduler import Network, Schedule, ScheduledTask, TaskGraph
+from saga import Network, Schedule, ScheduledTask, TaskGraph
 from saga.schedulers import HeftScheduler, BruteForceScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 

@@ -5,7 +5,7 @@ import networkx as nx
 
 from saga.utils.random_variable import RandomVariable
 
-from ...scheduler import Scheduler, ScheduledTask
+from ... import Scheduler, ScheduledTask
 from ..heft import HeftScheduler
 from .stoch_heft import StochHeftScheduler, stoch_heft_rank_sort
 

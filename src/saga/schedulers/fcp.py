@@ -1,7 +1,7 @@
 from queue import PriorityQueue
 from typing import Dict, List, Optional, Set
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 def get_mcp_priorities(network: Network, task_graph: TaskGraph) -> Dict[str, float]:

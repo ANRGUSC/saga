@@ -3,7 +3,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 from saga.schedulers.heft import heft_rank_sort
 
 

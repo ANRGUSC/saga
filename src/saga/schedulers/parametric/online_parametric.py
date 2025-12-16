@@ -4,7 +4,7 @@ from saga.schedulers.parametric import (
     ParametricScheduler, IntialPriority, InsertTask
 )
 
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 from saga.utils.online_tools import schedule_estimate_to_actual, get_offline_instance
 from saga.schedulers.parametric.components import (
     insert_funcs, initial_priority_funcs

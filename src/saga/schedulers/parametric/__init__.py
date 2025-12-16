@@ -5,7 +5,7 @@ from typing import Any, Dict, Hashable, List, Optional, Tuple
 import networkx as nx
 from saga.utils.online_tools import ScheduleInjector
 
-from saga.scheduler import Scheduler, ScheduledTask
+from saga import Scheduler, ScheduledTask
 
 class IntialPriority(ABC):
     @abstractmethod

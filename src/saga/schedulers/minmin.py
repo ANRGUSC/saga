@@ -2,7 +2,7 @@ from functools import lru_cache
 from itertools import product
 from typing import Dict, Optional
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class MinMinScheduler(Scheduler):

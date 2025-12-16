@@ -8,7 +8,7 @@ from saga.schedulers.parametric.components import (
     ParametricSufferageScheduler, UpwardRanking, get_insert_loc,
     initial_priority_funcs, insert_funcs
 )
-from saga.scheduler import ScheduledTask
+from saga import ScheduledTask
 from saga.schedulers.parametric import ScheduleType
 import networkx as nx
 from saga.utils.draw import draw_gantt

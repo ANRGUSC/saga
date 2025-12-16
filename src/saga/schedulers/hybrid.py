@@ -1,6 +1,6 @@
 
 from typing import Iterable
-from saga.scheduler import Schedule, Scheduler, TaskGraph, Network
+from saga import Schedule, Scheduler, TaskGraph, Network
 
 
 class HybridScheduler(Scheduler):

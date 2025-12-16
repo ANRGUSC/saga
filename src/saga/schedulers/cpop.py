@@ -2,7 +2,7 @@ import heapq
 from typing import Dict, Optional
 import numpy as np
 
-from saga.scheduler import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
+from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
 
 def upward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
     ranks: Dict[str, float] = {}

@@ -1,7 +1,7 @@
 from functools import partial
 from typing import Dict, Optional
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class METScheduler(Scheduler):

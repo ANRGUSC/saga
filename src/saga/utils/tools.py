@@ -4,57 +4,8 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 import numpy as np
 
-from saga.scheduler import ScheduledTask
+from saga import ScheduledTask
 
-
-def check_instance_simple(network: nx.Graph, task_graph: nx.DiGraph) -> None:
-    """Check if the instance is valid.
-    
-    Args:
-        network (nx.Graph): The network graph.
-        task_graph (nx.DiGraph): The task graph.
-
-    Raises:
-        ValueError: If the instance is invalid.
-    """
-    for node in network.nodes:
-        if not isinstance(network.nodes[node]["weight"], (int, float)):
-            raise ValueError(f"Node {node} has non-numeric weight (type({network.nodes[node]['weight']}).")
-        if network.nodes[node]["weight"] <= 0 or 1/network.nodes[node]["weight"] <= 0:
-            raise ValueError(f"Node {node} has zero, negative, or infinite weight.")
-    for edge in network.edges:
-        if not isinstance(network.edges[edge]["weight"], (int, float)):
-            raise ValueError(f"Edge {edge} has non-numeric weight (type({network.edges[edge]['weight']}).")
-        if network.edges[edge]["weight"] <= 0 or 1/network.edges[edge]["weight"] <= 0:
-            raise ValueError(f"Edge {edge} has zero, negative, or infinite weight.")
-    for node in task_graph.nodes:
-        if not isinstance(task_graph.nodes[node]["weight"], (int, float)):
-            raise ValueError(f"Node {node} has non-numeric weight (type({task_graph.nodes[node]['weight']}).")
-        if task_graph.nodes[node]["weight"] <= 0 or 1/task_graph.nodes[node]["weight"] <= 0:
-            raise ValueError(f"Node {node} has zero, negative, or infinite weight.")
-    for edge in task_graph.edges:
-        if not isinstance(task_graph.edges[edge]["weight"], (int, float)):
-            raise ValueError(f"Edge {edge} has non-numeric weight (type({task_graph.edges[edge]['weight']}).")
-        if task_graph.edges[edge]["weight"] <= 0 or 1/task_graph.edges[edge]["weight"] <= 0:
-            raise ValueError(f"Edge {edge} has zero, negative, or infinite weight.")
-    
-    # check that network is fully connected
-    if not nx.is_connected(network):
-        raise ValueError("Network is not fully connected.")
-    
-    # check that task graph is acyclic
-    if not nx.is_directed_acyclic_graph(task_graph):
-        raise ValueError("Task graph is not acyclic.")
-    
-    # check that there is a single source and a single sink
-    sources = [node for node in task_graph.nodes if task_graph.in_degree(node) == 0]
-    if len(sources) != 1:
-        raise ValueError("Task graph does not have exactly one source.")
-    
-    sinks = [node for node in task_graph.nodes if task_graph.out_degree(node) == 0]
-    if len(sinks) != 1:
-        raise ValueError("Task graph does not have exactly one sink.")
-    
 
 def get_insert_loc(schedule: List[ScheduledTask], 
                    min_start_time: float, 

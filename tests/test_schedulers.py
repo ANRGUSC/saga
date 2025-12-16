@@ -2,7 +2,7 @@ import pytest
 import traceback
 import networkx as nx
 
-from saga.scheduler import Scheduler
+from saga import Scheduler
 from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
     FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,

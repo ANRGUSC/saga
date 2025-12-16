@@ -9,7 +9,7 @@ from saga.pisa.changes import (NetworkChangeEdgeWeight, NetworkChangeNodeWeight,
                      TaskGraphAddDependency, TaskGraphChangeDependencyWeight,
                      TaskGraphChangeTaskWeight, TaskGraphDeleteDependency)
 
-from saga.scheduler import Scheduler
+from saga import Scheduler
 from saga.utils.random_graphs import (add_random_weights, get_chain_dag,
                                       get_network)
 from saga.pisa.simulated_annealing import SimulatedAnnealing

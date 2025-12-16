@@ -1,5 +1,5 @@
 from typing import List
-from saga.scheduler import Schedule, ScheduledTask, Network, NetworkEdge, NetworkNode, TaskGraph
+from saga import Schedule, ScheduledTask, Network, NetworkEdge, NetworkNode, TaskGraph
 from saga.schedulers.cpop import CpopScheduler
 
 def main():

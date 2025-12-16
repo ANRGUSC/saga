@@ -5,7 +5,7 @@ from typing import Dict, List
 import networkx as nx
 from matplotlib import pyplot as plt
 
-from saga.scheduler import ScheduledTask
+from saga import ScheduledTask
 from saga.schedulers import CpopScheduler, HeftScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 

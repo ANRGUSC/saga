@@ -8,7 +8,7 @@ import streamlit as st
 
 from saga.utils.draw import draw_network, draw_task_graph, draw_gantt
 from saga.pisa.simulated_annealing import SimulatedAnnealing, SimulatedAnnealingIteration
-from saga.scheduler import ScheduledTask
+from saga import ScheduledTask
 
 
 # Define the results directory

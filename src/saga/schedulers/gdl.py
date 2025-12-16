@@ -3,7 +3,7 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 
-from saga.scheduler import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
 class GDLScheduler(Scheduler):

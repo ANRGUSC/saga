@@ -1,6 +1,6 @@
 import itertools
 
-from saga.scheduler import Network, Scheduler, ScheduledTask, TaskGraph, Network, Schedule
+from saga import Network, Scheduler, ScheduledTask, TaskGraph, Network, Schedule
 
 
 class BruteForceScheduler(Scheduler):

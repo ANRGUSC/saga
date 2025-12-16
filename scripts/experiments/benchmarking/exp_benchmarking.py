@@ -9,7 +9,7 @@ from saga.schedulers import (
     MCTScheduler, METScheduler, MaxMinScheduler, MinMinScheduler,
     OLBScheduler, WBAScheduler
 )
-from saga.scheduler import Scheduler
+from saga import Scheduler
 
 from prepare import load_dataset, prepare_datasets
 from scripts.experiments.benchmarking.post_benchmarking import run_analysis
