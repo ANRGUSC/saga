@@ -1,4 +1,3 @@
-import pathlib
 import random
 from typing import Callable, List, Optional
 
@@ -14,6 +13,8 @@ from saga.schedulers.data.riotbench import (get_etl_task_graphs,
                                             get_train_task_graphs)
 from saga.schedulers.data.wfcommons import (get_networks,
                                             get_workflows)
+
+from common import datadir
 
 def in_trees_dataset(ccr: Optional[float] = None,
                      overwrite: bool = False) -> Dataset:
@@ -161,14 +162,15 @@ def wfcommons_dataset(recipe_name: str,
     dataset_name = dataset_name or recipe_name
     dataset = Dataset(name=dataset_name)
     existing_instances = set(dataset.instances) if not overwrite else set()
-    networks = get_networks(num=num_instances, cloud_name='chameleon')
-    for i in range(num_instances):
-        instance_name = f"{dataset_name}_{i}"
-        if instance_name in existing_instances:
-            continue
-        print(f"Generating {recipe_name} {i+1}/{num_instances}")
+    instance_names = {f"{dataset_name}_{i}" for i in range(num_instances)}
+    new_instances = instance_names - existing_instances
+    if not new_instances:
+        return dataset
+    networks = get_networks(num=len(new_instances), cloud_name='chameleon')
+    workflows = get_workflows(num=len(new_instances), recipe_name=recipe_name)
+    for i, instance_name in enumerate(new_instances):
         network = networks[i]
-        task_graph = get_workflows(num=1, recipe_name=recipe_name)[0]
+        task_graph = workflows[i]
         if ccr is not None:
             network = network.scale_to_ccr(task_graph, ccr)
         dataset.save_instance(
