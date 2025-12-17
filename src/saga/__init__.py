@@ -5,14 +5,14 @@ from typing import (
     Optional, Set, Tuple, Type, TypeVar, Union,
     Generic, cast
 )
-from pydantic import BaseModel, PrivateAttr, computed_field, Field
+from pydantic import BaseModel, PrivateAttr, Field
 from functools import cached_property
 import math
 import networkx as nx
 import bisect
 from itertools import product
 
-from saga.utils.random_variable import RandomVariable
+from saga.utils.random_variable import RandomVariable, rv_max
 
 Deterministic = float
 Stochastic = float | RandomVariable
@@ -157,7 +157,10 @@ class Network(BaseModel, Generic[NumericT]):
         return G
     
     @classmethod
-    def from_nx(cls, G: nx.Graph, node_speed_attr: str = "weight", edge_speed_attr: str = "weight") -> 'Network':
+    def from_nx(cls,
+                G: nx.Graph,
+                node_speed_attr: str = "weight",
+                edge_speed_attr: str = "weight") -> 'Network':
         """Create a Network from a NetworkX graph.
 
         Args:
@@ -178,7 +181,7 @@ class Network(BaseModel, Generic[NumericT]):
         ]
         return Network.create(nodes=nodes, edges=edges)
 
-    def get_node(self, node: str | NetworkNode) -> NetworkNode[NumericT]:
+    def get_node(self, node: str | NetworkNode[NumericT]) -> NetworkNode[NumericT]:
         """Get a node
 
         Args:
@@ -196,7 +199,9 @@ class Network(BaseModel, Generic[NumericT]):
                 return _node
         raise ValueError(f"Node {name} does not exist in the network.")
 
-    def get_edge(self, source: str | NetworkNode, target: str | NetworkNode) -> NetworkEdge:
+    def get_edge(self,
+                 source: str | NetworkNode[NumericT],
+                 target: str | NetworkNode[NumericT]) -> NetworkEdge[NumericT]:
         """Get the edge between two nodes.
 
         Args:
@@ -365,7 +370,7 @@ class TaskGraph(BaseModel, Generic[NumericT]):
         task = task.name if isinstance(task, TaskGraphNode) else task
         return self.graph.in_degree(task)
     
-    def in_edges(self, task: str | TaskGraphNode) -> List[TaskGraphEdge]:
+    def in_edges(self, task: str | TaskGraphNode[NumericT]) -> List[TaskGraphEdge[NumericT]]:
         """Get the incoming edges of a task.
 
         Args:
@@ -454,19 +459,19 @@ class ScheduledTask(BaseModel, Generic[NumericT]):
     def __str__(self) -> str:
         return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
 
-class Schedule(BaseModel):
+class Schedule(BaseModel, Generic[NumericT]):
     """A schedule of tasks on nodes."""
 
-    task_graph: "TaskGraph" = Field(..., description="The task graph being scheduled.")
-    network: "Network" = Field(..., description="The network the tasks are scheduled on.")
-    mapping: Dict[str, List[ScheduledTask]] = Field(..., description="The mapping of tasks to nodes.")
+    task_graph: "TaskGraph[NumericT]" = Field(..., description="The task graph being scheduled.")
+    network: "Network[NumericT]" = Field(..., description="The network the tasks are scheduled on.")
+    mapping: Dict[str, List[ScheduledTask[NumericT]]] = Field(..., description="The mapping of tasks to nodes.")
 
-    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict)
+    _task_map: Dict[str, ScheduledTask[NumericT]] = PrivateAttr(default_factory=dict)
 
     def __init__(self,
                  task_graph: "TaskGraph",
                  network: "Network",
-                 mapping: Optional[Dict[str, List[ScheduledTask]]] = None) -> None:
+                 mapping: Optional[Dict[str, List[ScheduledTask[NumericT]]]] = None) -> None:
         super().__init__(
             task_graph=task_graph,
             network=network,
@@ -477,15 +482,18 @@ class Schedule(BaseModel):
         )
 
     @property
-    def makespan(self) -> float:
+    def makespan(self) -> NumericT:
         """Get the makespan of the schedule.
 
         Returns:
             float: The makespan of the schedule.
         """
-        return max((tasks[-1].end for tasks in self.mapping.values() if tasks), default=0.0)
+        if not any(self.mapping.values()):
+            return cast(NumericT, 0.0)
+        ends = (tasks[-1].end for tasks in self.mapping.values() if tasks)
+        return cast(NumericT, rv_max(ends))
 
-    def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
+    def __getitem__(self, node: str | NetworkNode[NumericT]) -> List[ScheduledTask[NumericT]]:
         """Get the tasks scheduled on a node.
 
         Args:
@@ -499,7 +507,7 @@ class Schedule(BaseModel):
             raise ValueError(f"Node {node} not in schedule. Nodes are {set(self.mapping.keys())}.")
         return self.mapping[node]
     
-    def items(self) -> Iterable[Tuple[str, List[ScheduledTask]]]:
+    def items(self) -> Iterable[Tuple[str, List[ScheduledTask[NumericT]]]]:
         """Get the items of the schedule.
 
         Returns:
@@ -508,9 +516,9 @@ class Schedule(BaseModel):
         return self.mapping.items()
 
     def get_earliest_start_time(self,
-                                task: str | TaskGraphNode,
-                                node: str | NetworkNode,
-                                append_only: bool = False) -> float:
+                                task: str | TaskGraphNode[NumericT],
+                                node: str | NetworkNode[NumericT],
+                                append_only: bool = False) -> NumericT:
         """Get the earliest start time for a task on a node given the minimum start time and execution time.
         
         Args:
@@ -532,24 +540,26 @@ class Schedule(BaseModel):
             parent_task = self._task_map[dependency.source]
             network_edge = self.network.get_edge(parent_task.node, node.name)
             arrival_time = parent_task.end + (dependency.size / network_edge.speed)
-            min_start_time = max(min_start_time, arrival_time)
+            min_start_time = rv_max([min_start_time, arrival_time])
     
         if append_only:
-            return (
-                max(min_start_time, self.mapping[node.name][-1].end)
+            min_start_time = (
+                rv_max([min_start_time, self.mapping[node.name][-1].end])
                 if self.mapping[node.name] else min_start_time
             )
+            return cast(NumericT, min_start_time)
         else:
             if not self.mapping[node.name] or min_start_time + exec_time <= self.mapping[node.name][0].start:
-                return min_start_time
+                return cast(NumericT, min_start_time)
             for left, right in zip(self.mapping[node.name], self.mapping[node.name][1:]):
                 if min_start_time >= left.end and min_start_time + exec_time <= right.start:
-                    return min_start_time
+                    return cast(NumericT, min_start_time)
                 elif min_start_time < left.end and left.end + exec_time <= right.start:
                     return left.end
-            return max(min_start_time, self.mapping[node.name][-1].end)
+            min_start_time = rv_max([min_start_time, self.mapping[node.name][-1].end])
+            return cast(NumericT, min_start_time)
 
-    def add_task(self, task: ScheduledTask) -> None:
+    def add_task(self, task: ScheduledTask[NumericT]) -> None:
         """Add a task to the schedule.
 
         Args:
@@ -566,7 +576,7 @@ class Schedule(BaseModel):
 
         self._task_map[task.name] = task
 
-    def remove_task(self, task_name: str | TaskGraphNode) -> None:
+    def remove_task(self, task_name: str | TaskGraphNode[NumericT]) -> None:
         """Remove a task from the schedule.
 
         Args:
@@ -578,25 +588,6 @@ class Schedule(BaseModel):
         scheduled_task = self._task_map[task_name]
         self.mapping[scheduled_task.node].remove(scheduled_task)
         del self._task_map[task_name]
-        
-    def get_schedulers(self,
-                       recursive: bool = False,
-                       concrete_only: bool = True) -> Generator[Type['Scheduler'], None, None]:
-        """Get all schedulers in the hierarchy.
-
-        Args:
-            recursive (bool): Whether to include schedulers from sub-classes.
-            concrete_only (bool): Whether to include only concrete schedulers.
-
-        Yields:
-            Type['Scheduler']: A scheduler class.
-        """
-        from saga import Scheduler
-        for subclass in Scheduler.__subclasses__():
-            if not concrete_only or not hasattr(subclass, '__abstractmethods__') or not subclass.__abstractmethods__:
-                yield subclass 
-            if recursive:
-                yield from subclass().get_loaded_schedulers()
 
     def is_scheduled(self, task_name: str) -> bool:
         """Check if a task is scheduled.
@@ -611,17 +602,8 @@ class Schedule(BaseModel):
                 return True
         return False
 
-    def __str__(self) -> str:
-        result = "Schedule:\n"
-        for node, tasks in self.mapping.items():
-            result += f"  Node {node}:\n"
-            for task in tasks:
-                result += f"    {task}\n"
-        result += f"  Makespan: {self.makespan:0.2f}\n"
-        return result
 
-
-class Scheduler(ABC): # pylint: disable=too-few-public-methods
+class Scheduler(ABC):
     """An abstract class for a scheduler."""
 
     @abstractmethod

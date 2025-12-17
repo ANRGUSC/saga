@@ -1,5 +1,5 @@
 from functools import cached_property, lru_cache
-from typing import ClassVar, List, Literal, Tuple, Union
+from typing import ClassVar, List, Literal, Tuple, Iterable, Union, cast
 
 import numpy as np
 from pydantic import BaseModel, Field
@@ -364,3 +364,45 @@ class ConstantRandomVariable(RandomVariable):
         """Sample from the random variable (always returns the constant value)."""
         return self.samples_arr[0]
 
+
+
+
+Number = float  # or float|int if you want
+MaybeRV = Union[Number, RandomVariable]
+
+def rv_max(values: Iterable[MaybeRV]) -> MaybeRV:
+    vals = list(values)
+    if not vals:
+        raise ValueError("rv_max() arg is an empty sequence")
+
+    any_rv = any(isinstance(v, RandomVariable) for v in vals)
+    if not any_rv:
+        return cast(Number, max(cast(Iterable[Number], vals)))
+
+    # Convert all values to sample arrays
+    sample_arrays = []
+    n = None
+    for v in vals:
+        if isinstance(v, RandomVariable):
+            arr = np.asarray(v.samples_arr)
+            n = len(arr) if n is None else n
+            if len(arr) != n:
+                raise ValueError("All RandomVariables must have the same number of samples")
+            sample_arrays.append(arr)
+        else:
+            if n is None:
+                # We need a sample count; take it from the first RV we see
+                continue
+            sample_arrays.append(np.full(n, float(v)))
+
+    if n is None:
+        # shouldn’t happen because any_rv is True, but just in case
+        raise RuntimeError("No RandomVariable sample count available")
+
+    # Fill in any scalar values that appeared before the first RV
+    sample_arrays = [
+        (np.full(n, float(v)) if not isinstance(v, RandomVariable) else np.asarray(v.samples_arr))
+        for v in vals
+    ]
+
+    return RandomVariable(samples=np.maximum.reduce(sample_arrays).tolist())
