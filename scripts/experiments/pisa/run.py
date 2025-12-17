@@ -139,8 +139,8 @@ def run_experiments(
                 result = sa.execute(progress=True)
 
                 # Track best result
-                if result.best_energy > best_energy:
-                    best_energy = result.best_energy
+                if result.best_iteration.current_energy > best_energy:
+                    best_energy = result.best_iteration.current_energy
                     best_sa = sa
                     logging.info(
                         "  Try %d: New best energy %.4f",
@@ -149,7 +149,7 @@ def run_experiments(
                 else:
                     logging.info(
                         "  Try %d: Energy %.4f (best: %.4f)",
-                        try_num, result.best_energy, best_energy
+                        try_num, result.best_iteration.current_energy, best_energy
                     )
 
             except Exception as e:

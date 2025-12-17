@@ -5,6 +5,9 @@ from pydantic import BaseModel, Discriminator, Field, Tag
 
 from saga import Network, TaskGraph, NetworkNode, NetworkEdge, TaskGraphNode, TaskGraphEdge
 
+MINVAL = 0.1
+MAXVAL = 1.0
+DELTA = 0.1
 
 class Change(BaseModel, abc.ABC):
     """Base class for changes to a network or task graph."""
@@ -80,7 +83,7 @@ class TaskGraphAddDependency(Change):
     change_type: Literal["task_graph_add_dependency"] = "task_graph_add_dependency"
     source: str = Field(..., description="The source task.")
     target: str = Field(..., description="The target task.")
-    size: float = Field(default_factory=lambda: random.uniform(0, 1), description="The data size.")
+    size: float = Field(default_factory=lambda: random.uniform(MINVAL, MAXVAL), description="The data size.")
 
     @classmethod
     def random(cls, network: Network, task_graph: TaskGraph) -> Optional['TaskGraphAddDependency']:
@@ -120,8 +123,8 @@ class TaskGraphChangeDependencyWeight(Change):
         if len(task_graph.dependencies) <= 0:
             return None
         dep = random.choice(list(task_graph.dependencies))
-        d_size = random.uniform(-0.1, 0.1)
-        new_size = max(1e-9, min(1, dep.size + d_size))
+        d_size = random.uniform(-DELTA, DELTA)
+        new_size = max(MINVAL, min(MAXVAL, dep.size + d_size))
         return cls(source=dep.source, target=dep.target, size=new_size)
 
     def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
@@ -147,8 +150,8 @@ class TaskGraphChangeTaskWeight(Change):
         if len(task_graph.tasks) <= 0:
             return None
         task = random.choice(list(task_graph.tasks))
-        d_cost = random.uniform(-0.1, 0.1)
-        new_cost = max(1e-9, min(1, task.cost + d_cost))
+        d_cost = random.uniform(-DELTA, DELTA)
+        new_cost = max(MINVAL, min(MAXVAL, task.cost + d_cost))
         return cls(task=task.name, cost=new_cost)
 
     def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
@@ -177,8 +180,8 @@ class NetworkChangeEdgeWeight(Change):
         if len(non_self_edges) <= 0:
             return None
         edge = random.choice(non_self_edges)
-        d_speed = random.uniform(-0.1, 0.1)
-        new_speed = max(1e-9, min(1, edge.speed + d_speed))
+        d_speed = random.uniform(-DELTA, DELTA)
+        new_speed = max(MINVAL, min(MAXVAL, edge.speed + d_speed))
         return cls(source=edge.source, target=edge.target, speed=new_speed)
 
     def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
@@ -206,8 +209,8 @@ class NetworkChangeNodeWeight(Change):
         if len(network.nodes) <= 0:
             return None
         node = random.choice(list(network.nodes))
-        d_speed = random.uniform(-0.1, 0.1)
-        new_speed = max(1e-9, min(1, node.speed + d_speed))
+        d_speed = random.uniform(-DELTA, DELTA)
+        new_speed = max(MINVAL, min(MAXVAL, node.speed + d_speed))
         return cls(node=node.name, speed=new_speed)
 
     def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:

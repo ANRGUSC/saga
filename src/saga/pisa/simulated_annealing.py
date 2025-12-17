@@ -126,6 +126,8 @@ class SimulatedAnnealingIteration(BaseModel):
 class SimulatedAnnealingRun(BaseModel):
     """Metadata and results for a simulated annealing run."""
     name: str = Field(..., description="Name of this run.")
+    path: pathlib.Path = Field(..., description="Path to the run directory.")
+
     scheduler: SchedulerName = Field(..., description="Scheduler being tested.")
     base_scheduler: SchedulerName = Field(..., description="Base scheduler for comparison.")
     config: SimulatedAnnealingConfig = Field(..., description="Configuration used.")
@@ -133,12 +135,30 @@ class SimulatedAnnealingRun(BaseModel):
     initial_network: Network = Field(..., description="Initial network.")
     initial_task_graph: TaskGraph = Field(..., description="Initial task graph.")
 
-    best_energy: float = Field(default=1.0, description="Best energy found.")
-    best_network: Optional[Network] = Field(default=None, description="Best network found.")
-    best_task_graph: Optional[TaskGraph] = Field(default=None, description="Best task graph found.")
+    def iter_iterations(self) -> Generator[SimulatedAnnealingIteration, None, None]:
+        """Iterate over all saved iterations for this run."""
+        iterations_dir = self.path / "iterations"
+        for path in sorted(iterations_dir.glob("*.json")):
+            yield SimulatedAnnealingIteration.model_validate_json(path.read_text())
 
-    num_iterations: int = Field(default=0, description="Number of iterations completed.")
-    completed: bool = Field(default=False, description="Whether the run completed.")
+    @property
+    def num_iterations(self) -> int:
+        """Number of iterations completed."""
+        iterations_dir = self.path / "iterations"
+        return len(list(iterations_dir.glob("*.json")))
+
+    @property
+    def best_iteration(self) -> SimulatedAnnealingIteration:
+        """Get the iteration with the best energy."""
+        best_energy = -math.inf
+        best_iter = None
+        for iter_data in self.iter_iterations():
+            if iter_data.current_energy > best_energy:
+                best_energy = iter_data.current_energy
+                best_iter = iter_data
+        if best_iter is None:
+            raise ValueError("No iterations found to determine best iteration")
+        return best_iter
 
 
 class SimulatedAnnealing:
@@ -183,8 +203,8 @@ class SimulatedAnnealing:
         self._iterations_dir = self._run_dir / "iterations"
         self._iterations_dir.mkdir(parents=True, exist_ok=True)
 
-        self._scheduler_name = scheduler
-        self._base_scheduler_name = base_scheduler
+        self._scheduler_name: SchedulerName = scheduler
+        self._base_scheduler_name: SchedulerName = base_scheduler
         self._scheduler = SCHEDULERS[scheduler]
         self._base_scheduler = SCHEDULERS[base_scheduler]
 
@@ -198,6 +218,7 @@ class SimulatedAnnealing:
         else:
             self._run = SimulatedAnnealingRun(
                 name=name,
+                path=self._run_dir,
                 scheduler=scheduler,
                 base_scheduler=base_scheduler,
                 config=self._config,
@@ -303,9 +324,6 @@ class SimulatedAnnealing:
             current_network = last_iter.current_network
             current_task_graph = last_iter.current_task_graph
             current_energy = last_iter.current_energy
-            best_energy = self._run.best_energy
-            best_network = self._run.best_network
-            best_task_graph = self._run.best_task_graph
         else:
             iteration = 0
             temp = config.max_temp
@@ -316,10 +334,6 @@ class SimulatedAnnealing:
             current_schedule = self._scheduler.schedule(current_network, current_task_graph)
             current_base_schedule = self._base_scheduler.schedule(current_network, current_task_graph)
             current_energy = current_schedule.makespan / current_base_schedule.makespan
-
-            best_energy = current_energy
-            best_network = current_network
-            best_task_graph = current_task_graph
 
             # Save initial iteration
             initial_iter = SimulatedAnnealingIteration(
@@ -332,10 +346,6 @@ class SimulatedAnnealing:
                 neighbor_base_schedule=current_base_schedule
             )
             self._save_iteration(initial_iter)
-            self._run.num_iterations = 1
-            self._run.best_energy = best_energy
-            self._run.best_network = best_network
-            self._run.best_task_graph = best_task_graph
             self._save_run()
             yield initial_iter
             iteration = 1
@@ -381,16 +391,6 @@ class SimulatedAnnealing:
                 current_task_graph = neighbor_task_graph
                 current_energy = neighbor_energy
 
-                if neighbor_energy > best_energy:
-                    best_energy = neighbor_energy
-                    best_network = neighbor_network
-                    best_task_graph = neighbor_task_graph
-
-            # Update run metadata
-            self._run.num_iterations = iteration + 1
-            self._run.best_energy = best_energy
-            self._run.best_network = best_network
-            self._run.best_task_graph = best_task_graph
             self._save_run()
 
             yield iter_data
@@ -399,8 +399,6 @@ class SimulatedAnnealing:
             temp *= config.cooling_rate
             iteration += 1
 
-        # Mark as completed
-        self._run.completed = True
         self._save_run()
 
     def execute(self, progress: bool = True) -> SimulatedAnnealingRun:
