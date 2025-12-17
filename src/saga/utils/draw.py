@@ -3,7 +3,7 @@ import logging
 import shutil
 from typing import (
     Any, Dict, List, Optional, Set, Tuple, Union,
-    Callable, TypeVar, cast, TYPE_CHECKING
+    Callable, TypeVar
 )
 
 import matplotlib
@@ -228,6 +228,8 @@ def draw_network(network: nx.Graph,
     with rc_context(rc=rc_context_opts):
         if axis is None:
             _, axis = plt.subplots(figsize=figsize)
+            if axis is None:
+                raise ValueError("Axis could not be created.")
 
         # don't draw self loops
         network = format_graph(network.copy())
@@ -388,6 +390,8 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
         # Create a figure and axis
         if axis is None:
             _, axis = plt.subplots(figsize=figsize)
+            if axis is None:
+                raise ValueError("Axis could not be created.")
         
         # Plot each task as a horizontal bar with labels
         for index, row in data_frame.iterrows():
@@ -431,9 +435,9 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
 
 
 def gradient_heatmap(data: pd.DataFrame,
-                     x: Union[str, List[str]], # pylint: disable=invalid-name
-                     y: Union[str, List[str]], # pylint: disable=invalid-name
-                     color: str, # pylint: disable=invalid-name
+                     x: Union[str, List[str]],
+                     y: Union[str, List[str]],
+                     color: str,
                      cmap: str = "coolwarm",
                      upper_threshold: float = np.inf,
                      title: Optional[str] = None,
@@ -528,6 +532,8 @@ def gradient_heatmap(data: pd.DataFrame,
 
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
+            if ax is None:
+                raise ValueError("Axis could not be created.")
 
         _cmap = cm.get_cmap(cmap)
         _cmap = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
@@ -542,7 +548,11 @@ def gradient_heatmap(data: pd.DataFrame,
 
         for i, yval in enumerate(yvals):
             for j, xval in enumerate(xvals):
-                df_color = data.loc[(data[x] == xval) & (data[y] == yval), color].sort_values()
+                df_color = data.loc[(data[x] == xval) & (data[y] == yval), color]
+                if isinstance(df_color, pd.Series):
+                    df_color = df_color.sort_values()
+                else:
+                    df_color = pd.Series([df_color])
                 if df_color.empty: # add a white cell if there is no data
                     rect = Rectangle((j, i), 1, 1, linewidth=linewidth, edgecolor='black', facecolor='white')
                 else:
