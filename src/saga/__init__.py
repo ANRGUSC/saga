@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Dict, FrozenSet, Generator, Iterable, List, Optional, Set, Tuple, Type
+from typing import (
+    Any, Dict, FrozenSet, Generator, Iterable, List,
+    Optional, Set, Tuple, Type, TypeVar, Union,
+    Generic, cast
+)
 from pydantic import BaseModel, PrivateAttr, computed_field, Field
 from functools import cached_property
 import math
@@ -8,13 +12,18 @@ import networkx as nx
 import bisect
 from itertools import product
 
+from saga.utils.random_variable import RandomVariable
 
-class NetworkNode(BaseModel):
+Deterministic = float
+Stochastic = float | RandomVariable
+NumericT = TypeVar("NumericT", bound=Union[Deterministic, Stochastic], default=Deterministic)
+
+class NetworkNode(BaseModel, Generic[NumericT]): 
     """A node in the network."""
     model_config = {'frozen': False}
 
     name: str = Field(..., description="The name of the node.")
-    speed: float = Field(..., description="The speed of the node.")
+    speed: NumericT = Field(..., description="The speed of the node.")
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -22,13 +31,13 @@ class NetworkNode(BaseModel):
     def __lt__(self, other: "NetworkNode") -> bool:
         return self.name < other.name
 
-class NetworkEdge(BaseModel):
+class NetworkEdge(BaseModel, Generic[NumericT]):
     """An edge in the network."""
     model_config = {'frozen': False}
 
     source: str = Field(..., description="The source node of the edge.")
     target: str = Field(..., description="The target node of the edge.")
-    speed: float = Field(default=math.inf, description="The speed (bandwidth) of the edge.")
+    speed: NumericT = Field(..., description="The speed (bandwidth) of the edge.")
 
     def __hash__(self) -> int:
         return hash((self.source, self.target))
@@ -41,17 +50,17 @@ class NetworkEdge(BaseModel):
     def __lt__(self, other: "NetworkEdge") -> bool:
         return (self.source, self.target) < (other.source, other.target)
 
-class Network(BaseModel):
+class Network(BaseModel, Generic[NumericT]):
     """A network of nodes and edges."""
     model_config = {'frozen': True, 'arbitrary_types_allowed': False}
 
-    nodes: FrozenSet[NetworkNode] = Field(..., description="The nodes in the network.")
-    edges: FrozenSet[NetworkEdge] = Field(..., description="The edges in the network.")
+    nodes: FrozenSet[NetworkNode[NumericT]] = Field(..., description="The nodes in the network.")
+    edges: FrozenSet[NetworkEdge[NumericT]] = Field(..., description="The edges in the network.")
 
     @classmethod
     def create(cls,
-               nodes: Iterable[NetworkNode | Tuple[str, float]],
-               edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]]) -> 'Network':
+               nodes: Iterable[NetworkNode | Tuple[str, NumericT]],
+               edges: Iterable[NetworkEdge | Tuple[str, str, NumericT] | Tuple[str, str]]) -> 'Network[NumericT]':
         """Create a new network from nodes and edges.
 
         Args:
@@ -61,7 +70,7 @@ class Network(BaseModel):
         Returns:
             Network: A new network instance.
         """
-        node_speeds: Dict[str, float] = {}
+        node_speeds = {}
         for n in nodes:
             if isinstance(n, NetworkNode):
                 node_speeds[n.name] = n.speed
@@ -70,7 +79,7 @@ class Network(BaseModel):
             else:
                 raise ValueError(f"Invalid node: {n}")
             
-        edge_dict: Dict[Tuple[str, str], float] = {}
+        edge_dict = {}
         for e in edges:
             src, dst = sorted((e.source, e.target)) if isinstance(e, NetworkEdge) else sorted((e[0], e[1]))
             default_speed = 0.0 if src != dst else math.inf
@@ -91,11 +100,11 @@ class Network(BaseModel):
                 default_speed = 0.0 if src != dst else math.inf
                 edge_dict[(src, dst)] = default_speed
 
-        node_set: Set[NetworkNode] = {
+        node_set: Set[NetworkNode[NumericT]] = {
             NetworkNode(name=name, speed=speed)
             for name, speed in node_speeds.items()
         }
-        edge_set: Set[NetworkEdge] = {
+        edge_set: Set[NetworkEdge[NumericT]] = {
             NetworkEdge(source=src, target=dst, speed=speed)
             for (src, dst), speed in edge_dict.items()
         }
@@ -105,7 +114,7 @@ class Network(BaseModel):
             edges=frozenset(edge_set)
         )
 
-    def scale_to_ccr(self, task_graph: "TaskGraph", target_ccr: float) -> "Network":
+    def scale_to_ccr(self, task_graph: "TaskGraph", target_ccr: float) -> "Network[NumericT]":
         """Scale the network to achieve a target communication-to-computation ratio (CCR) with respect to a task graph.
 
         Args:
@@ -121,15 +130,16 @@ class Network(BaseModel):
         avg_task_cost = sum(task.cost for task in task_graph.tasks) / len(task_graph.tasks)
         avg_data_size = sum(dep.size for dep in task_graph.dependencies) / len(task_graph.dependencies)
         avg_comp_time = avg_task_cost / avg_node_speed
-        link_speed = avg_data_size / (target_ccr * avg_comp_time)
-        scaled_edges: Set[NetworkEdge] = set()
+        link_speed = cast(NumericT, avg_data_size / (target_ccr * avg_comp_time))
+        scaled_edges: Set[NetworkEdge[NumericT]] = set()
         for edge in self.edges:
-            scaled_edges.add(NetworkEdge(
+            scaled_edges.add(NetworkEdge[NumericT](
                 source=edge.source,
                 target=edge.target,
                 speed=link_speed
             ))
-        return Network(nodes=self.nodes, edges=frozenset(scaled_edges))
+        network = Network(nodes=self.nodes, edges=frozenset(scaled_edges))
+        return network
             
     
     @cached_property
@@ -168,7 +178,7 @@ class Network(BaseModel):
         ]
         return Network.create(nodes=nodes, edges=edges)
 
-    def get_node(self, node: str | NetworkNode) -> NetworkNode:
+    def get_node(self, node: str | NetworkNode) -> NetworkNode[NumericT]:
         """Get a node
 
         Args:
@@ -206,44 +216,44 @@ class Network(BaseModel):
             raise ValueError(f"Edge from {source} to {target} does not exist.")
         return NetworkEdge(source=source, target=target, speed=edge['weight'])
 
-class TaskGraphNode(BaseModel):
+class TaskGraphNode(BaseModel, Generic[NumericT]):
     """A task in the task graph."""
     model_config = {'frozen': False}
 
     name: str = Field(..., description="The name of the task.")
-    cost: float = Field(..., description="The cost (computation time) of the task.")
+    cost: NumericT = Field(..., description="The cost (computation time) of the task.")
 
     def __hash__(self) -> int:
         return hash(self.name)
     
-    def __lt__(self, other: "TaskGraphNode") -> bool:
+    def __lt__(self, other: "TaskGraphNode[NumericT]") -> bool:
         return self.name < other.name
     
-class TaskGraphEdge(BaseModel):
+class TaskGraphEdge(BaseModel, Generic[NumericT]):
     """A dependency edge in the task graph."""
     model_config = {'frozen': False}
 
     source: str = Field(..., description="The source task of the edge.")
     target: str = Field(..., description="The target task of the edge.")
-    size: float = Field(..., description="The data size of the edge.")
+    size: NumericT = Field(..., description="The data size of the edge.")
 
     def __hash__(self) -> int:
         return hash((self.source, self.target))
     
-    def __lt__(self, other: "TaskGraphEdge") -> bool:
+    def __lt__(self, other: "TaskGraphEdge[NumericT]") -> bool:
         return (self.source, self.target) < (other.source, other.target)
     
-class TaskGraph(BaseModel):
+class TaskGraph(BaseModel, Generic[NumericT]):
     """A task graph of tasks and dependencies."""
     model_config = {'frozen': True, 'arbitrary_types_allowed': False}
 
-    tasks: FrozenSet[TaskGraphNode] = Field(..., description="The tasks in the task graph.")
-    dependencies: FrozenSet[TaskGraphEdge] = Field(..., description="The dependencies in the task graph.")
+    tasks: FrozenSet[TaskGraphNode[NumericT]] = Field(..., description="The tasks in the task graph.")
+    dependencies: FrozenSet[TaskGraphEdge[NumericT]] = Field(..., description="The dependencies in the task graph.")
 
     @classmethod
     def create(cls,
-               tasks: Iterable[TaskGraphNode | Tuple[str, float]],
-               dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]]) -> 'TaskGraph':
+               tasks: Iterable[TaskGraphNode | Tuple[str, NumericT]],
+               dependencies: Iterable[TaskGraphEdge | Tuple[str, str, NumericT] | Tuple[str, str]]) -> 'TaskGraph[NumericT]':
         """Create a new task graph from tasks and dependencies.
 
         Args:
@@ -253,7 +263,7 @@ class TaskGraph(BaseModel):
         Returns:
             TaskGraph: A new task graph instance.
         """
-        task_set: Set[TaskGraphNode] = set()
+        task_set = set()
         for t in tasks:
             if isinstance(t, TaskGraphNode):
                 task_set.add(t)
@@ -261,7 +271,7 @@ class TaskGraph(BaseModel):
                 task_set.add(TaskGraphNode(name=t[0], cost=t[1]))
             else:
                 raise ValueError(f"Invalid task: {t}")
-        dependency_set: Set[TaskGraphEdge] = set()
+        dependency_set = set()
         for d in dependencies:
             if isinstance(d, TaskGraphEdge):
                 dependency_set.add(d)
@@ -323,7 +333,7 @@ class TaskGraph(BaseModel):
         dependencies = [TaskGraphEdge(source=u, target=v, size=G.edges[u, v][edge_weight_attr]) for u, v in G.edges]
         return TaskGraph.create(tasks=tasks, dependencies=dependencies)
     
-    def topological_sort(self) -> List[TaskGraphNode]:
+    def topological_sort(self) -> List[TaskGraphNode[NumericT]]:
         """Get a topological sort of the task graph.
 
         Returns:
@@ -333,7 +343,7 @@ class TaskGraph(BaseModel):
         name_to_task = {task.name: task for task in self.tasks}
         return [name_to_task[name] for name in sorted_task_names]
     
-    def all_topological_sorts(self) -> Generator[List[TaskGraphNode], None, None]:
+    def all_topological_sorts(self) -> Generator[List[TaskGraphNode[NumericT]], None, None]:
         """Generate all topological sorts of the task graph.
 
         Yields:
@@ -397,7 +407,7 @@ class TaskGraph(BaseModel):
             edges.append(TaskGraphEdge(source=src, target=tgt, size=edge_data['weight']))
         return edges
     
-    def get_task(self, name: str | TaskGraphNode) -> TaskGraphNode:
+    def get_task(self, name: str | TaskGraphNode[NumericT]) -> TaskGraphNode[NumericT]:
         """Get a task by name.
 
         Args:
@@ -434,12 +444,12 @@ class TaskGraph(BaseModel):
         return TaskGraphEdge(source=source, target=target, size=edge['weight'])
 
 
-class ScheduledTask(BaseModel):
+class ScheduledTask(BaseModel, Generic[NumericT]):
     """A scheduled task."""
     node: str = Field(..., description="The node the task is scheduled on.")
     name: str = Field(..., description="The name of the task.")
-    start: float = Field(..., description="The start time of the task.")
-    end: float = Field(..., description="The end time of the task.")
+    start: NumericT = Field(..., description="The start time of the task.")
+    end: NumericT = Field(..., description="The end time of the task.")
 
     def __str__(self) -> str:
         return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
