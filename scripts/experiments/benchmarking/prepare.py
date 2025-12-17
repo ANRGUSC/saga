@@ -282,3 +282,9 @@ def prepare_ccr_datasets(ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
                 ccr=ccr,
                 overwrite=overwrite
             )
+
+def main():
+    prepare_datasets(overwrite=False)
+
+if __name__ == "__main__":
+    main()

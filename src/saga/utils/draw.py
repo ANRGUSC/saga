@@ -542,7 +542,7 @@ def gradient_heatmap(data: pd.DataFrame,
 
         for i, yval in enumerate(yvals):
             for j, xval in enumerate(xvals):
-                df_color = cast(pd.Series[Any], data.loc[(data[x] == xval) & (data[y] == yval), color]).sort_values()
+                df_color = data.loc[(data[x] == xval) & (data[y] == yval), color].sort_values()
                 if df_color.empty: # add a white cell if there is no data
                     rect = Rectangle((j, i), 1, 1, linewidth=linewidth, edgecolor='black', facecolor='white')
                 else:

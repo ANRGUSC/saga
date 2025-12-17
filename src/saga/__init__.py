@@ -18,6 +18,9 @@ class NetworkNode(BaseModel):
 
     def __hash__(self) -> int:
         return hash(self.name)
+    
+    def __lt__(self, other: "NetworkNode") -> bool:
+        return self.name < other.name
 
 class NetworkEdge(BaseModel):
     """An edge in the network."""
@@ -35,6 +38,9 @@ class NetworkEdge(BaseModel):
         if self.speed == 0.0 and self.source == self.target:
             object.__setattr__(self, 'speed', math.inf)
 
+    def __lt__(self, other: "NetworkEdge") -> bool:
+        return (self.source, self.target) < (other.source, other.target)
+
 class Network(BaseModel):
     """A network of nodes and edges."""
     model_config = {'frozen': True, 'arbitrary_types_allowed': False}
@@ -42,9 +48,10 @@ class Network(BaseModel):
     nodes: FrozenSet[NetworkNode] = Field(..., description="The nodes in the network.")
     edges: FrozenSet[NetworkEdge] = Field(..., description="The edges in the network.")
 
-    def __init__(self,
-                 nodes: Iterable[NetworkNode | Tuple[str, float]],
-                 edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]]) -> None:
+    @classmethod
+    def create(cls,
+               nodes: Iterable[NetworkNode | Tuple[str, float]],
+               edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]]) -> 'Network':
         """Create a new network from nodes and edges.
 
         Args:
@@ -93,7 +100,7 @@ class Network(BaseModel):
             for (src, dst), speed in edge_dict.items()
         }
 
-        super().__init__(
+        return cls(
             nodes=frozenset(node_set),
             edges=frozenset(edge_set)
         )
@@ -159,7 +166,7 @@ class Network(BaseModel):
             NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr])
             for u, v in G.edges
         ]
-        return cls(nodes=frozenset(nodes), edges=frozenset(edges))
+        return Network.create(nodes=nodes, edges=edges)
 
     def get_node(self, node: str | NetworkNode) -> NetworkNode:
         """Get a node
@@ -209,6 +216,9 @@ class TaskGraphNode(BaseModel):
     def __hash__(self) -> int:
         return hash(self.name)
     
+    def __lt__(self, other: "TaskGraphNode") -> bool:
+        return self.name < other.name
+    
 class TaskGraphEdge(BaseModel):
     """A dependency edge in the task graph."""
     model_config = {'frozen': False}
@@ -220,6 +230,9 @@ class TaskGraphEdge(BaseModel):
     def __hash__(self) -> int:
         return hash((self.source, self.target))
     
+    def __lt__(self, other: "TaskGraphEdge") -> bool:
+        return (self.source, self.target) < (other.source, other.target)
+    
 class TaskGraph(BaseModel):
     """A task graph of tasks and dependencies."""
     model_config = {'frozen': True, 'arbitrary_types_allowed': False}
@@ -227,9 +240,10 @@ class TaskGraph(BaseModel):
     tasks: FrozenSet[TaskGraphNode] = Field(..., description="The tasks in the task graph.")
     dependencies: FrozenSet[TaskGraphEdge] = Field(..., description="The dependencies in the task graph.")
 
-    def __init__(self,
-                 tasks: Iterable[TaskGraphNode | Tuple[str, float]],
-                 dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]]) -> None:
+    @classmethod
+    def create(cls,
+               tasks: Iterable[TaskGraphNode | Tuple[str, float]],
+               dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]]) -> 'TaskGraph':
         """Create a new task graph from tasks and dependencies.
 
         Args:
@@ -273,7 +287,8 @@ class TaskGraph(BaseModel):
             task_set.add(super_sink)
             for sink in sinks:
                 dependency_set.add(TaskGraphEdge(source=sink.name, target=super_sink.name, size=0.0))
-        super().__init__(
+        
+        return cls(
             tasks=frozenset(task_set),
             dependencies=frozenset(dependency_set)
         )
@@ -306,7 +321,7 @@ class TaskGraph(BaseModel):
         """
         tasks = [TaskGraphNode(name=n, cost=G.nodes[n][node_weight_attr]) for n in G.nodes]
         dependencies = [TaskGraphEdge(source=u, target=v, size=G.edges[u, v][edge_weight_attr]) for u, v in G.edges]
-        return cls(tasks=frozenset(tasks), dependencies=frozenset(dependencies))
+        return TaskGraph.create(tasks=tasks, dependencies=dependencies)
     
     def topological_sort(self) -> List[TaskGraphNode]:
         """Get a topological sort of the task graph.
@@ -533,12 +548,13 @@ class Schedule(BaseModel):
         """
         if task.node not in self.mapping:
             raise ValueError(f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}.")
-        idx = bisect.bisect_left([t.start for t in self.mapping[task.node]], task.start)
+        # Use (start, end) tuple for comparison so tasks with same start time are ordered by end time
+        idx = bisect.bisect_left([(t.start, t.end) for t in self.mapping[task.node]], (task.start, task.end))
         self.mapping[task.node].insert(idx, task)
         # check that next task starts after this task ends
         if idx + 1 < len(self.mapping[task.node]) and self.mapping[task.node][idx + 1].start < task.end:
             raise ValueError(f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}.")
-        
+
         self._task_map[task.name] = task
 
     def remove_task(self, task_name: str | TaskGraphNode) -> None:

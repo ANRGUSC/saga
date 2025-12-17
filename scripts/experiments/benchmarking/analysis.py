@@ -1,10 +1,11 @@
 # Importing required libraries to load and examine the data
 import logging
 import pathlib
-
 import pandas as pd
+
 from saga.utils.draw import gradient_heatmap
 
+from common import resultsdir, outputdir
 
 DATASET_ORDER = [
     "in_trees", "out_trees", "chains",
@@ -21,7 +22,7 @@ SCHEDULER_RENAMES = {
     "Heft": "HEFT",
 }
 
-def load_data(resultsdir, glob: str = None) -> pd.DataFrame:
+def load_data(resultsdir: pathlib.Path, glob: str | None = None) -> pd.DataFrame:
     data = None
     glob = glob or "*.csv"
     for path in resultsdir.glob(glob):
@@ -37,8 +38,8 @@ def load_data(resultsdir, glob: str = None) -> pd.DataFrame:
 
 def run_analysis(resultsdir: pathlib.Path,
                  outputdir: pathlib.Path,
-                 glob: str = None,
-                 title: str = None,
+                 glob: str | None= None,
+                 title: str | None = None,
                  upper_threshold: float = 5.0) -> None:
     """Analyze the results."""
     outputdir.mkdir(parents=True, exist_ok=True)
@@ -46,14 +47,21 @@ def run_analysis(resultsdir: pathlib.Path,
     if data.empty:
         logging.info("No data found. Skipping.")
         return
-    data["scheduler"] = data["scheduler"].str.replace("Scheduler", "")
-    data["scheduler"] = data["scheduler"].replace(SCHEDULER_RENAMES)
+
+    data["Scheduler"] = data["Scheduler"].str.replace("Scheduler", "")
+    data["Scheduler"] = data["Scheduler"].replace(SCHEDULER_RENAMES)
+
+    data["Makespan Ratio"] = data.groupby(by=["dataset", "Instance"])["Makespan"].transform(
+        lambda x: x / x.min()
+    )
+
+    print(data)
 
     ax = gradient_heatmap(
         data,
-        x="scheduler",
+        x="Scheduler",
         y="dataset",
-        color="makespan_ratio",
+        color="Makespan Ratio",
         cmap="coolwarm",
         upper_threshold=upper_threshold,
         title=title,
@@ -61,13 +69,30 @@ def run_analysis(resultsdir: pathlib.Path,
         y_label="Dataset",
         color_label="Maximum Makespan Ratio"
     )
-    ax.get_figure().savefig(
-        outputdir.joinpath("benchmarking.pdf"),
-        dpi=300,
-        bbox_inches='tight'
+    fig = ax.get_figure()
+    if fig is not None:
+        fig.savefig(
+            outputdir.joinpath("benchmarking.pdf"),
+            dpi=300,
+            bbox_inches='tight'
+        )
+
+    fig = ax.get_figure()
+    if fig is not None:
+        fig.savefig(
+            outputdir.joinpath("benchmarking.png"),
+            dpi=300,
+            bbox_inches='tight'
+        )
+
+
+def main():
+    run_analysis(
+        resultsdir=resultsdir,
+        outputdir=outputdir,
+        title="Benchmarking of SAGA Schedulers",
+        upper_threshold=5.0
     )
-    ax.get_figure().savefig(
-        outputdir.joinpath("benchmarking.png"),
-        dpi=300,
-        bbox_inches='tight'
-    )
+
+if __name__ == "__main__":
+    main()
