@@ -110,13 +110,7 @@ def draw_overlapping_gantt(schedule: Dict[Hashable, List[OverlappingTask]],
     ]
     ax.legend(handles=legend_elements, loc='upper right')
     
-    # Add makespan annotation
-    ax.axvline(x=makespan, color='red', linestyle='--', linewidth=2, alpha=0.7)
-    ax.text(makespan, nodes[-1], f'Makespan: {makespan:.2f}', 
-            ha='right', va='top', fontsize=10, color='red', fontweight='bold',
-            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
-    
-    plt.tight_layout()
+
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
