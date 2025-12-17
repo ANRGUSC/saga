@@ -160,28 +160,39 @@ def recalculate_branch_times(
     Keeps same node assignments, just recalculates start/end times based on 
     actual dependencies in this specific branch.
     """
-    # Build lookup: task_name -> (node, original_task)
+    # flattens the branch_schedule dict,list into -> lookup dict allows to quickly see what node task is on
     task_info = {task.name: (node, task) 
                  for node, tasks in branch_schedule.items() 
                  for task in tasks}
-    
+    """
+        task_info = {
+        'A': (1, OverlappingTask(node=1, name='A', start=0.0, end=2.0, ...)),
+    """
+
     # Track calculated end times
     end_times = {}  # task_name -> end_time
+    # Fresh container
+    new_schedule = {node: [] for node in branch_schedule.keys()}
+    """
+        new_schedule = {
+            1: [],  # Will hold recalculated tasks for Node 1
+            2: []   # Will hold recalculated tasks for Node 2
+        }
+    """
     
     # Process in topological order (only tasks in this branch)
-    branch_subgraph = task_graph.subgraph(task_info.keys())
-    
-    new_schedule = {node: [] for node in branch_schedule.keys()}
-    
-    for task_name in nx.topological_sort(branch_subgraph):
+    for task_name in nx.topological_sort(task_graph):
+        if task_name not in task_info:
+            continue  # Skip tasks not in this branch
+        
         node, original = task_info[task_name]
         
         # Earliest start = max of (predecessor end + communication cost)
-        predecessors = [p for p in task_graph.predecessors(task_name) if p in task_info]
+        predecessors = [task for task in task_graph.predecessors(task_name) if task in task_info]
         if predecessors:
             start = max(
-                end_times[p] + commtimes.get((task_info[p][0], node), {}).get((p, task_name), 0.0)
-                for p in predecessors
+                end_times[task] + commtimes.get((task_info[task][0], node), {}).get((task, task_name), 0.0)
+                for task in predecessors
             )
         else:
             start = 0.0
