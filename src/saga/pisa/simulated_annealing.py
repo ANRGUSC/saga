@@ -7,7 +7,7 @@ from typing import Dict, Generator, List, Literal, Optional, Type, cast
 
 from pydantic import BaseModel, Field
 
-from saga import Network, TaskGraph, Scheduler
+from saga import Network, Schedule, TaskGraph, Scheduler
 from saga.pisa.changes import Change, ChangeType, DEFAULT_CHANGE_TYPES
 from saga.schedulers import (
     BILScheduler, CpopScheduler, DuplexScheduler, ETFScheduler, FCPScheduler,
@@ -69,24 +69,58 @@ class SimulatedAnnealingIteration(BaseModel):
     iteration: int = Field(..., description="The iteration number.")
     temperature: float = Field(..., description="The current temperature.")
 
-    current_energy: float = Field(..., description="Energy of the current solution.")
-    neighbor_energy: float = Field(..., description="Energy of the neighbor solution.")
-    best_energy: float = Field(..., description="Best energy found so far.")
-
-    current_makespan: float = Field(..., description="Makespan of current schedule.")
-    current_base_makespan: float = Field(..., description="Makespan of current base schedule.")
-    neighbor_makespan: float = Field(..., description="Makespan of neighbor schedule.")
-    neighbor_base_makespan: float = Field(..., description="Makespan of neighbor base schedule.")
-
-    accept_probability: float = Field(..., description="Probability of accepting the neighbor.")
-    accepted: bool = Field(..., description="Whether the neighbor was accepted.")
-
     change: Optional[ChangeType] = Field(default=None, description="The change applied.")
 
-    current_network: Network = Field(..., description="The current network.")
-    current_task_graph: TaskGraph = Field(..., description="The current task graph.")
-    neighbor_network: Network = Field(..., description="The neighbor network.")
-    neighbor_task_graph: TaskGraph = Field(..., description="The neighbor task graph.")
+    current_schedule: Schedule = Field(..., description="The current schedule")
+    current_base_schedule: Schedule = Field(..., description="The current base schedule")
+    neighbor_schedule: Schedule = Field(..., description="The neighbor schedule")
+    neighbor_base_schedule: Schedule = Field(..., description="The neighbor base schedule")
+
+    @property
+    def current_network(self) -> Network:
+        return self.current_schedule.network
+
+    @property
+    def neighbor_network(self) -> Network:
+        return self.neighbor_schedule.network
+    
+    @property
+    def current_task_graph(self) -> TaskGraph:
+        return self.current_schedule.task_graph
+
+    @property
+    def neighbor_task_graph(self) -> TaskGraph:
+        return self.neighbor_schedule.task_graph
+    
+
+    @property
+    def current_makespan(self) -> float:
+        return self.current_schedule.makespan
+    
+    @property
+    def current_base_makespan(self) -> float:
+        return self.current_base_schedule.makespan
+    
+    @property
+    def neighbor_makespan(self) -> float:
+        return self.neighbor_schedule.makespan
+    
+    @property
+    def neighbor_base_makespan(self) -> float:
+        return self.neighbor_base_schedule.makespan
+    
+    @property
+    def current_energy(self) -> float:
+        return self.current_makespan / self.current_base_makespan
+    
+    @property
+    def neighbor_energy(self) -> float:
+        return self.neighbor_makespan / self.neighbor_base_makespan
+    
+    @property
+    def accept_probability(self) -> float:
+        energy_ratio = self.neighbor_energy / self.current_energy
+        return math.exp(-energy_ratio / self.temperature) if energy_ratio <= 1 else 1.0
 
 
 class SimulatedAnnealingRun(BaseModel):
@@ -289,22 +323,13 @@ class SimulatedAnnealing:
 
             # Save initial iteration
             initial_iter = SimulatedAnnealingIteration(
-                iteration=0,
+                iteration=iteration,
                 temperature=temp,
-                current_energy=current_energy,
-                neighbor_energy=current_energy,
-                best_energy=best_energy,
-                current_makespan=current_schedule.makespan,
-                current_base_makespan=current_base_schedule.makespan,
-                neighbor_makespan=current_schedule.makespan,
-                neighbor_base_makespan=current_base_schedule.makespan,
-                accept_probability=1.0,
-                accepted=True,
                 change=None,
-                current_network=current_network,
-                current_task_graph=current_task_graph,
-                neighbor_network=current_network,
-                neighbor_task_graph=current_task_graph,
+                current_schedule=current_schedule,
+                current_base_schedule = current_base_schedule,
+                neighbor_schedule=current_schedule,
+                neighbor_base_schedule=current_base_schedule
             )
             self._save_iteration(initial_iter)
             self._run.num_iterations = 1
@@ -342,20 +367,11 @@ class SimulatedAnnealing:
             iter_data = SimulatedAnnealingIteration(
                 iteration=iteration,
                 temperature=temp,
-                current_energy=current_energy,
-                neighbor_energy=neighbor_energy,
-                best_energy=best_energy,
-                current_makespan=current_schedule.makespan,
-                current_base_makespan=current_base_schedule.makespan,
-                neighbor_makespan=neighbor_schedule.makespan,
-                neighbor_base_makespan=neighbor_base_schedule.makespan,
-                accept_probability=accept_probability,
-                accepted=accepted,
                 change=change,
-                current_network=current_network,
-                current_task_graph=current_task_graph,
-                neighbor_network=neighbor_network,
-                neighbor_task_graph=neighbor_task_graph,
+                current_schedule=current_schedule,
+                current_base_schedule = current_base_schedule,
+                neighbor_schedule=neighbor_schedule,
+                neighbor_base_schedule=neighbor_base_schedule
             )
             self._save_iteration(iter_data)
 
@@ -396,13 +412,15 @@ class SimulatedAnnealing:
         Returns:
             The final run metadata.
         """
+        best_energy = -math.inf
         for iter_data in self.run_iter():
             if progress:
+                best_energy = max(best_energy, iter_data.current_energy)
                 print(
                     f"\r[Iter {iter_data.iteration}/{self._config.max_iterations}] "
                     f"Temp: {iter_data.temperature:.2f} | "
                     f"Energy: {iter_data.current_energy:.4f} | "
-                    f"Best: {iter_data.best_energy:.4f}",
+                    f"Best: {best_energy:.4f}",
                     end=""
                 )
         if progress:

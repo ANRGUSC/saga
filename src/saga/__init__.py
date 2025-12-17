@@ -466,7 +466,6 @@ class Schedule(BaseModel):
             )
         )
 
-    @computed_field
     @property
     def makespan(self) -> float:
         """Get the makespan of the schedule.

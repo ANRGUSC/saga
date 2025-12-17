@@ -1,13 +1,11 @@
+import json
 import logging
 import pathlib
 from functools import lru_cache
-from typing import Dict
 
-import dill as pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 from saga.utils.draw import gradient_heatmap
-from simulated_annealing import SimulatedAnnealing
 
 
 thisdir = pathlib.Path(__file__).parent.absolute()
@@ -19,40 +17,41 @@ SCHEDULER_RENAMES = {
 }
 
 @lru_cache(maxsize=1)
-def load_results(resultspath: pathlib.Path) -> Dict[str, Dict[str, SimulatedAnnealing]]:
+def load_results(resultspath: pathlib.Path) -> pd.DataFrame:
     """Load results from resultspath.
 
     Args:
         resultspath: path to results directory
 
     Returns:
-        results: dict of dicts of SimulatedAnnealing objects
-    """
-    results = {}
-    for base_path in resultspath.glob("*"):
-        results[base_path.name] = {}
-        for path in base_path.glob("*.pkl"):
-            results[base_path.name][path.stem] = pickle.loads(path.read_bytes())
-    return results
-
-
-def to_df(results: Dict[str, Dict[str, SimulatedAnnealing]]) -> pd.DataFrame:
-    """Convert results to dataframe.
-
-    Args:
-        results: dict of dicts of SimulatedAnnealing objects
-
-    Returns:
         df_results: dataframe of results
     """
     rows = []
-    for base_scheduler_name, base_scheduler_results in results.items():
-        for scheduler_name, scheduler_results in base_scheduler_results.items():
-            makespan_ratio = scheduler_results.iterations[-1].best_energy
-            rows.append([base_scheduler_name, scheduler_name, makespan_ratio])
-
+    for run_dir in resultspath.glob("*_vs_*"):
+        if not run_dir.is_dir():
+            continue
+        
+        run_json_path = run_dir / "run.json"
+        if not run_json_path.exists():
+            logging.warning(f"No run.json found in {run_dir}")
+            continue
+        
+        # Load the JSON data
+        with open(run_json_path, 'r') as f:
+            data = json.load(f)
+        
+        # Extract base_scheduler and scheduler from the directory name
+        # Format: {base_scheduler}_vs_{scheduler}
+        parts = run_dir.name.split("_vs_")
+        if len(parts) == 2:
+            base_scheduler = parts[0]
+            scheduler = parts[1]
+            makespan_ratio = data.get("best_energy", 0.0)
+            rows.append([base_scheduler, scheduler, makespan_ratio])
+    
     df_results = pd.DataFrame(rows, columns=["Base Scheduler", "Scheduler", "Makespan Ratio"])
     return df_results
+
 
 def load_results_csv(outputpath: pathlib.Path) -> pd.DataFrame:
     """Load results from outputpath.
@@ -77,7 +76,7 @@ def results_to_csv(resultspath: pathlib.Path,
     Returns:
         df_results: dataframe of results
     """
-    df_results = to_df(load_results(resultspath))
+    df_results = load_results(resultspath)
     df_results.to_csv(outputpath.joinpath("results.csv"))
 
 def tab_results(resultsdir: pathlib.Path,
@@ -85,9 +84,9 @@ def tab_results(resultsdir: pathlib.Path,
                 upper_threshold: float = 5.0,
                 include_hybrid = False,
                 add_worst_row = True,
-                title: str = None,
+                title: str | None = None,
                 savename: str  = "results",
-                mode: str = None) -> None:
+                mode: str | None = None) -> None:
     """Generate table of results.
 
     Args:
@@ -145,7 +144,7 @@ def tab_results(resultsdir: pathlib.Path,
         )
         df_results = pd.concat([df_results, df_worst], ignore_index=True)
 
-    def default_order(x):
+    def default_order(x: str) -> str:
         return x.replace("Hybrid", "ZHybrid").replace("Worst", "ZWorst").replace(r"\textit", "AA")
 
     axis = gradient_heatmap(
@@ -166,17 +165,21 @@ def tab_results(resultsdir: pathlib.Path,
     )
     plt.tight_layout()
     if mode is None or mode == "pdf":
-        axis.get_figure().savefig(
-            savedir / f"{savename}.pdf",
-            dpi=300,
-            bbox_inches='tight'
-        )
+        fig = axis.get_figure()
+        if fig is not None:
+            fig.savefig(
+                savedir / f"{savename}.pdf",
+                dpi=300,
+                bbox_inches='tight'
+            )
     if mode is None or mode == "png":
-        axis.get_figure().savefig(
-            savedir / f"{savename}.png",
-            dpi=300,
-            bbox_inches='tight'
-        )
+        fig = axis.get_figure()
+        if fig is not None:
+            fig.savefig(
+                savedir / f"{savename}.png",
+                dpi=300,
+                bbox_inches='tight'
+            )
 
 
 def main():
