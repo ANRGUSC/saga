@@ -347,3 +347,18 @@ class NormalRandomVariable(RandomVariable):
         samples = np.random.normal(mean, std, num_samples)
         super().__init__(samples)
 
+
+class ConstantRandomVariable(RandomVariable):
+    """A constant random variable (always returns the same value)."""
+    def __init__(self, value: float) -> None:
+        """Initialize a constant random variable.
+
+        Args:
+            value (float): The constant value.
+        """
+        super().__init__([value])
+
+    def sample(self, num_samples: int = 1) -> float:
+        """Sample from the random variable (always returns the constant value)."""
+        return self.samples[0]
+

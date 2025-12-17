@@ -10,7 +10,7 @@ from saga.schedulers import (
 )
 
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 thisdir = pathlib.Path(__file__).parent.resolve()
 
@@ -39,5 +39,7 @@ saga_schedulers = {
 datadir = thisdir.joinpath("data", "benchmarking")
 resultsdir = thisdir.joinpath("results", "benchmarking")
 outputdir = thisdir.joinpath("output", "benchmarking")
+
+num_processors = max(1, (os.cpu_count() or 1) - 3)
 
 os.environ["SAGA_DATA_DIR"] = str(thisdir.joinpath("data", "benchmarking"))

@@ -1,5 +1,7 @@
 import random
-from typing import Callable, List, Optional
+from functools import partial
+from multiprocessing import Pool
+from typing import Callable, List, Optional, Tuple
 
 from saga import TaskGraph
 from saga.schedulers.data import Dataset, ProblemInstance
@@ -14,7 +16,7 @@ from saga.schedulers.data.riotbench import (get_etl_task_graphs,
 from saga.schedulers.data.wfcommons import (get_networks,
                                             get_workflows)
 
-from common import datadir
+from common import datadir, num_processors
 
 def in_trees_dataset(ccr: Optional[float] = None,
                      overwrite: bool = False) -> Dataset:
@@ -213,40 +215,90 @@ def riotbench_dataset(get_task_graphs: Callable[[int], List[TaskGraph]],
         )
     return dataset
 
-def prepare_datasets(overwrite: bool = False):
-    """Generate the datasets.
-    
+def _prepare_dataset_task(task: Tuple[str, dict]) -> Tuple[str, int]:
+    """Worker function to prepare a single dataset.
+
+    Args:
+        task: Tuple of (task_type, kwargs) where task_type identifies the dataset
+              and kwargs are the arguments to pass to the dataset function.
+
+    Returns:
+        Tuple of (dataset_name, dataset_size).
+    """
+    task_type, kwargs = task
+
+    if task_type == "in_trees":
+        ds = in_trees_dataset(**kwargs)
+    elif task_type == "out_trees":
+        ds = out_trees_dataset(**kwargs)
+    elif task_type == "chains":
+        ds = chains_dataset(**kwargs)
+    elif task_type == "riotbench_etl":
+        ds = riotbench_dataset(get_etl_task_graphs, name="etl", **kwargs)
+    elif task_type == "riotbench_predict":
+        ds = riotbench_dataset(get_predict_task_graphs, name="predict", **kwargs)
+    elif task_type == "riotbench_stats":
+        ds = riotbench_dataset(get_stats_task_graphs, name="stats", **kwargs)
+    elif task_type == "riotbench_train":
+        ds = riotbench_dataset(get_train_task_graphs, name="train", **kwargs)
+    elif task_type.startswith("wfcommons_"):
+        recipe_name = task_type.replace("wfcommons_", "")
+        ds = wfcommons_dataset(recipe_name, **kwargs)
+    else:
+        raise ValueError(f"Unknown task type: {task_type}")
+
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_datasets(overwrite: bool = False, num_workers: int = num_processors):
+    """Generate the datasets using multiprocessing.
+
     Args:
         overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
     """
+    tasks: List[Tuple[str, dict]] = []
+
     # Random Graphs
-    ds_intrees = in_trees_dataset(overwrite=overwrite)
-    print(f"Generated dataset {ds_intrees.name} with {ds_intrees.size} instances.")
-    ds_out_trees = out_trees_dataset(overwrite=overwrite)
-    print(f"Generated dataset {ds_out_trees.name} with {ds_out_trees.size} instances.")
-    ds_chains = chains_dataset(overwrite=overwrite)
-    print(f"Generated dataset {ds_chains.name} with {ds_chains.size} instances.")
+    tasks.append(("in_trees", {"overwrite": overwrite}))
+    tasks.append(("out_trees", {"overwrite": overwrite}))
+    tasks.append(("chains", {"overwrite": overwrite}))
 
     # Riotbench
-    ds_etl = riotbench_dataset(get_etl_task_graphs, name="etl", overwrite=overwrite)
-    print(f"Generated dataset {ds_etl.name} with {ds_etl.size} instances.")
-    ds_predict = riotbench_dataset(get_predict_task_graphs, name="predict", overwrite=overwrite)
-    print(f"Generated dataset {ds_predict.name} with {ds_predict.size} instances.")
-    ds_stats = riotbench_dataset(get_stats_task_graphs, name="stats", overwrite=overwrite)
-    print(f"Generated dataset {ds_stats.name} with {ds_stats.size} instances.")
-    ds_train = riotbench_dataset(get_train_task_graphs, name="train", overwrite=overwrite)
-    print(f"Generated dataset {ds_train.name} with {ds_train.size} instances.")
+    tasks.append(("riotbench_etl", {"overwrite": overwrite}))
+    tasks.append(("riotbench_predict", {"overwrite": overwrite}))
+    tasks.append(("riotbench_stats", {"overwrite": overwrite}))
+    tasks.append(("riotbench_train", {"overwrite": overwrite}))
 
     # Wfcommons
     for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
-        ds = wfcommons_dataset(recipe_name, overwrite=overwrite)
-        print(f"Generated dataset {ds.name} with {ds.size} instances.")
+        tasks.append((f"wfcommons_{recipe_name}", {"overwrite": overwrite}))
 
-def prepare_wfcommons_ccr_datasets(overwrite: bool = False):
-    """Generate the wfcommons datasets with varying CCRs.
-    
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_dataset_task, tasks)
+
+    print(f"\nPrepared {len(results)} datasets.")
+
+def _prepare_wfcommons_ccr_task(args: Tuple[str, float, bool]) -> Tuple[str, int]:
+    """Worker function to prepare a single wfcommons CCR dataset."""
+    recipe_name, ccr, overwrite = args
+    ds = wfcommons_dataset(
+        recipe_name=recipe_name,
+        ccr=ccr,
+        dataset_name=f"{recipe_name}_ccr_{ccr}",
+        overwrite=overwrite
+    )
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_wfcommons_ccr_datasets(overwrite: bool = False, num_workers: int = num_processors):
+    """Generate the wfcommons datasets with varying CCRs using multiprocessing.
+
     Args:
         overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
     """
     ccrs = [1/5, 1/2, 1, 2, 5]
     dataset_names = [
@@ -260,30 +312,54 @@ def prepare_wfcommons_ccr_datasets(overwrite: bool = False):
         'blast',
         'bwa'
     ]
-    for ccr in ccrs:
-        for name in dataset_names:
-            wfcommons_dataset(
-                recipe_name=name,
-                ccr=ccr,
-                dataset_name=f"{name}_ccr_{ccr}",
-                overwrite=overwrite
-            )
 
-def prepare_ccr_datasets(ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
-                         overwrite: bool = False):
-    """Generate the datasets."""
-    dataset_names = {
-        'chains': chains_dataset,
-        'in_trees': in_trees_dataset,
-        'out_trees': out_trees_dataset,
-        'cycles': lambda ccr: wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}"),
-    }
-    for ccr in ccrs:
-        for name in dataset_names:
-            dataset_names[name](
-                ccr=ccr,
-                overwrite=overwrite
-            )
+    tasks = [(name, ccr, overwrite) for ccr in ccrs for name in dataset_names]
+
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_wfcommons_ccr_task, tasks)
+
+    print(f"\nPrepared {len(results)} wfcommons CCR datasets.")
+
+
+def _prepare_ccr_task(args: Tuple[str, float, bool]) -> Tuple[str, int]:
+    """Worker function to prepare a single CCR dataset."""
+    dataset_type, ccr, overwrite = args
+
+    if dataset_type == 'chains':
+        ds = chains_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'in_trees':
+        ds = in_trees_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'out_trees':
+        ds = out_trees_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'cycles':
+        ds = wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}", overwrite=overwrite)
+    else:
+        raise ValueError(f"Unknown dataset type: {dataset_type}")
+
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_ccr_datasets(
+    ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
+    overwrite: bool = False,
+    num_workers: int = num_processors
+):
+    """Generate the CCR datasets using multiprocessing.
+
+    Args:
+        ccrs: List of CCR values to generate datasets for.
+        overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
+    """
+    dataset_types = ['chains', 'in_trees', 'out_trees', 'cycles']
+
+    tasks = [(dtype, ccr, overwrite) for ccr in ccrs for dtype in dataset_types]
+
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_ccr_task, tasks)
+
+    print(f"\nPrepared {len(results)} CCR datasets.")
 
 def main():
     prepare_datasets(overwrite=False)
