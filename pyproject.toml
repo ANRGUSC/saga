@@ -25,6 +25,7 @@ dependencies = [
     "tqdm",
     "filelock",
     "pysmt",
+    "z3-solver",
     "pygraphviz",
     "streamlit",
 ]
