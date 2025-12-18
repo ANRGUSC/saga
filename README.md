@@ -164,4 +164,5 @@ To reproduce the experiments from papers using SAGA, see the [experiments](./scr
 
 ### Acknowledgements
 
-This work was supported in part by Army Research Laboratory under Cooperative Agreement W911NF-17-2-0196.
+This work was supported in part by Army Research Laboratory under Cooperative Agreement [W911NF-17-2-0196](https://www.usaspending.gov/award/ASST_NON_W911NF1720196_097).
+This material is based upon work supported by the National Science Foundation under Award No. [2451267](https://www.nsf.gov/awardsearch/show-award?AWD_ID=2451267).
