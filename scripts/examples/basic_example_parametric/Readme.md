@@ -1,2 +1,2 @@
-# Basic Example
-This basic example shows a manually created schedule, the optimal schedule (using the BruteForceScheduler), and a schedule created by the HEFT algorithm.
+# Basic Example: Parametric Scheduler
+This basic example shows how to use SAGA's parametric scheduling capabilities, where users can build their own schedulers by mixing and matching different algorithmic components.

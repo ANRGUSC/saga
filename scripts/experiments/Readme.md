@@ -2,10 +2,7 @@
 Reproducible experiments for papers using SAGA.
 
 ## Benchmarking Experiments
-See [benchmarking experiments](benchmarking).
-
-## Constraint-Based Scheduling Experiments
-See [constraint-based scheduling experiments](constraints).
+See [benchmarking experiments](./benchmarking).
 
 ## PISA Experiments
-See [PISA experiments](pisa).
+See [PISA experiments](./pisa).

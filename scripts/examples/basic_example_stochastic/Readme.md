@@ -1,2 +1,2 @@
-# Basic Example
-This basic example shows a manually created schedule, the optimal schedule (using the BruteForceScheduler), and a schedule created by the HEFT algorithm.
+# Basic Example: Stochastic Scheduling
+This basic example shows how SAGA supports stochastic scheduling, where task execution times and/or communication times are represented as random variables rather than fixed values.
