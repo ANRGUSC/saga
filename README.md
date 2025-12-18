@@ -30,13 +30,13 @@ The source code resides in `src/saga` and is organized as follows:
 
 ### Python Version
 
-All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
+All components of this repository have been tested with **Python 3.13**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
 
-To create a new Conda environment with Python 3.11:
+To create a new Conda environment with Python 3.13:
 
 
 ```bash
-conda create -n saga-env python=3.11
+conda create -n saga-env python=3.13
 conda activate saga-env
 ```
 
