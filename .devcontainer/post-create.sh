@@ -1,9 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 echo "==> Installing system dependencies..."
-sudo apt-get update
-sudo apt-get install -y graphviz libgraphviz-dev
+sudo apt-get update && sudo apt-get install -y graphviz libgraphviz-dev
 
 echo "==> Installing Python package in development mode..."
 pip install --upgrade pip
