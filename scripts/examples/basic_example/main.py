@@ -39,18 +39,18 @@ def get_instance() -> Tuple[Network, TaskGraph]:
 
 def draw_instance(network: Network, task_graph: TaskGraph):
     logging.basicConfig(level=logging.INFO)
-    ax = draw_task_graph(task_graph.graph, use_latex=True)
+    ax = draw_task_graph(task_graph.graph, use_latex=False)
     fig = ax.get_figure()
     if fig is not None:
         fig.savefig(str(savedir / 'task_graph.png'))
 
-    ax = draw_network(network.graph, draw_colors=False, use_latex=True)
+    ax = draw_network(network.graph, draw_colors=False, use_latex=False)
     fig = ax.get_figure()
     if fig is not None:
         fig.savefig(str(savedir / 'network.png'))
 
 def draw_schedule(schedule: Schedule, name: str, xmax: float | None = None):
-    ax = draw_gantt(schedule.mapping, use_latex=True, xmax=xmax)
+    ax = draw_gantt(schedule.mapping, use_latex=False, xmax=xmax)
     fig = ax.get_figure()
     if fig is not None:
         fig.savefig(str(savedir / f'{name}.png'))

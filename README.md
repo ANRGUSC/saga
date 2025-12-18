@@ -100,7 +100,7 @@ Clone the repository and install the requirements:
 ```bash
 git clone https://github.com/ANRGUSC/saga.git
 cd saga
-pip install -e ./src
+pip install -e .
 ```
 
 ### Running the Tests
