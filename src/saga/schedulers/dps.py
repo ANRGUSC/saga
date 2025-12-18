@@ -45,7 +45,7 @@ def calc_TL(task_name: str, network: Network, task_graph: TaskGraph, assigned_ta
     in_edges = task_graph.in_edges(task_name)
     if not in_edges:
         return 0
-    max_TL = 0
+    max_TL = 0.0
     for in_edge in in_edges:
         pred = in_edge.source
         #This is the first term of the equation
@@ -79,7 +79,7 @@ def calc_BL(task_name: str, network: Network, task_graph: TaskGraph, assigned_ta
             task = task_graph.get_task(task_name)
             node = network.get_node(assigned_tasks[task_name])
             return task.cost / node.speed
-    max_BL = 0
+    max_BL = 0.0
     for out_edge in out_edges:
         succ = out_edge.target
         #This is the first term of the equation
@@ -97,7 +97,7 @@ def calc_BL(task_name: str, network: Network, task_graph: TaskGraph, assigned_ta
             BL += calc_TEC(task_name, network, task_graph)
         else:
             task = task_graph.get_task(task_name)
-            node = network.get_node(assigned_tasks.get(task_name))
+            node = network.get_node(assigned_tasks[task_name])
             BL += task.cost / node.speed
 
         if BL > max_BL:
@@ -172,7 +172,6 @@ class DPSScheduler(Scheduler):
             best_node = next(iter(network.nodes)).name  # arbitrary initialization
             for node in network.nodes:
                 logging.debug(f"Trying to assign task {task_name} to node {node.name}")
-                in_edges = task_graph.in_edges(task_name)
                 runtime = runtimes[node.name][task_name]
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task_name,

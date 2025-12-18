@@ -7,6 +7,15 @@ from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
 
 @lru_cache(maxsize=None)
 def upward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
+    """Computes the upward ranks of the tasks in the task graph.
+    
+    Args:
+        network (Network): The network graph.
+        task_graph (TaskGraph): The task graph.
+
+    Returns:
+        Dict[Hashable, float]: The upward ranks of the tasks.
+    """
     ranks: Dict[str, float] = {}
 
     topological_order = task_graph.topological_sort()
@@ -29,6 +38,15 @@ def upward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
     return ranks
 
 def downward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
+    """Computes the downward ranks of the tasks in the task graph.
+    
+    Args:
+        network (Network): The network graph.
+        task_graph (TaskGraph): The task graph.
+
+    Returns:
+        Dict[Hashable, float]: The downward ranks of the tasks.
+    """
     ranks: Dict[str, float] = {}
     for task in task_graph.topological_sort():
         rank = 0 if task_graph.in_degree(task.name) <= 0 else max(
@@ -132,7 +150,7 @@ class CpopScheduler(Scheduler):
 
             nodes = network.nodes
             if np.isclose(-task_rank, cp_rank):
-                nodes = [cp_node]
+                nodes = frozenset([cp_node])
 
             for node in nodes:
                 max_arrival_time: float = max( 

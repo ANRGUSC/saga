@@ -18,9 +18,9 @@ def heft_rank_sort(network: Network, task_graph: TaskGraph) -> List[str]:
     Returns:
         List[str]: The sorted list of tasks.
     """
-    rank = upward_rank(network, task_graph)
+    urank = upward_rank(network, task_graph)
     topological_sort = {node.name: i for i, node in enumerate(reversed(task_graph.topological_sort()))}
-    rank = {node: (rank[node], topological_sort[node]) for node in rank}
+    rank = {node: (urank[node], topological_sort[node]) for node in urank}
     order = sorted(list(rank.keys()), key=lambda x: rank.get(x, 0.0), reverse=True)
     return order
 

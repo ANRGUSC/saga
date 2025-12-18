@@ -74,7 +74,7 @@ class BILScheduler(Scheduler): # pylint: disable=too-few-public-methods
             j = 0
             selected_tasks = copy.copy(ready_tasks)
             while j < len(list(network.nodes)):
-                max_bim = -1
+                max_bim = -1.0
                 selected_tasks = set()
                 for task_name, _bims in bims.items():
                     _, bim = _bims[j]

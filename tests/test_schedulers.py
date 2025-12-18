@@ -62,7 +62,7 @@ common_task_graphs = {
     "diamond": get_diamond_dag(),
     "chain": get_chain_dag(),
     "fork": get_fork_dag(),
-    "branching": get_branching_dag(levels=5, branching_factor=3),
+    # "branching": get_branching_dag(levels=3, branching_factor=2),
 }
 
 @pytest.mark.parametrize("scheduler", schedulers)

@@ -71,18 +71,18 @@ class FLBScheduler(Scheduler):
         def getEST(task_name: str, node_name: str) -> float: # pylint: disable=invalid-name
             return max(getPRT(node_name), getEMT(task_name, node_name))
 
-        non_ep_tasks: PriorityQueue = PriorityQueue()
-        emt_ep_tasks: Dict[str, PriorityQueue] = {node.name: PriorityQueue() for node in network.nodes}
-        lmt_ep_tasks: Dict[str, PriorityQueue] = {node.name: PriorityQueue() for node in network.nodes}
-        all_procs: PriorityQueue = PriorityQueue()
-        active_procs: PriorityQueue = PriorityQueue()
+        non_ep_tasks: PriorityQueue[Tuple[float, str]] = PriorityQueue()
+        emt_ep_tasks: Dict[str, PriorityQueue[Tuple[float, str]]] = {node.name: PriorityQueue() for node in network.nodes}
+        lmt_ep_tasks: Dict[str, PriorityQueue[Tuple[float, str]]] = {node.name: PriorityQueue() for node in network.nodes}
+        all_procs: PriorityQueue[Tuple[float, str]] = PriorityQueue()
+        active_procs: PriorityQueue[Tuple[float, str]] = PriorityQueue()
 
-        for task in task_graph.tasks:
-            if task.name not in scheduled_tasks and task_graph.in_degree(task.name) == 0:
-                non_ep_tasks.put((min_start_time, task.name))
+        for _task in task_graph.tasks:
+            if _task.name not in scheduled_tasks and task_graph.in_degree(_task.name) == 0:
+                non_ep_tasks.put((min_start_time, _task.name))
 
-        for node in network.nodes:
-            all_procs.put((min_start_time, node.name))
+        for _node in network.nodes:
+            all_procs.put((min_start_time, _node.name))
 
         def schedule_task() -> Tuple[str, str]:
             # get head of active_procs without removing

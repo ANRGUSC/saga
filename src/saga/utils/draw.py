@@ -98,7 +98,8 @@ def draw_task_graph(task_graph: nx.DiGraph,
         if pos is None:
             pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
 
-        colors, tasks = {}, {}
+        colors: Dict[str, Tuple[float, float, float, float]] = {}
+        tasks: Dict[str, ScheduledTask] = {}
         if schedule is not None:
             tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
             network_nodes: Set[str] = set(schedule.keys())
@@ -130,7 +131,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
 
         for task_name in task_graph.nodes:
             if draw_node_labels:
-                color = "white"
+                color: str | Tuple[float, float, float, float] = "white"
                 if schedule is not None and task_name in tasks:
                     color = colors[str(tasks[task_name].node)]
                 elif task_name in colors:
@@ -237,7 +238,7 @@ def draw_network(network: nx.Graph,
 
         # use same colors as task graph
         sorted_nodes = sorted(network.nodes)
-        colors = ["white"] * len(sorted_nodes)
+        colors: List[str] | List[Tuple[float, float, float, float]] = ["white"] * len(sorted_nodes)
         if draw_colors:
             cmap = plt.get_cmap("tab20", len(network.nodes))
             sorted_colors = [cmap(i) for i in range(len(network.nodes))]
@@ -497,7 +498,7 @@ def gradient_heatmap(data: pd.DataFrame,
         if isinstance(x, list):
             col_name = "/".join(x)
             data[col_name] = data[x].apply(lambda row: "/".join(row.values.astype(str)), axis=1)
-            categories = [
+            categories: List[str] | Callable[[Any], Any] = [
                 "/".join(map(str, row))
                 for row in sorted(
                     map(str, data[x].drop_duplicates().itertuples(index=False)),
@@ -536,8 +537,8 @@ def gradient_heatmap(data: pd.DataFrame,
                 raise ValueError("Axis could not be created.")
 
         _cmap = cm.get_cmap(cmap)
-        _cmap = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
-        listed_cmap = matplotlib.colors.ListedColormap(_cmap)
+        _cmap_arr = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
+        listed_cmap = matplotlib.colors.ListedColormap(_cmap_arr)
 
         # Get unique values for x and y in the correct order (by category)
         xvals = data[x].drop_duplicates().sort_values()

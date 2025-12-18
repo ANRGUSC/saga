@@ -82,11 +82,16 @@ def get_initial_assignments(network: Network,
     """Get initial assignments of the tasks of an independent group based on their execution times."""
     node_names = [node.name for node in network.nodes]
     assignments: Dict[str, List[str]] = {node: [] for node in node_names}
+    def avg_runtime(task_name: str) -> float:
+        return float(np.mean([runtimes[node][task_name] for node in node_names]))
     for task_name in group:
-        assigned_node = min(node_names, key=lambda node, t=task_name: runtimes[node][t])
+        assigned_node = min(node_names, key=lambda n: est_table[task_name][n] + runtimes[n][task_name])
         assignments[assigned_node].append(task_name)
+
+    def est_sort_key(task_name: str, node_name: str) -> float:
+        return est_table[task_name][node_name]
     for node_name in assignments:
-        assignments[node_name].sort(key=lambda x, n=node_name: est_table[x][n])
+        assignments[node_name].sort(key=lambda t: est_sort_key(t, node_name))
     return assignments
 
 

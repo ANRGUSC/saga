@@ -257,7 +257,7 @@ def get_networks(num: int,
             (f"N{src}", f"N{dst}", network_speed if src != dst else 1e9)
             for src, dst in product(range(num_nodes), range(num_nodes))
         ]
-        networks.append(Network(nodes=nodes, edges=edges))
+        networks.append(Network.create(nodes=nodes, edges=edges))
 
     return networks
 
@@ -407,32 +407,30 @@ def get_wfcommons_instance(recipe_name: str,
     )[0].graph
 
     # rename weight attribute to weight_rv
+    weight_rv: RandomVariable
     for node in workflow.nodes:
-        weight_rv: RandomVariable = workflow.nodes[node]["weight"]
+        weight_rv = workflow.nodes[node]["weight"]
         workflow.nodes[node]["weight_rv"] = weight_rv
         workflow.nodes[node]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True))
         workflow.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample())
         workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
 
     for (u, v) in workflow.edges:
-        weight_rv: RandomVariable = workflow.edges[u, v]["weight"]
+        weight_rv = workflow.edges[u, v]["weight"]
         workflow.edges[u, v]["weight_rv"] = weight_rv
         workflow.edges[u, v]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True))
         workflow.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample())
         workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
 
     # add src and dst task
-    workflow.add_node("SRC", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
-    workflow.add_node("DST", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable([1e-9]))
+    workflow.add_node("SRC", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable(samples=[1e-9]))
+    workflow.add_node("DST", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable(samples=[1e-9]))
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.in_degree(node):
-            workflow.add_edge("SRC", node, weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable([1e9]))
+            workflow.add_edge("SRC", node, weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable(samples=[1e9]))
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.out_degree(node):
-            workflow.add_edge(node, "DST", weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable([1e9]))
-
-    # network_speed = RandomVariable(samples=np.clip(np.random.normal(1, 0.3, 100), 1e-9, np.inf))
-    # ccr = (avg_task_cost / avg_node_speed) / (avg_dep_cost / avg_comm_speed)
+            workflow.add_edge(node, "DST", weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable(samples=[1e9]))
 
     network: nx.Graph = get_networks(
         num=1,
@@ -441,7 +439,7 @@ def get_wfcommons_instance(recipe_name: str,
     )[0].graph
 
     for node in network.nodes:
-        weight_rv: RandomVariable = network.nodes[node]["weight"]
+        weight_rv = network.nodes[node]["weight"]
         network.nodes[node]["weight_rv"] = weight_rv
         network.nodes[node]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv)
         network.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
@@ -453,7 +451,7 @@ def get_wfcommons_instance(recipe_name: str,
     avg_node_speed = np.mean([network.nodes[node]["weight_actual"] for node in network.nodes])
     avg_comm_speed = float(ccr * avg_dep_cost / (avg_task_cost / avg_node_speed))
     for (u, v) in network.edges:
-        weight_rv: RandomVariable = RandomVariable([avg_comm_speed] * 100)
+        weight_rv = RandomVariable(samples=[avg_comm_speed] * 100)
         network.edges[u, v]["weight_rv"] = weight_rv
         network.edges[u, v]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv)
         network.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)

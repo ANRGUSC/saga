@@ -1,5 +1,10 @@
 # Saga
 
+[![CI](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml/badge.svg)](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/anrg-saga.svg)](https://badge.fury.io/py/anrg-saga)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Saga: **S**cheduling **A**lgorithms **Ga**thered.
 
 ## Introduction
@@ -122,25 +127,8 @@ pip install pytest pytest-timeout
 Some of the algorithms might rely on external solvers, such as Z3. To install Z3 and configure `pysmt`, use:
 
 ```bash
-pip install pysmt
-pysmt-install --z3
+pip install pysmt z3-solver 
 ```
-
-#### Docker Installation
-
-You can also run Saga using Docker. The provided `Dockerfile` will handle all dependencies, including solvers and testing tools.
-
-1. Build the Docker image:
-   ```bash
-   docker build -t saga-schedulers .
-   ```
-
-2. Run the image:
-   ```bash
-   docker run --rm saga-schedulers
-   ```
-
-By default, the Docker image will run the tests when started.
 
 ### Running the Tests
 

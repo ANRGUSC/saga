@@ -11,6 +11,9 @@ import networkx as nx
 import bisect
 from itertools import product
 
+# Tolerance for floating point comparisons
+EPS = 1e-9
+
 class NetworkNode(BaseModel): 
     """A node in the network."""
     model_config = {'frozen': False}
@@ -74,7 +77,7 @@ class Network(BaseModel):
             else:
                 raise ValueError(f"Invalid node: {n}")
             
-        edge_dict = {}
+        edge_dict: Dict[Tuple[str, str], float] = {}
         for e in edges:
             src, dst = sorted((e.source, e.target)) if isinstance(e, NetworkEdge) else sorted((e[0], e[1]))
             default_speed = 0.0 if src != dst else math.inf
@@ -575,8 +578,8 @@ class Schedule(BaseModel):
         # Use (start, end) tuple for comparison so tasks with same start time are ordered by end time
         idx = bisect.bisect_left([(t.start, t.end) for t in self.mapping[task.node]], (task.start, task.end))
         self.mapping[task.node].insert(idx, task)
-        # check that next task starts after this task ends
-        if idx + 1 < len(self.mapping[task.node]) and self.mapping[task.node][idx + 1].start < task.end:
+        # check that next task starts after this task ends (with tolerance for floating point errors)
+        if idx + 1 < len(self.mapping[task.node]) and self.mapping[task.node][idx + 1].start < task.end - EPS:
             raise ValueError(f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}.")
 
         self._task_map[task.name] = task

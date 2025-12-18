@@ -234,7 +234,7 @@ class SimulatedAnnealing:
             TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight,
             NetworkChangeEdgeWeight, NetworkChangeNodeWeight
         )
-        name_to_class = {
+        name_to_class: Dict[str, Type[Change]] = {
             "TaskGraphDeleteDependency": TaskGraphDeleteDependency,
             "TaskGraphAddDependency": TaskGraphAddDependency,
             "TaskGraphChangeDependencyWeight": TaskGraphChangeDependencyWeight,

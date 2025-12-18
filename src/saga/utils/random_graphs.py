@@ -57,7 +57,7 @@ def add_rv_weights(graph: T,
         graph.nodes[node]["weight"] = get_rv()
     for edge in graph.edges:
         if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = RandomVariable([1e9])
+            graph.edges[edge]["weight"] = RandomVariable(samples=[1e9])
         else:
             graph.edges[edge]["weight"] = get_rv()
     return graph
@@ -120,7 +120,7 @@ def get_branching_dag(
 
     node_id = 0
     level_nodes = [node_id]  # Level 0
-    graph.add_node(node_id)
+    graph.add_node(str(node_id))
     node_id += 1
 
     for _ in range(1, levels):
@@ -129,7 +129,7 @@ def get_branching_dag(
         for parent in level_nodes:
             children = [node_id + i for i in range(branching_factor)]
 
-            graph.add_edges_from([(parent, child) for child in children])
+            graph.add_edges_from([(str(parent), str(child)) for child in children])
             new_level_nodes.extend(children)
             node_id += branching_factor
 
@@ -137,8 +137,8 @@ def get_branching_dag(
 
     # Add destination node
     dst_node = node_id
-    graph.add_node(dst_node)
-    graph.add_edges_from([(node, dst_node) for node in level_nodes])
+    graph.add_node(str(dst_node))
+    graph.add_edges_from([(str(node), str(dst_node)) for node in level_nodes])
 
     graph = add_random_weights(graph, weight_distribution, node_weight_distribution, edge_weight_distribution)
     return TaskGraph.from_nx(graph)

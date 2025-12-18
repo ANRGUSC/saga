@@ -59,10 +59,10 @@ def gen_out_trees(num: int,
 
     trees: List[nx.DiGraph] = []
     for _ in range(num):
-        tree = nx.generators.balanced_tree(branching_factor, num_levels)
+        tree: nx.DiGraph = nx.generators.balanced_tree(branching_factor, num_levels)
         tree = nx.DiGraph(tree)
         tree.remove_edges_from([(dst, src) for src, dst in tree.edges if src < dst])
-        tree: nx.DiGraph = nx.relabel_nodes(tree, mapping={node: f"T{node}" for node in tree.nodes})
+        tree = nx.relabel_nodes(tree, mapping={node: f"T{node}" for node in tree.nodes})
         for node in tree.nodes:
             tree.nodes[node]["weight"] = get_task_weight(node)
         for edge in tree.edges:
