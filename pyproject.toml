@@ -19,19 +19,14 @@ dependencies = [
     "pydantic>=2.0",
     "gitpython",
     "wfcommons",
-]
-
-[project.optional-dependencies]
-test = ["pytest>=7.0.0", "pytest-timeout>=2.1.0", "mypy>=0.991"]
-scripts = ["tqdm", "filelock"]
-all = [
+    "pytest>=7.0.0",
+    "pytest-timeout>=2.1.0",
+    "mypy>=0.991",
+    "tqdm",
+    "filelock",
     "pysmt",
     "pygraphviz",
     "streamlit",
-    "tqdm",
-    "filelock",
-    "pytest>=7.0.0",
-    "pytest-timeout>=2.1.0"
 ]
 
 [project.urls]
