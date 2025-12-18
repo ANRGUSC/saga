@@ -6,7 +6,7 @@ from typing import (
     Generic, cast
 )
 from pydantic import BaseModel, PrivateAttr, Field
-from functools import cached_property
+from functools import cached_property, lru_cache
 import math
 import networkx as nx
 import bisect
@@ -56,6 +56,13 @@ class Network(BaseModel, Generic[NumericT]):
 
     nodes: FrozenSet[NetworkNode[NumericT]] = Field(..., description="The nodes in the network.")
     edges: FrozenSet[NetworkEdge[NumericT]] = Field(..., description="The edges in the network.")
+
+    @cached_property
+    def computed_hash(self) -> int:
+        return hash((frozenset(self.nodes), frozenset(self.edges)))
+
+    def __hash__(self) -> int:
+        return self.computed_hash
 
     @classmethod
     def create(cls,
@@ -254,6 +261,13 @@ class TaskGraph(BaseModel, Generic[NumericT]):
 
     tasks: FrozenSet[TaskGraphNode[NumericT]] = Field(..., description="The tasks in the task graph.")
     dependencies: FrozenSet[TaskGraphEdge[NumericT]] = Field(..., description="The dependencies in the task graph.")
+
+    @cached_property
+    def computed_hash(self) -> int:
+        return hash((frozenset(self.tasks), frozenset(self.dependencies)))
+    
+    def __hash__(self) -> int:
+        return self.computed_hash
 
     @classmethod
     def create(cls,

@@ -10,6 +10,7 @@ from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
     GreedyInsert,
     UpwardRanking,
+    GreedyInsertCompareFuncs
 )
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
@@ -46,19 +47,21 @@ def draw_instance(network: Network, task_graph: TaskGraph):
     logging.basicConfig(level=logging.INFO)
     ax = draw_task_graph(task_graph.graph, use_latex=True)
     fig = ax.get_figure()
-    if fig is not None:
-        fig.savefig(str(savedir / 'task_graph.png'))
+    try:
+        fig.savefig(str(savedir / 'task_graph.png')) # type: ignore
+    except Exception as e:
+        logging.error(f"Failed to save task graph figure: {e}")
 
     ax = draw_network(network.graph, draw_colors=False, use_latex=True)
     fig = ax.get_figure()
     if fig is not None:
-        fig.savefig(str(savedir / 'network.png'))
+        fig.savefig(str(savedir / 'network.png')) # type: ignore
 
 def draw_schedule(schedule: Schedule, name: str, xmax: float | None = None):
     ax = draw_gantt(schedule.mapping, use_latex=True, xmax=xmax)
     fig = ax.get_figure()
     if fig is not None:
-        fig.savefig(str(savedir / f'{name}.png'))
+        fig.savefig(str(savedir / f'{name}.png')) # type: ignore
 
 def my_schedule() -> Schedule:
     network, task_graph = get_instance()
@@ -89,8 +92,8 @@ def parametric_schedule():
     scheduler = ParametricScheduler(
         initial_priority=UpwardRanking(),
         insert_task=GreedyInsert(
-            append_only=True,
-            compare="EFT",
+            append_only=False,
+            compare=GreedyInsertCompareFuncs.EFT,
             critical_path=False
         )
     )
@@ -98,9 +101,6 @@ def parametric_schedule():
     return schedule
 
 def main():
-    draw_instance(*get_instance())
-    schedule = my_schedule()
-    draw_schedule(schedule, 'gantt')
     heft_sched = heft_schedule()
     draw_schedule(heft_sched, 'heft_gantt')
     parametric_sched = parametric_schedule()
@@ -108,12 +108,12 @@ def main():
 
     max_makespan = max(
         sched.makespan
-        for sched in [schedule, heft_sched, parametric_sched]
+        for sched in [heft_sched, parametric_sched]
     )
-    print(f"Max makespan: {max_makespan}")
-    draw_schedule(schedule, 'gantt_scaled', xmax=max_makespan)
     draw_schedule(heft_sched, 'heft_gantt_scaled', xmax=max_makespan)
     draw_schedule(parametric_sched, 'parametric_gantt_scaled', xmax=max_makespan)
+
+    print(f"Makepsans Matched: {heft_sched.makespan} == {parametric_sched.makespan} : {heft_sched.makespan == parametric_sched.makespan}")
 
 if __name__ == '__main__':
     main()

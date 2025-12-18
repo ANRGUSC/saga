@@ -1,9 +1,11 @@
+from functools import lru_cache
 import heapq
 from typing import Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
 
+@lru_cache(maxsize=None)
 def upward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
     ranks: Dict[str, float] = {}
 
@@ -44,6 +46,7 @@ def downward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
         ranks[task.name] = float(rank)
     return ranks
 
+@lru_cache(maxsize=None)
 def cpop_ranks(network: Network,
                task_graph: TaskGraph) -> Dict[str, float]:
     """Computes the ranks of the tasks in the task graph using for the CPoP algorithm.

@@ -1,8 +1,9 @@
 from copy import deepcopy
 import heapq
-
 import numpy as np
 from pydantic import BaseModel, Field
+from enum import Enum
+
 from saga import NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
@@ -10,7 +11,7 @@ from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
-from typing import Any, Dict, Iterable, List, Hashable, Literal
+from typing import Dict, Iterable, List, Hashable, Literal
 
 class UpwardRanking(IntialPriority):
     name: Literal["UpwardRanking"] = "UpwardRanking"
@@ -45,13 +46,6 @@ class CPoPRanking(IntialPriority):
                 heapq.heappush(pq, (-ranks[ready_task], ready_task))
         
         return queue
-    
-    def serialize(self) -> Dict[str, Any]:
-        return {"name": "CPoPRanking"}
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "CPoPRanking":
-        return cls()
 
 class ArbitraryTopological(IntialPriority):
     def call(self,
@@ -59,31 +53,29 @@ class ArbitraryTopological(IntialPriority):
              task_graph: TaskGraph) -> List[str]:
         return [task.name for task in task_graph.topological_sort()]
 
-GREEDY_INSERT_COMPARE_FUNCS = {
-    "EFT": lambda new, cur: new.end - cur.end,
-    "EST": lambda new, cur: new.start - cur.start,
-    "Quickest": lambda new, cur: (new.end - new.start) - (cur.end - cur.start)
-}
+class GreedyInsertCompareFuncs(Enum):
+    EFT = "EFT"
+    EST = "EST"
+    Quickest = "Quickest"
+
+    def compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
+        if self == GreedyInsertCompareFuncs.EFT:
+            return new.end - cur.end
+        elif self == GreedyInsertCompareFuncs.EST:
+            return new.start - cur.start
+        elif self == GreedyInsertCompareFuncs.Quickest:
+            return (new.end - new.start) - (cur.end - cur.start)
+        else:
+            raise ValueError(f"Unknown comparison function: {self.value}")
+
 # Insert Task functions
 class GreedyInsert(InsertTask):
-    def __init__(self,
-                 append_only: bool = False,
-                 compare: str = "EFT",
-                 critical_path: bool = False):
-        """Initialize the GreedyInsert class.
-        
-        Args:
-            append_only (bool, optional): Whether to only append the task to the schedule. Defaults to False.
-            compare (Callable[[Task, Task], float], optional): The comparison function to use. Defaults to lambda new, cur: new.end - cur.end.
-                Must be one of "EFT", "EST", or "Quickest".
-            critical_path (bool, optional): Whether to only schedule tasks on the critical path. Defaults to False.
-        """
-        self.append_only = append_only
-        self.compare = compare
-        self.critical_path = critical_path
+    append_only: bool = Field(False, description="Whether to only append the task to the schedule.")
+    compare: GreedyInsertCompareFuncs = Field(GreedyInsertCompareFuncs.EFT, description="The comparison function to use for greedy insertion.")
+    critical_path: bool = Field(False, description="Whether to only schedule tasks on the critical path.")
 
     def _compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
-        return GREEDY_INSERT_COMPARE_FUNCS[self.compare](new, cur)
+        return self.compare.compare(new, cur)
 
     def call(self,
              network: Network,
@@ -111,16 +103,6 @@ class GreedyInsert(InsertTask):
     
         for _node in considered_nodes:
             exec_time = task.cost / _node.speed
-
-            min_start_time = min_start_time
-            for dependency in task_graph.in_edges(task):
-                scheduled_task = schedule.get_scheduled_task(dependency.source)
-                parent_node = scheduled_task.node
-                data_size = dependency.size
-                comm_strength = network.get_edge(parent_node, _node).speed
-                comm_time = data_size / comm_strength
-                min_start_time = max(min_start_time, scheduled_task.end + comm_time)
-
             start_time = schedule.get_earliest_start_time(
                 task=task,
                 node=_node,
@@ -143,22 +125,6 @@ class GreedyInsert(InsertTask):
             schedule.add_task(best_task)
         return best_task
     
-    def serialize(self) -> Dict[str, Any]:
-        return {
-            "name": "GreedyInsert",
-            "append_only": self.append_only,
-            "compare": self.compare,
-            "critical_path": self.critical_path
-        }
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "GreedyInsert":
-        return cls(
-            append_only=data["append_only"],
-            compare=data["compare"],
-            critical_path=data["critical_path"],
-        )
-
 class ParametricKDepthScheduler(Scheduler, BaseModel):
     scheduler: ParametricScheduler = Field(..., description="The base parametric scheduler.")
     k_depth: int = Field(..., description="The depth of the subgraph to consider for scheduling.")
@@ -244,10 +210,10 @@ class ParametricSufferageScheduler(ParametricScheduler):
                  top_n: int = 2) -> None:
         super().__init__(
             initial_priority=scheduler.initial_priority,
-            insert_task=scheduler.insert_task
+            insert_task=scheduler.insert_task,
+            scheduler=scheduler,
+            top_n=top_n
         )
-        self.scheduler = scheduler
-        self.top_n = top_n
 
     def schedule(self,
                  network: Network,
@@ -313,11 +279,27 @@ class ParametricSufferageScheduler(ParametricScheduler):
 
 
 insert_funcs: Dict[str, GreedyInsert] = {}
-for compare_func_name in GREEDY_INSERT_COMPARE_FUNCS.keys():
-    insert_funcs[f"{compare_func_name}_Append"] = GreedyInsert(append_only=True, compare=compare_func_name, critical_path=False)
-    insert_funcs[f"{compare_func_name}_Insert"] = GreedyInsert(append_only=False, compare=compare_func_name, critical_path=False)
-    insert_funcs[f"{compare_func_name}_Append_CP"] = GreedyInsert(append_only=True, compare=compare_func_name, critical_path=True)
-    insert_funcs[f"{compare_func_name}_Insert_CP"] = GreedyInsert(append_only=False, compare=compare_func_name, critical_path=True)
+for compare_func in GreedyInsertCompareFuncs:
+    insert_funcs[f"{compare_func.value}_Append"] = GreedyInsert(
+        append_only=True,
+        compare=compare_func,
+        critical_path=False
+    )
+    insert_funcs[f"{compare_func.value}_Insert"] = GreedyInsert(
+        append_only=False,
+        compare=compare_func,
+        critical_path=False
+    )
+    insert_funcs[f"{compare_func.value}_Append_CP"] = GreedyInsert(
+        append_only=True,
+        compare=compare_func,
+        critical_path=True
+    )
+    insert_funcs[f"{compare_func.value}_Insert_CP"] = GreedyInsert(
+        append_only=False,
+        compare=compare_func,
+        critical_path=True
+    )
 
 initial_priority_funcs = {
     "UpwardRanking": UpwardRanking(),
@@ -332,12 +314,10 @@ for name, insert_func in insert_funcs.items():
             initial_priority=initial_priority_func,
             insert_task=insert_func
         )
-        # reg_scheduler.name = f"{name}_{intial_priority_name}"
         schedulers[reg_scheduler.name] = reg_scheduler
 
         sufferage_scheduler = ParametricSufferageScheduler(
             scheduler=reg_scheduler,
             top_n=2
         )
-        # sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
