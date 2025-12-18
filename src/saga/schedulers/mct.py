@@ -1,60 +1,80 @@
 from functools import partial
-from typing import Dict, Hashable, List
+from typing import Dict, Optional
 
-import networkx as nx
-
-from ..scheduler import Scheduler, Task
+from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
-class MCTScheduler(Scheduler): # pylint: disable=too-few-public-methods
+class MCTScheduler(Scheduler):
     """Minimum Completion Time scheduler
-    
+
     Source: https://doi.org/10.1006/jpdc.2000.1714
     """
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self,
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Optional[Schedule] = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Returns the schedule of the tasks on the network
 
         Args:
-            network (nx.Graph): The network.
-            task_graph (nx.DiGraph): The task graph.
+            network (Network): The network.
+            task_graph (TaskGraph): The task graph.
+            schedule (Optional[Schedule]): Optional initial schedule. Defaults to None.
+            min_start_time (float): Minimum start time. Defaults to 0.0.
 
         Returns:
-            Dict[Hashable, List[Task]]: The schedule of the tasks on the network.
+            Schedule: The schedule of the tasks on the network.
         """
-        schedule: Dict[Hashable, List[Task]] = {node: [] for node in network.nodes}  # Initialize list for each node
-        scheduled_tasks: Dict[Hashable, Task] = {} # Map from task_name to Task
+        comp_schedule = Schedule(task_graph, network)
+        scheduled_tasks: Dict[str, ScheduledTask] = {}
 
-        def get_exec_time(task: Hashable, node: Hashable) -> float:
-            return task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
+        if schedule is not None:
+            comp_schedule = schedule.model_copy()
+            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
 
-        def get_commtime(task1: Hashable, task2: Hashable, node1: Hashable, node2: Hashable) -> float:
-            return task_graph.edges[task1, task2]['weight'] / network.edges[node1, node2]['weight']
+        def get_exec_time(task_name: str, node_name: str) -> float:
+            task = task_graph.get_task(task_name)
+            node = network.get_node(node_name)
+            return task.cost / node.speed
 
-        def get_eat(node: Hashable) -> float:
-            eat = schedule[node][-1].end if schedule.get(node) else 0
-            return eat
+        def get_commtime(task1: str, task2: str, node1: str, node2: str) -> float:
+            dep = task_graph.get_dependency(task1, task2)
+            edge = network.get_edge(node1, node2)
+            return dep.size / edge.speed
 
-        def get_fat(task: Hashable, node: Hashable) -> float:
-            fat = 0 if task_graph.in_degree(task) <= 0 else max(
-                scheduled_tasks[pred_task].end +
-                get_commtime(pred_task, task, scheduled_tasks[pred_task].node, node)
-                for pred_task in task_graph.predecessors(task)
+        def get_eat(node_name: str) -> float:
+            tasks = comp_schedule[node_name]
+            return tasks[-1].end if tasks else min_start_time
+
+        def get_fat(task_name: str, node_name: str) -> float:
+            in_edges = task_graph.in_edges(task_name)
+            if not in_edges:
+                return min_start_time
+            return max(
+                scheduled_tasks[in_edge.source].end +
+                get_commtime(in_edge.source, task_name, scheduled_tasks[in_edge.source].node, node_name)
+                for in_edge in in_edges
             )
-            return fat
 
-        def get_completion_time(task: Hashable, node: Hashable) -> float:
-            start_time = max(get_eat(node), get_fat(task, node))
-            return start_time + get_exec_time(task, node)
+        def get_completion_time(task_name: str, node_name: str) -> float:
+            start_time = max(get_eat(node_name), get_fat(task_name, node_name))
+            return start_time + get_exec_time(task_name, node_name)
 
-        for task in nx.topological_sort(task_graph):
-            # Find node with minimum execution time for the task
-            sched_node = min(network.nodes, key=partial(get_completion_time, task))
+        node_names = [node.name for node in network.nodes]
 
-            start_time = max(get_eat(sched_node), get_fat(task, sched_node))
-            end_time = start_time + get_exec_time(task, sched_node)
+        for task in task_graph.topological_sort():
+            if task.name in scheduled_tasks:
+                continue
+
+            # Find node with minimum completion time for the task
+            sched_node = min(node_names, key=partial(get_completion_time, task.name))
+
+            start_time = max(get_eat(sched_node), get_fat(task.name, sched_node))
+            end_time = start_time + get_exec_time(task.name, sched_node)
 
             # Add task to the schedule
-            new_task = Task(node=sched_node, name=task, start=start_time, end=end_time)
-            schedule[sched_node].append(new_task)
-            scheduled_tasks[task] = new_task
-        return schedule
+            new_task = ScheduledTask(node=sched_node, name=task.name, start=start_time, end=end_time)
+            comp_schedule.add_task(new_task)
+            scheduled_tasks[task.name] = new_task
+
+        return comp_schedule

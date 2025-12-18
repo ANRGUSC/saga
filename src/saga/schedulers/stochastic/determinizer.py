@@ -1,58 +1,82 @@
-from typing import Callable, Dict, Hashable, List, Union
-
-import networkx as nx
+from typing import Callable, Union
 
 from saga.utils.random_variable import RandomVariable
-from saga.scheduler import Scheduler, Task
-from saga.utils.random_variable import RandomVariable
+from saga import Network, NetworkNode, NetworkEdge, TaskGraph, TaskGraphNode, TaskGraphEdge, Scheduler
+from saga.stochastic import (
+    StochasticNetwork, StochasticTaskGraph, StochasticSchedule,
+    StochasticScheduledTask, StochasticScheduler
+)
 
-class Determinizer(Scheduler):
+
+class Determinizer(StochasticScheduler):
     def __init__(self,
                  scheduler: Scheduler,
                  determinize: Callable[[RandomVariable], float]) -> None:
-        super().__init__()
         self.scheduler = scheduler
         self._determinize = determinize
+
+    @property
+    def name(self) -> str:
+        return f"Determinizer({self.scheduler.name})"
 
     def determinize(self, rv: Union[RandomVariable, int, float]) -> float:
         if isinstance(rv, RandomVariable):
             return self._determinize(rv)
         return float(rv)
 
-    def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
+    def schedule(self, network: StochasticNetwork, task_graph: StochasticTaskGraph) -> StochasticSchedule:
         """Schedule the tasks on the network.
 
         Args:
-            network (nx.Graph): The network.
-            task_graph (nx.DiGraph): The task graph.
+            network (StochasticNetwork): The network on which to schedule the tasks.
+            task_graph (StochasticTaskGraph): The task graph to be scheduled.
 
         Returns:
-            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
+            StochasticSchedule: The resulting schedule.
         """
-        det_network = nx.Graph()
-        det_network.add_nodes_from(network.nodes)
-        det_network.add_edges_from(network.edges)
+        det_network = Network.create(
+            nodes=[
+                NetworkNode(
+                    name=node.name,
+                    speed=self.determinize(node.speed)
+                ) for node in network.nodes
+            ],
+            edges=[
+                NetworkEdge(
+                    source=edge.source,
+                    target=edge.target,
+                    speed=self.determinize(edge.speed)
+                ) for edge in network.edges
+            ]
+        )
 
-        for node in det_network.nodes:
-            det_network.nodes[node]["weight"] = self.determinize(network.nodes[node]["weight"])
-            if det_network.nodes[node]["weight"] != det_network.nodes[node]["weight"]:
-                raise ValueError("Node weight is nan")
-        for edge in det_network.edges:
-            det_network.edges[edge]["weight"] = self.determinize(network.edges[edge]["weight"])
-            if det_network.edges[edge]["weight"] != det_network.edges[edge]["weight"]:
-                raise ValueError("Edge weight is nan")
+        det_task_graph = TaskGraph.create(
+            tasks=[
+                TaskGraphNode(
+                    name=task.name,
+                    cost=self.determinize(task.cost)
+                ) for task in task_graph.tasks
+            ],
+            dependencies=[
+                TaskGraphEdge(
+                    source=edge.source,
+                    target=edge.target,
+                    size=self.determinize(edge.size)
+                ) for edge in task_graph.dependencies
+            ]
+        )
 
-        det_task_graph = nx.DiGraph()
-        det_task_graph.add_nodes_from(task_graph.nodes)
-        det_task_graph.add_edges_from(task_graph.edges)
-        for task in det_task_graph.nodes:
-            det_task_graph.nodes[task]["weight"] = self.determinize(task_graph.nodes[task]["weight"])
-            if det_task_graph.nodes[task]["weight"] != det_task_graph.nodes[task]["weight"]:
-                raise ValueError("Task weight is nan")
-        for edge in det_task_graph.edges:
-            det_task_graph.edges[edge]["weight"] = self.determinize(task_graph.edges[edge]["weight"])
-            if det_task_graph.edges[edge]["weight"] != det_task_graph.edges[edge]["weight"]:
-                raise ValueError("Edge weight is nan")
+        det_schedule = self.scheduler.schedule(det_network, det_task_graph)
+        schedule = StochasticSchedule(task_graph=task_graph, network=network)
 
+        for node_name, tasks in det_schedule.mapping.items():
+            for i, det_task in enumerate(tasks):
+                new_task = StochasticScheduledTask(
+                    node=node_name,
+                    name=det_task.name,
+                    rank=i
+                )
+                schedule.add_task(new_task)
 
-        return self.scheduler.schedule(det_network, det_task_graph)
+        return schedule
+

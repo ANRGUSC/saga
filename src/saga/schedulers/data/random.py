@@ -1,9 +1,11 @@
 import random
-from typing import Callable, Hashable, List
+from typing import Callable, Hashable, List, Optional
 import networkx as nx
 
+from saga import TaskGraph, Network
+
 # Task Graph Datasets
-def _default_task_weight(task: Hashable) -> float: # pylint: disable=unused-argument
+def _default_task_weight(task: Hashable) -> float:
     """Default task weight function.
 
     Args:
@@ -14,7 +16,7 @@ def _default_task_weight(task: Hashable) -> float: # pylint: disable=unused-argu
     """
     return max(min(1e-9, random.gauss(1, 1/3)), 2)
 
-def _default_dependency_weight(src: Hashable, dst: Hashable) -> float: # pylint: disable=unused-argument
+def _default_dependency_weight(src: Hashable, dst: Hashable) -> float:
     """Default dependency weight function.
 
     Args:
@@ -26,11 +28,11 @@ def _default_dependency_weight(src: Hashable, dst: Hashable) -> float: # pylint:
     """
     return max(min(1e-9, random.gauss(1, 1/3)), 2)
 
-def gen_out_trees(num: int, # pylint: disable=arguments-differ
+def gen_out_trees(num: int,
                   num_levels: int,
                   branching_factor: int,
-                  get_task_weight: Callable[[Hashable], float] = None,
-                  get_dependency_weight: Callable[[Hashable, Hashable], float] = None) -> List[nx.DiGraph]:
+                  get_task_weight: Optional[Callable[[Hashable], float]] = None,
+                  get_dependency_weight: Optional[Callable[[Hashable, Hashable], float]] = None) -> List[TaskGraph]:
     """Generate a dataset of in-trees.
 
     Args:
@@ -56,10 +58,10 @@ def gen_out_trees(num: int, # pylint: disable=arguments-differ
 
     trees: List[nx.DiGraph] = []
     for _ in range(num):
-        tree = nx.generators.balanced_tree(branching_factor, num_levels)
+        tree: nx.DiGraph = nx.generators.balanced_tree(branching_factor, num_levels)
         tree = nx.DiGraph(tree)
         tree.remove_edges_from([(dst, src) for src, dst in tree.edges if src < dst])
-        tree: nx.DiGraph = nx.relabel_nodes(tree, lambda node: f"T{node}")
+        tree = nx.relabel_nodes(tree, mapping={node: f"T{node}" for node in tree.nodes})
         for node in tree.nodes:
             tree.nodes[node]["weight"] = get_task_weight(node)
         for edge in tree.edges:
@@ -72,13 +74,13 @@ def gen_out_trees(num: int, # pylint: disable=arguments-differ
             tree.add_edge(node, sink_node, weight=1e-9)
         trees.append(tree)
 
-    return trees
+    return [TaskGraph.from_nx(tree) for tree in trees]
 
 def gen_in_trees(num: int, # pylint: disable=arguments-differ
                  num_levels: int,
                  branching_factor: int,
-                 get_task_weight: Callable[[Hashable], float] = None,
-                 get_dependency_weight: Callable[[Hashable, Hashable], float] = None) -> List[nx.DiGraph]:
+                 get_task_weight: Optional[Callable[[Hashable], float]] = None,
+                 get_dependency_weight: Optional[Callable[[Hashable, Hashable], float]] = None) -> List[TaskGraph]:
     """Generate a dataset of in-trees.
 
     Args:
@@ -100,15 +102,15 @@ def gen_in_trees(num: int, # pylint: disable=arguments-differ
     out_trees = gen_out_trees(num, num_levels, branching_factor, get_task_weight, get_dependency_weight)
     in_trees = []
     for tree in out_trees:
-        in_trees.append(tree.reverse())
+        in_trees.append(tree.graph.reverse())
 
-    return in_trees
+    return [TaskGraph.from_nx(tree) for tree in in_trees]
 
 def gen_parallel_chains(num: int,
                         num_chains: int,
                         chain_length: int,
-                        get_task_weight: Callable[[Hashable], float] = None,
-                        get_dependency_weight: Callable[[Hashable, Hashable], float] = None) -> List[nx.DiGraph]:
+                        get_task_weight: Optional[Callable[[Hashable], float]] = None,
+                        get_dependency_weight: Optional[Callable[[Hashable, Hashable], float]] = None) -> List[TaskGraph]:
     """Generate a dataset of parallel chains.
 
     Args:
@@ -162,13 +164,13 @@ def gen_parallel_chains(num: int,
 
         graphs.append(graph)
 
-    return graphs
+    return [TaskGraph.from_nx(graph) for graph in graphs]
 
 # Network Datasets
-def gen_random_networks(num: int, # pylint: disable=arguments-differ
+def gen_random_networks(num: int,
                         num_nodes: int,
-                        get_node_weight: Callable[[Hashable], float] = None,
-                        get_edge_weight: Callable[[Hashable, Hashable], float] = None) -> List[nx.Graph]:
+                        get_node_weight: Optional[Callable[[Hashable], float]] = None,
+                        get_edge_weight: Optional[Callable[[Hashable, Hashable], float]] = None) -> List[Network]:
     """Generate a dataset of random networks.
 
     Args:
@@ -193,7 +195,7 @@ def gen_random_networks(num: int, # pylint: disable=arguments-differ
     for _ in range(num):
         graph = nx.generators.complete_graph(num_nodes)
         graph = nx.Graph(graph)
-        graph = nx.relabel_nodes(graph, lambda node: f"N{node}")
+        graph = nx.relabel_nodes(graph, mapping={node: f"N{node}" for node in graph.nodes})
         for edge in graph.edges:
             graph.edges[edge]["weight"] = get_edge_weight(edge[0], edge[1])
         for node in graph.nodes:
@@ -201,4 +203,4 @@ def gen_random_networks(num: int, # pylint: disable=arguments-differ
             graph.add_edge(node, node, weight=1e9)
         graphs.append(graph)
 
-    return graphs
+    return [Network.from_nx(graph) for graph in graphs]

@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
-from copy import deepcopy
-import logging
-from typing import Any, Dict, Hashable, List, Optional, Tuple
-import networkx as nx
+from typing import Any, Generic, Iterable, List, TypeVar
 
-from saga.scheduler import Scheduler, Task
+from pydantic import BaseModel, Field
 
-class IntialPriority(ABC):
+
+from saga import NetworkNode, Scheduler, ScheduledTask, Schedule, Network, TaskGraph, TaskGraphNode
+
+class IntialPriority(BaseModel, ABC):
     @abstractmethod
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph) -> List[Hashable]:
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph) -> List[str]:
         """Return the initial priority of the tasks.
         
         Args:
@@ -18,129 +18,75 @@ class IntialPriority(ABC):
             task_graph (nx.DiGraph): The task graph.
 
         Returns:
-            List[Hashable]: The initial priority of the tasks.
+            List[str]: The initial priority of the tasks.
         """
         pass
 
+class InsertTask(BaseModel, ABC): 
     @abstractmethod
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        pass
-
-    @classmethod
-    @abstractmethod
-    def deserialize(self, data: Dict[str, Any]) -> "IntialPriority":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
-
-        Returns:
-            IntialPriority: A new instance of the initial priority.
-        """
-        pass
-
-ScheduleType = Dict[Hashable, List[Task]]
-class InsertTask(ABC):
-    @abstractmethod
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: ScheduleType,
-                 task: Hashable,
-                 node: Optional[Hashable] = None) -> Task:
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph,
+             schedule: Schedule,
+             task: str | TaskGraphNode,
+             min_start_time: float = 0.0,
+             nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
+             dry_run: bool = False) -> ScheduledTask:
         """Insert a task into the schedule.
 
         Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (ScheduleType): The schedule.
-            task (Hashable): The task.  
-            node (Optional[Hashable]): The node to insert the task onto. If None, the node is chosen by the algorithm.
-
+            network (Network): The network graph.
+            task_graph (TaskGraph): The task graph.
+            schedule (Schedule): The current schedule.
+            task (str | TaskGraphNode): The task to insert.
+            min_start_time (float, optional): The current moment in time. Defaults to 0.0.
+            nodes (Iterable[str] | Iterable[NetworkNode] | None, optional): The nodes to consider for insertion. Defaults to None (all nodes).
+            dry_run (bool, optional): If True, do not modify the schedule. Defaults to False.
+        
         Returns:
             Task: The inserted task
         """
         pass
+    
+TInsert = TypeVar("TInsert", bound=InsertTask)
 
-    @abstractmethod
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        pass
+class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
+    initial_priority: IntialPriority = Field(..., description="The initial priority strategy.")
+    insert_task: TInsert = Field(..., description="The task insertion strategy.")
 
-    @classmethod
-    @abstractmethod
-    def deserialize(self, data: Dict[str, Any]) -> "InsertTask":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
-
-        Returns:
-            InsertTask: A new instance of the initial priority.
-        """
-        pass
-
-class ParametricScheduler(Scheduler):
     def __init__(self,
                  initial_priority: IntialPriority,
-                 insert_task: InsertTask) -> None:
-            super().__init__()
-            self.initial_priority = initial_priority
-            self.insert_task = insert_task
+                 insert_task: TInsert,
+                 **kwargs: Any) -> None:
+        super().__init__(initial_priority=initial_priority, insert_task=insert_task, **kwargs)
     
     def schedule(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Schedule | None = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Schedule the tasks on the network.
         
         Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (Optional[ScheduleType]): The current schedule.
+            network (Network): The network graph.
+            task_graph (TaskGraph): The task graph.
+            schedule (Schedule): The current schedule.
+            min_start_time (float): The current moment in time.
 
         Returns:
-            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
+            Schedule: The resulting schedule.
         """
-        queue = self.initial_priority(network, task_graph)
-        schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
+        if schedule is None:
+            schedule = Schedule(task_graph, network)
+        queue = self.initial_priority.call(network, task_graph)
         while queue:
-            self.insert_task(network, task_graph, schedule, queue.pop(0))
+            task_name = queue.pop(0)
+            if schedule.is_scheduled(task_name):
+                continue
+            else:
+                self.insert_task.call(network, task_graph, schedule, task_name, min_start_time)
         return schedule
-
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        return {
-            "name": "ParametricScheduler",
-            "initial_priority": self.initial_priority.serialize(),
-            "insert_task": self.insert_task.serialize(),
-            "k_depth": 0
-        }
     
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "ParametricScheduler":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
-
-        Returns:
-            ParametricScheduler: A new instance of the initial priority.
-        """
-        return cls(
-            initial_priority=IntialPriority.deserialize(data["initial_priority"]),
-            insert_task=InsertTask.deserialize(data["insert_task"])
-        )
+    @property
+    def name(self) -> str:
+        return f"{self.insert_task.__class__.__name__}_{self.initial_priority.__class__.__name__}"

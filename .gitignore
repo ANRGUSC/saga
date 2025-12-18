@@ -1,5 +1,6 @@
 .workspace
 .vscode
+.ruff_cache/
 
 build
 

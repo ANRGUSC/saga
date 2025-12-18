@@ -3,42 +3,18 @@ import pathlib
 import random
 import tempfile
 from itertools import product
-from typing import Dict, Iterable, List, Set, Tuple, Type, Union, Callable
+from typing import Dict, List, Set, Union
 
 import networkx as nx
 import numpy as np
 from scipy import stats
 from wfcommons.wfgen.generator import WorkflowGenerator
 
-from saga.utils.random_variable import RandomVariable
+from saga.utils.random_variable import RandomVariable, DEFAULT_NUM_SAMPLES
 from saga.schedulers.data.wfcommons import (
-    recipes, get_num_task_range, download_repo,
-    clouds, get_real_networks, get_real_workflows,
+    recipes, get_num_task_range, get_real_networks,
     get_best_fit, get_workflow_task_info
 )
-
-def rv_max(a: Union[float, RandomVariable], b: Union[float, RandomVariable]) -> Union[float, RandomVariable]:
-    """Return the maximum of two random variables/floats.
-
-    Args:
-        a (Union[float, RandomVariable]): The first random variable/float.
-        b (Union[float, RandomVariable]): The second random variable/float.
-
-    Returns:
-        RandomVariable: The maximum random variable/float.
-    """
-    if isinstance(a, RandomVariable) and isinstance(b, RandomVariable):
-        # if samples aren't the same size, broadcast the smaller one
-        if len(a.samples) < len(b.samples):
-            a.samples = np.broadcast_to(a.samples, b.samples.shape)
-        elif len(b.samples) < len(a.samples):
-            b.samples = np.broadcast_to(b.samples, a.samples.shape)
-        return RandomVariable(samples=np.maximum(a.samples, b.samples))
-    if isinstance(a, RandomVariable):
-        return RandomVariable(samples=np.maximum(a.samples, b))
-    if isinstance(b, RandomVariable):
-        return RandomVariable(samples=np.maximum(a, b.samples))
-    return max(a, b)
 
 def get_networks(num: int,
                  cloud_name: str,
@@ -68,7 +44,7 @@ def get_networks(num: int,
     for num_nodes in all_num_nodes:
         network = nx.Graph()
         for i in range(num_nodes):
-            network.add_node(i, weight=RandomVariable(samples=np.clip(get_node_speed(RandomVariable.DEFAULT_NUM_SAMPLES), 1e-9, 1e9)))
+            network.add_node(i, weight=RandomVariable(samples=np.clip(get_node_speed(DEFAULT_NUM_SAMPLES), 1e-9, 1e9).tolist()))
 
         for (src, dst) in product(network.nodes, network.nodes):
             network.add_edge(src, dst, weight=network_speed if src != dst else 1e9)
@@ -95,7 +71,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
         task_info = task_type_info[task_type]
 
         params = task_info['runtime']['distribution']['params']
-        samples = getattr(stats, task_info['runtime']['distribution']['name']).rvs(size=RandomVariable.DEFAULT_NUM_SAMPLES, *params)
+        samples = getattr(stats, task_info['runtime']['distribution']['name']).rvs(size=DEFAULT_NUM_SAMPLES, *params)
         samples = np.clip(samples, task_info['runtime']['min'], task_info['runtime']['max'])
         task['runtime'] = RandomVariable(samples=samples)
 
@@ -105,7 +81,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
             file_type = file_name[36:] # strip off uuid
             io_info = task_info[link_type].get(file_type)
             if io_info and io_info['distribution']:
-                samples = getattr(stats, io_info['distribution']['name']).rvs(size=RandomVariable.DEFAULT_NUM_SAMPLES, *io_info['distribution']['params'])
+                samples = getattr(stats, io_info['distribution']['name']).rvs(size=DEFAULT_NUM_SAMPLES, *io_info['distribution']['params'])
                 samples = np.clip(samples, io_info['min'], io_info['max'])
                 io_file['size'] = RandomVariable(samples=samples)
             else:
@@ -126,7 +102,7 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
         runtime = task.get('runtime', task.get('runtimeInSeconds'))
         if runtime is None:
             raise ValueError(f"Task {task['name']} has no 'runtime' or 'runtimeInSeconds' attribute. {list(task.keys())}. {path}")
-        task_graph.add_node(task["name"], weight=rv_max(1e-9, runtime))
+        task_graph.add_node(task["name"], weight=max(1e-9, runtime))
 
         for io_file in task["files"]:
             if io_file["link"] == "output":
@@ -139,10 +115,10 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
 
     for task in trace["workflow"]["tasks"]:
         for child in task.get("children", []):
-            weight = 0
+            weight = 0.0
             for input_file in input_files.get(child, []):
                 weight += outputs[task["name"]].get(input_file, 0)
-            task_graph.add_edge(task["name"], child, weight=rv_max(1e-9, weight))
+            task_graph.add_edge(task["name"], child, weight=max(1e-9, weight))
 
     return task_graph
 
@@ -163,11 +139,11 @@ def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
     task_graphs: List[nx.DiGraph] = []
     for _ in range(num):
         num_tasks = random.randint(*get_num_task_range(recipe_name))
-        recipe = recipes[recipe_name](num_tasks=num_tasks)
+        recipe = recipes[recipe_name](num_tasks=num_tasks) # type: ignore
         generator = WorkflowGenerator(recipe)
         workflow = generator.build_workflow()
         with tempfile.NamedTemporaryFile() as tmp:
-            workflow.write_json(tmp.name)
+            workflow.write_json(pathlib.Path(tmp.name))
             task_graphs.append(trace_to_digraph(tmp.name, task_type_info))
 
     return task_graphs

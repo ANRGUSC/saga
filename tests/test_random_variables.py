@@ -29,6 +29,8 @@ def test_sum(mode: str):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
     
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)
@@ -54,6 +56,8 @@ def test_max(mode: str):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
     
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)
@@ -79,6 +83,8 @@ def test_sub(mode: str):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
 
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)
@@ -104,6 +110,8 @@ def test_mul(mode: str):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=2, b=2)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
 
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)
@@ -129,6 +137,8 @@ def test_div(mode: str):
     elif mode == 'beta':
         pdf1 = beta.pdf(x, a=2, b=2)
         pdf2 = beta.pdf(x, a=10, b=5)
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
 
     dist1 = RandomVariable.from_pdf(x, pdf1)
     dist2 = RandomVariable.from_pdf(x, pdf2)

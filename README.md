@@ -1,5 +1,10 @@
 # Saga
 
+[![CI](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml/badge.svg)](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml)
+[![PyPI version](https://badge.fury.io/py/anrg-saga.svg)](https://badge.fury.io/py/anrg-saga)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Saga: **S**cheduling **A**lgorithms **Ga**thered.
 
 ## Introduction
@@ -8,17 +13,6 @@ Saga – Scheduling Algorithms Gathered – is a Python toolkit/library for desi
 It ships with a collection of scheduling algorithms, including classic heuristics (HEFT, CPOP), brute-force baselines, SMT-based optimisers, and more, all under one cohesive API.
 
 The algorithms are all implemented in Python using a common interface.  Scripts for validating and comparing the performance of the algorithms are also provided.
-
-## Package Layout
-
-The source code resides in `src/saga` and is organized as follows:
-
-- **`scheduler.py`** – defines the abstract `Scheduler` base class and the `Task` dataclass.
-- **`schedulers/`** – implementations of various algorithms such as HEFT, CPoP and others,
-  all exposed through `saga.schedulers`.
-- **`utils/`** – helper modules for generating task graphs, drawing Gantt charts and
-  validating schedules. It also includes `simulator.py` for stochastic simulations
-  and `data.py` for datasets used in experiments.
 
 
 ## Prerequisites
@@ -29,12 +23,10 @@ All components of this repository have been tested with **Python 3.11**. To ensu
 
 To create a new Conda environment with Python 3.11:
 
-
 ```bash
 conda create -n saga-env python=3.11
 conda activate saga-env
 ```
-
 
 For more information on managing Python versions with Conda, refer to the [Conda documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html). ([Managing Python — conda 25.3.0 documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html?utm_source=chatgpt.com))
 
@@ -50,7 +42,6 @@ You can install Graphviz and its Python interface using Conda: ([anaconda - grap
 ```bash
 conda install -c conda-forge graphviz python-graphviz
 ```
-
 
 This command installs both the Graphviz binaries and the `python-graphviz` package, facilitating seamless integration with Python scripts. ([anaconda - graphviz - can't import after installation - Stack Overflow](https://stackoverflow.com/questions/33433274/anaconda-graphviz-cant-import-after-installation?utm_source=chatgpt.com))
 
@@ -113,48 +104,13 @@ cd saga
 pip install -e ./src
 ```
 
-To install additional dependencies like `pytest` for running tests, run:
-
-```bash
-pip install pytest pytest-timeout
-```
-
-Some of the algorithms might rely on external solvers, such as Z3. To install Z3 and configure `pysmt`, use:
-
-```bash
-pip install pysmt
-pysmt-install --z3
-```
-
-#### Docker Installation
-
-You can also run Saga using Docker. The provided `Dockerfile` will handle all dependencies, including solvers and testing tools.
-
-1. Build the Docker image:
-   ```bash
-   docker build -t saga-schedulers .
-   ```
-
-2. Run the image:
-   ```bash
-   docker run --rm saga-schedulers
-   ```
-
-By default, the Docker image will run the tests when started.
-
 ### Running the Tests
 
 Unit tests generate random task graphs and networks to verify scheduler correctness. They also check the RandomVariable utilities used for stochastic scheduling.
 
 #### Locally
 
-You can run the tests using `pytest`. Make sure you have installed the necessary dependencies, including `pytest` and `pytest-timeout`:
-
-```bash
-pip install pytest pytest-timeout
-```
-
-Then, run the tests:
+You can run the tests using `pytest`:
 
 ```bash
 pytest ./tests
@@ -178,22 +134,6 @@ To run a specific test or scheduler-task combination, use the `-k` option. For e
 pytest ./tests -k "HeftScheduler and diamond"
 ```
 
-#### Using Docker
-
-When running the Docker image, the tests will run automatically. You can also pass specific `pytest` options when running the Docker container.
-
-For example, to run all tests with a 120-second timeout:
-
-```bash
-docker run --rm saga-schedulers pytest --timeout=120
-```
-
-Or to run a specific test combination (e.g., `HeftScheduler` and `diamond`):
-
-```bash
-docker run --rm saga-schedulers pytest -k "HeftScheduler and diamond"
-```
-
 ### Running the Algorithms
 
 The algorithms are implemented as Python modules. The following example shows how to run the HEFT algorithm on a workflow:
@@ -202,10 +142,11 @@ The algorithms are implemented as Python modules. The following example shows ho
 from saga.schedulers import HeftScheduler
 
 scheduler = HeftScheduler()
-network: nx.Graph = ...
-task_graph: nx.DiGraph = ...
+network: Network = ...
+task_graph: TaskGraph = ...
 scheduler.schedule(network, task_graph)
 ```
+
 ### Examples
 
 The repository contains several example scripts illustrating different algorithms and scenarios.
@@ -220,13 +161,7 @@ The table of contents in `scripts/examples/Readme.md` lists examples ranging fro
 
 ### Experiments
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
-Benchmarking utilities such as `exp_benchmarking.py` and `exp_parametric.py` help run full or batched experiments, and the PISA scripts include simulated annealing for adversarial instance generation.
 
-### Workflow to get started
-1. Select an example script or create your own workflow and network using the utilities in `saga.utils.random_graphs`.
-2. Instantiate a scheduler from `saga.schedulers` and call its `schedule` method with your network and task graph.
-3. Visualize the resulting schedule with functions like `saga.utils.draw.draw_gantt` or run experiments for systematic comparisons.
-4. Use the unit tests or experiment scripts to benchmark new algorithms or reproduce results from the literature.
 
 ### Acknowledgements
 

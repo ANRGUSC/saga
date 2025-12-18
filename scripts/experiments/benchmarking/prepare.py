@@ -1,14 +1,10 @@
-from functools import lru_cache
-import json
-import logging
-import pathlib
 import random
-from typing import Callable, Dict, List, Optional
+from functools import partial
+from multiprocessing import Pool
+from typing import Callable, List, Optional, Tuple
 
-import networkx as nx
-import numpy as np
-
-from saga.data import AllPairsDataset, Dataset, PairsDataset
+from saga import TaskGraph
+from saga.schedulers.data import Dataset, ProblemInstance
 from saga.schedulers.data.random import (gen_in_trees, gen_out_trees,
                                          gen_parallel_chains,
                                          gen_random_networks)
@@ -17,119 +13,34 @@ from saga.schedulers.data.riotbench import (get_etl_task_graphs,
                                             get_predict_task_graphs,
                                             get_stats_task_graphs,
                                             get_train_task_graphs)
-from saga.schedulers.data.wfcommons import (get_networks, get_real_workflows,
+from saga.schedulers.data.wfcommons import (get_networks,
                                             get_workflows)
 
-def save_dataset(savedir: pathlib.Path, dataset: Dataset) -> pathlib.Path:
-    """Save the dataset to disk."""
-    dataset_file = savedir.joinpath(f"{dataset.name}.json")
-    dataset_file.parent.mkdir(parents=True, exist_ok=True)
-    logging.info("Saving dataset to %s.", dataset_file)
-    dataset_file.write_text(dataset.to_json(), encoding="utf-8")
-    logging.info("Saved dataset to %s.", dataset_file)
-    return dataset_file
+from common import datadir, num_processors
 
-@lru_cache(maxsize=None)
-def load_dataset(datadir: pathlib.Path, name: str) -> Dataset:
-    """Load the dataset from disk."""
-    print(f"Loading dataset {datadir / f'{name}.json'}")
-    if datadir.joinpath(name).is_dir():
-        return LargeDataset.from_json(
-            datadir.joinpath(f"{name}.json").read_text(encoding="utf-8")
-        )
+def in_trees_dataset(ccr: Optional[float] = None,
+                     overwrite: bool = False) -> Dataset:
+    """Generate the in_trees dataset.
+    
+    Args:
+        ccr: The communication to computation ratio.
+        overwrite: Whether to overwrite existing instances.
 
-    dataset_file = datadir.joinpath(f"{name}.json")
-    if not dataset_file.exists():
-        datasets = [path.stem for path in datadir.glob("*.json")]
-        raise ValueError(f"Dataset {name} does not exist. Available datasets are {datasets}")
-    text = dataset_file.read_text(encoding="utf-8")
-    try:
-        return AllPairsDataset.from_json(text)
-    except Exception: # pylint: disable=broad-except
-        return PairsDataset.from_json(text)
+    Returns:
+        Dataset: The generated dataset.
+    """
+    dataset_name = f"in_trees_ccr_{ccr}" if ccr is not None else "in_trees"
+    dataset = Dataset(name=dataset_name)
 
-class LargeDataset(Dataset):
-    """A dataset that is too large to fit in memory."""
-    def __init__(self, datasets: Dict[pathlib.Path, int], name: str) -> None:
-        super().__init__(name)
-        self.datasets = datasets
-        self._length = sum(datasets.values())
-
-        self._loaded_dataset: Optional[Dataset] = None
-        self._loaded_path: Optional[pathlib.Path] = None
-
-    def __len__(self) -> int:
-        return self._length
-
-    def __getitem__(self, index: int) -> tuple[nx.Graph, nx.DiGraph]:
-        if index >= len(self):
-            raise IndexError
-        cum_sum = 0
-        for path, length in self.datasets.items():
-            if index < cum_sum + length:
-                if self._loaded_path != path:
-                    _dataset_json = path.read_text(encoding="utf-8")
-                    try:
-                        self._loaded_dataset = AllPairsDataset.from_json(_dataset_json)
-                    except Exception: # pylint: disable=broad-except
-                        self._loaded_dataset = PairsDataset.from_json(_dataset_json)
-                    self._loaded_path = path
-                return self._loaded_dataset[index - cum_sum]
-            cum_sum += length
-        raise IndexError
-
-    def to_json(self, *args, **kwargs) -> str:
-        """Convert the dataset to JSON."""
-        return json.dumps({
-            "type": "LargeDataset",
-            "datasets": {
-                str(path): length for path, length in self.datasets.items()
-            },
-            "name": self.name
-        }, *args, **kwargs)
-
-    @classmethod
-    def from_json(cls, text: str, *args, **kwargs) -> "LargeDataset":
-        """Load the dataset from JSON."""
-        data = json.loads(text, *args, **kwargs)
-        if data["type"] != "LargeDataset":
-            raise ValueError("JSON is not a LargeDataset")
-        return cls({
-            pathlib.Path(path): length for path, length in data["datasets"].items()
-        }, data["name"])
-
-def scale_ccr(task_graph: nx.DiGraph, network: nx.DiGraph, ccr: float) -> None:
-    """Scale the edge weights of the network so that the CCR is equal to the given value."""
-    if ccr is None:
-        return
-    avg_node_speed = np.mean([
-        network.nodes[node]["weight"]
-        for node in network.nodes
-    ])
-    avg_task_cost = np.mean([
-        task_graph.nodes[node]["weight"]
-        for node in task_graph.nodes
-    ])
-    avg_data_size = np.mean([
-        task_graph.edges[(src, dst)]["weight"]
-        for src, dst in task_graph.edges
-        if src != dst
-    ])
-    avg_comp_time = avg_task_cost / avg_node_speed
-    link_strength = avg_data_size / (ccr * avg_comp_time)
-    for src, dst in network.edges:
-        if src == dst:
-            continue
-        network.edges[src, dst]["weight"] = link_strength
-
-def in_trees_dataset(ccr: float = None) -> Dataset:
-    """Generate the in_trees dataset."""
     num_instances = 1000
     min_levels, max_levels = 2, 4
     min_branching, max_branching = 2, 3
     min_nodes, max_nodes = 3, 5
-    pairs = []
-    for _ in range(num_instances):
+    existing_instances = set(dataset.instances) if not overwrite else set()
+    for i in range(num_instances):
+        intance_name = f"{dataset_name}_{i}"
+        if intance_name in existing_instances:
+            continue
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -139,18 +50,39 @@ def in_trees_dataset(ccr: float = None) -> Dataset:
             num_levels=random.randint(min_levels, max_levels),
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
-        scale_ccr(task_graph, network, ccr)
-        pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="in_trees" if ccr is None else f"in_trees_ccr_{ccr}")
-
-def out_trees_dataset(ccr: float = None) -> Dataset:
-    """Generate the out_trees dataset."""
+        if ccr is not None:
+            network = network.scale_to_ccr(task_graph, ccr)
+        dataset.save_instance(
+            ProblemInstance(
+                name=intance_name,
+                network=network,
+                task_graph=task_graph
+            )
+        )
+    return dataset
+        
+def out_trees_dataset(ccr: Optional[float] = None,
+                      overwrite: bool = False) -> Dataset:
+    """Generate the out_trees dataset.
+    
+    Args:
+        ccr: The communication to computation ratio.
+        overwrite: Whether to overwrite existing instances.
+    
+    Returns:
+        Dataset: The generated dataset.
+    """
+    dataset_name = f"out_trees_ccr_{ccr}" if ccr is not None else "out_trees"
+    dataset = Dataset(name=dataset_name)
     num_instances = 1000
     min_levels, max_levels = 2, 4
     min_branching, max_branching = 2, 3
     min_nodes, max_nodes = 3, 5
-    pairs = []
-    for _ in range(num_instances):
+    existing_instances = set(dataset.instances) if not overwrite else set()
+    for i in range(num_instances):
+        instance_name = f"{dataset_name}_{i}"
+        if instance_name in existing_instances:
+            continue
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -160,19 +92,40 @@ def out_trees_dataset(ccr: float = None) -> Dataset:
             num_levels=random.randint(min_levels, max_levels),
             branching_factor=random.randint(min_branching, max_branching)
         )[0]
-        scale_ccr(task_graph, network, ccr)
-        pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="out_trees" if ccr is None else f"out_trees_ccr_{ccr}")
+        if ccr is not None:
+            network = network.scale_to_ccr(task_graph, ccr)
+        dataset.save_instance(
+            ProblemInstance(
+                name=instance_name,
+                network=network,
+                task_graph=task_graph
+            )
+        )
+    return dataset
 
+def chains_dataset(ccr: Optional[float] = None,
+                   overwrite: bool = False) -> Dataset:
+    """Generate the chains dataset.
+    
+    Args:
+        ccr: The communication to computation ratio.
+        overwrite: Whether to overwrite existing instances.
 
-def chains_dataset(ccr: float = None) -> Dataset:
-    """Generate the chains dataset."""
+    Returns:
+        Dataset: The generated dataset.
+    """
+    dataset_name = f"chains_ccr_{ccr}" if ccr is not None else "chains"
+    dataset = Dataset(name=dataset_name)
+
     num_instances = 1000
     min_chains, max_chains = 2, 5
     min_chain_length, max_chain_length = 2, 5
     min_nodes, max_nodes = 3, 5
-    pairs = []
-    for _ in range(num_instances):
+    existing_instances = set(dataset.instances) if not overwrite else set()
+    for i in range(num_instances):
+        instance_name = f"{dataset_name}_{i}"
+        if instance_name in existing_instances:
+            continue
         network = gen_random_networks(
             num=1,
             num_nodes=random.randint(min_nodes, max_nodes)
@@ -182,132 +135,234 @@ def chains_dataset(ccr: float = None) -> Dataset:
             num_chains=random.randint(min_chains, max_chains),
             chain_length=random.randint(min_chain_length, max_chain_length)
         )[0]
-        scale_ccr(task_graph, network, ccr)
-        pairs.append((network, task_graph))
-    return PairsDataset(pairs, name="chains" if ccr is None else f"chains_ccr_{ccr}")
+        if ccr is not None:
+            network = network.scale_to_ccr(task_graph, ccr)
+        dataset.save_instance(
+            ProblemInstance(
+                name=instance_name,
+                network=network,
+                task_graph=task_graph
+            )
+        )
+    return dataset
 
 def wfcommons_dataset(recipe_name: str,
                       ccr: float = 1.0,
                       num_instances: int = 100,
-                      dataset_name: Optional[str] = None) -> None:
+                      dataset_name: Optional[str] = None,
+                      overwrite: bool = False) -> Dataset:
     """Generate the wfcommons dataset.
 
     Args:
         recipe_name: The name of the recipe to generate the dataset for.
-        ccr: The communication to computation ratio - the ratio of the average
-            edge weight to the average node weight. This is used to scale the
-            edge weights so that the CCR is equal to the given value for the
-            real workflows the dataset is based on.
+        ccr: The communication to computation ratio.
         num_instances: The number of instances to generate.
         dataset_name: The name of the dataset to generate. If None, the recipe
             name is used.
+        overwrite: Whether to overwrite existing instances.
     """
-    workflows = get_real_workflows(recipe_name)
-    mean_task_weight = np.mean([
-        workflow.nodes[node]["weight"]
-        for workflow in workflows
-        for node in workflow.nodes
-    ])
-    mean_edge_weight = np.mean([
-        workflow.edges[edge]["weight"]
-        for workflow in workflows
-        for edge in workflow.edges
-    ])
-    mean_comp_time = mean_task_weight # since avg comp time is 1 by construction
-    link_strength = mean_edge_weight / (ccr * mean_comp_time)
-    logging.info("Link strength for %s CCR=%s: %s", recipe_name, ccr, link_strength)
-
-    networks = get_networks(num=100, cloud_name='chameleon', network_speed=link_strength)
-    pairs = []
-    for i in range(num_instances):
-        print(f"Generating {recipe_name} {i+1}/{num_instances}")
+    dataset_name = dataset_name or recipe_name
+    dataset = Dataset(name=dataset_name)
+    existing_instances = set(dataset.instances) if not overwrite else set()
+    instance_names = {f"{dataset_name}_{i}" for i in range(num_instances)}
+    new_instances = instance_names - existing_instances
+    if not new_instances:
+        return dataset
+    networks = get_networks(num=len(new_instances), cloud_name='chameleon')
+    workflows = get_workflows(num=len(new_instances), recipe_name=recipe_name)
+    for i, instance_name in enumerate(new_instances):
         network = networks[i]
-        task_graph = get_workflows(num=1, recipe_name=recipe_name)[0]
-        pairs.append((network, task_graph))
+        task_graph = workflows[i]
+        if ccr is not None:
+            network = network.scale_to_ccr(task_graph, ccr)
+        dataset.save_instance(
+            ProblemInstance(
+                name=instance_name,
+                network=network,
+                task_graph=task_graph
+            )
+        )
+    return dataset
 
-    return PairsDataset(pairs, name=dataset_name or recipe_name)
+def riotbench_dataset(get_task_graphs: Callable[[int], List[TaskGraph]],
+                      name: str,
+                      num_instances: int = 100,
+                      overwrite: bool = False) -> Dataset:
+    """Generate a riotbench dataset.
 
-def riotbench_dataset(get_task_graphs: Callable[[int], List[nx.DiGraph]],
-                      name: str) -> Dataset:
-    """Generate the etl dataset."""
-    num_instances = 100
-    pairs = []
-    min_edge_nodes, max_edge_nodes = 75, 125
-    min_fog_nodes, max_fog_nodes = 3, 7
-    min_cloud_nodes, max_cloud_nodes = 1, 10
-    for i in range(num_instances):
-        network = get_fog_networks(
-            num=1,
-            num_edges_nodes=random.randint(min_edge_nodes, max_edge_nodes),
-            num_fog_nodes=random.randint(min_fog_nodes, max_fog_nodes),
-            num_cloud_nodes=random.randint(min_cloud_nodes, max_cloud_nodes)
-        )[0]
-        task_graph = get_task_graphs(num=1)[0]
-        pairs.append((network, task_graph))
+    Args:
+        get_task_graphs: A function that returns a list of task graphs.
+        name: The name of the dataset.
+        num_instances: The number of instances to generate.
+        overwrite: Whether to overwrite existing instances.
 
-    return PairsDataset(pairs, name=name)
+    Returns:
+        Dataset: The generated dataset.
+    """
+    dataset = Dataset(name=name)
+    existing_instances = set(dataset.instances) if not overwrite else set()
+    isntance_names = {f"{name}_{i}" for i in range(num_instances)}
+    new_instances = isntance_names - existing_instances
+    networks = get_fog_networks(num=len(new_instances))
+    task_graphs = get_task_graphs(len(new_instances))
+    for i, instance_name in enumerate(new_instances):
+        dataset.save_instance(
+            ProblemInstance(
+                name=instance_name,
+                network=networks[i],
+                task_graph=task_graphs[i]
+            )
+        )
+    return dataset
 
-def prepare_datasets(savedir: pathlib.Path, skip_existing: bool = True):
-    """Generate the datasets."""
-    savedir.mkdir(parents=True, exist_ok=True)
+def _prepare_dataset_task(task: Tuple[str, dict]) -> Tuple[str, int]:
+    """Worker function to prepare a single dataset.
+
+    Args:
+        task: Tuple of (task_type, kwargs) where task_type identifies the dataset
+              and kwargs are the arguments to pass to the dataset function.
+
+    Returns:
+        Tuple of (dataset_name, dataset_size).
+    """
+    task_type, kwargs = task
+
+    if task_type == "in_trees":
+        ds = in_trees_dataset(**kwargs)
+    elif task_type == "out_trees":
+        ds = out_trees_dataset(**kwargs)
+    elif task_type == "chains":
+        ds = chains_dataset(**kwargs)
+    elif task_type == "riotbench_etl":
+        ds = riotbench_dataset(get_etl_task_graphs, name="etl", **kwargs)
+    elif task_type == "riotbench_predict":
+        ds = riotbench_dataset(get_predict_task_graphs, name="predict", **kwargs)
+    elif task_type == "riotbench_stats":
+        ds = riotbench_dataset(get_stats_task_graphs, name="stats", **kwargs)
+    elif task_type == "riotbench_train":
+        ds = riotbench_dataset(get_train_task_graphs, name="train", **kwargs)
+    elif task_type.startswith("wfcommons_"):
+        recipe_name = task_type.replace("wfcommons_", "")
+        ds = wfcommons_dataset(recipe_name, **kwargs)
+    else:
+        raise ValueError(f"Unknown task type: {task_type}")
+
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_datasets(overwrite: bool = False, num_workers: int = num_processors):
+    """Generate the datasets using multiprocessing.
+
+    Args:
+        overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
+    """
+    tasks: List[Tuple[str, dict]] = []
 
     # Random Graphs
-    if not savedir.joinpath("in_trees.json").exists() or not skip_existing:
-        # in_trees_dataset()
-        save_dataset(savedir, in_trees_dataset())
-    if not savedir.joinpath("out_trees.json").exists() or not skip_existing:
-        # out_trees_dataset()
-        save_dataset(savedir, out_trees_dataset())
-    if not savedir.joinpath("chains.json").exists() or not skip_existing:
-        # chains_dataset()
-        save_dataset(savedir, chains_dataset())
+    tasks.append(("in_trees", {"overwrite": overwrite}))
+    tasks.append(("out_trees", {"overwrite": overwrite}))
+    tasks.append(("chains", {"overwrite": overwrite}))
 
-    # # Riotbench
-    if not savedir.joinpath("etl.json").exists() or not skip_existing:
-        # riotbench_dataset(get_etl_task_graphs, name="etl")
-        save_dataset(savedir, riotbench_dataset(get_etl_task_graphs, name="etl"))
-    if not savedir.joinpath("predict.json").exists() or not skip_existing:
-        # riotbench_dataset(get_predict_task_graphs, name="predict")
-        save_dataset(savedir, riotbench_dataset(get_predict_task_graphs, name="predict"))
-    if not savedir.joinpath("stats.json").exists() or not skip_existing:
-        # riotbench_dataset(get_stats_task_graphs, name="stats")
-        save_dataset(savedir, riotbench_dataset(get_stats_task_graphs, name="stats"))
-    if not savedir.joinpath("train.json").exists() or not skip_existing:
-        # riotbench_dataset(get_train_task_graphs, name="train")
-        save_dataset(savedir, riotbench_dataset(get_train_task_graphs, name="train"))
+    # Riotbench
+    tasks.append(("riotbench_etl", {"overwrite": overwrite}))
+    tasks.append(("riotbench_predict", {"overwrite": overwrite}))
+    tasks.append(("riotbench_stats", {"overwrite": overwrite}))
+    tasks.append(("riotbench_train", {"overwrite": overwrite}))
 
-    # # Wfcommons
+    # Wfcommons
     for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
-        if not savedir.joinpath(f"{recipe_name}.json").exists() or not skip_existing:
-            # wfcommons_dataset(recipe_name)
-            save_dataset(savedir, wfcommons_dataset(recipe_name))
+        tasks.append((f"wfcommons_{recipe_name}", {"overwrite": overwrite}))
 
-def prepare_wfcommons_ccr_datasets(savedir: pathlib.Path, skip_existing: bool = True):
-    """Generate the datasets."""
-    savedir.mkdir(parents=True, exist_ok=True)
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_dataset_task, tasks)
 
-    # Wfcommons w/ different CCRs
+    print(f"\nPrepared {len(results)} datasets.")
+
+def _prepare_wfcommons_ccr_task(args: Tuple[str, float, bool]) -> Tuple[str, int]:
+    """Worker function to prepare a single wfcommons CCR dataset."""
+    recipe_name, ccr, overwrite = args
+    ds = wfcommons_dataset(
+        recipe_name=recipe_name,
+        ccr=ccr,
+        dataset_name=f"{recipe_name}_ccr_{ccr}",
+        overwrite=overwrite
+    )
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_wfcommons_ccr_datasets(overwrite: bool = False, num_workers: int = num_processors):
+    """Generate the wfcommons datasets with varying CCRs using multiprocessing.
+
+    Args:
+        overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
+    """
     ccrs = [1/5, 1/2, 1, 2, 5]
-    for ccr in ccrs:
-        for recipe_name in ["epigenomics", "montage", "cycles", "seismology", "soykb", "srasearch", "genome", "blast", "bwa"]:
-            if not savedir.joinpath(f"{recipe_name}_ccr_{ccr}.json").exists() or not skip_existing:
-                # wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}")
-                save_dataset(savedir, wfcommons_dataset(recipe_name, ccr=ccr, dataset_name=f"{recipe_name}_ccr_{ccr}"))
+    dataset_names = [
+        'epigenomics',
+        'montage',
+        'cycles',
+        'seismology',
+        'soykb',
+        'srasearch',
+        'genome',
+        'blast',
+        'bwa'
+    ]
 
-def prepare_ccr_datasets(savedir: pathlib.Path,
-                         ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
-                         skip_existing: bool = True):
-    """Generate the datasets."""
-    savedir.mkdir(parents=True, exist_ok=True)
-    dataset_names = {
-        'chains': chains_dataset,
-        'in_trees': in_trees_dataset,
-        'out_trees': out_trees_dataset,
-        'cycles': lambda ccr: wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}"),
-    }
-    for ccr in ccrs:
-        for name in dataset_names:
-            if not savedir.joinpath(f"{name}_ccr_{ccr}.json").exists() or not skip_existing:
-                save_dataset(savedir, dataset_names[name](ccr=ccr))
+    tasks = [(name, ccr, overwrite) for ccr in ccrs for name in dataset_names]
+
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_wfcommons_ccr_task, tasks)
+
+    print(f"\nPrepared {len(results)} wfcommons CCR datasets.")
 
 
+def _prepare_ccr_task(args: Tuple[str, float, bool]) -> Tuple[str, int]:
+    """Worker function to prepare a single CCR dataset."""
+    dataset_type, ccr, overwrite = args
+
+    if dataset_type == 'chains':
+        ds = chains_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'in_trees':
+        ds = in_trees_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'out_trees':
+        ds = out_trees_dataset(ccr=ccr, overwrite=overwrite)
+    elif dataset_type == 'cycles':
+        ds = wfcommons_dataset('cycles', ccr=ccr, dataset_name=f"cycles_ccr_{ccr}", overwrite=overwrite)
+    else:
+        raise ValueError(f"Unknown dataset type: {dataset_type}")
+
+    print(f"Generated dataset {ds.name} with {ds.size} instances.")
+    return ds.name, ds.size
+
+
+def prepare_ccr_datasets(
+    ccrs: List[float] = [1/5, 1/2, 1, 2, 5],
+    overwrite: bool = False,
+    num_workers: int = num_processors
+):
+    """Generate the CCR datasets using multiprocessing.
+
+    Args:
+        ccrs: List of CCR values to generate datasets for.
+        overwrite: Whether to overwrite existing instances.
+        num_workers: Number of worker processes.
+    """
+    dataset_types = ['chains', 'in_trees', 'out_trees', 'cycles']
+
+    tasks = [(dtype, ccr, overwrite) for ccr in ccrs for dtype in dataset_types]
+
+    with Pool(processes=num_workers) as pool:
+        results = pool.map(_prepare_ccr_task, tasks)
+
+    print(f"\nPrepared {len(results)} CCR datasets.")
+
+def main():
+    prepare_datasets(overwrite=False)
+
+if __name__ == "__main__":
+    main()

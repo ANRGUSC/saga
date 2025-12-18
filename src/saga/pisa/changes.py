@@ -1,252 +1,256 @@
 import abc
-import pathlib
 import random
-from dataclasses import dataclass
-from typing import Optional
-import numpy as np
-from saga.utils.random_variable import RandomVariable
-from scipy.stats import norm
+from typing import Annotated, Any, Literal, Optional, Set, Union
+from pydantic import BaseModel, Discriminator, Field, Tag
 
-import networkx as nx
+from saga import Network, TaskGraph, NetworkNode, NetworkEdge, TaskGraphNode, TaskGraphEdge
 
-class Change:
+MINVAL = 0.1
+MAXVAL = 1.0
+DELTA = 0.1
+
+class Change(BaseModel, abc.ABC):
+    """Base class for changes to a network or task graph."""
+
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> Optional['Change']:
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['Change']:
+        """Generate a random change.
+
+        Args:
+            network: The network.
+            task_graph: The task graph.
+
+        Returns:
+            A random change, or None if no valid change can be made.
+        """
         raise NotImplementedError
 
     @classmethod
-    def apply_random(self, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        change: Optional[Change] = self.random(network, task_graph)
+    def apply_random(cls, network: Network, task_graph: TaskGraph) -> tuple[Optional['Change'], Network, TaskGraph]:
+        """Apply a random change to the network and task graph.
+
+        Args:
+            network: The network.
+            task_graph: The task graph.
+
+        Returns:
+            Tuple of (change, new_network, new_task_graph).
+        """
+        change: Optional[Change] = cls.random(network, task_graph)
         if change is not None:
-            change.apply(network, task_graph)
-        return change
+            network, task_graph = change.apply(network, task_graph)
+        return change, network, task_graph
 
     @abc.abstractmethod
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        """Apply the change to the network and task graph.
+
+        Args:
+            network: The network.
+            task_graph: The task graph.
+
+        Returns:
+            Tuple of (new_network, new_task_graph).
+        """
         raise NotImplementedError
 
-# Delete a dependency
-@dataclass
+
 class TaskGraphDeleteDependency(Change):
-    task: str
-    dependency: str
+    """Delete a dependency from the task graph."""
+    change_type: Literal["task_graph_delete_dependency"] = "task_graph_delete_dependency"
+    source: str = Field(..., description="The source task.")
+    target: str = Field(..., description="The target task.")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a dependency to delete"""
-        if len(task_graph.edges) <= 0:
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['TaskGraphDeleteDependency']:
+        """Randomly select a dependency to delete."""
+        if len(task_graph.dependencies) <= 0:
             return None
-        task, dependency = random.choice(list(task_graph.edges))
-        change = TaskGraphDeleteDependency(task, dependency)
-        return change
+        dep = random.choice(list(task_graph.dependencies))
+        return cls(source=dep.source, target=dep.target)
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        task_graph.remove_edge(self.task, self.dependency)
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_deps = frozenset(
+            d for d in task_graph.dependencies
+            if not (d.source == self.source and d.target == self.target)
+        )
+        new_task_graph = TaskGraph(tasks=task_graph.tasks, dependencies=new_deps)
+        return network, new_task_graph
 
-def get_gaussian_random_variable() -> RandomVariable:
-    """Returns a random variable with a Gaussian distribution."""
-    std = np.random.uniform(0.01, 0.1)
-    mean = np.random.uniform(0.5 - 4 * std, 0.5 + 4 * std)
-    x = np.linspace(mean - 4 * std, mean + 4 * std, 1000)
-    pdf = norm.pdf(x, loc=mean, scale=std)
-    return RandomVariable.from_pdf(x, pdf)
 
-@dataclass
-class GaussianTaskGraphDeleteDependency(TaskGraphDeleteDependency):
-    pass # Same as TaskGraphDeleteDependency
-
-# Add a dependency
-@dataclass
 class TaskGraphAddDependency(Change):
-    task: str
-    dependency: str
+    """Add a dependency to the task graph."""
+    change_type: Literal["task_graph_add_dependency"] = "task_graph_add_dependency"
+    source: str = Field(..., description="The source task.")
+    target: str = Field(..., description="The target task.")
+    size: float = Field(default_factory=lambda: random.uniform(MINVAL, MAXVAL), description="The data size.")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a dependency to add"""
-        # get random permutation of nodes
-        nodes = list(task_graph.nodes)
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['TaskGraphAddDependency']:
+        """Randomly select a dependency to add."""
+        import networkx as nx
+        graph = task_graph.graph
+
+        nodes = list(graph.nodes)
         random.shuffle(nodes)
 
         for node in nodes:
-            ancestors = nx.ancestors(task_graph, node)
-            children = task_graph.successors(node)
-            non_ancestors = set(nodes) - ancestors - set(children) - {node}
+            ancestors = nx.ancestors(graph, node)
+            children = set(graph.successors(node))
+            non_ancestors = set(nodes) - ancestors - children - {node}
             if len(non_ancestors) > 0:
-                dependency = random.choice(list(non_ancestors))
-                change = cls(node, dependency)
-                return change
+                target = random.choice(list(non_ancestors))
+                return cls(source=node, target=target)
         return None
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        weight = random.uniform(0, 1)
-        task_graph.add_edge(self.task, self.dependency, weight=weight)
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_dep = TaskGraphEdge(source=self.source, target=self.target, size=self.size)
+        new_deps = frozenset(task_graph.dependencies | {new_dep})
+        new_task_graph = TaskGraph(tasks=task_graph.tasks, dependencies=new_deps)
+        return network, new_task_graph
 
-@dataclass
-class GaussianTaskGraphAddDependency(TaskGraphAddDependency):
-    task: str
-    dependency: str
 
-    # random() is inherited from TaskGraphAddDependency
-    
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        new_weight = get_gaussian_random_variable()
-        task_graph.add_edge(self.task, self.dependency, weight=new_weight)
-
-# Change a dependency weight
-@dataclass
 class TaskGraphChangeDependencyWeight(Change):
-    task: str
-    dependency: str
-    weight: float
+    """Change a dependency weight in the task graph."""
+    change_type: Literal["task_graph_change_dependency_weight"] = "task_graph_change_dependency_weight"
+    source: str = Field(..., description="The source task.")
+    target: str = Field(..., description="The target task.")
+    size: float = Field(..., description="The new data size.")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a dependency to change"""
-        if len(task_graph.edges) <= 0:
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['TaskGraphChangeDependencyWeight']:
+        """Randomly select a dependency to change."""
+        if len(task_graph.dependencies) <= 0:
             return None
-        task, dependency = random.choice(list(task_graph.edges))
-        d_weight = random.uniform(-0.1, 0.1)
-        weight = task_graph.edges[task, dependency]['weight'] + d_weight
-        weight = max(1e-9, min(1, weight))
-        change = TaskGraphChangeDependencyWeight(task, dependency, weight)
-        return change
+        dep = random.choice(list(task_graph.dependencies))
+        d_size = random.uniform(-DELTA, DELTA)
+        new_size = max(MINVAL, min(MAXVAL, dep.size + d_size))
+        return cls(source=dep.source, target=dep.target, size=new_size)
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        task_graph.edges[self.task, self.dependency]['weight'] = self.weight
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_deps: Set[TaskGraphEdge] = set()
+        for d in task_graph.dependencies:
+            if d.source == self.source and d.target == self.target:
+                new_deps.add(TaskGraphEdge(source=d.source, target=d.target, size=self.size))
+            else:
+                new_deps.add(d)
+        new_task_graph = TaskGraph(tasks=task_graph.tasks, dependencies=frozenset(new_deps))
+        return network, new_task_graph
 
-@dataclass
-class GaussianTaskGraphChangeDependencyWeight(TaskGraphChangeDependencyWeight):
-    task: str
-    dependency: str
-    weight: RandomVariable
 
-    @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a dependency to change"""
-        if len(task_graph.edges) <= 0:
-            return None
-        task, dependency = random.choice(list(task_graph.edges))
-        new_weight = get_gaussian_random_variable()
-        change = GaussianTaskGraphChangeDependencyWeight(task, dependency, new_weight)
-        return change
-    
-    # apply() is the same as TaskGraphChangeDependencyWeight
-
-# Change a task weight
-@dataclass
 class TaskGraphChangeTaskWeight(Change):
-    task: str
-    weight: float
+    """Change a task weight in the task graph."""
+    change_type: Literal["task_graph_change_task_weight"] = "task_graph_change_task_weight"
+    task: str = Field(..., description="The task name.")
+    cost: float = Field(..., description="The new cost.")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a task to change"""
-        if len(task_graph.nodes) <= 0:
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['TaskGraphChangeTaskWeight']:
+        """Randomly select a task to change."""
+        if len(task_graph.tasks) <= 0:
             return None
-        task = random.choice(list(task_graph.nodes))
-        d_weight = random.uniform(-0.1, 0.1)
-        weight = task_graph.nodes[task]['weight'] + d_weight
-        weight = max(1e-9, min(1, weight))
-        change = TaskGraphChangeTaskWeight(task, weight)
-        return change
+        task = random.choice(list(task_graph.tasks))
+        d_cost = random.uniform(-DELTA, DELTA)
+        new_cost = max(MINVAL, min(MAXVAL, task.cost + d_cost))
+        return cls(task=task.name, cost=new_cost)
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        task_graph.nodes[self.task]['weight'] = self.weight
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_tasks: Set[TaskGraphNode] = set()
+        for t in task_graph.tasks:
+            if t.name == self.task:
+                new_tasks.add(TaskGraphNode(name=t.name, cost=self.cost))
+            else:
+                new_tasks.add(t)
+        new_task_graph = TaskGraph(tasks=frozenset(new_tasks), dependencies=task_graph.dependencies)
+        return network, new_task_graph
 
-@dataclass
-class GaussianTaskGraphChangeTaskWeight(TaskGraphChangeTaskWeight):
-    task: str
-    weight: RandomVariable
 
-    @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a task to change"""
-        if len(task_graph.nodes) <= 0:
-            return None
-        task = random.choice(list(task_graph.nodes))
-        new_weight = get_gaussian_random_variable()
-        change = GaussianTaskGraphChangeTaskWeight(task, new_weight)
-        return change
-    
-    # apply() is the same as TaskGraphChangeTaskWeight
-
-# Change a network edge weight
-@dataclass
 class NetworkChangeEdgeWeight(Change):
-    node1: str
-    node2: str
-    weight: float
+    """Change a network edge weight."""
+    change_type: Literal["network_change_edge_weight"] = "network_change_edge_weight"
+    source: str = Field(..., description="The source node.")
+    target: str = Field(..., description="The target node.")
+    speed: float = Field(..., description="The new speed (bandwidth).")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select an edge to change"""
-        if len(network.edges) <= 0:
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['NetworkChangeEdgeWeight']:
+        """Randomly select an edge to change."""
+        # Filter out self-loops
+        non_self_edges = [e for e in network.edges if e.source != e.target]
+        if len(non_self_edges) <= 0:
             return None
-        # choose two unique nodes
-        node1, node2 = random.sample(list(network.nodes), 2)
-        d_weight = random.uniform(-0.1, 0.1)
-        weight = network.edges[node1, node2]['weight'] + d_weight
-        weight = max(1e-9, min(1, weight))
-        change = NetworkChangeEdgeWeight(node1, node2, weight)
-        return change
+        edge = random.choice(non_self_edges)
+        d_speed = random.uniform(-DELTA, DELTA)
+        new_speed = max(MINVAL, min(MAXVAL, edge.speed + d_speed))
+        return cls(source=edge.source, target=edge.target, speed=new_speed)
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        network.edges[self.node1, self.node2]['weight'] = self.weight
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_edges: Set[NetworkEdge] = set()
+        for e in network.edges:
+            src, tgt = sorted((e.source, e.target))
+            self_src, self_tgt = sorted((self.source, self.target))
+            if src == self_src and tgt == self_tgt:
+                new_edges.add(NetworkEdge(source=e.source, target=e.target, speed=self.speed))
+            else:
+                new_edges.add(e)
+        new_network = Network(nodes=network.nodes, edges=frozenset(new_edges))
+        return new_network, task_graph
 
-@dataclass
-class GaussianNetworkChangeEdgeWeight(NetworkChangeEdgeWeight):
-    node1: str
-    node2: str
-    weight: RandomVariable
 
-    @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select an edge to change"""
-        if len(network.edges) <= 0:
-            return None
-        # choose two unique nodes
-        node1, node2 = random.sample(list(network.nodes), 2)
-        new_weight = get_gaussian_random_variable()
-        change = GaussianNetworkChangeEdgeWeight(node1, node2, new_weight)
-        return change
-    
-    # apply() is the same as NetworkChangeEdgeWeight
-
-# Change a network node weight
-@dataclass
 class NetworkChangeNodeWeight(Change):
-    node: str
-    weight: float
+    """Change a network node weight."""
+    change_type: Literal["network_change_node_weight"] = "network_change_node_weight"
+    node: str = Field(..., description="The node name.")
+    speed: float = Field(..., description="The new speed.")
 
     @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a node to change"""
+    def random(cls, network: Network, task_graph: TaskGraph) -> Optional['NetworkChangeNodeWeight']:
+        """Randomly select a node to change."""
         if len(network.nodes) <= 0:
             return None
         node = random.choice(list(network.nodes))
-        d_weight = random.uniform(-0.1, 0.1)
-        weight = network.nodes[node]['weight'] + d_weight
-        weight = max(1e-9, min(1, weight))
-        change = NetworkChangeNodeWeight(node, weight)
-        return change
+        d_speed = random.uniform(-DELTA, DELTA)
+        new_speed = max(MINVAL, min(MAXVAL, node.speed + d_speed))
+        return cls(node=node.name, speed=new_speed)
 
-    def apply(self, network: nx.Graph, task_graph: nx.DiGraph) -> None:
-        network.nodes[self.node]['weight'] = self.weight
+    def apply(self, network: Network, task_graph: TaskGraph) -> tuple[Network, TaskGraph]:
+        new_nodes: Set[NetworkNode] = set()
+        for n in network.nodes:
+            if n.name == self.node:
+                new_nodes.add(NetworkNode(name=n.name, speed=self.speed))
+            else:
+                new_nodes.add(n)
+        new_network = Network(nodes=frozenset(new_nodes), edges=network.edges)
+        return new_network, task_graph
 
-@dataclass
-class GaussianNetworkChangeNodeWeight(NetworkChangeNodeWeight):
-    node: str
-    weight: RandomVariable
 
-    @classmethod
-    def random(cls, network: nx.Graph, task_graph: nx.DiGraph) -> 'Change':
-        """Randomly select a node to change"""
-        if len(network.nodes) <= 0:
-            return None
-        node = random.choice(list(network.nodes))
-        new_weight = get_gaussian_random_variable()
-        change = GaussianNetworkChangeNodeWeight(node, new_weight)
-        return change
-    
-    # apply() is the same as NetworkChangeNodeWeight
+# Discriminator function for Change union type
+def get_change_discriminator_value(v: Any) -> str:
+    """Get the discriminator value for a Change instance or dict."""
+    if isinstance(v, dict):
+        return v.get('change_type', '')
+    return getattr(v, 'change_type', '')
+
+
+# Discriminated union type for all Change types
+ChangeType = Annotated[
+    Union[
+        Annotated[TaskGraphDeleteDependency, Tag("task_graph_delete_dependency")],
+        Annotated[TaskGraphAddDependency, Tag("task_graph_add_dependency")],
+        Annotated[TaskGraphChangeDependencyWeight, Tag("task_graph_change_dependency_weight")],
+        Annotated[TaskGraphChangeTaskWeight, Tag("task_graph_change_task_weight")],
+        Annotated[NetworkChangeEdgeWeight, Tag("network_change_edge_weight")],
+        Annotated[NetworkChangeNodeWeight, Tag("network_change_node_weight")],
+    ],
+    Discriminator(get_change_discriminator_value),
+]
+
+# Default change types for simulated annealing
+DEFAULT_CHANGE_TYPES = [
+    TaskGraphDeleteDependency,
+    TaskGraphAddDependency,
+    TaskGraphChangeDependencyWeight,
+    TaskGraphChangeTaskWeight,
+    NetworkChangeEdgeWeight,
+    NetworkChangeNodeWeight,
+]
