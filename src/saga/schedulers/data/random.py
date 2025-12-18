@@ -3,7 +3,6 @@ from typing import Callable, Hashable, List, Optional
 import networkx as nx
 
 from saga import TaskGraph, Network
-from saga.schedulers.data import Dataset
 
 # Task Graph Datasets
 def _default_task_weight(task: Hashable) -> float:

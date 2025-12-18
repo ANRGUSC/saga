@@ -153,18 +153,6 @@ class CpopScheduler(Scheduler):
                 nodes = frozenset([cp_node])
 
             for node in nodes:
-                max_arrival_time: float = max( 
-                    [
-                        min_start_time, *[
-                            task_map[dep.source].end + (
-                                dep.size / 
-                                network.get_edge(task_map[dep.source].node, node.name).speed
-                            )
-                            for dep in task_graph.in_edges(task.name)
-                        ]
-                    ]
-                )
-                
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task,
                     node=node,

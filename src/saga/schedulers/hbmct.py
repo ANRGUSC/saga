@@ -269,11 +269,10 @@ class HbmctScheduler(Scheduler):
                     if new_max_ft < max_ft:
                         min_ft_node = None
                         min_ft_node_schedule = None
-                        updated_task = None
                         min_ft = float("inf")
                         for node_name in node_names:
                             if node_name != max_ft_node:
-                                new_ft, node_schedule, new_task = get_ft_after_insert(
+                                new_ft, node_schedule, _ = get_ft_after_insert(
                                     task_name,
                                     node_name,
                                     assignments[node_name],
@@ -289,7 +288,6 @@ class HbmctScheduler(Scheduler):
                                     min_ft = new_ft
                                     min_ft_node = node_name
                                     min_ft_node_schedule = node_schedule.copy()
-                                    updated_task = new_task
                         if min_ft_node:
                             assignment_changed = True
                             # Update schedules - need to rebuild from the modified schedules

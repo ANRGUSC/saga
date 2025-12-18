@@ -581,7 +581,7 @@ def gradient_heatmap(data: pd.DataFrame,
                     if np.isnan(value):
                         value = ""
                     elif value > 1000:
-                        value = f'$>{1000}$' if use_latex else f'>1000'
+                        value = f'$>{1000}$' if use_latex else '>1000'
                     elif value > upper_threshold:
                         value = f'$>{upper_threshold}$' if use_latex else f'>{upper_threshold}'
                     elif isinstance(value, int) or (isinstance(value, float) and value.is_integer()):

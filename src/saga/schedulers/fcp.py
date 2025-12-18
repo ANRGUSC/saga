@@ -29,10 +29,6 @@ def get_mcp_priorities(network: Network, task_graph: TaskGraph) -> Dict[str, flo
         (dep.source, dep.target): dep.size / avg_comm_speed for dep in task_graph.dependencies
     }
 
-    # Find entry and exit tasks
-    entry_tasks = [task.name for task in task_graph.tasks if task_graph.in_degree(task.name) == 0]
-    exit_tasks = [task.name for task in task_graph.tasks if task_graph.out_degree(task.name) == 0]
-
     # Compute longest path lengths from each task to exit
     longest_path_lengths: Dict[str, float] = {}
     for task in reversed(task_graph.topological_sort()):
