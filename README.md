@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml/badge.svg)](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/anrg-saga.svg)](https://badge.fury.io/py/anrg-saga)
-[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Saga: **S**cheduling **A**lgorithms **Ga**thered.
@@ -19,12 +19,12 @@ The algorithms are all implemented in Python using a common interface.  Scripts 
 
 ### Python Version
 
-All components of this repository have been tested with **Python 3.13**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
+All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
 
-To create a new Conda environment with Python 3.13:
+To create a new Conda environment with Python 3.11:
 
 ```bash
-conda create -n saga-env python=3.13
+conda create -n saga-env python=3.11
 conda activate saga-env
 ```
 

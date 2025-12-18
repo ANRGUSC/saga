@@ -9,7 +9,7 @@ description = "Scheduling Algorithms Gathered - collection of task graph schedul
 readme = "README.md"
 authors = [{name = "ANRG USC", email = "anrg@usc.edu"}]
 license = {text = "MIT"}
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 dependencies = [
     "networkx",
     "numpy",
@@ -27,7 +27,6 @@ dependencies = [
     "pysmt",
     "z3-solver",
     "pygraphviz",
-    "streamlit",
 ]
 
 [project.urls]
