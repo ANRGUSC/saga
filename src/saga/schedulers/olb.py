@@ -11,11 +11,14 @@ class OLBScheduler(Scheduler):
         to be available, regardless of the task's expected execution time on that machine"
         (from source).
     """
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Schedule tasks on nodes using the OLB algorithm.
 
         Args:
@@ -32,7 +35,9 @@ class OLBScheduler(Scheduler):
 
         if schedule is not None:
             comp_schedule = schedule.model_copy()
-            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
+            scheduled_tasks = {
+                t.name: t for _, tasks in schedule.items() for t in tasks
+            }
 
         node_names = [node.name for node in network.nodes]
 
@@ -42,20 +47,27 @@ class OLBScheduler(Scheduler):
 
             next_available_node = min(
                 node_names,
-                key=lambda node_name: comp_schedule[node_name][-1].end if comp_schedule[node_name] else min_start_time
+                key=lambda node_name: comp_schedule[node_name][-1].end
+                if comp_schedule[node_name]
+                else min_start_time,
             )
 
             in_edges = task_graph.in_edges(task.name)
             times = [
                 # time node is available
-                comp_schedule[next_available_node][-1].end if comp_schedule[next_available_node] else min_start_time,
+                comp_schedule[next_available_node][-1].end
+                if comp_schedule[next_available_node]
+                else min_start_time,
                 *[
-                    scheduled_tasks[in_edge.source].end + (
-                        in_edge.size /
-                        network.get_edge(scheduled_tasks[in_edge.source].node, next_available_node).speed
+                    scheduled_tasks[in_edge.source].end
+                    + (
+                        in_edge.size
+                        / network.get_edge(
+                            scheduled_tasks[in_edge.source].node, next_available_node
+                        ).speed
                     )
                     for in_edge in in_edges
-                ]
+                ],
             ]
             start_time = max(times)
             node = network.get_node(next_available_node)
@@ -64,7 +76,7 @@ class OLBScheduler(Scheduler):
                 name=task.name,
                 node=next_available_node,
                 start=start_time,
-                end=start_time + exec_time
+                end=start_time + exec_time,
             )
 
             comp_schedule.add_task(new_task)

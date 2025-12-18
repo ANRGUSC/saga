@@ -11,6 +11,8 @@ from saga.utils.random_variable import RandomVariable, UniformRandomVariable
 DEFAULT_WEIGHT_DISTRIBUTION = UniformRandomVariable(0.1, 1.0)
 
 T = TypeVar("T", nx.DiGraph, nx.Graph)
+
+
 def add_random_weights(
     graph: T,
     weight_distribution: Optional[RandomVariable] = None,
@@ -38,10 +40,13 @@ def add_random_weights(
         graph.nodes[node]["weight"] = node_dist.sample()
     for edge in graph.edges:
         if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = 1e9 * edge_dist.sample()  # very large communication speed
+            graph.edges[edge]["weight"] = (
+                1e9 * edge_dist.sample()
+            )  # very large communication speed
         else:
             graph.edges[edge]["weight"] = edge_dist.sample()
     return graph
+
 
 def default_get_rv(num_samples: int = 100) -> RandomVariable:
     std = np.random.uniform(1e-9, 0.01)
@@ -50,8 +55,10 @@ def default_get_rv(num_samples: int = 100) -> RandomVariable:
     pdf = norm.pdf(x_vals, loc, std)
     return RandomVariable.from_pdf(x_vals, pdf)
 
-def add_rv_weights(graph: T,
-                   get_rv: Callable[[], RandomVariable] = default_get_rv) -> T:
+
+def add_rv_weights(
+    graph: T, get_rv: Callable[[], RandomVariable] = default_get_rv
+) -> T:
     """Adds random variable weights to the DAG."""
     for node in graph.nodes:
         graph.nodes[node]["weight"] = get_rv()
@@ -62,6 +69,7 @@ def add_rv_weights(graph: T,
             graph.edges[edge]["weight"] = get_rv()
     return graph
 
+
 def get_diamond_dag(
     weight_distribution: Optional[RandomVariable] = None,
     node_weight_distribution: Optional[RandomVariable] = None,
@@ -71,8 +79,11 @@ def get_diamond_dag(
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D"])
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
-    dag = add_random_weights(dag, weight_distribution, node_weight_distribution, edge_weight_distribution)
+    dag = add_random_weights(
+        dag, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
     return TaskGraph.from_nx(dag)
+
 
 def get_chain_dag(
     num_nodes: int = 4,
@@ -84,9 +95,12 @@ def get_chain_dag(
     dag = nx.DiGraph()
     nodes = [chr(ord("A") + i) for i in range(num_nodes)]
     dag.add_nodes_from(nodes)
-    dag.add_edges_from([(nodes[i], nodes[i+1]) for i in range(num_nodes - 1)])
-    dag = add_random_weights(dag, weight_distribution, node_weight_distribution, edge_weight_distribution)
+    dag.add_edges_from([(nodes[i], nodes[i + 1]) for i in range(num_nodes - 1)])
+    dag = add_random_weights(
+        dag, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
     return TaskGraph.from_nx(dag)
+
 
 def get_fork_dag(
     weight_distribution: Optional[RandomVariable] = None,
@@ -96,9 +110,14 @@ def get_fork_dag(
     """Returns a fork DAG."""
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D", "E", "F"])
-    dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")])
-    dag = add_random_weights(dag, weight_distribution, node_weight_distribution, edge_weight_distribution)
+    dag.add_edges_from(
+        [("A", "B"), ("A", "C"), ("B", "D"), ("C", "E"), ("D", "F"), ("E", "F")]
+    )
+    dag = add_random_weights(
+        dag, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
     return TaskGraph.from_nx(dag)
+
 
 def get_branching_dag(
     levels: int = 3,
@@ -140,8 +159,11 @@ def get_branching_dag(
     graph.add_node(str(dst_node))
     graph.add_edges_from([(str(node), str(dst_node)) for node in level_nodes])
 
-    graph = add_random_weights(graph, weight_distribution, node_weight_distribution, edge_weight_distribution)
+    graph = add_random_weights(
+        graph, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
     return TaskGraph.from_nx(graph)
+
 
 def get_network(
     num_nodes: int = 4,
@@ -164,5 +186,7 @@ def get_network(
     node_names = list(map(str, range(num_nodes)))
     network.add_nodes_from(node_names)
     network.add_edges_from(product(node_names, node_names))
-    network = add_random_weights(network, weight_distribution, node_weight_distribution, edge_weight_distribution)
+    network = add_random_weights(
+        network, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
     return Network.from_nx(network)

@@ -5,9 +5,8 @@ from saga import Scheduler, ScheduledTask, TaskGraph, Network, Schedule
 
 class BruteForceScheduler(Scheduler):
     """Brute force scheduler"""
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph) -> Schedule:
+
+    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
         """Returns the best schedule (minimizing makespan) for a problem
            instance using brute force
 
@@ -23,7 +22,9 @@ class BruteForceScheduler(Scheduler):
         # get all valid mappings of the task graph nodes to the network nodes
         mappings = [
             dict(zip(task_graph.tasks, mapping))
-            for mapping in itertools.product(network.nodes, repeat=len(task_graph.tasks))
+            for mapping in itertools.product(
+                network.nodes, repeat=len(task_graph.tasks)
+            )
         ]
 
         best_schedule = None
@@ -33,12 +34,14 @@ class BruteForceScheduler(Scheduler):
                 schedule: Schedule = Schedule(task_graph, network)
                 for task in top_sort:
                     node = mapping[task]
-                    ready_time = schedule.get_earliest_start_time(task.name, node.name, append_only=True)
+                    ready_time = schedule.get_earliest_start_time(
+                        task.name, node.name, append_only=True
+                    )
                     new_task = ScheduledTask(
                         node=node.name,
                         name=task.name,
                         start=ready_time,
-                        end=ready_time + task.cost / node.speed
+                        end=ready_time + task.cost / node.speed,
                     )
                     schedule.add_task(new_task)
 

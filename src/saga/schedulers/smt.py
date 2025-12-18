@@ -1,8 +1,19 @@
 from itertools import combinations, product
 from typing import Dict, Optional, Any
 
-from pysmt.shortcuts import (GE, LE, And, Div, ExactlyOne, Implies, Or, Plus,
-                             Real, Symbol, get_model)
+from pysmt.shortcuts import (
+    GE,
+    LE,
+    And,
+    Div,
+    ExactlyOne,
+    Implies,
+    Or,
+    Plus,
+    Real,
+    Symbol,
+    get_model,
+)
 from pysmt.typing import REAL
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
@@ -10,7 +21,10 @@ from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 class SMTScheduler(Scheduler):
     """SMT-based scheduler"""
-    def __init__(self, epsilon: float = 1e-3, solver_name: Optional[str] = None) -> None:
+
+    def __init__(
+        self, epsilon: float = 1e-3, solver_name: Optional[str] = None
+    ) -> None:
         """Initializes the scheduler
 
         Args:
@@ -22,7 +36,9 @@ class SMTScheduler(Scheduler):
         self.solver_name = solver_name
 
     @classmethod
-    def get_assignment_symbols(cls, network: Network, task_graph: TaskGraph) -> Dict[str, Dict[str, Any]]:
+    def get_assignment_symbols(
+        cls, network: Network, task_graph: TaskGraph
+    ) -> Dict[str, Dict[str, Any]]:
         """Returns the assignment symbols for the network and task graph
 
         Args:
@@ -36,13 +52,14 @@ class SMTScheduler(Scheduler):
         for node in network.nodes:
             assignments[node.name] = {}
             for task in task_graph.tasks:
-                assignments[node.name][task.name] = Symbol(f"Node{node.name}_Task{task.name}", REAL)
+                assignments[node.name][task.name] = Symbol(
+                    f"Node{node.name}_Task{task.name}", REAL
+                )
         return assignments
 
-    def _schedule(self,
-                  network: Network,
-                  task_graph: TaskGraph,
-                  makespan: float) -> Optional[Schedule]:
+    def _schedule(
+        self, network: Network, task_graph: TaskGraph, makespan: float
+    ) -> Optional[Schedule]:
         """Returns the schedule of the tasks on the network if one exists within the makespan
 
         Args:
@@ -63,7 +80,8 @@ class SMTScheduler(Scheduler):
         for task_name in task_names:
             constraints.append(
                 ExactlyOne(
-                    GE(start_time[node_name][task_name], Real(0)) for node_name in node_names
+                    GE(start_time[node_name][task_name], Real(0))
+                    for node_name in node_names
                 )
             )
 
@@ -77,22 +95,26 @@ class SMTScheduler(Scheduler):
                     Implies(
                         And(
                             GE(start_time[node_name][task1_name], Real(0)),
-                            GE(start_time[node_name][task2_name], Real(0))
+                            GE(start_time[node_name][task2_name], Real(0)),
                         ),
                         Or(
                             # task1 ends before task2 starts
                             LE(
-                                Plus(start_time[node_name][task1_name], Div(Real(task1.cost),
-                                                                  Real(node.speed))),
-                                start_time[node_name][task2_name]
+                                Plus(
+                                    start_time[node_name][task1_name],
+                                    Div(Real(task1.cost), Real(node.speed)),
+                                ),
+                                start_time[node_name][task2_name],
                             ),
                             # task2 ends before task1 starts
                             LE(
-                                Plus(start_time[node_name][task2_name], Div(Real(task2.cost),
-                                                                  Real(node.speed))),
-                                start_time[node_name][task1_name]
-                            )
-                        )
+                                Plus(
+                                    start_time[node_name][task2_name],
+                                    Div(Real(task2.cost), Real(node.speed)),
+                                ),
+                                start_time[node_name][task1_name],
+                            ),
+                        ),
                     )
                 )
 
@@ -107,17 +129,23 @@ class SMTScheduler(Scheduler):
                         # task1 and task2 are assigned to node1 and node2 respectively
                         And(
                             GE(start_time[node1_name][dep.source], Real(0)),
-                            GE(start_time[node2_name][dep.target], Real(0))
+                            GE(start_time[node2_name][dep.target], Real(0)),
                         ),
                         # task2 start time is at least task1 end time + communication time
                         LE(
                             Plus(
-                                start_time[node1_name][dep.source], # start time of task1
-                                Div(Real(task1.cost), Real(node1.speed)), # execution time of task1
-                                Div(Real(dep.size), Real(edge.speed)) # communication time
+                                start_time[node1_name][
+                                    dep.source
+                                ],  # start time of task1
+                                Div(
+                                    Real(task1.cost), Real(node1.speed)
+                                ),  # execution time of task1
+                                Div(
+                                    Real(dep.size), Real(edge.speed)
+                                ),  # communication time
                             ),
-                            start_time[node2_name][dep.target]
-                        )
+                            start_time[node2_name][dep.target],
+                        ),
                     )
                 )
 
@@ -129,10 +157,12 @@ class SMTScheduler(Scheduler):
                 Implies(
                     GE(start_time[node_name][task_name], Real(0)),
                     LE(
-                        Plus(start_time[node_name][task_name], Div(Real(task.cost),
-                                                         Real(node.speed))),
-                        Real(makespan)
-                    )
+                        Plus(
+                            start_time[node_name][task_name],
+                            Div(Real(task.cost), Real(node.speed)),
+                        ),
+                        Real(makespan),
+                    ),
                 )
             )
 
@@ -147,20 +177,28 @@ class SMTScheduler(Scheduler):
                         new_task = ScheduledTask(
                             node=node_name,
                             name=task_name,
-                            start=float(model.get_py_value(start_time[node_name][task_name])),
-                            end=(float(model.get_py_value(start_time[node_name][task_name])) +
-                                 task.cost / node.speed)
+                            start=float(
+                                model.get_py_value(start_time[node_name][task_name])
+                            ),
+                            end=(
+                                float(
+                                    model.get_py_value(start_time[node_name][task_name])
+                                )
+                                + task.cost / node.speed
+                            ),
                         )
                         comp_schedule.add_task(new_task)
             return comp_schedule
         else:
             return None
 
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns an epsilon-optimal schedule of the tasks on the network.
 
         Args:
@@ -180,11 +218,14 @@ class SMTScheduler(Scheduler):
         upper_bound = 0.0
         for task in task_graph.tasks:
             exec_time = task.cost / fastest_node.speed
-            comm_time = max([
-                dep.size / network.get_edge(pred_node.name, fastest_node.name).speed
-                for dep in task_graph.in_edges(task.name)
-                for pred_node in network.nodes
-            ], default=0)
+            comm_time = max(
+                [
+                    dep.size / network.get_edge(pred_node.name, fastest_node.name).speed
+                    for dep in task_graph.in_edges(task.name)
+                    for pred_node in network.nodes
+                ],
+                default=0,
+            )
             upper_bound += exec_time + comm_time
 
         result_schedule = self._schedule(network, task_graph, upper_bound)

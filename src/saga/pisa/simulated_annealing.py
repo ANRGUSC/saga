@@ -1,4 +1,5 @@
 """Simulated annealing for finding adversarial scheduling instances."""
+
 import math
 import os
 import pathlib
@@ -10,15 +11,41 @@ from pydantic import BaseModel, Field
 from saga import Network, Schedule, TaskGraph, Scheduler
 from saga.pisa.changes import Change, ChangeType, DEFAULT_CHANGE_TYPES
 from saga.schedulers import (
-    BILScheduler, CpopScheduler, DuplexScheduler, ETFScheduler, FCPScheduler,
-    FLBScheduler, FastestNodeScheduler, GDLScheduler, HeftScheduler,
-    MCTScheduler, METScheduler, MaxMinScheduler, MinMinScheduler,
-    OLBScheduler, WBAScheduler, SufferageScheduler
+    BILScheduler,
+    CpopScheduler,
+    DuplexScheduler,
+    ETFScheduler,
+    FCPScheduler,
+    FLBScheduler,
+    FastestNodeScheduler,
+    GDLScheduler,
+    HeftScheduler,
+    MCTScheduler,
+    METScheduler,
+    MaxMinScheduler,
+    MinMinScheduler,
+    OLBScheduler,
+    WBAScheduler,
+    SufferageScheduler,
 )
 
 SchedulerName = Literal[
-    "BIL", "CPoP", "Duplex", "ETF", "FCP", "FLB", "FastestNode", "GDL",
-    "HEFT", "MCT", "MET", "MaxMin", "MinMin", "OLB", "WBA", "Sufferage"
+    "BIL",
+    "CPoP",
+    "Duplex",
+    "ETF",
+    "FCP",
+    "FLB",
+    "FastestNode",
+    "GDL",
+    "HEFT",
+    "MCT",
+    "MET",
+    "MaxMin",
+    "MinMin",
+    "OLB",
+    "WBA",
+    "Sufferage",
 ]
 
 SCHEDULERS: Dict[SchedulerName, Scheduler] = {
@@ -47,34 +74,50 @@ def get_pisa_dir() -> pathlib.Path:
     Returns:
         pathlib.Path: The PISA data directory.
     """
-    data_dir = pathlib.Path(os.getenv("SAGA_PISA_DIR", pathlib.Path.home() / ".saga" / "pisa"))
+    data_dir = pathlib.Path(
+        os.getenv("SAGA_PISA_DIR", pathlib.Path.home() / ".saga" / "pisa")
+    )
     data_dir.mkdir(parents=True, exist_ok=True)
     return data_dir
 
 
 class SimulatedAnnealingConfig(BaseModel):
     """Configuration for simulated annealing."""
-    max_iterations: int = Field(default=1000, description="Maximum number of iterations.")
-    max_temp: float = Field(default=100.0, description="Maximum (starting) temperature.")
-    min_temp: float = Field(default=0.1, description="Minimum temperature (stopping condition).")
+
+    max_iterations: int = Field(
+        default=1000, description="Maximum number of iterations."
+    )
+    max_temp: float = Field(
+        default=100.0, description="Maximum (starting) temperature."
+    )
+    min_temp: float = Field(
+        default=0.1, description="Minimum temperature (stopping condition)."
+    )
     cooling_rate: float = Field(default=0.99, description="Cooling rate per iteration.")
     change_types: List[str] = Field(
         default_factory=lambda: [c.__name__ for c in DEFAULT_CHANGE_TYPES],
-        description="List of change type names to use."
+        description="List of change type names to use.",
     )
 
 
 class SimulatedAnnealingIteration(BaseModel):
     """Data for a single simulated annealing iteration."""
+
     iteration: int = Field(..., description="The iteration number.")
     temperature: float = Field(..., description="The current temperature.")
 
-    change: Optional[ChangeType] = Field(default=None, description="The change applied.")
+    change: Optional[ChangeType] = Field(
+        default=None, description="The change applied."
+    )
 
     current_schedule: Schedule = Field(..., description="The current schedule")
-    current_base_schedule: Schedule = Field(..., description="The current base schedule")
+    current_base_schedule: Schedule = Field(
+        ..., description="The current base schedule"
+    )
     neighbor_schedule: Schedule = Field(..., description="The neighbor schedule")
-    neighbor_base_schedule: Schedule = Field(..., description="The neighbor base schedule")
+    neighbor_base_schedule: Schedule = Field(
+        ..., description="The neighbor base schedule"
+    )
 
     @property
     def current_network(self) -> Network:
@@ -83,7 +126,7 @@ class SimulatedAnnealingIteration(BaseModel):
     @property
     def neighbor_network(self) -> Network:
         return self.neighbor_schedule.network
-    
+
     @property
     def current_task_graph(self) -> TaskGraph:
         return self.current_schedule.task_graph
@@ -91,32 +134,31 @@ class SimulatedAnnealingIteration(BaseModel):
     @property
     def neighbor_task_graph(self) -> TaskGraph:
         return self.neighbor_schedule.task_graph
-    
 
     @property
     def current_makespan(self) -> float:
         return self.current_schedule.makespan
-    
+
     @property
     def current_base_makespan(self) -> float:
         return self.current_base_schedule.makespan
-    
+
     @property
     def neighbor_makespan(self) -> float:
         return self.neighbor_schedule.makespan
-    
+
     @property
     def neighbor_base_makespan(self) -> float:
         return self.neighbor_base_schedule.makespan
-    
+
     @property
     def current_energy(self) -> float:
         return self.current_makespan / self.current_base_makespan
-    
+
     @property
     def neighbor_energy(self) -> float:
         return self.neighbor_makespan / self.neighbor_base_makespan
-    
+
     @property
     def accept_probability(self) -> float:
         energy_ratio = self.neighbor_energy / self.current_energy
@@ -125,11 +167,14 @@ class SimulatedAnnealingIteration(BaseModel):
 
 class SimulatedAnnealingRun(BaseModel):
     """Metadata and results for a simulated annealing run."""
+
     name: str = Field(..., description="Name of this run.")
     path: pathlib.Path = Field(..., description="Path to the run directory.")
 
     scheduler: SchedulerName = Field(..., description="Scheduler being tested.")
-    base_scheduler: SchedulerName = Field(..., description="Base scheduler for comparison.")
+    base_scheduler: SchedulerName = Field(
+        ..., description="Base scheduler for comparison."
+    )
     config: SimulatedAnnealingConfig = Field(..., description="Configuration used.")
 
     initial_network: Network = Field(..., description="Initial network.")
@@ -230,10 +275,14 @@ class SimulatedAnnealing:
     def _resolve_change_types(self, change_type_names: List[str]) -> List[Type[Change]]:
         """Resolve change type names to classes."""
         from saga.pisa.changes import (
-            TaskGraphDeleteDependency, TaskGraphAddDependency,
-            TaskGraphChangeDependencyWeight, TaskGraphChangeTaskWeight,
-            NetworkChangeEdgeWeight, NetworkChangeNodeWeight
+            TaskGraphDeleteDependency,
+            TaskGraphAddDependency,
+            TaskGraphChangeDependencyWeight,
+            TaskGraphChangeTaskWeight,
+            NetworkChangeEdgeWeight,
+            NetworkChangeNodeWeight,
         )
+
         name_to_class: Dict[str, Type[Change]] = {
             "TaskGraphDeleteDependency": TaskGraphDeleteDependency,
             "TaskGraphAddDependency": TaskGraphAddDependency,
@@ -254,12 +303,16 @@ class SimulatedAnnealing:
         iteration_path = self._iterations_dir / f"{iteration.iteration:06d}.json"
         iteration_path.write_text(iteration.model_dump_json(indent=2))
 
-    def get_iteration(self, iteration_num: int) -> Optional[SimulatedAnnealingIteration]:
+    def get_iteration(
+        self, iteration_num: int
+    ) -> Optional[SimulatedAnnealingIteration]:
         """Load an iteration from disk."""
         iteration_path = self._iterations_dir / f"{iteration_num:06d}.json"
         if not iteration_path.exists():
             return None
-        return SimulatedAnnealingIteration.model_validate_json(iteration_path.read_text())
+        return SimulatedAnnealingIteration.model_validate_json(
+            iteration_path.read_text()
+        )
 
     def iter_iterations(self) -> Generator[SimulatedAnnealingIteration, None, None]:
         """Iterate over all saved iterations."""
@@ -277,7 +330,9 @@ class SimulatedAnnealing:
         return self._run.num_iterations
 
     @classmethod
-    def load(cls, name: str, data_dir: Optional[pathlib.Path] = None) -> "SimulatedAnnealing":
+    def load(
+        cls, name: str, data_dir: Optional[pathlib.Path] = None
+    ) -> "SimulatedAnnealing":
         """Load an existing run from disk.
 
         Args:
@@ -331,8 +386,12 @@ class SimulatedAnnealing:
             current_task_graph = self._run.initial_task_graph
 
             # Calculate initial energy
-            current_schedule = self._scheduler.schedule(current_network, current_task_graph)
-            current_base_schedule = self._base_scheduler.schedule(current_network, current_task_graph)
+            current_schedule = self._scheduler.schedule(
+                current_network, current_task_graph
+            )
+            current_base_schedule = self._base_scheduler.schedule(
+                current_network, current_task_graph
+            )
             current_energy = current_schedule.makespan / current_base_schedule.makespan
 
             # Save initial iteration
@@ -341,9 +400,9 @@ class SimulatedAnnealing:
                 temperature=temp,
                 change=None,
                 current_schedule=current_schedule,
-                current_base_schedule = current_base_schedule,
+                current_base_schedule=current_base_schedule,
                 neighbor_schedule=current_schedule,
-                neighbor_base_schedule=current_base_schedule
+                neighbor_base_schedule=current_base_schedule,
             )
             self._save_iteration(initial_iter)
             self._save_run()
@@ -354,24 +413,36 @@ class SimulatedAnnealing:
         while iteration < config.max_iterations and temp > config.min_temp:
             # Apply random change
             ChangeClass = random.choice(self._change_types)
-            change_result, neighbor_network, neighbor_task_graph = ChangeClass.apply_random(
-                current_network, current_task_graph
+            change_result, neighbor_network, neighbor_task_graph = (
+                ChangeClass.apply_random(current_network, current_task_graph)
             )
             change = cast(Optional[ChangeType], change_result)
 
             # Compute schedules and energy
-            neighbor_schedule = self._scheduler.schedule(neighbor_network, neighbor_task_graph)
-            neighbor_base_schedule = self._base_scheduler.schedule(neighbor_network, neighbor_task_graph)
-            neighbor_energy = neighbor_schedule.makespan / neighbor_base_schedule.makespan
+            neighbor_schedule = self._scheduler.schedule(
+                neighbor_network, neighbor_task_graph
+            )
+            neighbor_base_schedule = self._base_scheduler.schedule(
+                neighbor_network, neighbor_task_graph
+            )
+            neighbor_energy = (
+                neighbor_schedule.makespan / neighbor_base_schedule.makespan
+            )
 
             # Acceptance probability
             energy_ratio = neighbor_energy / current_energy
-            accept_probability = math.exp(-energy_ratio / temp) if energy_ratio <= 1 else 1.0
+            accept_probability = (
+                math.exp(-energy_ratio / temp) if energy_ratio <= 1 else 1.0
+            )
             accepted = random.random() < accept_probability
 
             # Get current makespans for logging
-            current_schedule = self._scheduler.schedule(current_network, current_task_graph)
-            current_base_schedule = self._base_scheduler.schedule(current_network, current_task_graph)
+            current_schedule = self._scheduler.schedule(
+                current_network, current_task_graph
+            )
+            current_base_schedule = self._base_scheduler.schedule(
+                current_network, current_task_graph
+            )
 
             # Create and save iteration
             iter_data = SimulatedAnnealingIteration(
@@ -379,9 +450,9 @@ class SimulatedAnnealing:
                 temperature=temp,
                 change=change,
                 current_schedule=current_schedule,
-                current_base_schedule = current_base_schedule,
+                current_base_schedule=current_base_schedule,
                 neighbor_schedule=neighbor_schedule,
-                neighbor_base_schedule=neighbor_base_schedule
+                neighbor_base_schedule=neighbor_base_schedule,
             )
             self._save_iteration(iter_data)
 
@@ -419,7 +490,7 @@ class SimulatedAnnealing:
                     f"Temp: {iter_data.temperature:.2f} | "
                     f"Energy: {iter_data.current_energy:.4f} | "
                     f"Best: {best_energy:.4f}",
-                    end=""
+                    end="",
                 )
         if progress:
             print()  # Newline after progress

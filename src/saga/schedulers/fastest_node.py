@@ -6,11 +6,13 @@ from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 class FastestNodeScheduler(Scheduler):
     """Schedules all tasks on the node with the highest processing speed"""
 
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Schedules all tasks on the node with the highest processing speed
 
         Args:
@@ -29,7 +31,9 @@ class FastestNodeScheduler(Scheduler):
 
         if schedule is not None:
             comp_schedule = schedule.model_copy()
-            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
+            scheduled_tasks = {
+                t.name: t for _, tasks in schedule.items() for t in tasks
+            }
 
         free_time = min_start_time
         if comp_schedule[fastest_node.name]:
@@ -47,8 +51,10 @@ class FastestNodeScheduler(Scheduler):
             in_edges = task_graph.in_edges(task.name)
             if in_edges:
                 data_arrival_time = max(
-                    scheduled_tasks[in_edge.source].end + (
-                        in_edge.size / network.get_edge(fastest_node.name, fastest_node.name).speed
+                    scheduled_tasks[in_edge.source].end
+                    + (
+                        in_edge.size
+                        / network.get_edge(fastest_node.name, fastest_node.name).speed
                     )
                     for in_edge in in_edges
                 )
@@ -58,7 +64,7 @@ class FastestNodeScheduler(Scheduler):
                 node=fastest_node.name,
                 name=task.name,
                 start=start_time,
-                end=start_time + exec_time
+                end=start_time + exec_time,
             )
             comp_schedule.add_task(new_task)
             scheduled_tasks[task.name] = new_task

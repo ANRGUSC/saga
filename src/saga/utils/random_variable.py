@@ -5,11 +5,14 @@ from pydantic import BaseModel, Field
 from scipy import integrate
 
 DEFAULT_NUM_SAMPLES = 10000
+
+
 class RandomVariable(BaseModel):
     """A random variable. This class is used to represent a random variable and
     provides methods for sampling from the random variable and computing its
     probability density function.
     """
+
     samples: List[float] = Field(..., description="The samples of the random variable.")
 
     @cached_property
@@ -27,7 +30,7 @@ class RandomVariable(BaseModel):
             str: The formatted random variable.
         """
         return f"{self.mean():{format_spec}} ± {self.std():{format_spec}}"
-    
+
     def __round__(self, n: int) -> "RandomVariable":
         """Round the random variable to the given number of decimal places.
 
@@ -48,7 +51,9 @@ class RandomVariable(BaseModel):
         return str(self)
 
     @staticmethod
-    def from_pdf(x_vals: np.ndarray, pdf: np.ndarray, num_samples: int = DEFAULT_NUM_SAMPLES) -> "RandomVariable":
+    def from_pdf(
+        x_vals: np.ndarray, pdf: np.ndarray, num_samples: int = DEFAULT_NUM_SAMPLES
+    ) -> "RandomVariable":
         """Create a random variable from a probability density function.
 
         Args:
@@ -89,7 +94,7 @@ class RandomVariable(BaseModel):
         return _pdf
 
     @property
-    def x(self, bins: int = 100) -> np.ndarray: # pylint: disable=invalid-name
+    def x(self, bins: int = 100) -> np.ndarray:  # pylint: disable=invalid-name
         """The x values of the pdf.
 
         Returns:
@@ -138,10 +143,17 @@ class RandomVariable(BaseModel):
         if self_num_samples >= other_num_samples:
             self_samples = self.samples_arr
             missing_samples = self_num_samples - other_num_samples
-            other_samples = np.concatenate([other.samples_arr, np.random.choice(other.samples_arr, missing_samples)])
+            other_samples = np.concatenate(
+                [
+                    other.samples_arr,
+                    np.random.choice(other.samples_arr, missing_samples),
+                ]
+            )
         else:
             missing_samples = other_num_samples - self_num_samples
-            self_samples = np.concatenate([self.samples_arr, np.random.choice(self.samples_arr, missing_samples)])
+            self_samples = np.concatenate(
+                [self.samples_arr, np.random.choice(self.samples_arr, missing_samples)]
+            )
             other_samples = other.samples_arr
         samples = self_samples + other_samples
         return RandomVariable(samples=samples.tolist())
@@ -171,7 +183,9 @@ class RandomVariable(BaseModel):
             if np.isclose(self.std(), 0):
                 return RandomVariable(samples=[self.mean() * other.mean()])
             else:
-                return RandomVariable(samples=(self.samples_arr * other.mean()).tolist())
+                return RandomVariable(
+                    samples=(self.samples_arr * other.mean()).tolist()
+                )
 
         self_num_samples = len(self.samples_arr)
         other_num_samples = len(other.samples_arr)
@@ -180,10 +194,17 @@ class RandomVariable(BaseModel):
         if self_num_samples >= other_num_samples:
             self_samples = self.samples_arr
             missing_samples = self_num_samples - other_num_samples
-            other_samples = np.concatenate([other.samples_arr, np.random.choice(other.samples_arr, missing_samples)])
+            other_samples = np.concatenate(
+                [
+                    other.samples_arr,
+                    np.random.choice(other.samples_arr, missing_samples),
+                ]
+            )
         else:
             missing_samples = other_num_samples - self_num_samples
-            self_samples = np.concatenate([self.samples_arr, np.random.choice(self.samples_arr, missing_samples)])
+            self_samples = np.concatenate(
+                [self.samples_arr, np.random.choice(self.samples_arr, missing_samples)]
+            )
             other_samples = other.samples_arr
         samples = self_samples * other_samples
         return RandomVariable(samples=samples.tolist())
@@ -192,7 +213,9 @@ class RandomVariable(BaseModel):
         """Multiply two random variables."""
         return self.__mul__(other)
 
-    def __truediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
+    def __truediv__(
+        self, other: Union["RandomVariable", int, float]
+    ) -> "RandomVariable":
         """Divide two random variables."""
         if isinstance(other, (float, int)):
             return RandomVariable(samples=(self.samples_arr / other).tolist())
@@ -201,7 +224,9 @@ class RandomVariable(BaseModel):
             if np.isclose(self.std(), 0):
                 return RandomVariable(samples=[self.mean() / other.mean()])
             else:
-                return RandomVariable(samples=(self.samples_arr / other.mean()).tolist())
+                return RandomVariable(
+                    samples=(self.samples_arr / other.mean()).tolist()
+                )
 
         self_num_samples = len(self.samples_arr)
         other_num_samples = len(other.samples_arr)
@@ -210,22 +235,37 @@ class RandomVariable(BaseModel):
         if self_num_samples >= other_num_samples:
             self_samples = self.samples_arr
             missing_samples = self_num_samples - other_num_samples
-            other_samples = np.concatenate([other.samples_arr, np.random.choice(other.samples_arr, missing_samples)])
+            other_samples = np.concatenate(
+                [
+                    other.samples_arr,
+                    np.random.choice(other.samples_arr, missing_samples),
+                ]
+            )
         else:
             missing_samples = other_num_samples - self_num_samples
-            self_samples = np.concatenate([self.samples_arr, np.random.choice(self.samples_arr, missing_samples)])
+            self_samples = np.concatenate(
+                [self.samples_arr, np.random.choice(self.samples_arr, missing_samples)]
+            )
             other_samples = other.samples_arr
         samples = self_samples / other_samples
         return RandomVariable(samples=samples.tolist())
 
-    def __rtruediv__(self, other: Union["RandomVariable", int, float]) -> "RandomVariable":
+    def __rtruediv__(
+        self, other: Union["RandomVariable", int, float]
+    ) -> "RandomVariable":
         """Divide two random variables."""
-        other = other if isinstance(other, RandomVariable) else RandomVariable(samples=[other])
+        other = (
+            other
+            if isinstance(other, RandomVariable)
+            else RandomVariable(samples=[other])
+        )
         if np.isclose(self.std(), 0.0):
             if np.isclose(other.std(), 0.0):
                 return RandomVariable(samples=[other.mean() / self.mean()])
             else:
-                return RandomVariable(samples=(other.samples_arr / self.mean()).tolist())
+                return RandomVariable(
+                    samples=(other.samples_arr / self.mean()).tolist()
+                )
 
         if isinstance(other, (float, int)):
             return RandomVariable(samples=(other / np.array(self.samples_arr)).tolist())
@@ -237,10 +277,17 @@ class RandomVariable(BaseModel):
         if self_num_samples >= other_num_samples:
             self_samples = self.samples_arr
             missing_samples = self_num_samples - other_num_samples
-            other_samples = np.concatenate([other.samples_arr, np.random.choice(other.samples_arr, missing_samples)])
+            other_samples = np.concatenate(
+                [
+                    other.samples_arr,
+                    np.random.choice(other.samples_arr, missing_samples),
+                ]
+            )
         else:
             missing_samples = other_num_samples - self_num_samples
-            self_samples = np.concatenate([self.samples_arr, np.random.choice(self.samples_arr, missing_samples)])
+            self_samples = np.concatenate(
+                [self.samples_arr, np.random.choice(self.samples_arr, missing_samples)]
+            )
             other_samples = other.samples_arr
         samples = other_samples / self_samples
         return RandomVariable(samples=samples.tolist())
@@ -255,35 +302,45 @@ class RandomVariable(BaseModel):
         Returns:
             RandomVariable: The maximum of the random variables.
         """
-        _rvs = [rv if isinstance(rv, RandomVariable) else RandomVariable(samples=[rv]) for rv in rvs]
+        _rvs = [
+            rv if isinstance(rv, RandomVariable) else RandomVariable(samples=[rv])
+            for rv in rvs
+        ]
         max_num_samples = max(len(rv.samples_arr) for rv in _rvs)
         all_samples = [
-            np.concatenate([
-                rv.samples_arr,
-                np.random.choice(rv.samples_arr, max_num_samples - len(rv.samples_arr), replace=True)
-            ]) for rv in _rvs
+            np.concatenate(
+                [
+                    rv.samples_arr,
+                    np.random.choice(
+                        rv.samples_arr,
+                        max_num_samples - len(rv.samples_arr),
+                        replace=True,
+                    ),
+                ]
+            )
+            for rv in _rvs
         ]
         samples = np.max(all_samples, axis=0)
         return RandomVariable(samples=samples.tolist())
-    
+
     def __lt__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         """Less than comparison."""
         if isinstance(other, (float, int)):
             return RandomVariable(samples=(self.samples_arr < other).tolist())
         return RandomVariable(samples=(self.samples_arr < other.samples_arr).tolist())
-    
+
     def __le__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         """Less than or equal to comparison."""
         if isinstance(other, (float, int)):
             return RandomVariable(samples=(self.samples_arr <= other).tolist())
         return RandomVariable(samples=(self.samples_arr <= other.samples_arr).tolist())
-    
+
     def __gt__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         """Greater than comparison."""
         if isinstance(other, (float, int)):
             return RandomVariable(samples=(self.samples_arr > other).tolist())
         return RandomVariable(samples=(self.samples_arr > other.samples_arr).tolist())
-    
+
     def __ge__(self, other: Union["RandomVariable", float, int]) -> "RandomVariable":
         """Greater than or equal to comparison."""
         if isinstance(other, (float, int)):
@@ -313,8 +370,12 @@ class RandomVariable(BaseModel):
 
 class UniformRandomVariable(RandomVariable):
     """A uniform random variable."""
+
     name: Literal["UniformRandomVariable"] = "UniformRandomVariable"
-    def __init__(self, low: float, high: float, num_samples: int = DEFAULT_NUM_SAMPLES) -> None:
+
+    def __init__(
+        self, low: float, high: float, num_samples: int = DEFAULT_NUM_SAMPLES
+    ) -> None:
         """Initialize a uniform random variable.
 
         Args:
@@ -325,10 +386,15 @@ class UniformRandomVariable(RandomVariable):
         samples = np.random.uniform(low, high, num_samples)
         super().__init__(samples=samples.tolist())
 
+
 class NormalRandomVariable(RandomVariable):
     """A normal random variable."""
+
     name: Literal["NormalRandomVariable"] = "NormalRandomVariable"
-    def __init__(self, mean: float, std: float, num_samples: int = DEFAULT_NUM_SAMPLES) -> None:
+
+    def __init__(
+        self, mean: float, std: float, num_samples: int = DEFAULT_NUM_SAMPLES
+    ) -> None:
         """Initialize a normal random variable.
 
         Args:
@@ -342,7 +408,9 @@ class NormalRandomVariable(RandomVariable):
 
 class ConstantRandomVariable(RandomVariable):
     """A constant random variable (always returns the same value)."""
+
     name: Literal["ConstantRandomVariable"] = "ConstantRandomVariable"
+
     def __init__(self, value: float) -> None:
         """Initialize a constant random variable.
 

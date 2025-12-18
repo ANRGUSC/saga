@@ -8,6 +8,7 @@ class SufferageScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1007/978-3-540-69277-5_7
     """
+
     def schedule(
         self,
         network: Network,
@@ -58,20 +59,26 @@ class SufferageScheduler(Scheduler):
             if not in_edges:
                 return min_start_time
             return max(
-                task_map[in_edge.source].end +
-                get_commtime(in_edge.source, task_name, task_map[in_edge.source].node, node_name)
+                task_map[in_edge.source].end
+                + get_commtime(
+                    in_edge.source, task_name, task_map[in_edge.source].node, node_name
+                )
                 for in_edge in in_edges
             )
 
         def get_ect(task_name: str, node_name: str) -> float:
             """Get estimated completion time of a task on a node"""
-            return get_eet(task_name, node_name) + max(get_eat(node_name), get_fat(task_name, node_name))
+            return get_eet(task_name, node_name) + max(
+                get_eat(node_name), get_fat(task_name, node_name)
+            )
 
         num_tasks = len(list(task_graph.tasks))
         while len(task_map) < num_tasks:
             available_tasks = [
-                task.name for task in task_graph.tasks
-                if task.name not in task_map and all(
+                task.name
+                for task in task_graph.tasks
+                if task.name not in task_map
+                and all(
                     in_edge.source in task_map
                     for in_edge in task_graph.in_edges(task.name)
                 )
@@ -86,13 +93,15 @@ class SufferageScheduler(Scheduler):
                 sufferages[task_name] = second_ect - first_ect
 
             sched_task = max(sufferages, key=lambda t: sufferages[t])
-            sched_node = min(node_names, key=lambda node_name: get_ect(sched_task, node_name))
+            sched_node = min(
+                node_names, key=lambda node_name: get_ect(sched_task, node_name)
+            )
 
             new_task = ScheduledTask(
                 node=sched_node,
                 name=sched_task,
                 start=max(get_eat(sched_node), get_fat(sched_task, sched_node)),
-                end=get_ect(sched_task, sched_node)
+                end=get_ect(sched_task, sched_node),
             )
             comp_schedule.add_task(new_task)
             task_map[sched_task] = new_task

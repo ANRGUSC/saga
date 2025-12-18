@@ -6,11 +6,14 @@ from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 class METScheduler(Scheduler):
     """Minimum Execution Time scheduler"""
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns the schedule of the tasks on the network
 
         Args:
@@ -27,7 +30,9 @@ class METScheduler(Scheduler):
 
         if schedule is not None:
             comp_schedule = schedule.model_copy()
-            scheduled_tasks = {t.name: t for _, tasks in schedule.items() for t in tasks}
+            scheduled_tasks = {
+                t.name: t for _, tasks in schedule.items() for t in tasks
+            }
 
         def get_exec_time(task_name: str, node_name: str) -> float:
             task = task_graph.get_task(task_name)
@@ -48,8 +53,13 @@ class METScheduler(Scheduler):
             if not in_edges:
                 return min_start_time
             return max(
-                scheduled_tasks[in_edge.source].end +
-                get_commtime(in_edge.source, task_name, scheduled_tasks[in_edge.source].node, node_name)
+                scheduled_tasks[in_edge.source].end
+                + get_commtime(
+                    in_edge.source,
+                    task_name,
+                    scheduled_tasks[in_edge.source].node,
+                    node_name,
+                )
                 for in_edge in in_edges
             )
 
@@ -66,7 +76,9 @@ class METScheduler(Scheduler):
             end_time = start_time + get_exec_time(task.name, sched_node)
 
             # Add task to the schedule
-            new_task = ScheduledTask(node=sched_node, name=task.name, start=start_time, end=end_time)
+            new_task = ScheduledTask(
+                node=sched_node, name=task.name, start=start_time, end=end_time
+            )
             comp_schedule.add_task(new_task)
             scheduled_tasks[task.name] = new_task
 

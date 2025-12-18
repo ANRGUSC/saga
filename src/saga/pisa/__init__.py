@@ -1,4 +1,5 @@
 """PISA: Problem Instance Simulated Annealing for adversarial scheduling instances."""
+
 from saga.pisa.changes import (
     Change,
     ChangeType,

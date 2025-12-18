@@ -45,26 +45,34 @@ def hbmct_create_groups(network: Network, task_graph: TaskGraph) -> List[List[st
     return groups
 
 
-def calculate_est(network: Network,
-                  task_graph: TaskGraph,
-                  group: List[str],
-                  commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]],
-                  comp_schedule: Schedule,
-                  task_schedule: Dict[str, ScheduledTask]) -> Dict[str, Dict[str, float]]:
+def calculate_est(
+    network: Network,
+    task_graph: TaskGraph,
+    group: List[str],
+    commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]],
+    comp_schedule: Schedule,
+    task_schedule: Dict[str, ScheduledTask],
+) -> Dict[str, Dict[str, float]]:
     """Calculate the earliest start times for the given group on all nodes."""
     node_names = [node.name for node in network.nodes]
-    est_table: Dict[str, Dict[str, float]] = {task_name: {node: 0.0 for node in node_names} for task_name in group}
+    est_table: Dict[str, Dict[str, float]] = {
+        task_name: {node: 0.0 for node in node_names} for task_name in group
+    }
     for task_name in group:
         for node_name in node_names:
             in_edges = task_graph.in_edges(task_name)
             max_arrival_time: float = max(
                 [
-                    0.0, *[
-                        task_schedule[in_edge.source].end + (
-                            commtimes[(task_schedule[in_edge.source].node, node_name)][(in_edge.source, task_name)]
+                    0.0,
+                    *[
+                        task_schedule[in_edge.source].end
+                        + (
+                            commtimes[(task_schedule[in_edge.source].node, node_name)][
+                                (in_edge.source, task_name)
+                            ]
                         )
                         for in_edge in in_edges
-                    ]
+                    ],
                 ]
             )
             tasks = comp_schedule[node_name]
@@ -75,21 +83,28 @@ def calculate_est(network: Network,
     return est_table
 
 
-def get_initial_assignments(network: Network,
-                            runtimes: Dict[str, Dict[str, float]],
-                            group: List[str],
-                            est_table: Dict[str, Dict[str, float]]) -> Dict[str, List[str]]:
+def get_initial_assignments(
+    network: Network,
+    runtimes: Dict[str, Dict[str, float]],
+    group: List[str],
+    est_table: Dict[str, Dict[str, float]],
+) -> Dict[str, List[str]]:
     """Get initial assignments of the tasks of an independent group based on their execution times."""
     node_names = [node.name for node in network.nodes]
     assignments: Dict[str, List[str]] = {node: [] for node in node_names}
+
     def avg_runtime(task_name: str) -> float:
         return float(np.mean([runtimes[node][task_name] for node in node_names]))
+
     for task_name in group:
-        assigned_node = min(node_names, key=lambda n: est_table[task_name][n] + runtimes[n][task_name])
+        assigned_node = min(
+            node_names, key=lambda n: est_table[task_name][n] + runtimes[n][task_name]
+        )
         assignments[assigned_node].append(task_name)
 
     def est_sort_key(task_name: str, node_name: str) -> float:
         return est_table[task_name][node_name]
+
     for node_name in assignments:
         assignments[node_name].sort(key=lambda t: est_sort_key(t, node_name))
     return assignments
@@ -102,13 +117,15 @@ def get_ft(node_schedule: List[ScheduledTask]) -> float:
     return 0
 
 
-def get_ft_after_insert(new_task_name: str,
-                        node_name: str,
-                        assignments: List[str],
-                        node_schedule: List[ScheduledTask],
-                        est_table: Dict[str, Dict[str, float]],
-                        runtimes: Dict[str, Dict[str, float]],
-                        insert_position: int) -> Tuple[float, List[ScheduledTask], ScheduledTask]:
+def get_ft_after_insert(
+    new_task_name: str,
+    node_name: str,
+    assignments: List[str],
+    node_schedule: List[ScheduledTask],
+    est_table: Dict[str, Dict[str, float]],
+    runtimes: Dict[str, Dict[str, float]],
+    insert_position: int,
+) -> Tuple[float, List[ScheduledTask], ScheduledTask]:
     """Calculate the finish time after inserting task in the schedule of a node."""
     new_assignments = assignments.copy()
     new_assignments.append(new_task_name)
@@ -128,21 +145,25 @@ def get_ft_after_insert(new_task_name: str,
             node=node_name,
             name=task_name,
             start=start_time,
-            end=start_time + runtimes[node_name][task_name]
+            end=start_time + runtimes[node_name][task_name],
         )
         new_schedule.append(task)
         if task_name == new_task_name:
             new_task = task
     if new_task is None:
-        raise RuntimeError("New task was not created in get_ft_after_insert.") # Should not happen
+        raise RuntimeError(
+            "New task was not created in get_ft_after_insert."
+        )  # Should not happen
     return new_schedule[-1].end, new_schedule, new_task
 
 
-def delete_task_from_schedule(task_name: str,
-                              node_name: str,
-                              node_schedule: List[ScheduledTask],
-                              est_table: Dict[str, Dict[str, float]],
-                              runtimes: Dict[str, Dict[str, float]]) -> Tuple[float, List[ScheduledTask]]:
+def delete_task_from_schedule(
+    task_name: str,
+    node_name: str,
+    node_schedule: List[ScheduledTask],
+    est_table: Dict[str, Dict[str, float]],
+    runtimes: Dict[str, Dict[str, float]],
+) -> Tuple[float, List[ScheduledTask]]:
     """Calculate the new schedule after removing task from a node schedule."""
     new_schedule = node_schedule.copy()
     i = None
@@ -156,16 +177,18 @@ def delete_task_from_schedule(task_name: str,
             task = new_schedule[j]
             start_time = est_table[task.name][node_name]
             if j != 0:
-                start_time = max(start_time, new_schedule[j-1].end)
+                start_time = max(start_time, new_schedule[j - 1].end)
             new_schedule[j] = ScheduledTask(
                 node=node_name,
                 name=task.name,
                 start=start_time,
-                end=start_time + runtimes[node_name][task.name]
+                end=start_time + runtimes[node_name][task.name],
             )
 
     new_ft = 0.0
-    logging.debug("Schedule of %s after removing %s : %s", node_name, task_name, new_schedule)
+    logging.debug(
+        "Schedule of %s after removing %s : %s", node_name, task_name, new_schedule
+    )
     if new_schedule:
         new_ft = new_schedule[-1].end
     return new_ft, new_schedule
@@ -176,17 +199,25 @@ class HbmctScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1137/0218016
     """
+
     @staticmethod
-    def get_runtimes(network: Network,
-                     task_graph: TaskGraph) -> Tuple[Dict[str, Dict[str, float]],
-                                                     Dict[Tuple[str, str], Dict[Tuple[str, str], float]]]:
+    def get_runtimes(
+        network: Network, task_graph: TaskGraph
+    ) -> Tuple[
+        Dict[str, Dict[str, float]], Dict[Tuple[str, str], Dict[Tuple[str, str], float]]
+    ]:
         """Get the expected runtimes of all tasks on all nodes."""
         runtimes: Dict[str, Dict[str, float]] = {}
         for node in network.nodes:
             runtimes[node.name] = {}
             for task in task_graph.tasks:
                 runtimes[node.name][task.name] = task.cost / node.speed
-                logging.debug("Task %s on node %s has runtime %s", task.name, node.name, runtimes[node.name][task.name])
+                logging.debug(
+                    "Task %s on node %s has runtime %s",
+                    task.name,
+                    node.name,
+                    runtimes[node.name][task.name],
+                )
 
         commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]] = {}
         for edge in network.edges:
@@ -200,27 +231,39 @@ class HbmctScheduler(Scheduler):
                 commtimes[dst, src][dep.source, dep.target] = dep.size / edge.speed
                 logging.debug(
                     "Task %s on node %s to task %s on node %s has communication time %s",
-                    dep.source, src, dep.target, dst, commtimes[src, dst][dep.source, dep.target]
+                    dep.source,
+                    src,
+                    dep.target,
+                    dst,
+                    commtimes[src, dst][dep.source, dep.target],
                 )
 
         return runtimes, commtimes
 
     @staticmethod
-    def schedule_groups(network: Network,
-                        task_graph: TaskGraph,
-                        groups: List[List[str]],
-                        runtimes: Dict[str, Dict[str, float]],
-                        commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]],
-                        comp_schedule: Schedule,
-                        task_schedule: Dict[str, ScheduledTask]) -> Schedule:
+    def schedule_groups(
+        network: Network,
+        task_graph: TaskGraph,
+        groups: List[List[str]],
+        runtimes: Dict[str, Dict[str, float]],
+        commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]],
+        comp_schedule: Schedule,
+        task_schedule: Dict[str, ScheduledTask],
+    ) -> Schedule:
         """Schedule all the groups independently."""
         node_names = [node.name for node in network.nodes]
 
         for group in groups:
-            comp_group_start_positions = {node_name: len(comp_schedule[node_name]) for node_name in node_names}
-            est_table = calculate_est(network, task_graph, group, commtimes, comp_schedule, task_schedule)
+            comp_group_start_positions = {
+                node_name: len(comp_schedule[node_name]) for node_name in node_names
+            }
+            est_table = calculate_est(
+                network, task_graph, group, commtimes, comp_schedule, task_schedule
+            )
             average_est = {
-                task_name: float(np.mean([est for est in est_table[task_name].values()]))
+                task_name: float(
+                    np.mean([est for est in est_table[task_name].values()])
+                )
                 for task_name in est_table
             }
             assignments = get_initial_assignments(network, runtimes, group, est_table)
@@ -236,7 +279,7 @@ class HbmctScheduler(Scheduler):
                         node=node_name,
                         name=task_name,
                         start=start_time,
-                        end=start_time + runtimes[node_name][task_name]
+                        end=start_time + runtimes[node_name][task_name],
                     )
                     comp_schedule.add_task(task)
                     task_schedule[task_name] = task
@@ -246,14 +289,16 @@ class HbmctScheduler(Scheduler):
 
             while assignment_changed:
                 assignment_changed = False
-                max_ft_node = max(node_names, key=lambda x: get_ft(list(comp_schedule[x])))
+                max_ft_node = max(
+                    node_names, key=lambda x: get_ft(list(comp_schedule[x]))
+                )
                 tasks = comp_schedule[max_ft_node]
                 if not tasks:
                     continue
                 max_ft = tasks[-1].end
                 avg_est_assignments = sorted(
                     assignments[max_ft_node],
-                    key=lambda task_name: average_est[task_name]
+                    key=lambda task_name: average_est[task_name],
                 )
                 logging.debug("current MFT %s with finish time %s", max_ft_node, max_ft)
 
@@ -264,7 +309,7 @@ class HbmctScheduler(Scheduler):
                         max_ft_node,
                         list(comp_schedule[max_ft_node]),
                         est_table,
-                        runtimes
+                        runtimes,
                     )
                     if new_max_ft < max_ft:
                         min_ft_node = None
@@ -279,11 +324,26 @@ class HbmctScheduler(Scheduler):
                                     list(comp_schedule[node_name]),
                                     est_table,
                                     runtimes,
-                                    comp_group_start_positions[node_name]
+                                    comp_group_start_positions[node_name],
                                 )
-                                logging.debug("EST of task %s on node %s: %s", task_name, node_name, est_table[task_name][node_name])
-                                logging.debug("New finish time for node %s after inserting task %s: %s", node_name, task_name, new_ft)
-                                logging.debug("Schedule of node %s after inserting %s : %s", node_name, task_name, node_schedule)
+                                logging.debug(
+                                    "EST of task %s on node %s: %s",
+                                    task_name,
+                                    node_name,
+                                    est_table[task_name][node_name],
+                                )
+                                logging.debug(
+                                    "New finish time for node %s after inserting task %s: %s",
+                                    node_name,
+                                    task_name,
+                                    new_ft,
+                                )
+                                logging.debug(
+                                    "Schedule of node %s after inserting %s : %s",
+                                    node_name,
+                                    task_name,
+                                    node_schedule,
+                                )
                                 if new_ft < max_ft and new_ft < min_ft:
                                     min_ft = new_ft
                                     min_ft_node = node_name
@@ -298,28 +358,38 @@ class HbmctScheduler(Scheduler):
                                     comp_schedule.remove_task(comp_schedule[n][-1].name)
 
                             # Re-add tasks from new schedules
-                            for t in max_ft_node_new_schedule[comp_group_start_positions[max_ft_node]:]:
+                            for t in max_ft_node_new_schedule[
+                                comp_group_start_positions[max_ft_node] :
+                            ]:
                                 comp_schedule.add_task(t)
                                 task_schedule[t.name] = t
 
                             if min_ft_node is None or min_ft_node_schedule is None:
-                                raise RuntimeError("Inconsistent state: min_ft_node or its schedule is None.") # Should not happen
-                            for t in min_ft_node_schedule[comp_group_start_positions[min_ft_node]:]:
+                                raise RuntimeError(
+                                    "Inconsistent state: min_ft_node or its schedule is None."
+                                )  # Should not happen
+                            for t in min_ft_node_schedule[
+                                comp_group_start_positions[min_ft_node] :
+                            ]:
                                 comp_schedule.add_task(t)
                                 task_schedule[t.name] = t
 
                             assignments[min_ft_node].append(task_name)
                             assignments[max_ft_node].remove(task_name)
-                            logging.debug("New assignment for group %s: %s", group, comp_schedule)
+                            logging.debug(
+                                "New assignment for group %s: %s", group, comp_schedule
+                            )
                             break
 
         return comp_schedule
 
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Computes the schedule for the task graph using the HBMCT algorithm."""
         comp_schedule = Schedule(task_graph, network)
         task_schedule: Dict[str, ScheduledTask] = {}
@@ -330,4 +400,12 @@ class HbmctScheduler(Scheduler):
 
         runtimes, commtimes = HbmctScheduler.get_runtimes(network, task_graph)
         groups = hbmct_create_groups(network, task_graph)
-        return self.schedule_groups(network, task_graph, groups, runtimes, commtimes, comp_schedule, task_schedule)
+        return self.schedule_groups(
+            network,
+            task_graph,
+            groups,
+            runtimes,
+            commtimes,
+            comp_schedule,
+            task_schedule,
+        )

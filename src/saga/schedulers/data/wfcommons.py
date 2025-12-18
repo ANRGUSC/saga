@@ -18,25 +18,69 @@ import scipy
 from saga import Network, TaskGraph
 from saga.utils.random_variable import RandomVariable
 
-from wfcommons import wfchef
-from wfcommons.wfchef.recipes import (BlastRecipe, BwaRecipe, CyclesRecipe,
-                                      EpigenomicsRecipe, GenomeRecipe,
-                                      MontageRecipe, SeismologyRecipe,
-                                      SoykbRecipe, SrasearchRecipe)
-from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
-from wfcommons.wfgen.generator import WorkflowGenerator
+# wfcommons is an optional dependency (does not install on Windows)
+try:
+    from wfcommons import wfchef
+    from wfcommons.wfchef.recipes import (
+        BlastRecipe,
+        BwaRecipe,
+        CyclesRecipe,
+        EpigenomicsRecipe,
+        GenomeRecipe,
+        MontageRecipe,
+        SeismologyRecipe,
+        SoykbRecipe,
+        SrasearchRecipe,
+    )
+    from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
+    from wfcommons.wfgen.generator import WorkflowGenerator
 
-recipes: Dict[str, Type[WorkflowRecipe]] = {
-    'cycles': CyclesRecipe,
-    'epigenomics': EpigenomicsRecipe,
-    'montage': MontageRecipe,
-    'seismology': SeismologyRecipe,
-    'soykb': SoykbRecipe,
-    'srasearch': SrasearchRecipe,
-    'genome': GenomeRecipe,
-    'blast': BlastRecipe,
-    'bwa': BwaRecipe
-}
+    WFCOMMONS_AVAILABLE = True
+except ImportError:
+    WFCOMMONS_AVAILABLE = False
+    wfchef = None  # type: ignore
+    WorkflowRecipe = None  # type: ignore
+    WorkflowGenerator = None  # type: ignore
+    BlastRecipe = None  # type: ignore
+    BwaRecipe = None  # type: ignore
+    CyclesRecipe = None  # type: ignore
+    EpigenomicsRecipe = None  # type: ignore
+    GenomeRecipe = None  # type: ignore
+    MontageRecipe = None  # type: ignore
+    SeismologyRecipe = None  # type: ignore
+    SoykbRecipe = None  # type: ignore
+    SrasearchRecipe = None  # type: ignore
+
+
+def _check_wfcommons_available() -> None:
+    """Check if wfcommons is available and raise an error with installation instructions if not."""
+    if not WFCOMMONS_AVAILABLE:
+        raise ImportError(
+            "wfcommons is required for this functionality but is not installed. "
+            "Install it with: pip install anrg-saga[wfcommons]\n"
+            "Note: wfcommons does not support Windows."
+        )
+
+
+def _get_recipes() -> Dict[str, Type]:
+    """Get the available wfcommons recipes. Returns empty dict if wfcommons is not installed."""
+    if not WFCOMMONS_AVAILABLE:
+        return {}
+    return {
+        "cycles": CyclesRecipe,
+        "epigenomics": EpigenomicsRecipe,
+        "montage": MontageRecipe,
+        "seismology": SeismologyRecipe,
+        "soykb": SoykbRecipe,
+        "srasearch": SrasearchRecipe,
+        "genome": GenomeRecipe,
+        "blast": BlastRecipe,
+        "bwa": BwaRecipe,
+    }
+
+
+recipes: Dict[str, Type] = _get_recipes()
+
 
 @lru_cache(maxsize=None)
 def get_num_task_range(recipe_name: str) -> Tuple[int, int]:
@@ -48,9 +92,12 @@ def get_num_task_range(recipe_name: str) -> Tuple[int, int]:
     Returns:
         Tuple[int, int]: The minimum and maximum number of tasks.
     """
+    _check_wfcommons_available()
     recipe_module = importlib.import_module(f"wfcommons.wfchef.recipes.{recipe_name}")
     if recipe_module.__file__ is None:
-        raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
+        raise ValueError(
+            f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}"
+        )
     path = pathlib.Path(recipe_module.__file__).parent
 
     min_tasks = float("inf")
@@ -61,25 +108,29 @@ def get_num_task_range(recipe_name: str) -> Tuple[int, int]:
         max_tasks = max(max_tasks, graph.number_of_nodes())
     return int(min_tasks), max_tasks
 
-def generate_rvs(distribution: Dict[str, str | List[float]],
-                 min_value: float,
-                 max_value: float,
-                 num: int) -> List[float]:
+
+def generate_rvs(
+    distribution: Dict[str, str | List[float]],
+    min_value: float,
+    max_value: float,
+    num: int,
+) -> List[float]:
     if not distribution or distribution == "None":
         return [min_value] * num
 
-    params = distribution['params']
+    params = distribution["params"]
     kwargs = params[:-2]
-    dist_name: str = str(distribution['name'])
+    dist_name: str = str(distribution["name"])
     rvs = np.clip(
         getattr(scipy.stats, dist_name).rvs(
             *kwargs, loc=params[-2], scale=params[-1], size=num
         ),
         a_min=0.1,
-        a_max=np.inf
+        a_max=np.inf,
     )
     rvs *= max_value
     return rvs
+
 
 def download_repo(repo: str) -> pathlib.Path:
     """Download the given to ~/.saga/data/<repo_name> if it does not exist.
@@ -99,15 +150,18 @@ def download_repo(repo: str) -> pathlib.Path:
     if path.exists():
         return path
 
-    git.Repo.clone_from(repo, path, progress=RemoteProgress()) # type: ignore
+    git.Repo.clone_from(repo, path, progress=RemoteProgress())  # type: ignore
     return path
+
 
 clouds = {
     "chameleon": {
         "repo": "https://github.com/wfcommons/pegasus-instances.git",
-        "glob": "*/chameleon-cloud/*.json"
+        "glob": "*/chameleon-cloud/*.json",
     }
 }
+
+
 @lru_cache(maxsize=None)
 def get_real_networks(cloud_name: str) -> List[nx.Graph]:
     """Get graphs representing the specified cloud_name.
@@ -122,27 +176,37 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
         ValueError: If the cloud_name is not found.
     """
     if cloud_name not in clouds:
-        raise ValueError(f"Cloud {cloud_name} not found. Available clouds: {clouds.keys()}")
+        raise ValueError(
+            f"Cloud {cloud_name} not found. Available clouds: {clouds.keys()}"
+        )
 
     repo = clouds[cloud_name]["repo"]
     glob = clouds[cloud_name]["glob"]
 
     path_repo = download_repo(repo)
-    networks: Dict[str, nx.Graph] = {} # hash -> graph
+    networks: Dict[str, nx.Graph] = {}  # hash -> graph
     for path in pathlib.Path(path_repo).glob(glob):
         workflow = json.loads(path.read_text(encoding="utf-8"))
         network = nx.Graph()
         for machine in workflow["workflow"]["machines"]:
             network.add_node(machine["nodeName"], weight=machine["cpu"]["speed"])
 
-        network_hash = str(hash(frozenset({(node, network.nodes[node]["weight"]) for node in network.nodes})))
+        network_hash = str(
+            hash(
+                frozenset(
+                    {(node, network.nodes[node]["weight"]) for node in network.nodes}
+                )
+            )
+        )
 
         # normalize machine speeds to average speed
-        avg_speed = sum(network.nodes[node]["weight"] for node in network.nodes) / len(network.nodes)
+        avg_speed = sum(network.nodes[node]["weight"] for node in network.nodes) / len(
+            network.nodes
+        )
         for node in network.nodes:
             network.nodes[node]["weight"] /= avg_speed
 
-        for (src, dst) in product(network.nodes, network.nodes):
+        for src, dst in product(network.nodes, network.nodes):
             # unlimited bandwidth since i/o is integrated into task weights
             network.add_edge(src, dst, weight=1e9)
 
@@ -150,20 +214,33 @@ def get_real_networks(cloud_name: str) -> List[nx.Graph]:
 
     return list(networks.values())
 
+
 pegasus_workflows = {
     wfname: {
         "repo": "https://github.com/wfcommons/pegasus-instances.git",
-        "glob": f"{wfname}/chameleon-cloud/*.json"
-    } for wfname in ["1000genome", "cycles", "epigenomics", "montage", "seismology", "soykb", "srasearch"]
+        "glob": f"{wfname}/chameleon-cloud/*.json",
+    }
+    for wfname in [
+        "1000genome",
+        "cycles",
+        "epigenomics",
+        "montage",
+        "seismology",
+        "soykb",
+        "srasearch",
+    ]
 }
 makeflow_workflows = {
     wfname: {
         "repo": "https://github.com/wfcommons/makeflow-instances.git",
-        "glob": f"{wfname}/chameleon-cloud/*.json"
-    } for wfname in ["blast", "bwa"]
+        "glob": f"{wfname}/chameleon-cloud/*.json",
+    }
+    for wfname in ["blast", "bwa"]
 }
 workflow_instances = {**pegasus_workflows, **makeflow_workflows}
 workflow_instances["genome"] = workflow_instances["1000genome"]
+
+
 def get_real_workflows(wfname: str) -> List[nx.DiGraph]:
     """Get workflows representing the specified wfname.
 
@@ -177,7 +254,9 @@ def get_real_workflows(wfname: str) -> List[nx.DiGraph]:
         ValueError: If the wfname is not found.
     """
     if wfname not in workflow_instances:
-        raise ValueError(f"Workflow {wfname} not found. Available workflows: {workflow_instances.keys()}")
+        raise ValueError(
+            f"Workflow {wfname} not found. Available workflows: {workflow_instances.keys()}"
+        )
 
     repo = workflow_instances[wfname]["repo"]
     glob_pattern = workflow_instances[wfname]["glob"]
@@ -188,6 +267,7 @@ def get_real_workflows(wfname: str) -> List[nx.DiGraph]:
         recipe_name = path.parent.parent.name
         workflows.append(trace_to_digraph(path, recipe_name))
     return workflows
+
 
 def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     """Get a function that generates random numbers from the best fit distribution.
@@ -202,16 +282,12 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     Raises:
         ValueError: If the data is empty.
     """
-    distribution_types = ['norm', 'expon', 'lognorm', 'gamma', 'beta', 'uniform']
+    distribution_types = ["norm", "expon", "lognorm", "gamma", "beta", "uniform"]
     fit_results = {}
     for dist_type in distribution_types:
         params = getattr(stats, dist_type).fit(data)
         D, p_value = stats.kstest(data, dist_type, args=params)
-        fit_results[dist_type] = {
-            "params": params,
-            "D": D,
-            "p_value": p_value
-        }
+        fit_results[dist_type] = {"params": params, "D": D, "p_value": p_value}
 
     best_dist = min(fit_results, key=lambda k: fit_results[k]["D"])
     best_fit_params = fit_results[best_dist]["params"]
@@ -225,9 +301,9 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     ]
 
 
-def get_networks(num: int,
-                 cloud_name: str,
-                 network_speed: float = 100) -> List[Network]:
+def get_networks(
+    num: int, cloud_name: str, network_speed: float = 100
+) -> List[Network]:
     """Generate random networks based on real cloud configurations.
 
     Since Chameleon cloud uses a shared file-system for communication and network speeds are very high
@@ -244,9 +320,16 @@ def get_networks(num: int,
         List[Network]: The list of networks.
     """
     real_networks = get_real_networks(cloud_name)
-    get_num_nodes = get_best_fit([network.number_of_nodes() for network in real_networks])
-    get_node_speed = get_best_fit([network.nodes[node]["weight"] for network in real_networks
-                                   for node in network.nodes])
+    get_num_nodes = get_best_fit(
+        [network.number_of_nodes() for network in real_networks]
+    )
+    get_node_speed = get_best_fit(
+        [
+            network.nodes[node]["weight"]
+            for network in real_networks
+            for node in network.nodes
+        ]
+    )
 
     all_num_nodes = list(map(int, get_num_nodes(num)))
     networks: List[Network] = []
@@ -262,8 +345,7 @@ def get_networks(num: int,
     return networks
 
 
-def trace_to_digraph(path: Union[str, pathlib.Path],
-                     recipe_name: str) -> nx.DiGraph:
+def trace_to_digraph(path: Union[str, pathlib.Path], recipe_name: str) -> nx.DiGraph:
     """Convert a WfCommons trace (v1.4 schema) to a NetworkX DiGraph.
 
     Args:
@@ -294,7 +376,9 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
         task_outputs[task_name] = {}
         for file_info in task.get("files", []):
             if file_info["link"] == "output":
-                task_outputs[task_name][file_info["name"]] = file_info.get("sizeInBytes", 0)
+                task_outputs[task_name][file_info["name"]] = file_info.get(
+                    "sizeInBytes", 0
+                )
 
     # Add edges based on parent relationships
     for task in trace["workflow"]["tasks"]:
@@ -325,21 +409,27 @@ def trace_to_digraph(path: Union[str, pathlib.Path],
 
 def get_workflow_task_info(recipe_name: str) -> Dict:
     """Get the task type statistics for the given recipe.
-    
+
     Args:
         recipe_name (str): The name of the recipe.
 
     Returns:
         Dict: The task type statistics.
     """
-    path = pathlib.Path(wfchef.__file__).parent.joinpath('recipes', recipe_name, 'task_type_stats.json')
+    _check_wfcommons_available()
+    path = pathlib.Path(wfchef.__file__).parent.joinpath(
+        "recipes", recipe_name, "task_type_stats.json"
+    )
     if not path.exists():
-        raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
+        raise ValueError(
+            f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}"
+        )
     return json.loads(path.read_text(encoding="utf-8"))
 
-def get_workflows(num: int,
-                  recipe_name: str,
-                  max_size_multiplier: Optional[int] = None) -> List[TaskGraph]:
+
+def get_workflows(
+    num: int, recipe_name: str, max_size_multiplier: Optional[int] = None
+) -> List[TaskGraph]:
     """Generate a list of task graphs for the given recipe.
 
     Args:
@@ -350,8 +440,11 @@ def get_workflows(num: int,
     Returns:
         List[TaskGraph]: The list of task graphs.
     """
+    _check_wfcommons_available()
     if recipe_name not in recipes:
-        raise ValueError(f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}")
+        raise ValueError(
+            f"Recipe {recipe_name} not found. Available recipes: {recipes.keys()}"
+        )
 
     task_graphs: List[TaskGraph] = []
     for _ in range(num):
@@ -359,7 +452,7 @@ def get_workflows(num: int,
         if max_size_multiplier is not None:
             max_tasks = max_size_multiplier * min_tasks
         num_tasks = random.randint(min_tasks, max_tasks)
-        recipe = recipes[recipe_name](num_tasks=num_tasks) # type: ignore
+        recipe = recipes[recipe_name](num_tasks=num_tasks)  # type: ignore
         generator = WorkflowGenerator(recipe)
         workflow = generator.build_workflow()
         with tempfile.NamedTemporaryFile() as tmp:
@@ -385,10 +478,13 @@ def get_workflows(num: int,
     return task_graphs
 
 
-def get_wfcommons_instance(recipe_name: str,
-                           ccr: float,
-                           estimate_method: Callable[[RandomVariable, bool], float] = lambda x, is_speed: x.mean(),
-                           max_size_multiplier: int = 2) -> Tuple[Network, TaskGraph]:
+def get_wfcommons_instance(
+    recipe_name: str,
+    ccr: float,
+    estimate_method: Callable[[RandomVariable, bool], float] = lambda x,
+    is_speed: x.mean(),
+    max_size_multiplier: int = 2,
+) -> Tuple[Network, TaskGraph]:
     """Generate a network and workflow instance from wfcommons.
 
     Args:
@@ -401,9 +497,7 @@ def get_wfcommons_instance(recipe_name: str,
         Tuple[Network, TaskGraph]: The network and workflow instance.
     """
     workflow = get_workflows(
-        num=1,
-        recipe_name=recipe_name,
-        max_size_multiplier=max_size_multiplier
+        num=1, recipe_name=recipe_name, max_size_multiplier=max_size_multiplier
     )[0].graph
 
     # rename weight attribute to weight_rv
@@ -411,52 +505,100 @@ def get_wfcommons_instance(recipe_name: str,
     for node in workflow.nodes:
         weight_rv = workflow.nodes[node]["weight"]
         workflow.nodes[node]["weight_rv"] = weight_rv
-        workflow.nodes[node]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True))
+        workflow.nodes[node]["weight_estimate"] = max(
+            1e-9, estimate_method(weight_rv, True)
+        )
         workflow.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample())
         workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
 
-    for (u, v) in workflow.edges:
+    for u, v in workflow.edges:
         weight_rv = workflow.edges[u, v]["weight"]
         workflow.edges[u, v]["weight_rv"] = weight_rv
-        workflow.edges[u, v]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True))
+        workflow.edges[u, v]["weight_estimate"] = max(
+            1e-9, estimate_method(weight_rv, True)
+        )
         workflow.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample())
         workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
 
     # add src and dst task
-    workflow.add_node("SRC", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable(samples=[1e-9]))
-    workflow.add_node("DST", weight=1e-9, weight_estimate=1e-9, weight_actual=1e-9, weight_rv=RandomVariable(samples=[1e-9]))
+    workflow.add_node(
+        "SRC",
+        weight=1e-9,
+        weight_estimate=1e-9,
+        weight_actual=1e-9,
+        weight_rv=RandomVariable(samples=[1e-9]),
+    )
+    workflow.add_node(
+        "DST",
+        weight=1e-9,
+        weight_estimate=1e-9,
+        weight_actual=1e-9,
+        weight_rv=RandomVariable(samples=[1e-9]),
+    )
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.in_degree(node):
-            workflow.add_edge("SRC", node, weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable(samples=[1e9]))
+            workflow.add_edge(
+                "SRC",
+                node,
+                weight=1e9,
+                weight_estimate=1e9,
+                weight_actual=1e9,
+                weight_rv=RandomVariable(samples=[1e9]),
+            )
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.out_degree(node):
-            workflow.add_edge(node, "DST", weight=1e9, weight_estimate=1e9, weight_actual=1e9, weight_rv=RandomVariable(samples=[1e9]))
+            workflow.add_edge(
+                node,
+                "DST",
+                weight=1e9,
+                weight_estimate=1e9,
+                weight_actual=1e9,
+                weight_rv=RandomVariable(samples=[1e9]),
+            )
 
-    network: nx.Graph = get_networks(
-        num=1,
-        cloud_name="chameleon",
-        network_speed=1.0
-    )[0].graph
+    network: nx.Graph = get_networks(num=1, cloud_name="chameleon", network_speed=1.0)[
+        0
+    ].graph
 
     for node in network.nodes:
         weight_rv = network.nodes[node]["weight"]
         network.nodes[node]["weight_rv"] = weight_rv
-        network.nodes[node]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv)
-        network.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
+        network.nodes[node]["weight_estimate"] = max(
+            1e-9,
+            estimate_method(weight_rv, True)
+            if isinstance(weight_rv, RandomVariable)
+            else weight_rv,
+        )
+        network.nodes[node]["weight_actual"] = max(
+            1e-9,
+            weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv,
+        )
         network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
 
     # adjust network edges to match CCR
-    avg_task_cost = np.mean([workflow.nodes[node]["weight_actual"] for node in workflow.nodes])
-    avg_dep_cost = np.mean([workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges])
-    avg_node_speed = np.mean([network.nodes[node]["weight_actual"] for node in network.nodes])
+    avg_task_cost = np.mean(
+        [workflow.nodes[node]["weight_actual"] for node in workflow.nodes]
+    )
+    avg_dep_cost = np.mean(
+        [workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges]
+    )
+    avg_node_speed = np.mean(
+        [network.nodes[node]["weight_actual"] for node in network.nodes]
+    )
     avg_comm_speed = float(ccr * avg_dep_cost / (avg_task_cost / avg_node_speed))
-    for (u, v) in network.edges:
+    for u, v in network.edges:
         weight_rv = RandomVariable(samples=[avg_comm_speed] * 100)
         network.edges[u, v]["weight_rv"] = weight_rv
-        network.edges[u, v]["weight_estimate"] = max(1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv)
-        network.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
+        network.edges[u, v]["weight_estimate"] = max(
+            1e-9,
+            estimate_method(weight_rv, True)
+            if isinstance(weight_rv, RandomVariable)
+            else weight_rv,
+        )
+        network.edges[u, v]["weight_actual"] = max(
+            1e-9,
+            weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv,
+        )
         network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
-
     return Network.from_nx(network), TaskGraph.from_nx(workflow)
-

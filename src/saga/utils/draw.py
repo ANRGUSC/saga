@@ -1,10 +1,7 @@
 from functools import lru_cache
 import logging
 import shutil
-from typing import (
-    Any, Dict, List, Optional, Set, Tuple, Union,
-    Callable, TypeVar
-)
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, TypeVar
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -23,6 +20,8 @@ from saga import ScheduledTask
 logger = logging.getLogger("SAGA:saga.utils.draw")
 
 TGraphType = TypeVar("TGraphType", bound=Union[nx.DiGraph, nx.Graph])
+
+
 def format_graph(graph: TGraphType) -> TGraphType:
     """Formats the graph
 
@@ -43,25 +42,29 @@ def format_graph(graph: TGraphType) -> TGraphType:
 
     return graph
 
+
 @lru_cache(maxsize=None)
 def is_latex_installed() -> bool:
     return shutil.which("latex") is not None
 
-def draw_task_graph(task_graph: nx.DiGraph,
-                    axis: Optional[Axes] = None,
-                    schedule: Optional[Dict[str, List["ScheduledTask"]]] = None,
-                    use_latex: bool = False,
-                    node_size: int = 2000,
-                    linewidths: int = 2,
-                    arrowsize: int = 20,
-                    font_size: int = 20,
-                    weight_font_size: int = 12,
-                    figsize: Optional[Tuple[int, int]] = None,
-                    draw_node_labels: bool = True,
-                    draw_edge_weights: bool = True,
-                    draw_node_weights: bool = True,
-                    node_weight_offset: float = 0.1,
-                    pos: Optional[Dict[str, Tuple[float, float]]] = None) -> Axes:
+
+def draw_task_graph(
+    task_graph: nx.DiGraph,
+    axis: Optional[Axes] = None,
+    schedule: Optional[Dict[str, List["ScheduledTask"]]] = None,
+    use_latex: bool = False,
+    node_size: int = 2000,
+    linewidths: int = 2,
+    arrowsize: int = 20,
+    font_size: int = 20,
+    weight_font_size: int = 12,
+    figsize: Optional[Tuple[int, int]] = None,
+    draw_node_labels: bool = True,
+    draw_edge_weights: bool = True,
+    draw_node_weights: bool = True,
+    node_weight_offset: float = 0.1,
+    pos: Optional[Dict[str, Tuple[float, float]]] = None,
+) -> Axes:
     """Draws a task graph
 
     Args:
@@ -85,7 +88,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {'text.usetex': use_latex}
+    rc_context_opts = {"text.usetex": use_latex}
     with rc_context(rc=rc_context_opts):
         if axis is None:
             # make size slightly larger than default
@@ -101,21 +104,37 @@ def draw_task_graph(task_graph: nx.DiGraph,
         colors: Dict[str, Tuple[float, float, float, float]] = {}
         tasks: Dict[str, ScheduledTask] = {}
         if schedule is not None:
-            tasks = {task.name: task for node, tasks in schedule.items() for task in tasks}
+            tasks = {
+                task.name: task for node, tasks in schedule.items() for task in tasks
+            }
             network_nodes: Set[str] = set(schedule.keys())
 
             cmap = plt.get_cmap("tab20", len(network_nodes))
-            sorted_nodes = sorted(map(str, network_nodes)) # sort as strings for consistent coloring
+            sorted_nodes = sorted(
+                map(str, network_nodes)
+            )  # sort as strings for consistent coloring
             sorted_colors = [cmap(i) for i in range(len(network_nodes))]
             colors = dict(zip(sorted_nodes, sorted_colors))
         # if nodes have "color" attribute, use that
         elif any("color" in task_graph.nodes[node] for node in task_graph.nodes):
-            categories = sorted(set(task_graph.nodes[node].get("color", "__blank__") for node in task_graph.nodes))
+            categories = sorted(
+                set(
+                    task_graph.nodes[node].get("color", "__blank__")
+                    for node in task_graph.nodes
+                )
+            )
             cmap = plt.get_cmap("tab20", len(categories))
-            colors = {node: cmap(categories.index(task_graph.nodes[node].get("color", "__blank__"))) for node in task_graph.nodes}
+            colors = {
+                node: cmap(
+                    categories.index(task_graph.nodes[node].get("color", "__blank__"))
+                )
+                for node in task_graph.nodes
+            }
 
         nx.draw_networkx_nodes(
-            task_graph, pos=pos, ax=axis,
+            task_graph,
+            pos=pos,
+            ax=axis,
             node_size=1 if draw_node_labels else node_size,
             node_color=[colors.get(str(node), "white") for node in task_graph.nodes],
             edgecolors="black",
@@ -123,9 +142,13 @@ def draw_task_graph(task_graph: nx.DiGraph,
         )
 
         nx.draw_networkx_edges(
-            task_graph, pos=pos, ax=axis,
-            arrowsize=arrowsize, arrowstyle="->",
-            width=linewidths, edge_color="black",
+            task_graph,
+            pos=pos,
+            ax=axis,
+            arrowsize=arrowsize,
+            arrowstyle="->",
+            width=linewidths,
+            edge_color="black",
             node_size=node_size,
         )
 
@@ -138,7 +161,9 @@ def draw_task_graph(task_graph: nx.DiGraph,
                     color = colors[str(task_name)]
                 task_label = r"$%s$" % task_name if use_latex else task_name
                 nx.draw_networkx_labels(
-                    task_graph, pos=pos, ax=axis,
+                    task_graph,
+                    pos=pos,
+                    ax=axis,
                     font_size=font_size,
                     labels={task_name: task_label},
                     bbox={
@@ -147,16 +172,17 @@ def draw_task_graph(task_graph: nx.DiGraph,
                         "boxstyle": "round,pad=0.5",
                         # line widths
                         "linewidth": linewidths,
-
-                    }
+                    },
                 )
             if draw_node_weights:
                 if use_latex:
                     # if has "label" attribute, use that
                     if "label" in task_graph.nodes[task_name]:
-                        cost_label = r"$%s$" % (task_graph.nodes[task_name]['label'])
+                        cost_label = r"$%s$" % (task_graph.nodes[task_name]["label"])
                     else:
-                        cost_label = r"$%s$" % (round(task_graph.nodes[task_name]['weight'], 2))
+                        cost_label = r"$%s$" % (
+                            round(task_graph.nodes[task_name]["weight"], 2)
+                        )
                 else:
                     cost_label = f"{round(task_graph.nodes[task_name]['weight'], 2)}"
 
@@ -171,7 +197,7 @@ def draw_task_graph(task_graph: nx.DiGraph,
         if draw_edge_weights:
             edge_labels = {}
             for u, v in task_graph.edges:
-                label = task_graph.edges[(u, v)]['weight']
+                label = task_graph.edges[(u, v)]["weight"]
                 if isinstance(label, (int, float)):
                     if use_latex:
                         if "label" in task_graph.edges[(u, v)]:
@@ -182,10 +208,12 @@ def draw_task_graph(task_graph: nx.DiGraph,
                         label = f"{round(label, 2)}"
                 edge_labels[(u, v)] = label
             nx.draw_networkx_edge_labels(
-                task_graph, pos=pos, ax=axis,
+                task_graph,
+                pos=pos,
+                ax=axis,
                 edge_labels=edge_labels,
                 font_size=weight_font_size,
-                rotate=False
+                rotate=False,
             )
 
         axis.margins(0.1)
@@ -193,18 +221,21 @@ def draw_task_graph(task_graph: nx.DiGraph,
         # plt.tight_layout()
         return axis
 
-def draw_network(network: nx.Graph,
-                 axis: Optional[Axes] = None,
-                 draw_colors: bool = True,
-                 use_latex: bool = False,
-                 node_size: int = 3000,
-                 linewidths: int = 2,
-                 font_size: int = 20,
-                 weight_font_size: int = 12,
-                 figsize: Optional[Tuple[int, int]] = None,
-                 draw_node_labels: bool = True,
-                 draw_edge_weights: bool = True,
-                 draw_node_weights: bool = True) -> Axes:
+
+def draw_network(
+    network: nx.Graph,
+    axis: Optional[Axes] = None,
+    draw_colors: bool = True,
+    use_latex: bool = False,
+    node_size: int = 3000,
+    linewidths: int = 2,
+    font_size: int = 20,
+    weight_font_size: int = 12,
+    figsize: Optional[Tuple[int, int]] = None,
+    draw_node_labels: bool = True,
+    draw_edge_weights: bool = True,
+    draw_node_weights: bool = True,
+) -> Axes:
     """Draws a network
 
     Args:
@@ -225,7 +256,7 @@ def draw_network(network: nx.Graph,
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {'text.usetex': use_latex}
+    rc_context_opts = {"text.usetex": use_latex}
     with rc_context(rc=rc_context_opts):
         if axis is None:
             _, axis = plt.subplots(figsize=figsize)
@@ -238,18 +269,24 @@ def draw_network(network: nx.Graph,
 
         # use same colors as task graph
         sorted_nodes = sorted(network.nodes)
-        colors: List[str] | List[Tuple[float, float, float, float]] = ["white"] * len(sorted_nodes)
+        colors: List[str] | List[Tuple[float, float, float, float]] = ["white"] * len(
+            sorted_nodes
+        )
         if draw_colors:
             cmap = plt.get_cmap("tab20", len(network.nodes))
             sorted_colors = [cmap(i) for i in range(len(network.nodes))]
-            node_colors = {node: color for node, color in zip(sorted_nodes, sorted_colors)}
+            node_colors = {
+                node: color for node, color in zip(sorted_nodes, sorted_colors)
+            }
             colors = [node_colors[node] for node in sorted_nodes]
 
         # spring layout
         pos = nx.circular_layout(network)
         # draw network nodes with black border and white fill
         nx.draw_networkx_nodes(
-            network, pos=pos, ax=axis,
+            network,
+            pos=pos,
+            ax=axis,
             nodelist=sorted_nodes,
             node_color=colors,
             edgecolors="black",
@@ -267,28 +304,32 @@ def draw_network(network: nx.Graph,
                 node_labels[node] = label
             if draw_node_weights:
                 if use_latex:
-                    weight_label = r"$%s$" % (round(network.nodes[node]['weight'], 2))
+                    weight_label = r"$%s$" % (round(network.nodes[node]["weight"], 2))
                 else:
                     weight_label = f"{round(network.nodes[node]['weight'], 2)}"
-                
+
                 axis.annotate(
                     weight_label,
                     xy=(pos[node][0], pos[node][1]),
-                    xytext=(font_size*1.5, 0),
+                    xytext=(font_size * 1.5, 0),
                     textcoords="offset points",
                     fontsize=weight_font_size,
                 )
 
         if draw_node_labels:
             nx.draw_networkx_labels(
-                network, pos=pos, ax=axis,
+                network,
+                pos=pos,
+                ax=axis,
                 labels=node_labels,
                 font_size=font_size,
             )
 
         # draw network edges
         nx.draw_networkx_edges(
-            network, pos=pos, ax=axis,
+            network,
+            pos=pos,
+            ax=axis,
             edge_color="black",
             width=linewidths,
         )
@@ -296,7 +337,9 @@ def draw_network(network: nx.Graph,
         if draw_edge_weights:
             edge_labels = {}
             for u, v in network.edges:
-                label = network.edges[(u, v)].get("label", network.edges[(u, v)]['weight'])
+                label = network.edges[(u, v)].get(
+                    "label", network.edges[(u, v)]["weight"]
+                )
                 if isinstance(label, (int, float)):
                     if use_latex:
                         label = r"$%s$" % (round(label, 2))
@@ -305,10 +348,12 @@ def draw_network(network: nx.Graph,
                 edge_labels[(u, v)] = label
 
             nx.draw_networkx_edge_labels(
-                network, pos=pos, ax=axis,
+                network,
+                pos=pos,
+                ax=axis,
                 edge_labels=edge_labels,
                 font_size=weight_font_size,
-                rotate=False
+                rotate=False,
             )
 
         axis.margins(0.2)
@@ -316,14 +361,17 @@ def draw_network(network: nx.Graph,
         plt.tight_layout()
         return axis
 
-def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
-               use_latex: bool = False,
-               font_size: int = 20,
-               tick_font_size: int = 20,
-               xmax: Optional[float] = None,
-               axis: Optional[Axes] = None,
-               figsize: Tuple[int, int] = (10, 4),
-               draw_task_labels: bool = True) -> Axes:
+
+def draw_gantt(
+    schedule: Dict[str, List["ScheduledTask"]],
+    use_latex: bool = False,
+    font_size: int = 20,
+    tick_font_size: int = 20,
+    xmax: Optional[float] = None,
+    axis: Optional[Axes] = None,
+    figsize: Tuple[int, int] = (10, 4),
+    draw_task_labels: bool = True,
+) -> Axes:
     """Draws a gantt chart
 
     Args:
@@ -342,7 +390,7 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {'text.usetex': use_latex}
+    rc_context_opts = {"text.usetex": use_latex}
     with rc_context(rc=rc_context_opts):
         # Remove dummy tasks with near 0 duration
         schedule = {
@@ -350,12 +398,14 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
             for node, tasks in schedule.items()
         }
 
-        makespan = max([0 if not tasks else tasks[-1].end for tasks in schedule.values()])
+        makespan = max(
+            [0 if not tasks else tasks[-1].end for tasks in schedule.values()]
+        )
         if xmax is None:
             xmax = makespan
         else:
             xmax = max(xmax, makespan)
-        
+
         # re-label task and node names to latex
         if use_latex:
             for node in schedule:
@@ -369,7 +419,9 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
         # insert dummy tasks to make sure all nodes have at least one task
         for node in schedule:
             if len(schedule[node]) == 0:
-                schedule[node].append(ScheduledTask(name=r"", start=0, end=0, node=node))
+                schedule[node].append(
+                    ScheduledTask(name=r"", start=0, end=0, node=node)
+                )
 
         data_frame = pd.DataFrame(
             [
@@ -377,52 +429,59 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
                     "Task": task.name,
                     "Start": task.start,
                     "Finish": task.end,
-                    "Node": task.node
+                    "Node": task.node,
                 }
                 for _, tasks in schedule.items()
                 for task in tasks
             ]
         )
-        data_frame['delta'] = data_frame['Finish'] - data_frame['Start']
+        data_frame["delta"] = data_frame["Finish"] - data_frame["Start"]
 
         # Get the unique set of nodes from the entire DataFrame (including dummy rows)
-        unique_nodes = sorted(data_frame['Node'].unique())
-        
+        unique_nodes = sorted(data_frame["Node"].unique())
+
         # Create a figure and axis
         if axis is None:
             _, axis = plt.subplots(figsize=figsize)
             if axis is None:
                 raise ValueError("Axis could not be created.")
-        
+
         # Plot each task as a horizontal bar with labels
         for index, row in data_frame.iterrows():
-            if row['Task'] != '$dummy$':
+            if row["Task"] != "$dummy$":
                 # Plot the bar with white color and black border
                 axis.barh(
-                    row['Node'], row['delta'], left=row['Start'],
-                    color='white', edgecolor='black'
+                    row["Node"],
+                    row["delta"],
+                    left=row["Start"],
+                    color="white",
+                    edgecolor="black",
                 )
                 # Add the task label in the center of the bar
                 if draw_task_labels:
                     axis.text(
-                        row['Start'] + row['delta'] / 2, row['Node'],
-                        row['Task'], ha='center', va='center', color='black',
+                        row["Start"] + row["delta"] / 2,
+                        row["Node"],
+                        row["Task"],
+                        ha="center",
+                        va="center",
+                        color="black",
                         fontsize=font_size,
                     )
-        
+
         # Set the y-ticks to be the unique set of nodes
         axis.set_yticks(unique_nodes)
         axis.set_yticklabels(unique_nodes)
 
         # set tick font size
-        axis.tick_params(axis='both', which='major', labelsize=tick_font_size)
-        
+        axis.tick_params(axis="both", which="major", labelsize=tick_font_size)
+
         # Set labels and title
-        axis.set_xlabel('Time', fontsize=font_size)
-        axis.set_ylabel('Nodes', fontsize=font_size)
-        axis.set_xlim(0, data_frame['Finish'].max())
+        axis.set_xlabel("Time", fontsize=font_size)
+        axis.set_ylabel("Nodes", fontsize=font_size)
+        axis.set_xlim(0, data_frame["Finish"].max())
         # axis.set_title('Gantt Chart by Node (All Nodes with Task Labels)')
-        axis.grid(True, which='both', linestyle='--', linewidth=0.5)
+        axis.grid(True, which="both", linestyle="--", linewidth=0.5)
         axis.set_axisbelow(True)
 
         # set max x limit
@@ -434,29 +493,30 @@ def draw_gantt(schedule: Dict[str, List["ScheduledTask"]],
         return axis
 
 
-
-def gradient_heatmap(data: pd.DataFrame,
-                     x: Union[str, List[str]],
-                     y: Union[str, List[str]],
-                     color: str,
-                     cmap: str = "coolwarm",
-                     upper_threshold: float = np.inf,
-                     title: Optional[str] = None,
-                     x_label: Optional[str] = None,
-                     rotate_xlabels: int = 90,
-                     y_label: Optional[str] = None,
-                     color_label: Optional[str] = None,
-                     cell_text: Optional[str] = None,
-                     cell_font_size: Optional[float] = None,
-                     xorder: Optional[Callable[[Any], Any]] = None,
-                     yorder: Optional[Callable[[Any], Any]] = None,
-                     ax: Optional[Axes] = None,
-                     font_size: float = 20.0,
-                     figsize: Tuple[float, float] = (12, 8),
-                     linewidth: int = 1,
-                     cmap_lower: float = 0.0,
-                     cmap_upper: float = 1.0,
-                     use_latex: bool = False) -> Axes:
+def gradient_heatmap(
+    data: pd.DataFrame,
+    x: Union[str, List[str]],
+    y: Union[str, List[str]],
+    color: str,
+    cmap: str = "coolwarm",
+    upper_threshold: float = np.inf,
+    title: Optional[str] = None,
+    x_label: Optional[str] = None,
+    rotate_xlabels: int = 90,
+    y_label: Optional[str] = None,
+    color_label: Optional[str] = None,
+    cell_text: Optional[str] = None,
+    cell_font_size: Optional[float] = None,
+    xorder: Optional[Callable[[Any], Any]] = None,
+    yorder: Optional[Callable[[Any], Any]] = None,
+    ax: Optional[Axes] = None,
+    font_size: float = 20.0,
+    figsize: Tuple[float, float] = (12, 8),
+    linewidth: int = 1,
+    cmap_lower: float = 0.0,
+    cmap_upper: float = 1.0,
+    use_latex: bool = False,
+) -> Axes:
     """Create a heatmap with a custom gradient for each cell.
 
     Args:
@@ -489,24 +549,27 @@ def gradient_heatmap(data: pd.DataFrame,
         logger.warning("LaTeX is not installed. Falling back to non-LaTeX rendering.")
         use_latex = False
 
-    rc_context_opts = {'text.usetex': use_latex, 'font.size': font_size}
+    rc_context_opts = {"text.usetex": use_latex, "font.size": font_size}
     with rc_context(rc=rc_context_opts):
-
         data = data.copy()
         # combine xs and ys into a single column if necessary
         # make column categorical and sorted by x/y order
         if isinstance(x, list):
             col_name = "/".join(x)
-            data[col_name] = data[x].apply(lambda row: "/".join(row.values.astype(str)), axis=1)
+            data[col_name] = data[x].apply(
+                lambda row: "/".join(row.values.astype(str)), axis=1
+            )
             categories: List[str] | Callable[[Any], Any] = [
                 "/".join(map(str, row))
                 for row in sorted(
                     map(str, data[x].drop_duplicates().itertuples(index=False)),
-                    key=xorder
+                    key=xorder,
                 )
             ]
             categories = xorder if xorder else categories
-            data[col_name] = pd.Categorical(data[col_name], categories=categories, ordered=True)
+            data[col_name] = pd.Categorical(
+                data[col_name], categories=categories, ordered=True
+            )
             x = col_name
         else:
             categories = sorted(data[x].drop_duplicates(), key=xorder)
@@ -514,15 +577,19 @@ def gradient_heatmap(data: pd.DataFrame,
 
         if isinstance(y, list):
             col_name = "/".join(y)
-            data[col_name] = data[y].apply(lambda row: "/".join(row.values.astype(str)), axis=1)
+            data[col_name] = data[y].apply(
+                lambda row: "/".join(row.values.astype(str)), axis=1
+            )
             categories = [
                 "/".join(map(str, row))
                 for row in sorted(
                     map(str, data[y].drop_duplicates().itertuples(index=False)),
-                    key=yorder
+                    key=yorder,
                 )
             ]
-            data[col_name] = pd.Categorical(data[col_name], categories=categories, ordered=True)
+            data[col_name] = pd.Categorical(
+                data[col_name], categories=categories, ordered=True
+            )
             y = col_name
         else:
             categories = sorted(data[y].drop_duplicates(), key=yorder)
@@ -554,24 +621,33 @@ def gradient_heatmap(data: pd.DataFrame,
                     df_color = df_color.sort_values()
                 else:
                     df_color = pd.Series([df_color])
-                if df_color.empty: # add a white cell if there is no data
-                    rect = Rectangle((j, i), 1, 1, linewidth=linewidth, edgecolor='black', facecolor='white')
+                if df_color.empty:  # add a white cell if there is no data
+                    rect = Rectangle(
+                        (j, i),
+                        1,
+                        1,
+                        linewidth=linewidth,
+                        edgecolor="black",
+                        facecolor="white",
+                    )
                 else:
                     gradient = np.asarray(df_color.values).reshape(1, -1)
 
                     im = ax.imshow(
                         gradient,
                         cmap=listed_cmap,
-                        aspect='auto',
-                        extent=(float(j), float(j+1), float(i), float(i+1)),
+                        aspect="auto",
+                        extent=(float(j), float(j + 1), float(i), float(i + 1)),
                         vmin=global_min,
-                        vmax=global_max
+                        vmax=global_max,
                     )
                     rect = Rectangle(
-                        (j, i), 1, 1,
+                        (j, i),
+                        1,
+                        1,
                         linewidth=linewidth,
-                        edgecolor='black',
-                        facecolor='none'
+                        edgecolor="black",
+                        facecolor="none",
                     )
 
                 ax.add_patch(rect)
@@ -581,29 +657,41 @@ def gradient_heatmap(data: pd.DataFrame,
                     if np.isnan(value):
                         value = ""
                     elif value > 1000:
-                        value = f'$>{1000}$' if use_latex else '>1000'
+                        value = f"$>{1000}$" if use_latex else ">1000"
                     elif value > upper_threshold:
-                        value = f'$>{upper_threshold}$' if use_latex else f'>{upper_threshold}'
-                    elif isinstance(value, int) or (isinstance(value, float) and value.is_integer()):
-                        value = f'${int(value)}$' if use_latex else f'{int(value)}'
+                        value = (
+                            f"$>{upper_threshold}$"
+                            if use_latex
+                            else f">{upper_threshold}"
+                        )
+                    elif isinstance(value, int) or (
+                        isinstance(value, float) and value.is_integer()
+                    ):
+                        value = f"${int(value)}$" if use_latex else f"{int(value)}"
                     else:
-                        value = f'${value:.2f}$' if use_latex else f'{value:.2f}'
+                        value = f"${value:.2f}$" if use_latex else f"{value:.2f}"
                     ax.text(
-                        j+0.5, i+0.5, value,
-                        horizontalalignment='center',
-                        verticalalignment='center',
-                        fontsize=cell_font_size
+                        j + 0.5,
+                        i + 0.5,
+                        value,
+                        horizontalalignment="center",
+                        verticalalignment="center",
+                        fontsize=cell_font_size,
                     )
 
         # Add labels, ticks, and other plot elements
         ax.set_xticks(np.arange(len(xvals)) + 0.5)  # Adjusted tick positions
-        ax.set_yticks(np.arange(len(yvals)) + 0.5)    # Adjusted tick positions
+        ax.set_yticks(np.arange(len(yvals)) + 0.5)  # Adjusted tick positions
         ax.set_xticklabels(xvals, rotation=rotate_xlabels, fontsize=font_size)
         ax.set_yticklabels(yvals, fontsize=font_size)
         ax.grid(False)
 
-        ax.tick_params(axis='x', which='both', bottom=False, top=False)  # Optional: remove bottom ticks
-        ax.tick_params(axis='y', which='both', left=False, right=False)  # Optional: remove left ticks
+        ax.tick_params(
+            axis="x", which="both", bottom=False, top=False
+        )  # Optional: remove bottom ticks
+        ax.tick_params(
+            axis="y", which="both", left=False, right=False
+        )  # Optional: remove left ticks
 
         ax.set_xlim(0, len(xvals))  # Set x-axis limits
         ax.set_ylim(0, len(yvals))  # Set y-axis limits
@@ -615,16 +703,20 @@ def gradient_heatmap(data: pd.DataFrame,
                 cbar = fig.colorbar(
                     im,
                     ax=ax,
-                    orientation='vertical',
-                    label=color_label if color_label else color
+                    orientation="vertical",
+                    label=color_label if color_label else color,
                 )
 
                 # Make upper bound label of colorbar ">{upper_threshold}"
                 if upper_threshold < np.inf:
                     cbar.ax.set_yticklabels(
-                        [f'{tick:0.2f}' for tick in cbar.get_ticks()][:-1]
-                        + [f'$> {upper_threshold}$' if use_latex else f'> {upper_threshold}'],
-                        fontsize=font_size
+                        [f"{tick:0.2f}" for tick in cbar.get_ticks()][:-1]
+                        + [
+                            f"$> {upper_threshold}$"
+                            if use_latex
+                            else f"> {upper_threshold}"
+                        ],
+                        fontsize=font_size,
                     )
 
         if title:

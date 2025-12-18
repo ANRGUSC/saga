@@ -5,6 +5,7 @@ import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
+
 def calulate_sbct(
     network: Network,
     task_graph: TaskGraph,
@@ -34,7 +35,8 @@ def calulate_sbct(
         """Calculate the data ready time"""
         in_edges = task_graph.in_edges(task_name)
         return max(
-            sbct[in_edge.source] + commtimes[ifav[in_edge.source], node_name][in_edge.source, task_name]
+            sbct[in_edge.source]
+            + commtimes[ifav[in_edge.source], node_name][in_edge.source, task_name]
             for in_edge in in_edges
         )
 
@@ -47,7 +49,9 @@ def calulate_sbct(
             if not in_edges:
                 temp_val = runtimes[node_name][task_name]
             else:
-                temp_val = get_drt(task_name, node_name) + runtimes[node_name][task_name]
+                temp_val = (
+                    get_drt(task_name, node_name) + runtimes[node_name][task_name]
+                )
 
             if temp_val < min_val:
                 min_val = temp_val
@@ -80,11 +84,15 @@ def get_sbl(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
         if is_comp_zero:
             return 1e-9
         task = task_graph.get_task(task_name)
-        return float(np.mean([
-            task.cost / node.speed
-            for node in network.nodes
-            if not np.isclose(node.speed, 0)
-        ]))
+        return float(
+            np.mean(
+                [
+                    task.cost / node.speed
+                    for node in network.nodes
+                    if not np.isclose(node.speed, 0)
+                ]
+            )
+        )
 
     for task in task_graph.topological_sort():
         in_edges = task_graph.in_edges(task.name)
@@ -128,7 +136,9 @@ def calculate_st(
             st[task.name] = max(
                 st[in_edge.source]
                 + runtimes[ifav[in_edge.source]][in_edge.source]
-                + commtimes[ifav[in_edge.source], ifav[task.name]][in_edge.source, task.name]
+                + commtimes[ifav[in_edge.source], ifav[task.name]][
+                    in_edge.source, task.name
+                ]
                 for in_edge in in_edges
             )
     return st
@@ -233,7 +243,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
         sorted_nodes = sorted(
             [node.name for node in network.nodes],
             key=lambda node_name: network.get_node(node_name).speed,
-            reverse=True
+            reverse=True,
         )
 
         while len(ready_set) > 0:
@@ -244,9 +254,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
 
             for node_name in sorted_nodes:
                 start_time = comp_schedule.get_earliest_start_time(
-                    task=task_name,
-                    node=node_name,
-                    append_only=True
+                    task=task_name, node=node_name, append_only=True
                 )
                 if start_time < best_start_time:
                     best_start_time = start_time
@@ -257,7 +265,7 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
                 node=best_node,
                 name=task_name,
                 start=best_start_time,
-                end=best_start_time + new_runtime
+                end=best_start_time + new_runtime,
             )
             comp_schedule.add_task(task)
             task_schedule[task_name] = task
@@ -265,7 +273,10 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
 
             for out_edge in task_graph.out_edges(task_name):
                 succ = out_edge.target
-                if all(in_edge.source in scheduled_set for in_edge in task_graph.in_edges(succ)):
+                if all(
+                    in_edge.source in scheduled_set
+                    for in_edge in task_graph.in_edges(succ)
+                ):
                     ready_set.add(succ)
 
         return comp_schedule
@@ -293,4 +304,12 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
         sbct, ifav = calulate_sbct(network, task_graph, runtimes, commtimes)
         st = calculate_st(task_graph, ifav, runtimes, commtimes)
         priorities = get_priority(task_graph, sbct, sbl, st)
-        return self._schedule(network, task_graph, runtimes, commtimes, priorities, schedule, min_start_time)
+        return self._schedule(
+            network,
+            task_graph,
+            runtimes,
+            commtimes,
+            priorities,
+            schedule,
+            min_start_time,
+        )

@@ -7,11 +7,14 @@ from saga.schedulers.minmin import MinMinScheduler
 
 class DuplexScheduler(Scheduler):
     """Duplex scheduler"""
-    def schedule(self,
-                 network: Network,
-                 task_graph: TaskGraph,
-                 schedule: Optional[Schedule] = None,
-                 min_start_time: float = 0.0) -> Schedule:
+
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns the best schedule (minimizing makespan) for a problem instance using duplex
 
         Args:
@@ -23,8 +26,12 @@ class DuplexScheduler(Scheduler):
         Returns:
             A Schedule object containing the computed schedule.
         """
-        minmin_schedule = MinMinScheduler().schedule(network, task_graph, schedule, min_start_time)
-        maxmin_schedule = MaxMinScheduler().schedule(network, task_graph, schedule, min_start_time)
+        minmin_schedule = MinMinScheduler().schedule(
+            network, task_graph, schedule, min_start_time
+        )
+        maxmin_schedule = MaxMinScheduler().schedule(
+            network, task_graph, schedule, min_start_time
+        )
 
         if minmin_schedule.makespan <= maxmin_schedule.makespan:
             return minmin_schedule

@@ -7,17 +7,19 @@ import numpy as np
 from saga import Network, TaskGraph
 
 
-def get_fog_networks(num: int,
-                     num_edges_nodes: int = 100,
-                     num_fog_nodes: int = 5,
-                     num_cloud_nodes: int = 6,
-                     edge_node_cpu: float = 1.0,
-                     fog_node_cpu: float = 8.0,
-                     cloud_node_cpu: float = 50.0,
-                     edge_fog_bw: float = 60,
-                     fog_cloud_bw: float = 100,
-                     fog_fog_bw: float = 100,
-                     cloud_cloud_bw: float = 1e9) -> List[Network]:
+def get_fog_networks(
+    num: int,
+    num_edges_nodes: int = 100,
+    num_fog_nodes: int = 5,
+    num_cloud_nodes: int = 6,
+    edge_node_cpu: float = 1.0,
+    fog_node_cpu: float = 8.0,
+    cloud_node_cpu: float = 50.0,
+    edge_fog_bw: float = 60,
+    fog_cloud_bw: float = 100,
+    fog_fog_bw: float = 100,
+    cloud_cloud_bw: float = 1e9,
+) -> List[Network]:
     """Generate a fog network with the given parameters.
 
     Args:
@@ -43,9 +45,9 @@ def get_fog_networks(num: int,
         cloud_nodes = {f"C{i}" for i in range(num_cloud_nodes)}
 
         nodes = (
-            [(name, edge_node_cpu) for name in edge_nodes] +
-            [(name, fog_node_cpu) for name in fog_nodes] +
-            [(name, cloud_node_cpu) for name in cloud_nodes]
+            [(name, edge_node_cpu) for name in edge_nodes]
+            + [(name, fog_node_cpu) for name in fog_nodes]
+            + [(name, cloud_node_cpu) for name in cloud_nodes]
         )
         all_node_names = edge_nodes | fog_nodes | cloud_nodes
 
@@ -53,7 +55,7 @@ def get_fog_networks(num: int,
         edge_cloud_bw = min(edge_fog_bw, fog_cloud_bw)
 
         edges = []
-        for (src, dst) in product(all_node_names, all_node_names):
+        for src, dst in product(all_node_names, all_node_names):
             if src == dst:
                 edges.append((src, dst, 1e9))
                 continue
@@ -84,19 +86,22 @@ def get_fog_networks(num: int,
 
     return networks
 
+
 def gaussian(min_value: float, max_value: float) -> float:
     """Sample from a Gaussian distribution."""
     value = np.random.normal(
-        loc=(min_value + max_value) / 2,
-        scale=(max_value - min_value) / 3
+        loc=(min_value + max_value) / 2, scale=(max_value - min_value) / 3
     )
     return max(min_value, min(max_value, value))
 
-def get_etl_task_graphs(num: int,
-                        get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
-                        get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
-                        window_1_size: int = 10,
-                        window_2_size: int = 10) -> List[TaskGraph]:
+
+def get_etl_task_graphs(
+    num: int,
+    get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
+    get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
+    window_1_size: int = 10,
+    window_2_size: int = 10,
+) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -145,11 +150,14 @@ def get_etl_task_graphs(num: int,
 
     return task_graphs
 
-def get_stats_task_graphs(num: int,
-                          get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
-                          get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
-                          window_1_size: int = 10,
-                          window_2_size: int = 10) -> List[TaskGraph]:
+
+def get_stats_task_graphs(
+    num: int,
+    get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
+    get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
+    window_1_size: int = 10,
+    window_2_size: int = 10,
+) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -165,7 +173,9 @@ def get_stats_task_graphs(num: int,
     task_graphs = []
     for _ in range(num):
         input_size = get_input_size()
-        input_size_group_viz = (window_1_size * input_size + 2 * input_size) * window_2_size
+        input_size_group_viz = (
+            window_1_size * input_size + 2 * input_size
+        ) * window_2_size
 
         tasks = [
             ("Source", get_task_cost()),
@@ -196,11 +206,14 @@ def get_stats_task_graphs(num: int,
 
     return task_graphs
 
-def get_train_task_graphs(num: int,
-                          get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
-                          get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
-                          window_1_size: int = 10,
-                          window_2_size: int = 10) -> List[TaskGraph]:
+
+def get_train_task_graphs(
+    num: int,
+    get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
+    get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
+    window_1_size: int = 10,
+    window_2_size: int = 10,
+) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -242,11 +255,14 @@ def get_train_task_graphs(num: int,
 
     return task_graphs
 
-def get_predict_task_graphs(num: int,
-                            get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
-                            get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
-                            window_1_size: int = 10,
-                            window_2_size: int = 10) -> List[TaskGraph]:
+
+def get_predict_task_graphs(
+    num: int,
+    get_input_size: Callable[[], float] = partial(gaussian, 500, 1500),
+    get_task_cost: Callable[[], float] = partial(gaussian, 10, 50),
+    window_1_size: int = 10,
+    window_2_size: int = 10,
+) -> List[TaskGraph]:
     """Generate a task graph with the given parameters.
 
     Args:
@@ -304,6 +320,7 @@ def test():
     """Test the fog network generator."""
     network = get_fog_networks(num=1)[0]
     print(f"Network has {len(network.nodes)} nodes")
+
 
 if __name__ == "__main__":
     test()
