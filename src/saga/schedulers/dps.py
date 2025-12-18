@@ -3,7 +3,6 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
-from saga.utils.tools import get_insert_loc
 
 
 def calc_TEC(task_name: str,
@@ -170,41 +169,32 @@ class DPSScheduler(Scheduler):
             task_name = ready_list.pop(0)
             #Earliest Finish Time
             min_finish_time = np.inf
-            best_node = next(iter(network.nodes)).name, 0  # arbitrary initialization
+            best_node = next(iter(network.nodes)).name  # arbitrary initialization
             for node in network.nodes:
                 logging.debug(f"Trying to assign task {task_name} to node {node.name}")
                 in_edges = task_graph.in_edges(task_name)
-                if in_edges:
-                    max_arrival_time: float = max(
-                        [
-                            min_start_time, *[
-                                task_schedule[in_edge.source].end + (
-                                    commtimes[(task_schedule[in_edge.source].node, node.name)][(in_edge.source, task_name)]
-                                )
-                                for in_edge in in_edges
-                            ]
-                        ]
-                    )
-                else:
-                    max_arrival_time = min_start_time
                 runtime = runtimes[node.name][task_name]
-                idx, start_time = get_insert_loc(comp_schedule[node.name], max_arrival_time, runtime)
+                start_time = comp_schedule.get_earliest_start_time(
+                    task=task_name,
+                    node=node.name,
+                    append_only=True
+                )
 
                 finish_time = start_time + runtime
                 if finish_time < min_finish_time:
                     min_finish_time = finish_time
-                    best_node = node.name, idx
+                    best_node = node.name
 
-            new_runtime = runtimes[best_node[0]][task_name]
+            new_runtime = runtimes[best_node][task_name]
             task_ob = ScheduledTask(
-                node=best_node[0],
+                node=best_node,
                 name=task_name,
                 start=min_finish_time - new_runtime,
                 end=min_finish_time
             )
             comp_schedule.add_task(task_ob)
             task_schedule[task_name] = task_ob
-            assigned_tasks[task_name] = best_node[0]
+            assigned_tasks[task_name] = best_node
             ready_list.sort(key=lambda x: calc_priority(x, network, task_graph, assigned_tasks), reverse=True)
         return comp_schedule
 

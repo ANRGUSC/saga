@@ -1,5 +1,5 @@
 from functools import cached_property, lru_cache
-from typing import List, Literal, Tuple, Iterable, Union, cast
+from typing import List, Literal, Tuple, Union
 import numpy as np
 from pydantic import BaseModel, Field
 from scipy import integrate
@@ -98,7 +98,7 @@ class RandomVariable(BaseModel):
         _, bin_edges = self.get_histogram(bins)
         return bin_edges[:-1]
 
-    def sample(self, num_samples: int = 1) -> Union[float, np.ndarray]:
+    def sample(self, num_samples: int = 1) -> np.ndarray:
         """Sample from the random variable.
 
         Args:
@@ -107,15 +107,7 @@ class RandomVariable(BaseModel):
         Returns:
             Union[float, np.ndarray]: The samples.
         """
-        hist, bin_edges = self.get_histogram()
-        # Select bins based on the histogram's probabilities
-        selected_bins = np.random.choice(bin_edges[:-1], num_samples, p=hist / hist.sum())
-
-        # Sample a value uniformly within each selected bin
-        bin_width = bin_edges[1] - bin_edges[0]
-        new_points = np.random.rand(num_samples) * bin_width + selected_bins
-        return new_points if num_samples > 1 else new_points[0]
-
+        return np.random.choice(self.samples_arr, size=num_samples, replace=True)
 
     @property
     def x_min(self):
@@ -359,49 +351,6 @@ class ConstantRandomVariable(RandomVariable):
         """
         super().__init__(samples=[value])
 
-    def sample(self, num_samples: int = 1) -> float:
+    def sample(self, num_samples: int = 1) -> np.ndarray:
         """Sample from the random variable (always returns the constant value)."""
-        return self.samples_arr[0]
-
-
-
-
-Number = float  # or float|int if you want
-MaybeRV = Union[Number, RandomVariable]
-
-def rv_max(values: Iterable[MaybeRV]) -> MaybeRV:
-    vals = list(values)
-    if not vals:
-        raise ValueError("rv_max() arg is an empty sequence")
-
-    any_rv = any(isinstance(v, RandomVariable) for v in vals)
-    if not any_rv:
-        return cast(Number, max(cast(Iterable[Number], vals)))
-
-    # Convert all values to sample arrays
-    sample_arrays = []
-    n = None
-    for v in vals:
-        if isinstance(v, RandomVariable):
-            arr = np.asarray(v.samples_arr)
-            n = len(arr) if n is None else n
-            if len(arr) != n:
-                raise ValueError("All RandomVariables must have the same number of samples")
-            sample_arrays.append(arr)
-        else:
-            if n is None:
-                # We need a sample count; take it from the first RV we see
-                continue
-            sample_arrays.append(np.full(n, float(v)))
-
-    if n is None:
-        # shouldn’t happen because any_rv is True, but just in case
-        raise RuntimeError("No RandomVariable sample count available")
-
-    # Fill in any scalar values that appeared before the first RV
-    sample_arrays = [
-        (np.full(n, float(v)) if not isinstance(v, RandomVariable) else np.asarray(v.samples_arr))
-        for v in vals
-    ]
-
-    return RandomVariable(samples=np.maximum.reduce(sample_arrays).tolist())
+        return np.full(num_samples, self.samples_arr[0])
