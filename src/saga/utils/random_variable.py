@@ -1,6 +1,5 @@
 from functools import cached_property, lru_cache
-from typing import ClassVar, List, Literal, Tuple, Iterable, Union, cast
-
+from typing import List, Literal, Tuple, Iterable, Union, cast
 import numpy as np
 from pydantic import BaseModel, Field
 from scipy import integrate

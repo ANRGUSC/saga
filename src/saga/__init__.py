@@ -601,6 +601,21 @@ class Schedule(BaseModel, Generic[NumericT]):
             if any(task.name == task_name for task in tasks):
                 return True
         return False
+    
+    def get_scheduled_task(self, task_name: str) -> ScheduledTask[NumericT]:
+        """Get the scheduled task by name.
+
+        Args:
+            task_name (str): The name of the task.
+        Returns:
+            ScheduledTask: The scheduled task.
+
+        Raises:
+            ValueError: If the task is not scheduled.
+        """
+        if task_name not in self._task_map:
+            raise ValueError(f"Task {task_name} not in schedule.")
+        return self._task_map[task_name]
 
 
 class Scheduler(ABC):
@@ -626,3 +641,12 @@ class Scheduler(ABC):
             List[Type['Scheduler']]: A list of loaded schedulers.
         """
         return Scheduler.__subclasses__()
+    
+    @property
+    def name(self) -> str:
+        """Get the name of the scheduler.
+
+        Returns:
+            str: The name of the scheduler.
+        """
+        return self.__class__.__name__

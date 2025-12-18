@@ -2,37 +2,31 @@ from copy import deepcopy
 import heapq
 
 import numpy as np
-from saga import Scheduler, ScheduledTask
-from saga.schedulers.parametric import IntialPriority, ScheduleType, InsertTask, ParametricScheduler
-from saga.schedulers.heft import heft_rank_sort, get_insert_loc
+from pydantic import BaseModel, Field
+from saga import NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
+from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
+from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
-
+from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
-from typing import Any, Dict, List, Hashable, Optional
+from typing import Any, Dict, Iterable, List, Hashable, Literal
 
-# Initial Priority functions
 class UpwardRanking(IntialPriority):
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph) -> List[Hashable]:
+    name: Literal["UpwardRanking"] = "UpwardRanking"
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph) -> List[str]:
         return heft_rank_sort(network, task_graph)
-    
-    def serialize(self) -> Dict[str, Any]:
-        return {"name": "UpwardRanking"}
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "UpwardRanking":
-        return cls()
 
 class CPoPRanking(IntialPriority):
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph) -> List[Hashable]:
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph) -> List[str]:
         ranks = cpop_ranks(network, task_graph)
         start_task = max(
-            [task for task in task_graph if task_graph.in_degree(task) == 0],
-            key=ranks.get
+            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0],
+            key=lambda t: ranks[t]
         )
         pq = [(-ranks[start_task], start_task)]
         heapq.heapify(pq)
@@ -41,13 +35,15 @@ class CPoPRanking(IntialPriority):
             _, task_name = heapq.heappop(pq)
             queue.append(task_name)
             ready_tasks = [
-                succ for succ in task_graph.successors(task_name)
-                if all(pred in queue for pred in task_graph.predecessors(succ))
+                dependency.target for dependency in task_graph.out_edges(task_name)
+                if all(
+                    succ_dependency.source in queue
+                    for succ_dependency in task_graph.in_edges(dependency.target)
+                )
             ]
             for ready_task in ready_tasks:
                 heapq.heappush(pq, (-ranks[ready_task], ready_task))
         
-        # print(f"CPoPRanking: {queue}")
         return queue
     
     def serialize(self) -> Dict[str, Any]:
@@ -58,17 +54,10 @@ class CPoPRanking(IntialPriority):
         return cls()
 
 class ArbitraryTopological(IntialPriority):
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph) -> List[Hashable]:
-        return list(nx.topological_sort(task_graph))
-    
-    def serialize(self) -> Dict[str, Any]:
-        return {"name": "ArbitraryTopological"}
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "ArbitraryTopological":
-        return cls()
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph) -> List[str]:
+        return [task.name for task in task_graph.topological_sort()]
 
 GREEDY_INSERT_COMPARE_FUNCS = {
     "EFT": lambda new, cur: new.end - cur.end,
@@ -79,8 +68,8 @@ GREEDY_INSERT_COMPARE_FUNCS = {
 class GreedyInsert(InsertTask):
     def __init__(self,
                  append_only: bool = False,
-                 compare: str = "EFT", #my current logic may need to be updated to account for these changes
-                 critical_path: bool = False): #QUESTION. When I add my parameters I need, should it be in the innit or the call 
+                 compare: str = "EFT",
+                 critical_path: bool = False):
         """Initialize the GreedyInsert class.
         
         Args:
@@ -91,70 +80,67 @@ class GreedyInsert(InsertTask):
         """
         self.append_only = append_only
         self.compare = compare
-        # self._compare = GREEDY_INSERT_COMPARE_FUNCS[compare]
         self.critical_path = critical_path
 
     def _compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
         return GREEDY_INSERT_COMPARE_FUNCS[self.compare](new, cur)
 
-    def __call__(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: ScheduleType,
-                 #task_map: Dict[Hashable, Task],
-                 task: Hashable,
-                 current_moment: Optional[float] =0.0,
-                 node: Optional[Hashable] = None,
-                 dry_run: bool = False) -> ScheduledTask:
-        best_insert_loc, best_task = None, None
-        if self.critical_path and node is None:
-            if "critical_path" not in task_graph.nodes[task]:
-                ranks = cpop_ranks(network, task_graph)
-                critical_rank = max(ranks.values())
-                fastest_node = max(
-                    network.nodes,
-                    key=lambda node: network.nodes[node]['weight']
-                )
-                nx.set_node_attributes(
-                    task_graph,
-                    {
-                        task: fastest_node if np.isclose(rank, critical_rank) else None
-                     for task, rank in ranks.items()
-                    },
-                    "critical_path"
-                )
+    def call(self,
+             network: Network,
+             task_graph: TaskGraph,
+             schedule: Schedule,
+             task: str | TaskGraphNode,
+             min_start_time: float = 0.0,
+             nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
+             dry_run: bool = False) -> ScheduledTask:
+        task = task_graph.get_task(task)
+        if nodes is None:
+            nodes = network.nodes
+        considered_nodes = [node if isinstance(node, NetworkNode) else network.get_node(node) for node in nodes]
 
-            node = task_graph.nodes[task]["critical_path"]
+        best_task = None
+        if self.critical_path:
+            ranks = cpop_ranks(network, task_graph)
+            critical_rank = max(ranks.values())
+            fastest_node = max(
+                network.nodes,
+                key=lambda node: node.speed
+            )
+            if np.isclose(ranks[task.name], critical_rank):
+                considered_nodes = [fastest_node]
+    
+        for _node in considered_nodes:
+            exec_time = task.cost / _node.speed
 
-        considered_nodes = network.nodes if node is None else [node]
-        for node in considered_nodes:
-            exec_time = task_graph.nodes[task]['weight'] / network.nodes[node]['weight']
-
-            min_start_time = current_moment #!!!
-            for parent in task_graph.predecessors(task):
-                parent_task: ScheduledTask = task_graph.nodes[parent]['scheduled_task']
-                parent_node = parent_task.node
-                data_size = task_graph.edges[parent, task]["weight"]
-                comm_strength = network.edges[parent_node, node]["weight"]
+            min_start_time = min_start_time
+            for dependency in task_graph.in_edges(task):
+                scheduled_task = schedule.get_scheduled_task(dependency.source)
+                parent_node = scheduled_task.node
+                data_size = dependency.size
+                comm_strength = network.get_edge(parent_node, _node).speed
                 comm_time = data_size / comm_strength
-                min_start_time = max(min_start_time, parent_task.end + comm_time)
+                min_start_time = max(min_start_time, scheduled_task.end + comm_time)
 
-            if self.append_only:
-                start_time = max(
-                    min_start_time,
-                    current_moment if not schedule[node] else schedule[node][-1].end #!
-                )
-                insert_loc = len(schedule[node])
-            else:
-                insert_loc, start_time  = get_insert_loc(schedule[node], min_start_time, exec_time)
+            start_time = schedule.get_earliest_start_time(
+                task=task,
+                node=_node,
+                append_only=self.append_only,
+            )
+            start_time = max(start_time, min_start_time)
 
-            new_task = ScheduledTask(node, task, start_time, start_time + exec_time)
+            new_task = ScheduledTask(
+                node=_node.name,
+                name=task.name,
+                start=start_time,
+                end=start_time + exec_time
+            )
             if best_task is None or self._compare(new_task, best_task) < 0:
-                best_insert_loc, best_task = insert_loc, new_task
+                best_task = new_task
 
-        if not dry_run: # if not a dry run, then insert the task into the schedule
-            schedule[best_task.node].insert(best_insert_loc, best_task)
-            task_graph.nodes[task]['scheduled_task'] = best_task
+        if best_task is None:
+            raise RuntimeError("No valid task insertion found.")
+        if not dry_run:
+            schedule.add_task(best_task)
         return best_task
     
     def serialize(self) -> Dict[str, Any]:
@@ -173,91 +159,89 @@ class GreedyInsert(InsertTask):
             critical_path=data["critical_path"],
         )
 
-class ParametricKDepthScheduler(Scheduler):
-    def __init__(self,
-                 scheduler: ParametricScheduler,
-                 k_depth: int) -> None:
-            super().__init__()
-            self.scheduler = scheduler
-            self.k_depth = k_depth
+class ParametricKDepthScheduler(Scheduler, BaseModel):
+    scheduler: ParametricScheduler = Field(..., description="The base parametric scheduler.")
+    k_depth: int = Field(..., description="The depth of the subgraph to consider for scheduling.")
     
     def schedule(self,
-                 network: nx.Graph,
-                 task_graph: nx.DiGraph,
-                 schedule: Optional[ScheduleType] = None) -> ScheduleType:
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Schedule | None = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Schedule the tasks on the network.
         
         Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (Optional[ScheduleType]): The current schedule.
+            network (Network): The network graph.
+            task_graph (TaskGraph): The task graph.
+            schedule (Optional[Schedule]): The current schedule.
 
         Returns:
-            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
+            Schedule: The resulting schedule.
         """
-        queue = self.scheduler.initial_priority(network, task_graph)
-        schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
+        queue = self.scheduler.initial_priority.call(network, task_graph)
+        schedule = Schedule(task_graph, network) if schedule is None else deepcopy(schedule)
         scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         while queue:
             task_name = queue.pop(0)
             k_depth_successors = nx.single_source_shortest_path_length(
-                G=task_graph,
+                G=task_graph.graph,
                 source=task_name,
                 cutoff=self.k_depth
             )
-            sub_task_graph = task_graph.subgraph(
+            sub_task_graph = task_graph.graph.subgraph(
                 set(scheduled_tasks.keys()) | set(k_depth_successors.keys()) | {task_name}
             )
             
             best_node, best_makespan = None, float('inf')
             for node in network.nodes:
-                sub_schedule = deepcopy(schedule) # copy the schedule
-                _network = network.copy()
-                _task_graph = task_graph.copy()
-                _sub_task_graph = sub_task_graph.copy()
-                self.scheduler.insert_task(_network, _task_graph, sub_schedule, task_name, node) # insert the task
-                sub_schedule = self.scheduler.schedule(_network, _sub_task_graph, sub_schedule)
-                sub_schedule_makespan = max(
-                    task.end for tasks in sub_schedule.values() for task in tasks
+                sub_schedule = deepcopy(schedule)
+                _network = deepcopy(network)
+                _task_graph = deepcopy(task_graph)
+                _sub_task_graph = TaskGraph.from_nx(sub_task_graph.copy().to_directed())
+                self.scheduler.insert_task.call(
+                    network=_network,
+                    task_graph=_task_graph,
+                    schedule=sub_schedule,
+                    task=task_name,
+                    min_start_time=min_start_time,
+                    nodes=[node]
                 )
-                if sub_schedule_makespan < best_makespan:
+                sub_schedule = self.scheduler.schedule(
+                    network=_network,
+                    task_graph=_sub_task_graph,
+                    schedule=sub_schedule,
+                    min_start_time=min_start_time
+                )
+                if schedule.makespan < best_makespan:
                     best_node = node
-                    best_makespan = sub_schedule_makespan
+                    best_makespan = schedule.makespan
 
-            task = self.scheduler.insert_task(network, task_graph, schedule, task_name, best_node)
+            if best_node is None:
+                raise RuntimeError("No valid node found for task scheduling.")
+            task = self.scheduler.insert_task.call(
+                network=network,
+                task_graph=task_graph,
+                schedule=schedule,
+                task=task_name,
+                min_start_time=min_start_time,
+                nodes=[best_node]
+            )
             scheduled_tasks[task.name] = task
             
         return schedule
-
-    def serialize(self) -> Dict[str, Any]:
-        """Return a dictionary representation of the initial priority.
-        
-        Returns:
-            Dict[str, Any]: A dictionary representation of the initial priority.
-        """
-        return {
-            **self.scheduler.serialize(),
-            "name": "ParametricKDepthScheduler",
-            "k_depth": self.k_depth
-        }
     
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "ParametricKDepthScheduler":
-        """Return a new instance of the initial priority from the serialized data.
-        
-        Args:
-            data (Dict[str, Any]): The serialized data.
+    @property
+    def name(self) -> str:
+        return f"{self.scheduler.name}_KDepth{self.k_depth}"
 
-        Returns:
-            ParametricKDepthScheduler: A new instance of the initial priority.
-        """
-        return cls(
-            scheduler=ParametricScheduler.deserialize(data),
-            k_depth=data["k_depth"]
-        )
+class ParametricSufferageScheduler(ParametricScheduler):  
+    insert_task: GreedyInsert = Field(..., description="The task insertion strategy.")
+    scheduler: ParametricScheduler = Field(..., description="The base parametric scheduler.")
+    top_n: int = Field(2, description="The number of top tasks to consider for sufferage calculation.")
 
-class ParametricSufferageScheduler(ParametricScheduler):
-    def __init__(self, scheduler: ParametricScheduler, top_n: int = 2):
+    def __init__(self,
+                 scheduler: ParametricScheduler,
+                 top_n: int = 2) -> None:
         super().__init__(
             initial_priority=scheduler.initial_priority,
             insert_task=scheduler.insert_task
@@ -265,63 +249,67 @@ class ParametricSufferageScheduler(ParametricScheduler):
         self.scheduler = scheduler
         self.top_n = top_n
 
-    def serialize(self) -> Dict[str, Any]:
-        return {
-            **self.scheduler.serialize(),
-            "name": "ParametricSufferageScheduler",
-            "sufferage_top_n": self.top_n
-        }
-    
-    @classmethod
-    def deserialize(cls, data: Dict[str, Any]) -> "ParametricSufferageScheduler":
-        return cls(top_n=data["top_n"])
-    
-    def _do_schedule(self,
-            network: nx.Graph,
-            task_graph: nx.DiGraph,
-            comp_schedule: ScheduleType,
-            task_map: Dict[Hashable, ScheduledTask],
-            current_moment:float,
-            **_algo_kwargs) -> ScheduleType:
+    def schedule(self,
+                 network: Network,
+                 task_graph: TaskGraph,
+                 schedule: Schedule | None = None,
+                 min_start_time: float = 0.0) -> Schedule:
         """Schedule the tasks on the network.
         
         Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            schedule (Optional[ScheduleType]): The current schedule.
+            network (Network): The network graph.
+            task_graph (TaskGraph): The task graph.
+            schedule (Optional[Schedule]): The current schedule.
+            min_start_time (float): The current moment in time.
 
         Returns:
-            Dict[Hashable, List[Task]]: A dictionary mapping nodes to a list of tasks executed on the node.
+            Schedule: The resulting schedule.
         """
-        queue = self.initial_priority(network, task_graph)
-        #schedule = {node: [] for node in network.nodes} if schedule is None else deepcopy(schedule)
-        scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
+        queue = self.initial_priority.call(network, task_graph)
+        if schedule is None:
+            schedule = Schedule(task_graph, network)
         while queue:
-            for task in queue: #!! 
-                if task in task_map:
-                    queue.remove(task.name)
+            for task_name in queue:
+                if schedule.is_scheduled(task_name):
+                    queue.remove(task_name)
                     
             ready_tasks = [
                 task for task in queue
-                if all(pred in scheduled_tasks for pred in task_graph.predecessors(task))
+                if all(schedule.is_scheduled(dep.source) for dep in task_graph.in_edges(task))
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
-            for task in ready_tasks[:self.top_n]:
-                best_task = self.insert_task(network, task_graph, comp_schedule, task, current_moment, dry_run=True)
-                node_weight = network.nodes[best_task.node]['weight']
-                try:
-                    network.nodes[best_task.node]['weight'] = 1e-9
-                    second_best_task = self.insert_task(network, task_graph, comp_schedule, task, current_moment, dry_run=True)
-                finally:
-                    network.nodes[best_task.node]['weight'] = node_weight
+            for task_name in ready_tasks[:self.top_n]:
+                best_task = self.insert_task.call(network, task_graph, schedule, task_name, min_start_time, dry_run=True)
+                second_best_task = self.insert_task.call(
+                    network=network,
+                    task_graph=task_graph,
+                    schedule=schedule,
+                    task=task_name,
+                    min_start_time=min_start_time,
+                    nodes=[node for node in network.nodes if node.name != best_task.node],
+                    dry_run=True
+                )
                 sufferage = self.insert_task._compare(second_best_task, best_task)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
-            new_task = self.insert_task(network, task_graph, comp_schedule, max_sufferage_task.name, current_moment, node=max_sufferage_task.node)
-            scheduled_tasks[new_task.name] = new_task
+            
+            if max_sufferage_task is None:
+                raise RuntimeError("No ready tasks to schedule.")
+            new_task = self.insert_task.call(
+                network=network,
+                task_graph=task_graph,
+                schedule=schedule,
+                task=max_sufferage_task.name,
+                min_start_time=min_start_time,
+                nodes=[max_sufferage_task.node]
+            )
             queue.remove(new_task.name)
 
-        return comp_schedule 
+        return schedule
+    
+    @property
+    def name(self) -> str:
+        return f"{self.scheduler.name}_Sufferage"
 
 
 insert_funcs: Dict[str, GreedyInsert] = {}
@@ -344,12 +332,12 @@ for name, insert_func in insert_funcs.items():
             initial_priority=initial_priority_func,
             insert_task=insert_func
         )
-        reg_scheduler.name = f"{name}_{intial_priority_name}"
+        # reg_scheduler.name = f"{name}_{intial_priority_name}"
         schedulers[reg_scheduler.name] = reg_scheduler
 
         sufferage_scheduler = ParametricSufferageScheduler(
             scheduler=reg_scheduler,
             top_n=2
         )
-        sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
+        # sufferage_scheduler.name = f"{reg_scheduler.name}_Sufferage"
         schedulers[sufferage_scheduler.name] = sufferage_scheduler
