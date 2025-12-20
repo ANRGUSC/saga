@@ -57,8 +57,8 @@ def _check_wfcommons_available() -> None:
     if not WFCOMMONS_AVAILABLE:
         raise ImportError(
             "wfcommons is required for this functionality but is not installed. "
-            "Install it with: pip install anrg-saga[wfcommons]\n"
-            "Note: wfcommons does not support Windows."
+            "wfcommons is not supported on Windows and is automatically installed on other platforms. "
+            "If you are on Linux/macOS, try reinstalling: pip install --force-reinstall anrg-saga"
         )
 
 

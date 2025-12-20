@@ -26,10 +26,8 @@ dependencies = [
     "pysmt",
     "z3-solver",
     "pygraphviz",
+    "wfcommons; sys_platform != 'win32'",
 ]
-
-[project.optional-dependencies]
-wfcommons = ["wfcommons"]
 
 [project.urls]
 Repository = "https://github.com/ANRGUSC/saga"

@@ -6,7 +6,7 @@ sudo apt-get update && sudo apt-get install -y graphviz libgraphviz-dev
 
 echo "==> Installing Python package in development mode..."
 pip install --upgrade pip
-pip install -e ".[wfcommons]"
+pip install -e .
 
 echo "==> Installing additional development tools..."
 pip install ruff mypy jupyterlab
