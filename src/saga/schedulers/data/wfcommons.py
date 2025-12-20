@@ -18,38 +18,22 @@ import scipy
 from saga import Network, TaskGraph
 from saga.utils.random_variable import RandomVariable
 
-# wfcommons is an optional dependency (does not install on Windows)
-try:
-    from wfcommons import wfchef
-    from wfcommons.wfchef.recipes import (
-        BlastRecipe,
-        BwaRecipe,
-        CyclesRecipe,
-        EpigenomicsRecipe,
-        GenomeRecipe,
-        MontageRecipe,
-        SeismologyRecipe,
-        SoykbRecipe,
-        SrasearchRecipe,
-    )
-    from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
-    from wfcommons.wfgen.generator import WorkflowGenerator
+from wfcommons import wfchef
+from wfcommons.wfchef.recipes import (
+    BlastRecipe,
+    BwaRecipe,
+    CyclesRecipe,
+    EpigenomicsRecipe,
+    GenomeRecipe,
+    MontageRecipe,
+    SeismologyRecipe,
+    SoykbRecipe,
+    SrasearchRecipe,
+)
+from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
+from wfcommons.wfgen.generator import WorkflowGenerator
 
-    WFCOMMONS_AVAILABLE = True
-except ImportError:
-    WFCOMMONS_AVAILABLE = False
-    wfchef = None  # type: ignore
-    WorkflowRecipe = None  # type: ignore
-    WorkflowGenerator = None  # type: ignore
-    BlastRecipe = None  # type: ignore
-    BwaRecipe = None  # type: ignore
-    CyclesRecipe = None  # type: ignore
-    EpigenomicsRecipe = None  # type: ignore
-    GenomeRecipe = None  # type: ignore
-    MontageRecipe = None  # type: ignore
-    SeismologyRecipe = None  # type: ignore
-    SoykbRecipe = None  # type: ignore
-    SrasearchRecipe = None  # type: ignore
+WFCOMMONS_AVAILABLE = True
 
 
 def _check_wfcommons_available() -> None:
@@ -62,7 +46,7 @@ def _check_wfcommons_available() -> None:
         )
 
 
-def _get_recipes() -> Dict[str, Type]:
+def _get_recipes() -> Dict[str, Type[WorkflowRecipe]]:
     """Get the available wfcommons recipes. Returns empty dict if wfcommons is not installed."""
     if not WFCOMMONS_AVAILABLE:
         return {}
@@ -340,7 +324,7 @@ def get_networks(
             (f"N{src}", f"N{dst}", network_speed if src != dst else 1e9)
             for src, dst in product(range(num_nodes), range(num_nodes))
         ]
-        networks.append(Network.create(nodes=nodes, edges=edges))
+        networks.append(Network(nodes=nodes, edges=edges))
 
     return networks
 

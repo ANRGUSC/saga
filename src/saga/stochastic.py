@@ -87,21 +87,20 @@ class StochasticNetwork(BaseModel):
 
     def sample(self) -> Network:
         """Sample the stochastic network to get a deterministic network."""
-        return Network.create(
+        return Network(
             nodes=[node.sample() for node in self.nodes],
             edges=[edge.sample() for edge in self.edges],
         )
 
-    @classmethod
-    def create(
-        cls,
+    def __init__(
+        self,
         nodes: Iterable[StochasticNetworkNode | Tuple[str, RandomVariable | float]],
         edges: Iterable[
             StochasticNetworkEdge
             | Tuple[str, str, RandomVariable | float]
             | Tuple[str, str]
         ],
-    ) -> "StochasticNetwork":
+    ) -> None:
         """Create a new network from nodes and edges."""
         node_speeds: Dict[str, RandomVariable] = {}
         for n in nodes:
@@ -162,7 +161,7 @@ class StochasticNetwork(BaseModel):
             for (src, dst), speed in edge_dict.items()
         }
 
-        return cls(nodes=frozenset(node_set), edges=frozenset(edge_set))
+        super().__init__(nodes=frozenset(node_set), edges=frozenset(edge_set))
 
     @cached_property
     def graph(self) -> nx.Graph:
@@ -192,7 +191,7 @@ class StochasticNetwork(BaseModel):
             )
             for u, v in G.edges
         ]
-        return StochasticNetwork.create(nodes=nodes, edges=edges)
+        return StochasticNetwork(nodes=nodes, edges=edges)
 
     def get_node(self, node: str | StochasticNetworkNode) -> StochasticNetworkNode:
         """Get a node by name."""
@@ -280,21 +279,20 @@ class StochasticTaskGraph(BaseModel):
 
     def sample(self) -> TaskGraph:
         """Sample the stochastic task graph to get a deterministic task graph."""
-        return TaskGraph.create(
+        return TaskGraph(
             tasks=[task.sample() for task in self.tasks],
             dependencies=[dep.sample() for dep in self.dependencies],
         )
 
-    @classmethod
-    def create(
-        cls,
+    def __init__(
+        self,
         tasks: Iterable[StochasticTaskGraphNode | Tuple[str, RandomVariable | float]],
         dependencies: Iterable[
             StochasticTaskGraphEdge
             | Tuple[str, str, RandomVariable | float]
             | Tuple[str, str]
         ],
-    ) -> "StochasticTaskGraph":
+    ) -> None:
         """Create a new task graph from tasks and dependencies."""
         task_set: Set[StochasticTaskGraphNode] = set()
         for t in tasks:
@@ -365,7 +363,9 @@ class StochasticTaskGraph(BaseModel):
                     )
                 )
 
-        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
+        super().__init__(
+            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
+        )
 
     @cached_property
     def graph(self) -> nx.DiGraph:
@@ -395,7 +395,7 @@ class StochasticTaskGraph(BaseModel):
             )
             for u, v in G.edges
         ]
-        return StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies)
+        return StochasticTaskGraph(tasks=tasks, dependencies=dependencies)
 
     def topological_sort(self) -> List[StochasticTaskGraphNode]:
         """Get a topological sort of the task graph."""

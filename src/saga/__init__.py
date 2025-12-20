@@ -58,12 +58,11 @@ class Network(BaseModel):
     def __hash__(self) -> int:
         return self.computed_hash
 
-    @classmethod
-    def create(
-        cls,
+    def __init__(
+        self,
         nodes: Iterable[NetworkNode | Tuple[str, float]],
         edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]],
-    ) -> "Network":
+    ):
         """Create a new network from nodes and edges.
 
         Args:
@@ -117,7 +116,7 @@ class Network(BaseModel):
             for (src, dst), speed in edge_dict.items()
         }
 
-        return cls(nodes=frozenset(node_set), edges=frozenset(edge_set))
+        super().__init__(nodes=frozenset(node_set), edges=frozenset(edge_set))
 
     def scale_to_ccr(self, task_graph: "TaskGraph", target_ccr: float) -> "Network":
         """Scale the network to achieve a target communication-to-computation ratio (CCR) with respect to a task graph.
@@ -186,7 +185,7 @@ class Network(BaseModel):
             NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr])
             for u, v in G.edges
         ]
-        return Network.create(nodes=nodes, edges=edges)
+        return Network(nodes=nodes, edges=edges)
 
     def get_node(self, node: str | NetworkNode) -> NetworkNode:
         """Get a node
@@ -279,23 +278,11 @@ class TaskGraph(BaseModel):
     def __hash__(self) -> int:
         return self.computed_hash
 
-    @classmethod
-    def create(
-        cls,
+    def __init__(
+        self,
         tasks: Iterable[TaskGraphNode | Tuple[str, float]],
-        dependencies: Iterable[
-            TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]
-        ],
-    ) -> "TaskGraph":
-        """Create a new task graph from tasks and dependencies.
-
-        Args:
-            tasks: An iterable of TaskGraphNode objects or tuples (name, weight).
-            dependencies: An iterable of TaskGraphEdge objects or tuples (source, target) or (source, target, weight).
-
-        Returns:
-            TaskGraph: A new task graph instance.
-        """
+        dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]],
+    ):
         task_set = set()
         for t in tasks:
             if isinstance(t, TaskGraphNode):
@@ -339,7 +326,9 @@ class TaskGraph(BaseModel):
                     TaskGraphEdge(source=sink.name, target=super_sink.name, size=0.0)
                 )
 
-        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
+        super().__init__(
+            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
+        )
 
     @cached_property
     def graph(self) -> nx.DiGraph:
@@ -379,7 +368,7 @@ class TaskGraph(BaseModel):
             TaskGraphEdge(source=u, target=v, size=G.edges[u, v][edge_weight_attr])
             for u, v in G.edges
         ]
-        return TaskGraph.create(tasks=tasks, dependencies=dependencies)
+        return TaskGraph(tasks=tasks, dependencies=dependencies)
 
     def topological_sort(self) -> List[TaskGraphNode]:
         """Get a topological sort of the task graph.
