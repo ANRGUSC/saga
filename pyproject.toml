@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anrg-saga"
-version = "2.0.1"
+version = "2.0.2"
 description = "Scheduling Algorithms Gathered - collection of task graph scheduling algorithms"
 readme = "README.md"
 authors = [{name = "ANRG USC", email = "anrg@usc.edu"}]
@@ -26,10 +26,8 @@ dependencies = [
     "pysmt",
     "z3-solver",
     "pygraphviz",
+    "wfcommons; sys_platform != 'win32'",
 ]
-
-[project.optional-dependencies]
-wfcommons = ["wfcommons"]
 
 [project.urls]
 Repository = "https://github.com/ANRGUSC/saga"

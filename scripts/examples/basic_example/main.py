@@ -42,18 +42,18 @@ def draw_instance(network: Network, task_graph: TaskGraph):
     ax = draw_task_graph(task_graph.graph, use_latex=False)
     fig = ax.get_figure()
     if fig is not None:
-        fig.savefig(str(savedir / 'task_graph.png'))
+        fig.savefig(str(savedir / 'task_graph.png')) # type: ignore
 
     ax = draw_network(network.graph, draw_colors=False, use_latex=False)
     fig = ax.get_figure()
     if fig is not None:
-        fig.savefig(str(savedir / 'network.png'))
+        fig.savefig(str(savedir / 'network.png')) # type: ignore
 
 def draw_schedule(schedule: Schedule, name: str, xmax: float | None = None):
     ax = draw_gantt(schedule.mapping, use_latex=False, xmax=xmax)
     fig = ax.get_figure()
     if fig is not None:
-        fig.savefig(str(savedir / f'{name}.png'))
+        fig.savefig(str(savedir / f'{name}.png')) # type: ignore
 
 def my_schedule() -> Schedule:
     network, task_graph = get_instance()
