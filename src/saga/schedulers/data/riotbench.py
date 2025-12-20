@@ -82,7 +82,7 @@ def get_fog_networks(
             # Scale by 125 so units are KiloBytes per second
             edges.append((src, dst, bw * 125))
 
-        networks.append(Network(nodes=nodes, edges=edges))
+        networks.append(Network.create(nodes=nodes, edges=edges))
 
     return networks
 
@@ -146,7 +146,7 @@ def get_etl_task_graphs(
             ("MQTTPublish", "Sink", input_size),  # Added to ensure single sink
         ]
 
-        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(TaskGraph.create(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -202,7 +202,7 @@ def get_stats_task_graphs(
             ("BlobUpload", "Sink", input_size_group_viz),
         ]
 
-        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(TaskGraph.create(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -251,7 +251,7 @@ def get_train_task_graphs(
             ("MQTTPublish", "Sink", 2 * input_size),
         ]
 
-        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(TaskGraph.create(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 
@@ -311,7 +311,7 @@ def get_predict_task_graphs(
             ("MQTTPublish", "Sink", 2 * input_size),
         ]
 
-        task_graphs.append(TaskGraph(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(TaskGraph.create(tasks=tasks, dependencies=dependencies))
 
     return task_graphs
 

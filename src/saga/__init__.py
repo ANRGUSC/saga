@@ -58,11 +58,12 @@ class Network(BaseModel):
     def __hash__(self) -> int:
         return self.computed_hash
 
-    def __init__(
-        self,
+    @classmethod
+    def create(
+        cls,
         nodes: Iterable[NetworkNode | Tuple[str, float]],
         edges: Iterable[NetworkEdge | Tuple[str, str, float] | Tuple[str, str]],
-    ):
+    ) -> "Network":
         """Create a new network from nodes and edges.
 
         Args:
@@ -116,7 +117,7 @@ class Network(BaseModel):
             for (src, dst), speed in edge_dict.items()
         }
 
-        super().__init__(nodes=frozenset(node_set), edges=frozenset(edge_set))
+        return cls(nodes=frozenset(node_set), edges=frozenset(edge_set))
 
     def scale_to_ccr(self, task_graph: "TaskGraph", target_ccr: float) -> "Network":
         """Scale the network to achieve a target communication-to-computation ratio (CCR) with respect to a task graph.
@@ -144,7 +145,7 @@ class Network(BaseModel):
             scaled_edges.add(
                 NetworkEdge(source=edge.source, target=edge.target, speed=link_speed)
             )
-        network = Network(nodes=self.nodes, edges=frozenset(scaled_edges))
+        network = Network.create(nodes=self.nodes, edges=frozenset(scaled_edges))
         return network
 
     @cached_property
@@ -185,7 +186,7 @@ class Network(BaseModel):
             NetworkEdge(source=u, target=v, speed=G.edges[u, v][edge_speed_attr])
             for u, v in G.edges
         ]
-        return Network(nodes=nodes, edges=edges)
+        return Network.create(nodes=nodes, edges=edges)
 
     def get_node(self, node: str | NetworkNode) -> NetworkNode:
         """Get a node
@@ -278,11 +279,12 @@ class TaskGraph(BaseModel):
     def __hash__(self) -> int:
         return self.computed_hash
 
-    def __init__(
-        self,
+    @classmethod
+    def create(
+        cls,
         tasks: Iterable[TaskGraphNode | Tuple[str, float]],
         dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]],
-    ):
+    ) -> "TaskGraph":
         task_set = set()
         for t in tasks:
             if isinstance(t, TaskGraphNode):
@@ -303,32 +305,59 @@ class TaskGraph(BaseModel):
                 raise ValueError(f"Invalid dependency: {d}")
 
         # ensure there is one source and one sink
+        # First, find sources/sinks excluding super nodes
         sources = [
-            t for t in task_set if all(d.target != t.name for d in dependency_set)
+            t for t in task_set
+            if all(d.target != t.name for d in dependency_set)
+            and t.name not in ("__super_source__", "__super_sink__")
         ]
-        sinks = [t for t in task_set if all(d.source != t.name for d in dependency_set)]
-        if len(sources) != 1:
-            logging.warning("Task graph has multiple sources; adding super source.")
-            super_source = TaskGraphNode(name="__super_source__", cost=0.0)
-            task_set.add(super_source)
-            for source in sources:
-                dependency_set.add(
-                    TaskGraphEdge(
-                        source=super_source.name, target=source.name, size=0.0
-                    )
-                )
-        if len(sinks) != 1:
-            logging.warning("Task graph has multiple sinks; adding super sink.")
-            super_sink = TaskGraphNode(name="__super_sink__", cost=0.0)
-            task_set.add(super_sink)
-            for sink in sinks:
-                dependency_set.add(
-                    TaskGraphEdge(source=sink.name, target=super_sink.name, size=0.0)
-                )
+        sinks = [
+            t for t in task_set
+            if all(d.source != t.name for d in dependency_set)
+            and t.name not in ("__super_source__", "__super_sink__")
+        ]
 
-        super().__init__(
-            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
-        )
+        # Check if super nodes already exist
+        has_super_source = any(t.name == "__super_source__" for t in task_set)
+        has_super_sink = any(t.name == "__super_sink__" for t in task_set)
+
+        # Handle sources: need exactly one entry point
+        if len(sources) > 1 or (len(sources) == 1 and has_super_source):
+            if not has_super_source:
+                logging.warning("Task graph has multiple sources; adding super source.")
+                super_source = TaskGraphNode(name="__super_source__", cost=0.0)
+                task_set.add(super_source)
+            # Ensure super source connects to all current sources
+            existing_super_source_targets = {
+                d.target for d in dependency_set if d.source == "__super_source__"
+            }
+            for source in sources:
+                if source.name not in existing_super_source_targets:
+                    dependency_set.add(
+                        TaskGraphEdge(
+                            source="__super_source__", target=source.name, size=0.0
+                        )
+                    )
+
+        # Handle sinks: need exactly one exit point
+        if len(sinks) > 1 or (len(sinks) == 1 and has_super_sink):
+            if not has_super_sink:
+                logging.warning("Task graph has multiple sinks; adding super sink.")
+                super_sink = TaskGraphNode(name="__super_sink__", cost=0.0)
+                task_set.add(super_sink)
+            # Ensure super sink connects from all current sinks
+            existing_super_sink_sources = {
+                d.source for d in dependency_set if d.target == "__super_sink__"
+            }
+            for sink in sinks:
+                if sink.name not in existing_super_sink_sources:
+                    dependency_set.add(
+                        TaskGraphEdge(
+                            source=sink.name, target="__super_sink__", size=0.0
+                        )
+                    )
+
+        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
 
     @cached_property
     def graph(self) -> nx.DiGraph:
@@ -368,7 +397,7 @@ class TaskGraph(BaseModel):
             TaskGraphEdge(source=u, target=v, size=G.edges[u, v][edge_weight_attr])
             for u, v in G.edges
         ]
-        return TaskGraph(tasks=tasks, dependencies=dependencies)
+        return TaskGraph.create(tasks=tasks, dependencies=dependencies)
 
     def topological_sort(self) -> List[TaskGraphNode]:
         """Get a topological sort of the task graph.

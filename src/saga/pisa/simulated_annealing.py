@@ -176,7 +176,7 @@ def default_initial_network(num_nodes: int = 4) -> Network:
     )
     return network
 
-def default_initial_task_graph(num_tasks: int = 8) -> TaskGraph:
+def default_initial_task_graph(num_tasks: int = 4) -> TaskGraph:
     task_graph = get_chain_dag(num_tasks)
     return task_graph
 

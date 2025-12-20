@@ -47,7 +47,7 @@ class Determinizer(StochasticScheduler):
         Returns:
             StochasticSchedule: The resulting schedule.
         """
-        det_network = Network(
+        det_network = Network.create(
             nodes=[
                 NetworkNode(name=node.name, speed=self.determinize(node.speed))
                 for node in network.nodes
@@ -62,7 +62,7 @@ class Determinizer(StochasticScheduler):
             ],
         )
 
-        det_task_graph = TaskGraph(
+        det_task_graph = TaskGraph.create(
             tasks=[
                 TaskGraphNode(name=task.name, cost=self.determinize(task.cost))
                 for task in task_graph.tasks

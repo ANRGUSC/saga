@@ -81,9 +81,15 @@ class TaskGraphDeleteDependency(Change):
         cls, network: Network, task_graph: TaskGraph
     ) -> Optional["TaskGraphDeleteDependency"]:
         """Randomly select a dependency to delete."""
-        if len(task_graph.dependencies) <= 0:
+        # Exclude edges involving super nodes
+        super_nodes = {"__super_source__", "__super_sink__"}
+        deletable_deps = [
+            d for d in task_graph.dependencies
+            if d.source not in super_nodes and d.target not in super_nodes
+        ]
+        if len(deletable_deps) <= 0:
             return None
-        dep = random.choice(list(task_graph.dependencies))
+        dep = random.choice(deletable_deps)
         return cls(source=dep.source, target=dep.target)
 
     def apply(
@@ -113,21 +119,31 @@ class TaskGraphAddDependency(Change):
     def random(
         cls, network: Network, task_graph: TaskGraph
     ) -> Optional["TaskGraphAddDependency"]:
-        """Randomly select a dependency to add."""
+        """Randomly select a dependency to add.
+
+        To avoid cycles, we can only add edge source -> target if target
+        is not an ancestor of source (would create cycle) and not already
+        a direct successor (would be duplicate).
+        """
         import networkx as nx
 
         graph = task_graph.graph
 
-        nodes = list(graph.nodes)
+        # Exclude super nodes from modification
+        super_nodes = {"__super_source__", "__super_sink__"}
+        nodes = [n for n in graph.nodes if n not in super_nodes]
         random.shuffle(nodes)
 
-        for node in nodes:
-            ancestors = nx.ancestors(graph, node)
-            children = set(graph.successors(node))
-            non_ancestors = set(nodes) - ancestors - children - {node}
-            if len(non_ancestors) > 0:
-                target = random.choice(list(non_ancestors))
-                return cls(source=node, target=target)
+        for source in nodes:
+            # Cannot add edge to ancestors (would create cycle)
+            ancestors = nx.ancestors(graph, source)
+            # Cannot add edge to existing successors (already exists)
+            successors = set(graph.successors(source))
+            # Valid targets: not self, not ancestors, not existing successors, not super nodes
+            valid_targets = set(nodes) - ancestors - successors - {source}
+            if len(valid_targets) > 0:
+                target = random.choice(list(valid_targets))
+                return cls(source=source, target=target)
         return None
 
     def apply(
@@ -154,9 +170,15 @@ class TaskGraphChangeDependencyWeight(Change):
         cls, network: Network, task_graph: TaskGraph
     ) -> Optional["TaskGraphChangeDependencyWeight"]:
         """Randomly select a dependency to change."""
-        if len(task_graph.dependencies) <= 0:
+        # Exclude edges involving super nodes
+        super_nodes = {"__super_source__", "__super_sink__"}
+        changeable_deps = [
+            d for d in task_graph.dependencies
+            if d.source not in super_nodes and d.target not in super_nodes
+        ]
+        if len(changeable_deps) <= 0:
             return None
-        dep = random.choice(list(task_graph.dependencies))
+        dep = random.choice(changeable_deps)
         d_size = random.uniform(-DELTA, DELTA)
         new_size = max(MINVAL, min(MAXVAL, dep.size + d_size))
         return cls(source=dep.source, target=dep.target, size=new_size)
@@ -192,9 +214,14 @@ class TaskGraphChangeTaskWeight(Change):
         cls, network: Network, task_graph: TaskGraph
     ) -> Optional["TaskGraphChangeTaskWeight"]:
         """Randomly select a task to change."""
-        if len(task_graph.tasks) <= 0:
+        # Exclude super nodes
+        super_nodes = {"__super_source__", "__super_sink__"}
+        changeable_tasks = [
+            t for t in task_graph.tasks if t.name not in super_nodes
+        ]
+        if len(changeable_tasks) <= 0:
             return None
-        task = random.choice(list(task_graph.tasks))
+        task = random.choice(changeable_tasks)
         d_cost = random.uniform(-DELTA, DELTA)
         new_cost = max(MINVAL, min(MAXVAL, task.cost + d_cost))
         return cls(task=task.name, cost=new_cost)

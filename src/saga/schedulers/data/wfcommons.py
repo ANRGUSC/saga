@@ -324,7 +324,7 @@ def get_networks(
             (f"N{src}", f"N{dst}", network_speed if src != dst else 1e9)
             for src, dst in product(range(num_nodes), range(num_nodes))
         ]
-        networks.append(Network(nodes=nodes, edges=edges))
+        networks.append(Network.create(nodes=nodes, edges=edges))
 
     return networks
 
