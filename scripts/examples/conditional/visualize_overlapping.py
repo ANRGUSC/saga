@@ -110,7 +110,13 @@ def draw_overlapping_gantt(schedule: Dict[Hashable, List[OverlappingTask]],
     ]
     ax.legend(handles=legend_elements, loc='upper right')
     
-
+    # Add makespan annotation
+    ax.axvline(x=makespan, color='red', linestyle='--', linewidth=2, alpha=0.7)
+    ax.text(makespan, nodes[-1], f'Makespan: {makespan:.2f}', 
+            ha='right', va='top', fontsize=10, color='red', fontweight='bold',
+            bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
@@ -165,6 +171,7 @@ def _draw_gantt_on_axis(ax, schedule, task_graph, title):
     
     Uses the same style as saga.utils.draw.draw_gantt() for consistency.
     Conditional tasks are distinguished with hatching pattern.
+    Handles both OverlappingTask (with is_conditional) and standard Task objects.
     """
     nodes = sorted(schedule.keys())
     
@@ -173,9 +180,12 @@ def _draw_gantt_on_axis(ax, schedule, task_graph, title):
         for task in schedule[node]:
             duration = task.end - task.start
             
+            # Check if task has is_conditional attribute (OverlappingTask vs regular Task)
+            is_conditional = getattr(task, 'is_conditional', False)
+            
             # Standard style: white fill with black border (matches codebase)
             # Conditional tasks get hatching to distinguish them
-            if task.is_conditional:
+            if is_conditional:
                 ax.barh(
                     node, duration, left=task.start,
                     color='white', edgecolor='black',

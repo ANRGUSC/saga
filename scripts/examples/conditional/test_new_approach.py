@@ -14,17 +14,31 @@ from overlapping_scheduler import (
 from visualize_overlapping import draw_overlapping_gantt, draw_schedule_comparison
 from branch_extractor import (
     extract_all_branches_with_recalculation,
+    generate_heft_comparison_schedules,
 )
 from saga.utils.draw import draw_network
 from draw_conditional_graph import draw_conditional_task_graph
 
-def create_simple_ctg():
+def create_simple_ctg0():
     """Create simple test CTG: A -> B/C -> D
     
-    A: weight=2
-    B: weight=3, conditional, prob=3/4
-    C: weight=4, conditional, prob=1/4
-    D: weight=2
+    Structure:
+        A
+       / \
+      B   C        <- Branch: A chooses B or C
+       \ /
+        D          <- Both paths converge to D
+    
+    Possible execution paths:
+        Path 1: A -> B -> D
+        Path 2: A -> C -> D
+    
+    Node weights:
+        A: weight=2
+        B: weight=3, conditional from A, prob=0.75
+        C: weight=4, conditional from A, prob=0.25
+        D: weight=2
+    
     Communication times = 1
     """
     ctg = nx.DiGraph()
@@ -46,6 +60,51 @@ def create_simple_ctg():
     
     return ctg
 
+def create_simple_ctg1():
+    """Create simple test CTG: A -> B/C/D -> E 
+    
+    Structure:
+          A
+        / | \
+       B  C  D     <- Branch: A chooses B, C (conditional) or D (non-conditional)
+        \ | /
+          E        <- All paths converge to E
+    
+    Possible execution paths:
+        Path 1: A -> B -> E
+        Path 2: A -> C -> E
+        Path 3: A -> D -> E
+    
+    Node weights:
+        A: weight=2
+        B: weight=1, conditional from A, prob=0.5
+        C: weight=3, conditional from A, prob=0.3
+        D: weight=5, non-conditional from A, prob=0.2
+        E: weight=1
+    
+    Communication times = 1
+    """
+    ctg = nx.DiGraph()
+    
+    # Add nodes
+    ctg.add_node("A", weight=2)
+    ctg.add_node("B", weight=1)
+    ctg.add_node("C", weight=3)
+    ctg.add_node("D", weight=5)
+    ctg.add_node("E", weight=1)
+    
+    # Add edges
+    # A branches to B, C, or D (3-way conditional branch)
+    ctg.add_edge("A", "B", weight=1, probability=0.5, conditional=True)
+    ctg.add_edge("A", "C", weight=1, probability=0.3, conditional=True)
+    
+    # B, C, and D all lead to E (non-conditional from each branch)
+    ctg.add_edge("B", "E", weight=1, probability=1.0, conditional=False)
+    ctg.add_edge("C", "E", weight=1, probability=1.0, conditional=False)
+    ctg.add_edge("D", "E", weight=1, probability=1.0, conditional=False)
+    ctg.add_edge("A", "D", weight=1, probability=0.2, conditional=False)
+    
+    return ctg
 
 def create_simple_ctg2():
     """Create CTG with nested conditional branches: A -> B/C, B -> D/E -> F/G -> G
@@ -316,6 +375,13 @@ def main():
     # Visualize comparison 
     axes = draw_schedule_comparison(schedule, branch_schedules_recalculated, ctg,
                                     save_path="schedule_comparison.pdf")
+    
+    # Generate HEFT comparison schedules (standard HEFT on each branch independently)
+    heft_schedules = generate_heft_comparison_schedules(ctg, network)
+    
+    # Visualize HEFT comparison
+    axes_heft = draw_schedule_comparison(schedule, heft_schedules, ctg,
+                                         save_path="heft_comparison.pdf")
     
 
 if __name__ == "__main__":

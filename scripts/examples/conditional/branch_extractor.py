@@ -4,6 +4,8 @@ from typing import Dict, Hashable, List, Optional, Tuple
 import networkx as nx
 
 from overlapping_scheduler import OverlappingTask
+from saga.schedulers.heft import HeftScheduler
+from saga.scheduler import Task
 
 
 def identify_branches(task_graph: nx.DiGraph) -> List[Tuple[str, List[Hashable]]]:
@@ -55,22 +57,29 @@ def identify_branches(task_graph: nx.DiGraph) -> List[Tuple[str, List[Hashable]]
             # Get all children of current node
             children = list(task_graph.successors(current))
             
-            # Check if any children are conditional
-            is_conditional = any(
-                task_graph.edges[current, child].get('conditional', False) 
-                for child in children
-            )
+            # Separate conditional from non-conditional children
+            conditional_children = [
+                child for child in children 
+                if task_graph.edges[current, child].get('conditional', False)
+            ]
+            non_conditional_children = [
+                child for child in children 
+                if not task_graph.edges[current, child].get('conditional', False)
+            ]
             
-            if is_conditional:
+            if conditional_children:
                 # Multiple conditional branches - recursively explore each one
                 all_branches = []
-                for child in children:
+                for child in conditional_children:
                     # Create a descriptive name for this choice
                     child_name = str(child)
                     
+                    # Build queue for this branch: conditional child + non-conditional children + rest of queue
+                    new_queue = [child] + non_conditional_children + queue.copy()
+                    
                     # Recursively explore this branch
                     branches_from_child = _explore_branches(
-                        queue=[child] + queue.copy(),
+                        queue=new_queue,
                         visited=visited.copy(),
                         path_names=path_names + [child_name]
                     )
@@ -78,7 +87,7 @@ def identify_branches(task_graph: nx.DiGraph) -> List[Tuple[str, List[Hashable]]
                 
                 return all_branches
             else:
-                # Non-conditional children - add to queue
+                # No conditional children - add all to queue (continue current path)
                 for child in children:
                     if child not in visited and child not in queue:
                         queue.append(child)
@@ -240,5 +249,44 @@ def extract_all_branches_with_recalculation(
         )
     
     return recalculated_schedules
+
+
+def generate_heft_comparison_schedules(
+    task_graph: nx.DiGraph,
+    network: nx.DiGraph
+) -> Dict[str, Dict[Hashable, List[Task]]]:
+    """Generate standard HEFT schedules for each branch to compare against overlapping approach.
+    
+    For each branch, creates a static DAG containing only the tasks in that branch,
+    then runs standard HEFT scheduling without conditional overlapping logic.
+    
+    Args:
+        task_graph: The conditional task graph
+        network: The heterogeneous computing network
+        
+    Returns:
+        Dict mapping branch names to their HEFT schedules (as standard Task objects)
+    """
+    branches = identify_branches(task_graph)
+    heft_schedules = {}
+    
+    for branch_name, branch_tasks in branches:
+        # Create subgraph containing only tasks in this branch
+        branch_subgraph = task_graph.subgraph(branch_tasks).copy()
+        
+        # Remove conditional edge attributes (make it a static DAG)
+        for u, v in branch_subgraph.edges():
+            if 'conditional' in branch_subgraph.edges[u, v]:
+                del branch_subgraph.edges[u, v]['conditional']
+            if 'probability' in branch_subgraph.edges[u, v]:
+                del branch_subgraph.edges[u, v]['probability']
+        
+        # Run standard HEFT on this branch
+        scheduler = HeftScheduler()
+        heft_schedule = scheduler.schedule(network, branch_subgraph)
+        
+        heft_schedules[branch_name] = heft_schedule
+    
+    return heft_schedules
 
 
