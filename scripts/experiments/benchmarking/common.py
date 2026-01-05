@@ -1,20 +1,30 @@
+import logging
 import os
 import pathlib
-import logging
+from typing import Set
 
 from saga.schedulers import (
-    BILScheduler, CpopScheduler, DuplexScheduler, ETFScheduler, FCPScheduler,
-    FLBScheduler, FastestNodeScheduler, GDLScheduler, HeftScheduler,
-    MCTScheduler, METScheduler, MaxMinScheduler, MinMinScheduler,
-    OLBScheduler, WBAScheduler
+    BILScheduler,
+    CpopScheduler,
+    DuplexScheduler,
+    ETFScheduler,
+    FastestNodeScheduler,
+    FCPScheduler,
+    FLBScheduler,
+    GDLScheduler,
+    HeftScheduler,
+    MaxMinScheduler,
+    MCTScheduler,
+    METScheduler,
+    MinMinScheduler,
+    OLBScheduler,
+    WBAScheduler,
 )
-
 
 logging.basicConfig(level=logging.ERROR)
 
 thisdir = pathlib.Path(__file__).parent.resolve()
 
-exclude_schedulers = []
 saga_schedulers = {
     # Schedulers included in benchmarking results for the paper
     # "Comparing Task Graph Scheduling Algorithms: An Adversarial Approach"
@@ -33,7 +43,19 @@ saga_schedulers = {
     "MaxMin": MaxMinScheduler(),
     "MinMin": MinMinScheduler(),
     "OLB": OLBScheduler(),
-    "WBA": WBAScheduler()
+    "WBA": WBAScheduler(),
+}
+
+exclude_datasets: Set[str] = {
+    "bwa",
+    "cycles",
+    "epigenomics",
+    "genome",
+    "montage",
+    "seismology",
+    "soykb",
+    "srasearch",
+    "blast",
 }
 
 datadir = thisdir.joinpath("data", "benchmarking")

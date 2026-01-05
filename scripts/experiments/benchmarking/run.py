@@ -1,16 +1,22 @@
-from typing import Dict, List, Optional, Set, Tuple
 import logging
 import pathlib
 import random
 from multiprocessing import Pool
+from typing import Dict, List, Optional, Tuple
+
 import filelock
 import pandas as pd
+from common import (
+    datadir,
+    exclude_datasets,
+    num_processors,
+    resultsdir,
+    saga_schedulers,
+)
 from tqdm import tqdm
 
-from saga.schedulers.data import Dataset
 from saga import Scheduler
-
-from common import datadir, saga_schedulers, resultsdir, num_processors
+from saga.schedulers.data import Dataset
 
 # Global variables for worker processes
 _worker_resultsdir: pathlib.Path
@@ -45,21 +51,31 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         with filelock.FileLock(lock_path):
             if savepath.exists():
                 finished_df = pd.read_csv(savepath)
-                finished = set(zip(finished_df["Dataset"], finished_df["Instance"], finished_df["Scheduler"]))
+                finished = set(
+                    zip(
+                        finished_df["Dataset"],
+                        finished_df["Instance"],
+                        finished_df["Scheduler"],
+                    )
+                )
                 if (dataset_name, instance_name, scheduler_name) in finished:
-                    logging.info("  %s/%s/%s already finished. Skipping.", dataset_name, instance_name, scheduler_name)
+                    logging.info(
+                        "  %s/%s/%s already finished. Skipping.",
+                        dataset_name,
+                        instance_name,
+                        scheduler_name,
+                    )
                     continue
 
         schedule = scheduler.schedule(
-            network=instance.network,
-            task_graph=instance.task_graph
+            network=instance.network, task_graph=instance.task_graph
         )
         makespan = schedule.makespan
         result = {
             "Dataset": dataset_name,
             "Instance": instance_name,
             "Scheduler": scheduler_name,
-            "Makespan": makespan
+            "Makespan": makespan,
         }
         results.append(result)
 
@@ -71,7 +87,9 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
             else:
                 result_df.to_csv(savepath, index=False)
 
-        logging.info("  %s/%s/%s: %.4f", dataset_name, instance_name, scheduler_name, makespan)
+        logging.info(
+            "  %s/%s/%s: %.4f", dataset_name, instance_name, scheduler_name, makespan
+        )
 
     return results
 
@@ -83,7 +101,7 @@ def evaluate_dataset(
     overwrite: bool = False,
     num_workers: int = num_processors,
     shuffle: bool = True,
-    seed: int = 42
+    seed: int = 42,
 ):
     """Evaluate a dataset using multiprocessing.
 
@@ -119,19 +137,24 @@ def evaluate_dataset(
     with Pool(
         processes=num_workers,
         initializer=_init_worker,
-        initargs=(resultsdir, schedulers)
+        initargs=(resultsdir, schedulers),
     ) as pool:
-        list(tqdm(
-            pool.imap_unordered(_evaluate_instance, work_items),
-            total=len(work_items),
-            desc=f"Evaluating {dataset_name}",
-            unit="instance"
-        ))
+        list(
+            tqdm(
+                pool.imap_unordered(_evaluate_instance, work_items),
+                total=len(work_items),
+                desc=f"Evaluating {dataset_name}",
+                unit="instance",
+            )
+        )
 
 
 def main():
     datasets = [path.name for path in datadir.iterdir() if path.is_dir()]
     for dataset in datasets:
+        if dataset in exclude_datasets:
+            logging.info("Skipping excluded dataset %s", dataset)
+            continue
         logging.info("Evaluating dataset %s", dataset)
         evaluate_dataset(resultsdir, dataset, overwrite=False)
 

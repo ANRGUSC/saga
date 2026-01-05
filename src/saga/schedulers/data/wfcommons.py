@@ -6,18 +6,14 @@ import random
 import tempfile
 from functools import lru_cache
 from itertools import product
-from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, Callable
+from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Type, Union
 
 import git
-from git.remote import RemoteProgress
 import networkx as nx
-from scipy import stats
 import numpy as np
 import scipy
-
-from saga import Network, TaskGraph
-from saga.utils.random_variable import RandomVariable
-
+from git.remote import RemoteProgress
+from scipy import stats
 from wfcommons import wfchef
 from wfcommons.wfchef.recipes import (
     BlastRecipe,
@@ -32,6 +28,9 @@ from wfcommons.wfchef.recipes import (
 )
 from wfcommons.wfgen.abstract_recipe import WorkflowRecipe
 from wfcommons.wfgen.generator import WorkflowGenerator
+
+from saga import Network, TaskGraph
+from saga.utils.random_variable import RandomVariable
 
 WFCOMMONS_AVAILABLE = True
 
@@ -329,18 +328,15 @@ def get_networks(
     return networks
 
 
-def trace_to_digraph(path: Union[str, pathlib.Path], recipe_name: str) -> nx.DiGraph:
-    """Convert a WfCommons trace (v1.4 schema) to a NetworkX DiGraph.
+def _trace_to_digraph_v14(trace: Dict) -> nx.DiGraph:
+    """Convert a WfCommons v1.4 trace to a NetworkX DiGraph.
 
     Args:
-        path: Path to the JSON trace file.
-        recipe_name: Name of the recipe (for logging purposes).
+        trace: Parsed JSON trace dictionary (v1.4 schema).
 
     Returns:
         nx.DiGraph: The task graph with 'weight' attributes on nodes and edges.
     """
-    trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-
     workflow = nx.DiGraph()
 
     # Build mapping from task name to output files
@@ -389,6 +385,93 @@ def trace_to_digraph(path: Union[str, pathlib.Path], recipe_name: str) -> nx.DiG
             workflow.add_edge(parent_id, task_id, weight=max(1e-9, edge_weight))
 
     return workflow
+
+
+def _trace_to_digraph_v15(trace: Dict) -> nx.DiGraph:
+    """Convert a WfCommons v1.5 trace to a NetworkX DiGraph.
+
+    Args:
+        trace: Parsed JSON trace dictionary (v1.5 schema).
+
+    Returns:
+        nx.DiGraph: The task graph with 'weight' attributes on nodes and edges.
+    """
+    workflow = nx.DiGraph()
+
+    # Get specification and execution data
+    spec_tasks = trace.get("workflow", {}).get("specification", {}).get("tasks", [])
+    exec_tasks = trace.get("workflow", {}).get("execution", {}).get("tasks", [])
+
+    # Build mapping from task id to execution runtime
+    exec_runtime: Dict[str, float] = {}
+    for exec_task in exec_tasks:
+        task_id = exec_task.get("id")
+        runtime = exec_task.get("runtimeInSeconds", 1e-9)
+        if task_id:
+            exec_runtime[task_id] = max(1e-9, float(runtime))
+
+    # Build mapping from task name to output files (using inputFiles/outputFiles)
+    task_name_to_id: Dict[str, str] = {}  # task name -> task id
+    task_id_exists: Set[str] = set()  # set of all task IDs
+
+    for task in spec_tasks:
+        task_id = task.get("id")
+        task_name = task.get("name")
+
+        if task_id:
+            task_id_exists.add(task_id)
+            task_name_to_id[task_name] = task_id
+
+            # Get runtime from execution data
+            runtime = exec_runtime.get(task_id, 1e-9)
+            workflow.add_node(task_id, weight=runtime)
+
+    # Add edges based on parent relationships
+    for task in spec_tasks:
+        task_id = task.get("id")
+
+        if not task_id:
+            continue
+
+        # For each parent, add edge
+        # In v1.5, parents can be either task IDs (directly) or task names
+        for parent_ref in task.get("parents", []):
+            # First try as ID, then as name
+            parent_id = parent_ref
+            if parent_id not in task_id_exists:
+                # Try as name
+                parent_id = task_name_to_id.get(parent_ref)
+
+            if parent_id and parent_id in task_id_exists:
+                # For v1.5, we don't have file size information
+                # Use a default weight of 1.0 for the edge
+                workflow.add_edge(parent_id, task_id, weight=1.0)
+
+    return workflow
+
+
+def trace_to_digraph(path: Union[str, pathlib.Path], recipe_name: str) -> nx.DiGraph:
+    """Convert a WfCommons trace to a NetworkX DiGraph.
+
+    Supports both v1.4 (Pegasus traces) and v1.5 (WfCommons generated) schemas.
+
+    Args:
+        path: Path to the JSON trace file.
+        recipe_name: Name of the recipe (for logging purposes).
+
+    Returns:
+        nx.DiGraph: The task graph with 'weight' attributes on nodes and edges.
+    """
+    trace = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+
+    # Detect schema version
+    schema_version = trace.get("schemaVersion", "1.4")
+
+    if schema_version.startswith("1.5"):
+        return _trace_to_digraph_v15(trace)
+    else:
+        # Default to v1.4 for compatibility
+        return _trace_to_digraph_v14(trace)
 
 
 def get_workflow_task_info(recipe_name: str) -> Dict:
