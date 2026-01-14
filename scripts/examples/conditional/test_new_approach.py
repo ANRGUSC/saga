@@ -1,11 +1,11 @@
-"""Test new conditional scheduling approach where conditional tasks overlap."""
+"""Test new conditional scheduling approach where conditional tasks overlap.
+
+This script demonstrates the workflow for a single CTG. For batch testing
+of all CTGs, use run_all_ctgs.py instead.
+"""
 import sys
 import pathlib
-import networkx as nx
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
-import numpy as np
-
 
 from overlapping_scheduler import (
     OverlappingConditionalScheduler,
@@ -19,328 +19,30 @@ from branch_extractor import (
 from saga.utils.draw import draw_network
 from draw_conditional_graph import draw_conditional_task_graph
 
-def create_simple_ctg0():
-    """Create simple test CTG: A -> B/C -> D
-    
-    Structure:
-        A
-       / \
-      B   C        <- Branch: A chooses B or C
-       \ /
-        D          <- Both paths converge to D
-    
-    Possible execution paths:
-        Path 1: A -> B -> D
-        Path 2: A -> C -> D
-    
-    Node weights:
-        A: weight=2
-        B: weight=3, conditional from A, prob=0.75
-        C: weight=4, conditional from A, prob=0.25
-        D: weight=2
-    
-    Communication times = 1
-    """
-    ctg = nx.DiGraph()
-    
-    # Add nodes
-    ctg.add_node("A", weight=2)
-    ctg.add_node("B", weight=3)
-    ctg.add_node("C", weight=4)
-    ctg.add_node("D", weight=2)
-    
-    # Add edges
-    # A branches to B or C (conditional)
-    ctg.add_edge("A", "B", weight=1, probability=0.75, conditional=True)
-    ctg.add_edge("A", "C", weight=1, probability=0.25, conditional=True)
-    
-    # B and C both lead to D (non-conditional from each branch)
-    ctg.add_edge("B", "D", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("C", "D", weight=1, probability=1.0, conditional=False)
-    
-    return ctg
-
-def create_simple_ctg1():
-    """Create simple test CTG: A -> B/C/D -> E 
-    
-    Structure:
-          A
-        / | \
-       B  C  D     <- Branch: A chooses B, C (conditional) or D (non-conditional)
-        \ | /
-          E        <- All paths converge to E
-    
-    Possible execution paths:
-        Path 1: A -> B -> E
-        Path 2: A -> C -> E
-        Path 3: A -> D -> E
-    
-    Node weights:
-        A: weight=2
-        B: weight=1, conditional from A, prob=0.5
-        C: weight=3, conditional from A, prob=0.3
-        D: weight=5, non-conditional from A, prob=0.2
-        E: weight=1
-    
-    Communication times = 1
-    """
-    ctg = nx.DiGraph()
-    
-    # Add nodes
-    ctg.add_node("A", weight=2)
-    ctg.add_node("B", weight=1)
-    ctg.add_node("C", weight=3)
-    ctg.add_node("D", weight=5)
-    ctg.add_node("E", weight=1)
-    
-    # Add edges
-    # A branches to B, C, or D (3-way conditional branch)
-    ctg.add_edge("A", "B", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("A", "C", weight=1, probability=0.3, conditional=True)
-    
-    # B, C, and D all lead to E (non-conditional from each branch)
-    ctg.add_edge("B", "E", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("C", "E", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("D", "E", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("A", "D", weight=1, probability=0.2, conditional=False)
-    
-    return ctg
-
-def create_simple_ctg2():
-    """Create CTG with nested conditional branches: A -> B/C, B -> D/E -> F/G -> G
-    
-    Structure:
-           A
-          / \
-         B   C        <- Branch 1: A chooses B or C
-        / \   \
-       D   E   |      <- Branch 2: B chooses D or E (only if B was chosen)
-       |   |   |
-       F   |   |      <- D leads to F
-        \  |  /
-         \ | /
-           G          <- All paths converge to G
-    
-    Possible execution paths:
-        Path 1: A -> B -> D -> F -> G
-        Path 2: A -> B -> E -> G
-        Path 3: A -> C -> G
-    
-    Node weights:
-        A: weight=2
-        B: weight=3, conditional from A, prob=0.75
-        C: weight=4, conditional from A, prob=0.25
-        D: weight=2, conditional from B, prob=0.5
-        E: weight=3, conditional from B, prob=0.5
-        F: weight=2
-        G: weight=2
-    
-    Communication times = 1
-    """
-    ctg = nx.DiGraph()
-    
-    # Add nodes
-    ctg.add_node("A", weight=2)
-    ctg.add_node("B", weight=3)
-    ctg.add_node("C", weight=4)
-    ctg.add_node("D", weight=2)
-    ctg.add_node("E", weight=3)
-    ctg.add_node("F", weight=2)
-    ctg.add_node("G", weight=2)
-    
-    # Add edges
-    # Branch 1: A branches to B or C (conditional)
-    ctg.add_edge("A", "B", weight=1, probability=0.75, conditional=True)
-    ctg.add_edge("A", "C", weight=1, probability=0.25, conditional=True)
-    
-    # Branch 2: B branches to D or E (conditional, nested)
-    ctg.add_edge("B", "D", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("B", "E", weight=1, probability=0.5, conditional=True)
-    
-    # D leads to F (non-conditional)
-    ctg.add_edge("D", "F", weight=1, probability=1.0, conditional=False)
-    
-    # All paths converge to G (non-conditional)
-    ctg.add_edge("F", "G", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("E", "G", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("C", "G", weight=1, probability=1.0, conditional=False)
-    
-    return ctg
-
-
-def create_simple_ctg3():
-    """Create CTG with symmetric nested conditional branches on both sides.
-    
-    Structure:
-           A
-          / \
-         B   C        <- Branch 1: A chooses B or C
-        / \ / \
-       D  E F  G      <- Branch 2: B chooses D or E, C chooses F or G
-       |  | |  |
-       H  | |  |      <- D leads to H
-        \ | | /
-         \| |/
-           I          <- All paths converge to I
-    
-    Possible execution paths:
-        Path 1: A -> B -> D -> H -> I
-        Path 2: A -> B -> E -> I
-        Path 3: A -> C -> F -> I
-        Path 4: A -> C -> G -> I
-    
-    Node weights:
-        A: weight=2
-        B: weight=3, conditional from A, prob=0.75
-        C: weight=4, conditional from A, prob=0.25
-        D: weight=2, conditional from B, prob=0.5
-        E: weight=3, conditional from B, prob=0.5
-        F: weight=2, conditional from C, prob=0.5
-        G: weight=3, conditional from C, prob=0.5
-        H: weight=2
-        I: weight=2
-    
-    Communication times = 1
-    """
-    ctg = nx.DiGraph()
-    
-    # Add nodes
-    ctg.add_node("A", weight=2)
-    ctg.add_node("B", weight=3)
-    ctg.add_node("C", weight=4)
-    ctg.add_node("D", weight=2)
-    ctg.add_node("E", weight=3)
-    ctg.add_node("F", weight=2)
-    ctg.add_node("G", weight=3)
-    ctg.add_node("H", weight=2)
-    ctg.add_node("I", weight=2)
-    
-    # Add edges
-    # Branch 1: A branches to B or C (conditional)
-    ctg.add_edge("A", "B", weight=1, probability=0.75, conditional=True)
-    ctg.add_edge("A", "C", weight=1, probability=0.25, conditional=True)
-    
-    # Branch 2: B branches to D or E (conditional, nested)
-    ctg.add_edge("B", "D", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("B", "E", weight=1, probability=0.5, conditional=True)
-    
-    # Branch 3: C branches to F or G (conditional, nested)
-    ctg.add_edge("C", "F", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("C", "G", weight=1, probability=0.5, conditional=True)
-    
-    # D leads to H (non-conditional)
-    ctg.add_edge("D", "H", weight=1, probability=1.0, conditional=False)
-    
-    # All paths converge to I (non-conditional)
-    ctg.add_edge("H", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("E", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("F", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("G", "I", weight=1, probability=1.0, conditional=False)
-    
-    return ctg
-
-
-def create_simple_ctg4():
-    """Create CTG with branching at multiple levels including after convergence.
-    
-    Structure:
-             A
-            / \
-           B   C        <- Branch 1: A chooses B or C
-          / \ / \
-         D  E F  G      <- Branch 2: B chooses D or E, C chooses F or G
-         |  | |  |
-         H  | |  |      <- D leads to H
-          \ | | /
-           \| |/
-             I          <- All paths converge to I
-            / \
-           J   K        <- Branch 3: I chooses J or K (after convergence!)
-    
-    Possible execution paths (8 total):
-        Path 1: A -> B -> D -> H -> I -> J
-        Path 2: A -> B -> D -> H -> I -> K
-        Path 3: A -> B -> E -> I -> J
-        Path 4: A -> B -> E -> I -> K
-        Path 5: A -> C -> F -> I -> J
-        Path 6: A -> C -> F -> I -> K
-        Path 7: A -> C -> G -> I -> J
-        Path 8: A -> C -> G -> I -> K
-    
-    Node weights:
-        A: weight=2
-        B: weight=3, conditional from A, prob=0.75
-        C: weight=4, conditional from A, prob=0.25
-        D: weight=2, conditional from B, prob=0.5
-        E: weight=3, conditional from B, prob=0.5
-        F: weight=2, conditional from C, prob=0.5
-        G: weight=3, conditional from C, prob=0.5
-        H: weight=2
-        I: weight=2
-        J: weight=3, conditional from I, prob=0.6
-        K: weight=2, conditional from I, prob=0.4
-    
-    Communication times = 1
-    """
-    ctg = nx.DiGraph()
-    
-    # Add nodes
-    ctg.add_node("A", weight=2)
-    ctg.add_node("B", weight=3)
-    ctg.add_node("C", weight=4)
-    ctg.add_node("D", weight=2)
-    ctg.add_node("E", weight=3)
-    ctg.add_node("F", weight=2)
-    ctg.add_node("G", weight=3)
-    ctg.add_node("H", weight=2)
-    ctg.add_node("I", weight=2)
-    ctg.add_node("J", weight=3)
-    ctg.add_node("K", weight=2)
-    
-    # Add edges
-    # Branch 1: A branches to B or C (conditional)
-    ctg.add_edge("A", "B", weight=1, probability=0.75, conditional=True)
-    ctg.add_edge("A", "C", weight=1, probability=0.25, conditional=True)
-    
-    # Branch 2: B branches to D or E (conditional, nested)
-    ctg.add_edge("B", "D", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("B", "E", weight=1, probability=0.5, conditional=True)
-    
-    # Branch 3: C branches to F or G (conditional, nested)
-    ctg.add_edge("C", "F", weight=1, probability=0.5, conditional=True)
-    ctg.add_edge("C", "G", weight=1, probability=0.5, conditional=True)
-    
-    # D leads to H (non-conditional)
-    ctg.add_edge("D", "H", weight=1, probability=1.0, conditional=False)
-    
-    # All paths converge to I (non-conditional)
-    ctg.add_edge("H", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("E", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("F", "I", weight=1, probability=1.0, conditional=False)
-    ctg.add_edge("G", "I", weight=1, probability=1.0, conditional=False)
-    
-    # Branch 4: I branches to J or K (conditional, after convergence!)
-    ctg.add_edge("I", "J", weight=1, probability=0.6, conditional=True)
-    ctg.add_edge("I", "K", weight=1, probability=0.4, conditional=True)
-    
-    return ctg
-
-
-def create_network():
-    """Create a simple 2-node network."""
-    network = nx.Graph()
-    network.add_nodes_from([1, 2], weight=1.0)  # Both nodes have speed 1.0
-    network.add_edges_from([(1, 2)], weight=1.0)  # Link has bandwidth 1.0
-    # Add self-loops with very high bandwidth (no cost for same-node communication)
-    network.add_edges_from([(1, 1), (2, 2)], weight=1e9)
-    return network
+# Import CTGs from the library
+from ctg_library import (
+    get_all_ctgs,
+    get_ctg_by_name,
+    create_simple_network,
+    create_heterogeneous_network,
+    create_ctg0,
+    create_ctg1,
+    create_ctg2,
+    create_ctg3,
+    create_ctg4,
+    create_ctg5,
+)
 
 def main():
-    # Create simple CTG
-    ctg = create_simple_ctg3()
+    """Demonstrate the overlapping scheduler workflow on a single CTG."""
+    # Select which CTG to test (change this to test different CTGs)
+    ctg_name = "ctg4"  # Options: ctg0-ctg9
+    
+    # Get CTG from library
+    ctg, metadata = get_ctg_by_name(ctg_name)
     
     # Create network
-    network = create_network()
+    network = create_simple_network(2)
     
     # Visualize the CTG structure with conditional edges highlighted
     draw_conditional_task_graph(ctg, "simple_ctg")
@@ -362,7 +64,7 @@ def main():
     
     # Visualize the schedule
     ax = draw_overlapping_gantt(schedule, ctg, 
-                                 title="Simple CTG: A -> B/C -> D with Overlapping",
+                                 title=f"{metadata['name']}: {metadata['description']}",
                                  save_path="overlapping_schedule.pdf")
     
     # Extract branches with recalculated times (removes gaps)
@@ -370,7 +72,6 @@ def main():
     branch_schedules_recalculated = extract_all_branches_with_recalculation(
         schedule, ctg, runtimes, commtimes
     )
-
     
     # Visualize comparison 
     axes = draw_schedule_comparison(schedule, branch_schedules_recalculated, ctg,
@@ -382,7 +83,9 @@ def main():
     # Visualize HEFT comparison
     axes_heft = draw_schedule_comparison(schedule, heft_schedules, ctg,
                                          save_path="heft_comparison.pdf")
-    
+
+    print("test/Done")
+
 
 if __name__ == "__main__":
     main()
