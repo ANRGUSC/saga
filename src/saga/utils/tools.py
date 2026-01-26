@@ -81,6 +81,44 @@ def get_insert_loc(schedule: List[Task],
     return len(schedule), max(min_start_time, schedule[-1].end)
 
 
+def should_duplicate(
+    task_name: Hashable,
+    task_graph: nx.DiGraph,
+    network: nx.Graph,
+    runtimes: Dict[Hashable, Dict[Hashable, float]],
+    commtimes: Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
+) -> bool:
+    """Determine if a task should be duplicated based on computation vs communication costs.
+
+    Args:
+        task_name (Hashable): The name of the task.
+        task_graph (nx.DiGraph): The task graph.
+        network (nx.Graph): The network graph.
+        runtimes (Dict[Hashable, Dict[Hashable, float]]): Runtime of each task on each node.
+        commtimes (Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]):
+            Communication times between nodes for task dependencies.
+
+    Returns:
+        bool: True if the average communication time exceeds the average computation time.
+    """
+    average_computation_time = np.mean(
+        [runtimes[node][task_name] for node in network.nodes]
+    )
+
+    comm_costs = []
+    for successor in task_graph.successors(task_name):
+        for src_node, dst_node in network.edges:
+            # Communication time if task_name runs on src_node and successor runs on dst_node
+            comm_costs.append(commtimes[(src_node, dst_node)][(task_name, successor)])
+            # Also consider the reverse direction (bidirectional edges)
+            comm_costs.append(commtimes[(dst_node, src_node)][(task_name, successor)])
+
+    if not comm_costs:
+        return False
+    average_communication_time = np.mean(comm_costs)
+    return average_communication_time > average_computation_time
+
+
 class InvalidScheduleError(Exception):
     """Raised when a schedule is invalid."""
     def __init__(self,

@@ -118,8 +118,8 @@ def draw_one():
 
 
 def run_experiment():
-    num_instances = 10
-    ccr_values = [1/2, 1, 2, 5, 10]
+    num_instances = 50
+    ccr_values = [1/10, 5, 10]
     duplicate_factors = [1, 2]
 
     schedulers = {
@@ -157,7 +157,7 @@ def run_experiment():
         template="simple_white",
         title="Makespan Comparison for duplication",
         labels={"variable": "Scheduler", "value": "Makespan"},
-        points=None
+        points=False
     )
     fig.write_image(thisdir / "results.pdf")
     fig.write_image(thisdir / "results.png")
@@ -183,8 +183,8 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
 
 
 def main():
-    draw_one()
-    # run_experiment()
+    # draw_one()
+    run_experiment()
 
 if __name__ == '__main__':
     main()

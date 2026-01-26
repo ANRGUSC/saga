@@ -8,7 +8,7 @@ import numpy as np
 from queue import PriorityQueue
 
 from ..scheduler import Scheduler, Task
-from ..utils.tools import get_insert_loc
+from ..utils.tools import get_insert_loc, should_duplicate
 from .cpop import upward_rank
 
 thisdir = pathlib.Path(__file__).resolve().parent
@@ -142,7 +142,12 @@ class HeftScheduler(Scheduler):
         for task_name in schedule_order:
             if task_name in task_schedule:
                 continue
-            duplicate_factor = 1 if task_graph.out_degree(task_name) <= 1 else self.duplicate_factor #checks for duplicates only if task has multiple children
+            # duplicate_factor = 1 if task_graph.out_degree(task_name) <= 1 else self.duplicate_factor #checks for duplicates only if task has multiple children
+            if should_duplicate(task_name, task_graph, network, runtimes, commtimes):
+                duplicate_factor = self.duplicate_factor
+            else:
+                duplicate_factor = 1
+                
             best_nodes = PriorityQueue()
             for node in network.nodes:  # Find the best node to run the task
                 max_arrival_time: float = max(  #Can only start after all parents, take max 

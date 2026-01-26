@@ -7,7 +7,7 @@ import numpy as np
 from queue import PriorityQueue
 
 from ..scheduler import Scheduler, Task
-from ..utils.tools import get_insert_loc
+from ..utils.tools import get_insert_loc, should_duplicate
 
 def upward_rank(network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, float]:
     """Computes the upward rank of the tasks in the task graph."""
@@ -83,6 +83,39 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         super().__init__()
         self.duplicate_factor = duplicate_factor # Can a task be duplicated on multiple nodes?
     
+    @staticmethod
+    def get_runtimes(network: nx.Graph, task_graph: nx.DiGraph):
+        """Get the expected runtimes of all tasks on all nodes.
+
+        Args:
+            network (nx.Graph): The network graph.
+            task_graph (nx.DiGraph): The task graph.
+
+        Returns:
+            Tuple[Dict[Hashable, Dict[Hashable, float]],
+                  Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]]:
+                A tuple of dictionaries mapping nodes to task runtimes and edges to communication times.
+        """
+        runtimes = {}
+        for node in network.nodes:
+            runtimes[node] = {}
+            speed = network.nodes[node]["weight"]
+            for task in task_graph.nodes:
+                cost = task_graph.nodes[task]["weight"]
+                runtimes[node][task] = cost / speed
+
+        commtimes = {}
+        for src, dst in network.edges:
+            commtimes[src, dst] = {}
+            commtimes[dst, src] = {}
+            speed = network.edges[src, dst]["weight"]
+            for src_task, dst_task in task_graph.edges:
+                cost = task_graph.edges[src_task, dst_task]["weight"]
+                commtimes[src, dst][src_task, dst_task] = cost / speed
+                commtimes[dst, src][src_task, dst_task] = cost / speed
+
+        return runtimes, commtimes
+
     def schedule(self, network: nx.Graph, task_graph: nx.DiGraph) -> Dict[Hashable, List[Task]]:
         """Computes the schedule for the task graph using the CPoP algorithm.
 
@@ -96,6 +129,8 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
         Raises:
             ValueError: If instance is invalid.
         """
+        runtimes, commtimes = CpopScheduler.get_runtimes(network, task_graph)
+        
         ranks = cpop_ranks(network, task_graph)
         logging.debug("Ranks: %s", ranks)
 
@@ -138,14 +173,16 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
             logging.debug("Processing task %s (predecessors: %s)", task_name, list(task_graph.predecessors(task_name)))
 
             duplicate_factor = self.duplicate_factor
-            if task_graph.out_degree(task_name) <= 1: 
+            if should_duplicate(task_name, task_graph, network, runtimes, commtimes):
+                duplicate_factor = self.duplicate_factor
+            else:
                 duplicate_factor = 1
             
             best_nodes = PriorityQueue()
             
             nodes = set(network.nodes)
             if np.isclose(-task_rank, cp_rank):
-                print(f"CP Node: {cp_node} for task {task_name}")
+                # print(f"CP Node: {cp_node} for task {task_name}")
                 # assign task to cp_node
                 exec_time = task_graph.nodes[task_name]["weight"] / network.nodes[cp_node]["weight"]
                 max_arrival_time = max(
@@ -193,7 +230,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
                     end_time = start_time + exec_time
                     finish_times.append((end_time, node, idx, start_time))
 
-                    print(f"Node {node} can finish task {task_name} at time {end_time}")
+                    # print(f"Node {node} can finish task {task_name} at time {end_time}")
 
                 finish_times.sort()
                 best_nodes = finish_times[:duplicate_factor]
