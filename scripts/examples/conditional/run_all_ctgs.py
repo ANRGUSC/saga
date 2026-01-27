@@ -26,8 +26,8 @@ THISDIR = pathlib.Path(__file__).resolve().parent
 RESULTS_DIR = THISDIR / "results"
 CSV_PATH = RESULTS_DIR / "results.csv"
 OUTDIR = RESULTS_DIR / "plots"
-RESULTS_DIR.mkdir(exist_ok=True)
-OUTDIR.mkdir(exist_ok=True)
+RESULTS_DIR.mkdir
+OUTDIR.mkdir
 
 
 def get_makespan(schedule: Dict[Hashable, List]) -> float:
