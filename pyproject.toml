@@ -9,7 +9,7 @@ description = "Scheduling Algorithms Gathered - collection of task graph schedul
 readme = "README.md"
 authors = [{name = "ANRG USC", email = "anrg@usc.edu"}]
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "networkx",
     "numpy",
@@ -26,8 +26,11 @@ dependencies = [
     "pysmt",
     "z3-solver",
     "pygraphviz",
-    "wfcommons; sys_platform != 'win32'",
+    "wfcommons",
 ]
+
+[tool.uv.sources]
+wfcommons = { git = "https://github.com/jaredraycoleman/WfCommons.git", branch = "windows-support" }
 
 [project.urls]
 Repository = "https://github.com/ANRGUSC/saga"
