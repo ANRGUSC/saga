@@ -4,6 +4,7 @@ import networkx as nx
 import pandas as pd
 import pathlib
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from saga.schedulers.cpop import CpopScheduler
 from saga.schedulers.heft import HeftScheduler
@@ -13,24 +14,23 @@ from saga.utils.random_graphs import (
     get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag,
     get_network, add_random_weights
 )
+from saga.schedulers.data.wfcommons import get_workflows as get_wfcommons_workflows, get_networks as get_wfcommons_networks
 import pathlib
-import plotly.express as px
 from copy import deepcopy
 import numpy as np
 import networkx as nx 
 import logging
+from itertools import product
 
 thisdir = pathlib.Path(__file__).parent.absolute()
 
 
-def get_random_instance(ccr: float) -> Tuple[nx.Graph, nx.DiGraph]:
-    network = get_network(num_nodes=2)
+def get_random_instance(ccr: float, levels: int, branching_factor: int, num_nodes: int) -> Tuple[nx.Graph, nx.DiGraph]:
+    network = get_network(num_nodes=num_nodes)
     task_graph = get_branching_dag(
-        levels=3,
-        branching_factor=2
+        levels=levels,
+        branching_factor=branching_factor
     )
-    # task_graph = get_fork_dag()
-    # task_graph = get_diamond_dag()
     add_random_weights(network, weight_range=(1,1))
     add_random_weights(task_graph)
     network = to_ccr(task_graph, network, ccr)
@@ -85,25 +85,10 @@ def to_ccr(task_graph: nx.DiGraph,
 
     return network
 
-def remove_outliers_iqr_grouped(df: pd.DataFrame, group_cols, value_col: str, k: float = 1.5) -> pd.DataFrame:
-    """
-    Remove rows whose value_col is an outlier within its group defined by group_cols,
-    using the IQR rule with multiplier k.
-    """
-    df2 = df.copy()
-    mask = pd.Series(True, index=df2.index)
-    for name, group in df2.groupby(group_cols):
-        q1 = group[value_col].quantile(0.25)
-        q3 = group[value_col].quantile(0.75)
-        iqr = q3 - q1
-        lower, upper = q1 - k * iqr, q3 + k * iqr
-        mask.loc[group.index] = group[value_col].between(lower, upper)
-    return df2[mask]
-
 def draw_one():
     ccr = 10
     
-    network, task_graph = get_random_instance(ccr)
+    network, task_graph = get_random_instance(ccr, levels=1, branching_factor=2, num_nodes=2)
     draw_instance(network=network, task_graph=task_graph)
 
     scheduler = CpopScheduler(duplicate_factor=1)
@@ -120,47 +105,47 @@ def draw_one():
 def run_experiment():
     num_instances = 50
     ccr_values = [1/10, 5, 10]
-    duplicate_factors = [1, 2]
+    duplicate_factors = [1,2]
+    all_num_nodes = [4, 8]
+    all_levels = [2,3]
+    all_branching_factors = [2,3]
 
     schedulers = {
         "HEFT": HeftScheduler,
         "CPoP": CpopScheduler
     }
     
+    # Calculate total iterations for progress bar
+    total_iterations = (
+        num_instances * 
+        len(ccr_values) * 
+        len(list(product(all_num_nodes, all_levels, all_branching_factors))) *
+        len(duplicate_factors) * 
+        len(schedulers)
+    )
+    
     rows = []
-    for i in range(num_instances):
-        for ccr in ccr_values:
-            network, task_graph = get_random_instance(ccr)
-            for dup_factor in duplicate_factors:
-                for scheduler_name, Scheduler in schedulers.items():
-                    scheduler = Scheduler(duplicate_factor=dup_factor)
-                    schedule = scheduler.schedule(network, task_graph)
-                    makespan = get_makespan(schedule = schedule) 
-                    rows.append([i, ccr, scheduler_name, str(dup_factor), makespan])
+    with tqdm(total=total_iterations, desc="Running experiments") as pbar:
+        for i in range(num_instances):
+            for ccr in ccr_values:
+                for num_nodes, levels, branching_factor in product(all_num_nodes, all_levels, all_branching_factors):
+                    network, task_graph = get_random_instance(
+                        ccr,
+                        levels=levels,
+                        branching_factor=branching_factor,
+                        num_nodes=num_nodes
+                    )
+                    for dup_factor in duplicate_factors:
+                        for scheduler_name, Scheduler in schedulers.items():
+                            scheduler = Scheduler(duplicate_factor=dup_factor)
+                            schedule = scheduler.schedule(network, task_graph)
+                            makespan = get_makespan(schedule = schedule) 
+                            rows.append([i, ccr, num_nodes, levels, branching_factor, scheduler_name, dup_factor, makespan])
+                            pbar.update(1)
 
-    df = pd.DataFrame(rows, columns=["Instance", "CCR", "Scheduler", "Dup Factor", "Makespan"])
-
-    df = remove_outliers_iqr_grouped(
-        df, 
-        group_cols=["Scheduler", "Dup Factor", "CCR"],
-        value_col="Makespan"
-    )
-
-
-    fig = px.box(
-        df,
-        x="Scheduler",
-        y="Makespan",
-        color="Dup Factor",
-        facet_col="CCR",
-        facet_col_wrap=3,
-        template="simple_white",
-        title="Makespan Comparison for duplication",
-        labels={"variable": "Scheduler", "value": "Makespan"},
-        points=False
-    )
-    fig.write_image(thisdir / "results.pdf")
-    fig.write_image(thisdir / "results.png")
+    df = pd.DataFrame(rows, columns=["Instance", "CCR", "Num Nodes", "Levels", "Branching Factor", "Scheduler", "Dup Factor", "Makespan"])
+    df.to_csv(thisdir / "results.csv", index=False)
+    print(f"Results saved to {thisdir / 'results.csv'}")
 
 
 def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):

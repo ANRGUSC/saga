@@ -174,7 +174,7 @@ class CpopScheduler(Scheduler): # pylint: disable=too-few-public-methods
 
             duplicate_factor = self.duplicate_factor
             if should_duplicate(task_name, task_graph, network, runtimes, commtimes):
-                duplicate_factor = self.duplicate_factor
+                duplicate_factor = max(self.duplicate_factor, task_graph.out_degree(task_name))
             else:
                 duplicate_factor = 1
             
