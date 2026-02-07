@@ -158,9 +158,11 @@ class FCPScheduler(Scheduler):
             # processor that becomes idle first
             p_start = min(
                 network.nodes,
-                key=lambda node: comp_schedule[node.name][-1].end
-                if comp_schedule[node.name]
-                else min_start_time,
+                key=lambda node: (
+                    comp_schedule[node.name][-1].end
+                    if comp_schedule[node.name]
+                    else min_start_time
+                ),
             ).name
             # processor with predecessor that last finishes
             in_edges = task_graph.in_edges(task_name)

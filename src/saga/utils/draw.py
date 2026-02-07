@@ -1,4 +1,5 @@
 from functools import lru_cache
+import importlib.util
 import logging
 import shutil
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, TypeVar
@@ -20,11 +21,8 @@ from saga import ScheduledTask
 logger = logging.getLogger("SAGA:saga.utils.draw")
 
 # Try to import pygraphviz, but fall back to other layouts if not available
-try:
-    import pygraphviz
-    HAS_PYGRAPHVIZ = True
-except ImportError:
-    HAS_PYGRAPHVIZ = False
+HAS_PYGRAPHVIZ = importlib.util.find_spec("pygraphviz") is not None
+if not HAS_PYGRAPHVIZ:
     logger.debug("pygraphviz not available, will use alternative graph layouts")
 
 TGraphType = TypeVar("TGraphType", bound=Union[nx.DiGraph, nx.Graph])
@@ -111,7 +109,9 @@ def draw_task_graph(
                 pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
             else:
                 # Fall back to hierarchical layout for DAGs
-                logger.debug("Using spring layout as fallback (pygraphviz not available)")
+                logger.debug(
+                    "Using spring layout as fallback (pygraphviz not available)"
+                )
                 pos = nx.spring_layout(task_graph, seed=42)
 
         colors: Dict[str, Tuple[float, float, float, float]] = {}

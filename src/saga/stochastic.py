@@ -365,9 +365,7 @@ class StochasticTaskGraph(BaseModel):
                     )
                 )
 
-        return cls(
-            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
-        )
+        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
 
     @cached_property
     def graph(self) -> nx.DiGraph:

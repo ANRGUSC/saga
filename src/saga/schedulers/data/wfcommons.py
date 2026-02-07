@@ -548,8 +548,9 @@ def get_workflows(
 def get_wfcommons_instance(
     recipe_name: str,
     ccr: float,
-    estimate_method: Callable[[RandomVariable, bool], float] = lambda x,
-    is_speed: x.mean(),
+    estimate_method: Callable[[RandomVariable, bool], float] = lambda x, is_speed: (
+        x.mean()
+    ),
     max_size_multiplier: int = 2,
 ) -> Tuple[Network, TaskGraph]:
     """Generate a network and workflow instance from wfcommons.
