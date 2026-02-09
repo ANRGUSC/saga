@@ -14,7 +14,10 @@ from saga.utils.random_graphs import (
     get_branching_dag, get_chain_dag, get_diamond_dag, get_fork_dag,
     get_network, add_random_weights
 )
-from saga.schedulers.data.wfcommons import get_workflows as get_wfcommons_workflows, get_networks as get_wfcommons_networks
+from saga.schedulers.data.wfcommons import (
+    get_workflows as get_wfcommons_workflows, 
+    get_networks as get_wfcommons_networks
+)
 import pathlib
 from copy import deepcopy
 import numpy as np
@@ -103,7 +106,7 @@ def draw_one():
 
 
 def run_experiment():
-    num_instances = 50
+    num_instances = 80
     ccr_values = [1/10, 5, 10]
     duplicate_factors = [1,2]
     all_num_nodes = [4, 8]
@@ -148,6 +151,72 @@ def run_experiment():
     print(f"Results saved to {thisdir / 'results.csv'}")
 
 
+def run_wfcommons_experiment():
+    """Run experiments using real workflow traces from WfCommons."""
+    num_workflows = 10  # Number of workflows to generate per recipe
+    num_networks = 10   # Number of networks to generate
+    duplicate_factors = [1, 2]
+    
+    # Available workflow recipes
+    workflow_recipes = ['montage', 'epigenomics', 'seismology']
+    
+    schedulers = {
+        "HEFT": HeftScheduler,
+        "CPoP": CpopScheduler
+    }
+    
+    print("Generating networks from WfCommons data...")
+    networks = get_wfcommons_networks(num=num_networks, cloud_name="chameleon", network_speed=100)
+    
+    # Calculate total iterations for progress bar
+    total_iterations = (
+        len(workflow_recipes) * 
+        num_workflows * 
+        len(networks) * 
+        len(duplicate_factors) * 
+        len(schedulers)
+    )
+    
+    rows = []
+    with tqdm(total=total_iterations, desc="Running WfCommons experiments") as pbar:
+        for recipe_name in workflow_recipes:
+            print(f"\nGenerating {num_workflows} workflows from {recipe_name} recipe...")
+            task_graphs = get_wfcommons_workflows(num=num_workflows, recipe_name=recipe_name, vary_weights_only=False)
+            
+            for i, task_graph in enumerate(task_graphs):
+                for j, network in enumerate(networks):
+                    for dup_factor in duplicate_factors:
+                        for scheduler_name, Scheduler in schedulers.items():
+                            scheduler = Scheduler(duplicate_factor=dup_factor)
+                            schedule = scheduler.schedule(network, task_graph)
+                            makespan = get_makespan(schedule=schedule)
+                            
+                            rows.append([
+                                recipe_name,
+                                i,  # workflow instance
+                                j,  # network instance
+                                task_graph.number_of_nodes(),  # num tasks
+                                network.number_of_nodes(),  # num processors
+                                scheduler_name,
+                                dup_factor,
+                                makespan
+                            ])
+                            pbar.update(1)
+    
+    df = pd.DataFrame(rows, columns=[
+        "Recipe", 
+        "Workflow Instance", 
+        "Network Instance",
+        "Num Tasks",
+        "Num Processors",
+        "Scheduler", 
+        "Dup Factor", 
+        "Makespan"
+    ])
+    df.to_csv(thisdir / "results_wfcommons.csv", index=False)
+    print(f"\nWfCommons results saved to {thisdir / 'results_wfcommons.csv'}")
+
+
 def draw_instance(network: nx.Graph, task_graph: nx.DiGraph):
     logging.basicConfig(level=logging.INFO)
     ax: plt.Axes = draw_task_graph(task_graph, use_latex=True)
@@ -169,7 +238,13 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
 
 def main():
     # draw_one()
+    
+    # Run synthetic random graphs experiment
     run_experiment()
+    
+    # Run WfCommons real workflow experiment
+    # Uncomment the line below to test on real workflows
+    # run_wfcommons_experiment()
 
 if __name__ == '__main__':
     main()
