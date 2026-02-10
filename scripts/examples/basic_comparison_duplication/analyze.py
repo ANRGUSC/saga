@@ -165,9 +165,13 @@ def analyze_results():
     )
     fig6.update_traces(textposition='outside')
     fig6.add_hline(y=0, line_dash="dash", line_color="gray")
-    fig6.update_layout(height=400)
+    fig6.update_layout(
+        height=500,
+        margin=dict(l=80, r=80, t=80, b=80),
+        yaxis=dict(automargin=True)
+    )
     fig6.write_html(thisdir / "improvement_summary.html")
-    fig6.write_image(thisdir / "improvement_summary.png", width=600, height=400)
+    fig6.write_image(thisdir / "improvement_summary.png", width=700, height=500)
     
     # Save detailed improvement stats
     improvement_stats = df_wide.groupby("Scheduler").agg({

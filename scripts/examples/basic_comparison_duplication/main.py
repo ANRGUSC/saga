@@ -237,14 +237,8 @@ def draw_schedule(schedule: Dict[str, List[Task]], name: str, xmax: float = None
 
 
 def main():
-    # draw_one()
-    
-    # Run synthetic random graphs experiment
-    run_experiment()
-    
-    # Run WfCommons real workflow experiment
-    # Uncomment the line below to test on real workflows
-    # run_wfcommons_experiment()
+    # run_experiment()
+    run_wfcommons_experiment()
 
 if __name__ == '__main__':
     main()
