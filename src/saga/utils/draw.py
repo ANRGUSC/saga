@@ -19,13 +19,6 @@ from saga import ScheduledTask
 # create logger with SAGA:saga.utils.draw: prefix
 logger = logging.getLogger("SAGA:saga.utils.draw")
 
-# Try to import pygraphviz, but fall back to other layouts if not available
-try:
-    import pygraphviz
-    HAS_PYGRAPHVIZ = True
-except ImportError:
-    HAS_PYGRAPHVIZ = False
-    logger.debug("pygraphviz not available, will use alternative graph layouts")
 
 TGraphType = TypeVar("TGraphType", bound=Union[nx.DiGraph, nx.Graph])
 
@@ -107,12 +100,11 @@ def draw_task_graph(
         task_graph = format_graph(task_graph.copy())
 
         if pos is None:
-            if HAS_PYGRAPHVIZ:
-                pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
-            else:
-                # Fall back to hierarchical layout for DAGs
-                logger.debug("Using spring layout as fallback (pygraphviz not available)")
-                pos = nx.spring_layout(task_graph, seed=42)
+            pos = {}
+            for i, generation in enumerate(nx.topological_generations(task_graph)):
+                gen = sorted(generation)
+                for j, node in enumerate(gen):
+                    pos[node] = (j - (len(gen) - 1) / 2, -i)
 
         colors: Dict[str, Tuple[float, float, float, float]] = {}
         tasks: Dict[str, ScheduledTask] = {}

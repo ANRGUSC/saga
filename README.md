@@ -31,66 +31,6 @@ conda activate saga-env
 
 For more information on managing Python versions with Conda, refer to the [Conda documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html). ([Managing Python — conda 25.3.0 documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html?utm_source=chatgpt.com))
 
-### Graphviz Installation
-
-To enable task graph visualization, ensure that **Graphviz** is installed on your system. Graphviz provides the `dot` command-line tool used for rendering graphs.
-
-#### Installation via Conda (Recommended)
-
-You can install Graphviz and its Python interface using Conda: ([anaconda - graphviz - can't import after installation - Stack Overflow](https://stackoverflow.com/questions/33433274/anaconda-graphviz-cant-import-after-installation?utm_source=chatgpt.com))
-
-
-```bash
-conda install -c conda-forge graphviz python-graphviz
-```
-
-This command installs both the Graphviz binaries and the `python-graphviz` package, facilitating seamless integration with Python scripts. ([anaconda - graphviz - can't import after installation - Stack Overflow](https://stackoverflow.com/questions/33433274/anaconda-graphviz-cant-import-after-installation?utm_source=chatgpt.com))
-
-#### Manual Installation
-
-If you prefer manual installation:
-
-- **macOS**:
-
-  - Using [Homebrew](https://brew.sh/):
-
-    ```bash
-    brew install graphviz
-    ```
-
-  - Using [MacPorts](https://www.macports.org/):
-
-    ```bash
-    sudo port install graphviz
-    ```
-
-- **Windows**:
-
-  - Download the installer from the [Graphviz Download Page](https://graphviz.org/download/).
-
-  - Run the installer and ensure the option **"Add Graphviz to the system PATH for current user"** is selected during installation.
-
-- **Linux (Debian/Ubuntu-based)**:
-
-  - Install via APT: ([Linux Install Graphviz Dot - friendlylasopa](https://friendlylasopa340.weebly.com/linux-install-graphviz-dot.html?utm_source=chatgpt.com))
-
-    ```bash
-    sudo apt-get update
-    sudo apt-get install graphviz
-    ```
-
-#### Verifying the Installation
-
-After installation, confirm that the `dot` command is accessible:
-
-
-```bash
-dot -V
-```
-
-This should output the version of Graphviz installed, indicating that `dot` is ready for use.
-
-
 ## Usage
 
 ### Installation
