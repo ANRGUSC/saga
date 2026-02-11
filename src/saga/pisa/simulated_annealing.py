@@ -167,7 +167,6 @@ class SimulatedAnnealingIteration(BaseModel):
         return math.exp(-energy_ratio / self.temperature) if energy_ratio <= 1 else 1.0
 
 
-
 def default_initial_network(num_nodes: int = 4) -> Network:
     network = get_network(
         num_nodes=num_nodes,
@@ -176,9 +175,11 @@ def default_initial_network(num_nodes: int = 4) -> Network:
     )
     return network
 
+
 def default_initial_task_graph(num_tasks: int = 4) -> TaskGraph:
     task_graph = get_chain_dag(num_tasks)
     return task_graph
+
 
 class SimulatedAnnealing(BaseModel):
     """Simulated annealing for finding adversarial scheduling instances.
@@ -217,8 +218,14 @@ class SimulatedAnnealing(BaseModel):
     config: SimulatedAnnealingConfig = Field(
         default_factory=SimulatedAnnealingConfig, description="Configuration used."
     )
-    initial_network: Network = Field(default_factory=default_initial_network, description="Initial network. Should initially be a simple, small network.")
-    initial_task_graph: TaskGraph = Field(default_factory=default_initial_task_graph, description="Initial task graph. Should initially be a simple, small task graph.")
+    initial_network: Network = Field(
+        default_factory=default_initial_network,
+        description="Initial network. Should initially be a simple, small network.",
+    )
+    initial_task_graph: TaskGraph = Field(
+        default_factory=default_initial_task_graph,
+        description="Initial task graph. Should initially be a simple, small task graph.",
+    )
     data_dir: pathlib.Path = Field(
         default_factory=get_pisa_dir,
         description="Directory to store results.",

@@ -55,7 +55,21 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Set up Python
+<<<<<<< HEAD
         run: uv python install 3.12
+=======
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-lint-${{ hashFiles('**/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-lint-
+>>>>>>> 64e04be37f6ea36ffb2da0bccfc51606058837a1
 
       - name: Install dependencies
         run: uv sync

@@ -365,9 +365,7 @@ class StochasticTaskGraph(BaseModel):
                     )
                 )
 
-        return cls(
-            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
-        )
+        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
 
     @cached_property
     def graph(self) -> nx.DiGraph:
@@ -571,9 +569,7 @@ class StochasticSchedule(BaseModel):
                     schedule.is_scheduled(in_edge.source)
                     for in_edge in det_task_graph.in_edges(out_edge.target)
                 ):
-                    succ_task = next(
-                        t for t in self.mapping[task.node] if t.name == out_edge.target
-                    )
+                    succ_task = self.get_scheduled_task(out_edge.target)
                     pq.put((-succ_task.rank, succ_task))
         return schedule
 

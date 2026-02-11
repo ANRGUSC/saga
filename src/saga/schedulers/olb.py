@@ -47,9 +47,11 @@ class OLBScheduler(Scheduler):
 
             next_available_node = min(
                 node_names,
-                key=lambda node_name: comp_schedule[node_name][-1].end
-                if comp_schedule[node_name]
-                else min_start_time,
+                key=lambda node_name: (
+                    comp_schedule[node_name][-1].end
+                    if comp_schedule[node_name]
+                    else min_start_time
+                ),
             )
 
             in_edges = task_graph.in_edges(task.name)

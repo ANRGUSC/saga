@@ -84,7 +84,8 @@ class TaskGraphDeleteDependency(Change):
         # Exclude edges involving super nodes
         super_nodes = {"__super_source__", "__super_sink__"}
         deletable_deps = [
-            d for d in task_graph.dependencies
+            d
+            for d in task_graph.dependencies
             if d.source not in super_nodes and d.target not in super_nodes
         ]
         if len(deletable_deps) <= 0:
@@ -173,7 +174,8 @@ class TaskGraphChangeDependencyWeight(Change):
         # Exclude edges involving super nodes
         super_nodes = {"__super_source__", "__super_sink__"}
         changeable_deps = [
-            d for d in task_graph.dependencies
+            d
+            for d in task_graph.dependencies
             if d.source not in super_nodes and d.target not in super_nodes
         ]
         if len(changeable_deps) <= 0:
@@ -216,9 +218,7 @@ class TaskGraphChangeTaskWeight(Change):
         """Randomly select a task to change."""
         # Exclude super nodes
         super_nodes = {"__super_source__", "__super_sink__"}
-        changeable_tasks = [
-            t for t in task_graph.tasks if t.name not in super_nodes
-        ]
+        changeable_tasks = [t for t in task_graph.tasks if t.name not in super_nodes]
         if len(changeable_tasks) <= 0:
             return None
         task = random.choice(changeable_tasks)

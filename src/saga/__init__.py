@@ -283,7 +283,9 @@ class TaskGraph(BaseModel):
     def create(
         cls,
         tasks: Iterable[TaskGraphNode | Tuple[str, float]],
-        dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]],
+        dependencies: Iterable[
+            TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]
+        ],
     ) -> "TaskGraph":
         task_set = set()
         for t in tasks:
@@ -307,12 +309,14 @@ class TaskGraph(BaseModel):
         # ensure there is one source and one sink
         # First, find sources/sinks excluding super nodes
         sources = [
-            t for t in task_set
+            t
+            for t in task_set
             if all(d.target != t.name for d in dependency_set)
             and t.name not in ("__super_source__", "__super_sink__")
         ]
         sinks = [
-            t for t in task_set
+            t
+            for t in task_set
             if all(d.source != t.name for d in dependency_set)
             and t.name not in ("__super_source__", "__super_sink__")
         ]
