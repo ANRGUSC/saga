@@ -27,6 +27,8 @@ dependencies = [
     "z3-solver",
     "pygraphviz",
     "wfcommons",
+    "plotly",
+    "kaleido",
 ]
 
 [tool.uv.sources]

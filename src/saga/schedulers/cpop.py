@@ -1,9 +1,11 @@
 from functools import lru_cache
 import heapq
+from queue import PriorityQueue
 from typing import Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
+from saga.utils.duplication import should_duplicate
 
 
 @lru_cache(maxsize=None)
@@ -104,6 +106,7 @@ class CpopScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+    duplication_factor: int = 1
 
     def schedule(
         self,
@@ -169,31 +172,35 @@ class CpopScheduler(Scheduler):
         while pq:
             task_rank, task = heapq.heappop(pq)
 
-            min_finish_time = np.inf
-            best_node = cp_node  # arbitrary initialization
+            is_critical = np.isclose(-task_rank, cp_rank)
+            nodes = frozenset([cp_node]) if is_critical else network.nodes
 
-            nodes = network.nodes
-            if np.isclose(-task_rank, cp_rank):
-                nodes = frozenset([cp_node])
+            duplicate_factor = 1
+            if not is_critical and should_duplicate(task.name, task_graph, network):
+                duplicate_factor = self.duplication_factor
 
-            for node in nodes:
-                start_time = comp_schedule.get_earliest_start_time(
-                    task=task, node=node, append_only=False
+            for dup_idx in range(duplicate_factor):
+                # Recalculate best node for this duplicate (schedule state changes as duplicates are added)
+                best_node = None
+                min_finish_time = np.inf
+                for node in nodes:
+                    start_time = comp_schedule.get_earliest_start_time(
+                        task=task, node=node, append_only=False
+                    )
+                    end_time = start_time + (task.cost / node.speed)
+                    if end_time < min_finish_time:
+                        min_finish_time = end_time
+                        best_node = node
+                
+                new_exec_time = task.cost / best_node.speed
+                new_task = ScheduledTask(
+                    node=best_node.name,
+                    name=task.name,
+                    start=min_finish_time - new_exec_time,
+                    end=min_finish_time,
                 )
-                end_time = start_time + (task.cost / node.speed)
-                if end_time < min_finish_time:
-                    min_finish_time = end_time
-                    best_node = node
-
-            new_exec_time = task.cost / best_node.speed
-            new_task = ScheduledTask(
-                node=best_node.name,
-                name=task.name,
-                start=min_finish_time - new_exec_time,
-                end=min_finish_time,
-            )
-            comp_schedule.add_task(new_task)
-            task_map[task.name] = new_task
+                comp_schedule.add_task(new_task)
+                task_map[task.name] = new_task
 
             ready_tasks = [
                 task_graph.get_task(dep.target)

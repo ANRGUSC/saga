@@ -544,7 +544,7 @@ class Schedule(BaseModel):
         ..., description="The mapping of tasks to nodes."
     )
 
-    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict)
+    _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
 
     def __init__(
         self,
@@ -623,10 +623,13 @@ class Schedule(BaseModel):
                 raise ValueError(
                     f"Parent task {dependency.source} is not scheduled yet."
                 )
-            parent_task = self._task_map[dependency.source]
-            network_edge = self.network.get_edge(parent_task.node, node.name)
-            arrival_time = parent_task.end + (dependency.size / network_edge.speed)
-            min_start_time = max(min_start_time, arrival_time)
+            parent_tasks = self._task_map[dependency.source]
+            min_min_start_time = math.inf
+            for parent_task in parent_tasks:
+                network_edge = self.network.get_edge(parent_task.node, node.name)
+                arrival_time = parent_task.end + (dependency.size / network_edge.speed)
+                min_min_start_time = min(min_min_start_time, arrival_time)
+            min_start_time = max(min_start_time, min_min_start_time)
 
         if append_only:
             min_start_time = (
@@ -679,22 +682,7 @@ class Schedule(BaseModel):
                 f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}."
             )
 
-        self._task_map[task.name] = task
-
-    def remove_task(self, task_name: str | TaskGraphNode) -> None:
-        """Remove a task from the schedule.
-
-        Args:
-            task_name (str | TaskGraphNode): The task or the name of the task to remove.
-        """
-        task_name = (
-            task_name.name if isinstance(task_name, TaskGraphNode) else task_name
-        )
-        if task_name not in self._task_map:
-            raise ValueError(f"Task {task_name} not in schedule.")
-        scheduled_task = self._task_map[task_name]
-        self.mapping[scheduled_task.node].remove(scheduled_task)
-        del self._task_map[task_name]
+        self._task_map.setdefault(task.name, []).append(task)
 
     def is_scheduled(self, task_name: str) -> bool:
         """Check if a task is scheduled.
@@ -709,13 +697,13 @@ class Schedule(BaseModel):
                 return True
         return False
 
-    def get_scheduled_task(self, task_name: str) -> ScheduledTask:
+    def get_scheduled_task(self, task_name: str) -> List[ScheduledTask]:
         """Get the scheduled task by name.
 
         Args:
             task_name (str): The name of the task.
         Returns:
-            ScheduledTask: The scheduled task.
+            List[ScheduledTask]: The scheduled tasks.
 
         Raises:
             ValueError: If the task is not scheduled.
@@ -725,7 +713,7 @@ class Schedule(BaseModel):
         return self._task_map[task_name]
 
 
-class Scheduler(ABC):
+class Scheduler(ABC, BaseModel):
     """An abstract class for a scheduler."""
 
     @abstractmethod
