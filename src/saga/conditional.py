@@ -80,10 +80,9 @@ class ConditionalTaskGraphNode(StochasticTaskGraphNode):
                 sum(task.cost for task in branch.tasks) for branch, _ in conditional_branches
             ]
 
-            total_prob = sum(prob for _, prob in conditional_branches)      
-            
             cost = RandomVariable(samples=[mean(cost_by_branch)])
-
+            
+            total_prob = sum(prob for _, prob in conditional_branches)                
             if not math.isclose(total_prob, 1):
                 raise ValueError("Probabilities don't add to 1")
                 
