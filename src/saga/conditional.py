@@ -59,12 +59,12 @@ class ConditionalTaskGraphNode(StochasticTaskGraphNode):
             
             If No: They must provide cost directly
                     Set branches to empty list
+
+        cost = weight of nodes
     """
-
-
-    @property
-    def is_conditional(self) -> bool:
-        return len(self.conditional_branches) > 0
+    #@property
+    #def is_conditional(self) -> bool:
+    #    return len(self.conditional_branches) > 0
 
     name: str
     conditional_branches: List[Tuple[StochasticTaskGraph, float]] = Field(
@@ -104,7 +104,16 @@ class ConditionalTaskGraphNode(StochasticTaskGraphNode):
 
 
 class ConditionalTaskGraph(StochasticTaskGraph):
-    """A TaskGraph that supports conditional branches."""
+    """A TaskGraph that supports conditional branches.
+        -Stores only ConditionalTaskGraphNodes
+        -Reuses StochasticTaskGraph behavior for DAG/dependencies
+        -Computes conditional_groups for sibling branch roots
+
+    """
+
+    #TODO, take in COnditionalTaskGraphNode
+    #TODO, firgure out if conditional if so then mark as conditional so easier to group 
+    #TODO, use dependencies to build taskgraph
 
     def __init__(
         self,
@@ -113,3 +122,12 @@ class ConditionalTaskGraph(StochasticTaskGraph):
         condition_edges: List[TaskGraphEdge],
     ):
         pass # TODO: What to do...
+
+class ConditionalSchedule():
+    """
+    -A schedule that has conditional tasks
+    -wrapper similar to stochastic scheduler that takes heuristic like heft and a 
+    conditionalTaskGraph and NetworkNode and creates a overlapping schedule output like 
+    @\\wsl.localhost\Ubuntu\home\gtwiggho\saga_developer\scripts\examples\conditional\overlapping_scheduler.py 
+    
+    """
