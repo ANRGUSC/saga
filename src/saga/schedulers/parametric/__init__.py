@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Iterable, List, TypeVar
+from typing import Generic, Iterable, List, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -67,13 +67,6 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
         ..., description="The initial priority strategy."
     )
     insert_task: TInsert = Field(..., description="The task insertion strategy.")
-
-    def __init__(
-        self, initial_priority: IntialPriority, insert_task: TInsert, **kwargs: Any
-    ) -> None:
-        super().__init__(
-            initial_priority=initial_priority, insert_task=insert_task, **kwargs
-        )
 
     def schedule(
         self,

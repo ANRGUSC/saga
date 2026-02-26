@@ -1,6 +1,5 @@
 from functools import lru_cache
 import heapq
-from queue import PriorityQueue
 from typing import Dict, Optional
 import numpy as np
 
@@ -106,6 +105,7 @@ class CpopScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
     duplication_factor: int = 1
 
     def schedule(
@@ -191,7 +191,10 @@ class CpopScheduler(Scheduler):
                     if end_time < min_finish_time:
                         min_finish_time = end_time
                         best_node = node
-                
+
+                if best_node is None:
+                    raise ValueError(f"No suitable node found for task {task.name}")
+
                 new_exec_time = task.cost / best_node.speed
                 new_task = ScheduledTask(
                     node=best_node.name,

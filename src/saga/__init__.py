@@ -684,6 +684,28 @@ class Schedule(BaseModel):
 
         self._task_map.setdefault(task.name, []).append(task)
 
+    def remove_task(self, task_name: str) -> None:
+        """Remove a task from the schedule.
+
+        Args:
+            task_name (str): The name of the task to remove.
+
+        Raises:
+            ValueError: If the task is not in the schedule.
+        """
+        for node, tasks in self.mapping.items():
+            for i, task in enumerate(tasks):
+                if task.name == task_name:
+                    tasks.pop(i)
+                    if task_name in self._task_map:
+                        self._task_map[task_name] = [
+                            t for t in self._task_map[task_name] if t is not task
+                        ]
+                        if not self._task_map[task_name]:
+                            del self._task_map[task_name]
+                    return
+        raise ValueError(f"Task {task_name} not in schedule.")
+
     def is_scheduled(self, task_name: str) -> bool:
         """Check if a task is scheduled.
 

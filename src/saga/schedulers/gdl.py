@@ -1,7 +1,8 @@
 from functools import lru_cache
-from typing import Dict, Optional, Tuple
+from typing import Dict, Literal, Optional, Tuple
 
 import numpy as np
+from pydantic import Field
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
@@ -13,11 +14,7 @@ class GDLScheduler(Scheduler):
     Notes: Considers homogenous communication speeds (not homogenous compute speeds, though)
     """
 
-    def __init__(self, dynamic_level: int = 2):
-        super().__init__()
-        self.dynamic_level = dynamic_level
-        if dynamic_level not in (1, 2):
-            raise ValueError("dynamic_level must be 1 or 2")
+    dynamic_level: Literal[1, 2] = Field(default=2)
 
     def schedule(
         self,

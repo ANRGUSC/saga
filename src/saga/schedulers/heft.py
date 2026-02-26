@@ -1,11 +1,9 @@
 import pathlib
-from typing import Dict,Hashable, List, Optional
+from typing import List, Optional
 import numpy as np
-from copy import deepcopy
-from queue import PriorityQueue
 
 
-from saga import NetworkNode, Schedule, Scheduler, ScheduledTask, TaskGraph, Network
+from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
 from saga.schedulers.cpop import upward_rank
 from saga.utils.duplication import should_duplicate
 
@@ -37,6 +35,7 @@ class HeftScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
     duplication_factor: int = 1
 
     def schedule(
@@ -45,8 +44,6 @@ class HeftScheduler(Scheduler):
         task_graph: TaskGraph,
         schedule: Optional[Schedule] = None,
         min_start_time: float = 0.0,
-
-        
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -75,7 +72,7 @@ class HeftScheduler(Scheduler):
             for dup_idx in range(duplicate_factor):
                 best_node = None
                 best_finish_time = np.inf
-                
+
                 # Recalculate best node for this specific duplicate (schedule state changes after each duplicate)
                 for node in network.nodes:
                     start_time = schedule.get_earliest_start_time(
@@ -83,21 +80,22 @@ class HeftScheduler(Scheduler):
                     )
                     start_time = max(start_time, min_start_time)
                     runtime = (
-                        task_graph.get_task(task_name).cost / network.get_node(node).speed
+                        task_graph.get_task(task_name).cost
+                        / network.get_node(node).speed
                     )
                     finish_time = start_time + runtime
                     if finish_time < best_finish_time:
                         best_finish_time = finish_time
                         best_node = node
-                
+
+                if best_node is None:
+                    raise ValueError(f"No suitable node found for task {task_name}")
+
                 new_task = ScheduledTask(
                     node=best_node.name,
                     name=task_name,
                     start=best_finish_time
-                    - (
-                        task_graph.get_task(task_name).cost
-                        / best_node.speed
-                    ),
+                    - (task_graph.get_task(task_name).cost / best_node.speed),
                     end=best_finish_time,
                 )
                 schedule.add_task(new_task)

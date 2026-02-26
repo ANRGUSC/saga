@@ -2,6 +2,8 @@ from functools import lru_cache
 import random
 from typing import Dict, Optional, Tuple
 
+from pydantic import Field
+
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
@@ -11,14 +13,7 @@ class WBAScheduler(Scheduler):
     Source: http://dx.doi.org/10.1109/CCGRID.2005.1558639
     """
 
-    def __init__(self, alpha: float = 0.5) -> None:
-        """Initializes the WBA scheduler.
-
-        Args:
-            alpha (float, optional): The alpha parameter. Defaults to 0.5.
-        """
-        super(WBAScheduler, self).__init__()
-        self.alpha = alpha
+    alpha: float = Field(default=0.5)
 
     def schedule(
         self,
