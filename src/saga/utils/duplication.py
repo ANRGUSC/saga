@@ -30,6 +30,8 @@ def should_duplicate(
 
     # Calculate average outgoing communication cost
     # For each child task, estimate the communication time based on average network speed
+    # if len(task_graph.out_edges(task_name))  < 2:
+    #     return False
     if not task_graph.out_edges(task_name):
         return False
     
@@ -45,9 +47,6 @@ def should_duplicate(
         # Communication time for this edge using average network speed
         comm_time = dependency.size / average_link_speed
         comm_costs.append(comm_time)
-    
+
     average_communication_time = np.mean(comm_costs)
-    result = average_communication_time > average_computation_time
-    # Debug: uncomment to see duplication decisions
-    # print(f"Task {task_name}: comp_time={average_computation_time:.4f}, comm_time={average_communication_time:.4f}, duplicate={result}")
-    return result
+    return average_communication_time > average_computation_time

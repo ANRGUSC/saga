@@ -64,34 +64,41 @@ def to_ccr(task_graph: TaskGraph,
     
     link_strength = (mean_dependency_weight / ccr) / (mean_task_weight / mean_node_weight)
 
+    for edge in network.edges:
+        if edge.source == edge.target:
+            edge.speed = 1e9
+        else:
+            edge.speed = link_strength
+
     # for edge in network.edges:
     #     if edge[0] == edge[1]:
     #         network.edges[edge]["weight"] = 1e9
     #     else:
     #         network.edges[edge]["weight"] = link_strength
 
-    new_network = Network(
-        nodes=[
-            NetworkNode(
-                name=node.name,
-                speed=node.speed
-            ) for node in network.nodes
-        ],
-        edges=[
-            NetworkEdge(
-                source=edge.source,
-                target=edge.target,
-                speed=link_strength if edge.source != edge.target else 1e9)
-            for edge in network.edges
-        ]  
-    )
+    return network
+    # new_network = Network(
+    #     nodes=[
+    #         NetworkNode(
+    #             name=node.name,
+    #             speed=node.speed
+    #         ) for node in network.nodes
+    #     ],
+    #     edges=[
+    #         NetworkEdge(
+    #             source=edge.source,
+    #             target=edge.target,
+    #             speed=link_strength if edge.source != edge.target else 1e9)
+    #         for edge in network.edges
+    #     ]  
+    # )
 
-    return new_network
+    # return new_network
 
 def run_experiment():
-    num_instances = 80
+    num_instances = 20
     ccr_values = [1/10, 5, 10]
-    duplicate_factors = [1,2]
+    duplicate_factors = [1,2,3]
     all_num_nodes = [4, 8]
     all_levels = [2,3]
     all_branching_factors = [2,3]
@@ -121,13 +128,17 @@ def run_experiment():
                         branching_factor=branching_factor,
                         num_nodes=num_nodes
                     )
+                    # from saga.schedulers.cpop import upward_rank, cpop_ranks
+                    # upward_rank.cache_clear()
+                    # cpop_ranks.cache_clear()
+
                     for dup_factor in duplicate_factors:
                         for scheduler_name, SchedulerClass in schedulers.items():
                             scheduler = SchedulerClass(duplication_factor=dup_factor)
-                            schedule: Schedule = scheduler.schedule(network, task_graph)
+                            test_schedule: Schedule = scheduler.schedule(network, task_graph)
                             # schedule_order = schedule.get_schedule_order()
                             # makespan = get_makespan(schedule = schedule) 
-                            makespan = schedule.makespan
+                            makespan = test_schedule.makespan
                             rows.append([i, ccr, num_nodes, levels, branching_factor, scheduler_name, dup_factor, makespan])
                             pbar.update(1)
 
@@ -147,7 +158,7 @@ def run_wfcommons_experiment():
     
     schedulers = {
         "HEFT": HeftScheduler,
-        # "CPoP": CpopScheduler
+        "CPoP": CpopScheduler
     }
     
     print("Generating networks from WfCommons data...")
@@ -163,7 +174,7 @@ def run_wfcommons_experiment():
     )
     
     rows = []
-    with tqdm(total=total_iterations, desc="Running WfCommons experiments") as pbar:
+    with tqdm(total=total_iterations, desc="Running Workflow experiments") as pbar:
         for recipe_name in workflow_recipes:
             print(f"\nGenerating {num_workflows} workflows from {recipe_name} recipe...")
             task_graphs = get_workflows(num=num_workflows, recipe_name=recipe_name)
