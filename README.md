@@ -75,6 +75,28 @@ To run a specific test or scheduler-task combination, use the `-k` option. For e
 pytest ./tests -k "HeftScheduler and diamond"
 ```
 
+### Linting and Type Checking
+
+The CI pipeline also runs a linter and type checker. You can run these locally:
+
+```bash
+# Lint with ruff
+ruff check src/saga
+
+# Check formatting with ruff
+ruff format --check src/saga
+
+# Type check with mypy
+mypy src/saga --ignore-missing-imports
+```
+
+To auto-fix lint issues or reformat code:
+
+```bash
+ruff check src/saga --fix
+ruff format src/saga
+```
+
 ### Running the Algorithms
 
 The algorithms are implemented as Python modules. The following example shows how to run the HEFT algorithm on a workflow:
