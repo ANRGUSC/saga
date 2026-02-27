@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class SufferageScheduler(Scheduler):
@@ -34,6 +35,7 @@ class SufferageScheduler(Scheduler):
             comp_schedule = schedule.model_copy()
             task_map = {t.name: t for _, tasks in schedule.items() for t in tasks}
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         def get_eet(task_name: str, node_name: str) -> float:
@@ -86,7 +88,8 @@ class SufferageScheduler(Scheduler):
 
             sufferages: Dict[str, float] = {}
             for task_name in available_tasks:
-                ect_values = [get_ect(task_name, node_name) for node_name in node_names]
+                candidate_nodes = constraints.get_candidate_nodes(task_name, node_names)
+                ect_values = [get_ect(task_name, node_name) for node_name in candidate_nodes]
                 first_ect = min(ect_values)
                 ect_values.remove(first_ect)
                 second_ect = min(ect_values) if ect_values else first_ect
@@ -94,7 +97,8 @@ class SufferageScheduler(Scheduler):
 
             sched_task = max(sufferages, key=lambda t: sufferages[t])
             sched_node = min(
-                node_names, key=lambda node_name: get_ect(sched_task, node_name)
+                constraints.get_candidate_nodes(sched_task, node_names),
+                key=lambda node_name: get_ect(sched_task, node_name),
             )
 
             new_task = ScheduledTask(

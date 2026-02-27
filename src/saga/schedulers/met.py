@@ -2,6 +2,7 @@ from functools import partial
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class METScheduler(Scheduler):
@@ -63,6 +64,7 @@ class METScheduler(Scheduler):
                 for in_edge in in_edges
             )
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         for task in task_graph.topological_sort():
@@ -70,7 +72,8 @@ class METScheduler(Scheduler):
                 continue
 
             # Find node with minimum execution time for the task
-            sched_node = min(node_names, key=partial(get_exec_time, task.name))
+            candidate_nodes = constraints.get_candidate_nodes(task.name, node_names)
+            sched_node = min(candidate_nodes, key=partial(get_exec_time, task.name))
 
             start_time = max(get_eat(sched_node), get_fat(task.name, sched_node))
             end_time = start_time + get_exec_time(task.name, sched_node)

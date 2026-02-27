@@ -2,6 +2,7 @@ import copy
 from typing import Dict, List, Optional, Set, Tuple
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class BILScheduler(Scheduler):  # pylint: disable=too-few-public-methods
@@ -44,6 +45,9 @@ class BILScheduler(Scheduler):  # pylint: disable=too-few-public-methods
                 task.name: task for _, tasks in schedule.items() for task in tasks
             }
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
+        node_names = [node.name for node in network.nodes]
+
         bils: Dict[Tuple[str, str], float] = {}
         for task in reversed(task_graph.topological_sort()):
             for node in network.nodes:
@@ -75,15 +79,17 @@ class BILScheduler(Scheduler):  # pylint: disable=too-few-public-methods
                 task_name: sorted(
                     [
                         (
-                            node.name,
+                            node_name,
                             (
-                                comp_schedule[node.name][-1].end
-                                if comp_schedule[node.name]
+                                comp_schedule[node_name][-1].end
+                                if comp_schedule[node_name]
                                 else 0
                             )
-                            + bils[(task_name, node.name)],
+                            + bils[(task_name, node_name)],
                         )
-                        for node in network.nodes
+                        for node_name in placement_constraints.get_candidate_nodes(
+                            task_name, node_names
+                        )
                     ],
                     key=lambda x: x[1],
                     reverse=True,
@@ -112,22 +118,25 @@ class BILScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             selected_task = task_graph.get_task(selected_task_name)
 
             # Section 3.2: Processor Selection
-            # compute revised bims for selected task and all nodes
+            # compute revised bims for selected task's candidate nodes
+            selected_candidate_nodes = placement_constraints.get_candidate_nodes(
+                selected_task_name, node_names
+            )
             revised_bims: Dict[str, float] = {
-                node.name: (
+                node_name: (
                     (
-                        comp_schedule[node.name][-1].end
-                        if comp_schedule[node.name]
+                        comp_schedule[node_name][-1].end
+                        if comp_schedule[node_name]
                         else 0
                     )
-                    + bils[(selected_task_name, node.name)]
+                    + bils[(selected_task_name, node_name)]
                     + (
                         selected_task.cost
-                        / node.speed
+                        / network.get_node(node_name).speed
                         * max(len(ready_tasks) / len(list(task_graph.tasks)) - 1, 0)
                     )
                 )
-                for node in network.nodes
+                for node_name in selected_candidate_nodes
             }
 
             # select node with lowest revised bim
@@ -140,19 +149,19 @@ class BILScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             if (
                 len(
                     [
-                        node
-                        for node in network.nodes
-                        if revised_bims[node.name] == revised_bims[selected_node_name]
+                        n
+                        for n in selected_candidate_nodes
+                        if revised_bims[n] == revised_bims[selected_node_name]
                     ]
                 )
                 > 1
             ):
                 selected_node_name = max(
-                    [node.name for node in network.nodes],
+                    selected_candidate_nodes,
                     key=lambda node_name: sum(
-                        revised_bims[other_node.name]
-                        for other_node in network.nodes
-                        if other_node.name != node_name
+                        revised_bims[other]
+                        for other in selected_candidate_nodes
+                        if other != node_name
                     ),
                 )
 

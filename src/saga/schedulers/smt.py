@@ -18,6 +18,7 @@ from pysmt.shortcuts import (
 from pysmt.typing import REAL
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class SMTScheduler(Scheduler):
@@ -65,16 +66,25 @@ class SMTScheduler(Scheduler):
 
         node_names = [node.name for node in network.nodes]
         task_names = [task.name for task in task_graph.tasks]
+        placement_constraints = Constraints.from_task_graph(task_graph)
 
         constraints = []
-        # Each task is assigned to exactly one node
+        # Each task is assigned to exactly one node (from its allowed set)
         for task_name in task_names:
+            candidate_names = placement_constraints.get_candidate_nodes(task_name, node_names)
+            candidate_set = set(candidate_names)
             constraints.append(
                 ExactlyOne(
                     GE(start_time[node_name][task_name], Real(0))
-                    for node_name in node_names
+                    for node_name in candidate_names
                 )
             )
+            # Force disallowed nodes to have negative start time
+            for node_name in node_names:
+                if node_name not in candidate_set:
+                    constraints.append(
+                        LE(start_time[node_name][task_name], Real(-1))
+                    )
 
         # Each node can only execute one task at a time
         for node_name in node_names:

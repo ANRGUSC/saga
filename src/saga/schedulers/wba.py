@@ -5,6 +5,7 @@ from typing import Dict, Optional, Tuple
 from pydantic import Field
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class WBAScheduler(Scheduler):
@@ -42,6 +43,7 @@ class WBAScheduler(Scheduler):
                 t.name: t for _, tasks in schedule.items() for t in tasks
             }
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         @lru_cache(maxsize=None)
@@ -124,7 +126,7 @@ class WBAScheduler(Scheduler):
             while available_tasks:
                 makespan_increases: Dict[Tuple[str, str], float] = {}
                 for task_name in available_tasks:
-                    for node_name in node_names:
+                    for node_name in constraints.get_candidate_nodes(task_name, node_names):
                         makespan_increases[task_name, node_name] = max(
                             get_ect(task_name, node_name) - cur_makespan, 0
                         )

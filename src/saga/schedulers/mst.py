@@ -2,6 +2,7 @@ from functools import partial
 from typing import Dict, List, Optional, Set
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class MSTScheduler(Scheduler):
@@ -77,14 +78,16 @@ class MSTScheduler(Scheduler):
         def get_start_time(task_name: str, node_name: str) -> float:
             return max(get_eat(node_name), get_fat(task_name, node_name))
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         for task in task_graph.topological_sort():
             if task.name in scheduled_tasks:
                 continue
 
-            nodes_to_consider = node_names
-            if task.name in cluster_decisions:
+            candidate_nodes = constraints.get_candidate_nodes(task.name, node_names)
+            nodes_to_consider = candidate_nodes
+            if task.name in cluster_decisions and cluster_decisions[task.name] in candidate_nodes:
                 nodes_to_consider = [cluster_decisions[task.name]]
 
             # Find node with minimum start time for the task

@@ -5,6 +5,7 @@ import numpy as np
 from pydantic import Field
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class GDLScheduler(Scheduler):
@@ -91,6 +92,7 @@ class GDLScheduler(Scheduler):
                     for out_edge in out_edges
                 )
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         @lru_cache(maxsize=None)
@@ -173,15 +175,17 @@ class GDLScheduler(Scheduler):
 
         @lru_cache(maxsize=None)
         def preferred_node(task_name: str) -> str:
+            candidate_nodes = placement_constraints.get_candidate_nodes(task_name, node_names)
             return min(
-                node_names,
+                candidate_nodes,
                 key=lambda node_name: dynamic_level_func(task_name, node_name),
             )
 
         @lru_cache(maxsize=None)
         def cost(task_name: str) -> float:
+            candidate_nodes = placement_constraints.get_candidate_nodes(task_name, node_names)
             return dynamic_level_func(task_name, preferred_node(task_name)) - max(
-                dynamic_level_func(task_name, other) for other in node_names
+                dynamic_level_func(task_name, other) for other in candidate_nodes
             )
 
         @lru_cache(maxsize=None)

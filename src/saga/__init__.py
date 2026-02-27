@@ -236,6 +236,11 @@ class TaskGraphNode(BaseModel):
 
     name: str = Field(..., description="The name of the task.")
     cost: float = Field(..., description="The cost (computation time) of the task.")
+    # Optional "pinned" parameter
+    pinned_to: Optional[str] = Field(
+        default=None,
+        description="Optional pinned processor parameter.",
+    )
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -372,7 +377,13 @@ class TaskGraph(BaseModel):
         """
         G = nx.DiGraph()
         for task in self.tasks:
-            G.add_node(task.name, weight=task.cost)
+            # Original:
+            # G.add_node(task.name, weight=task.cost)
+            node_attrs = {"weight": task.cost}
+            if task.pinned_to is not None:
+                # Added "pinned_to" parameter to account pinned nodes
+                node_attrs["pinned_to"] = task.pinned_to
+            G.add_node(task.name, **node_attrs)
         for dependency in self.dependencies:
             G.add_edge(dependency.source, dependency.target, weight=dependency.size)
         return G
@@ -395,7 +406,13 @@ class TaskGraph(BaseModel):
             TaskGraph: The TaskGraph representation of the directed graph.
         """
         tasks = [
-            TaskGraphNode(name=n, cost=G.nodes[n][node_weight_attr]) for n in G.nodes
+            TaskGraphNode(
+                name=n,
+                cost=G.nodes[n][node_weight_attr],
+                # Added "pinned_to" parameter to account pinned nodes
+                pinned_to=G.nodes[n].get("pinned_to"),
+            )
+            for n in G.nodes
         ]
         dependencies = [
             TaskGraphEdge(source=u, target=v, size=G.edges[u, v][edge_weight_attr])
@@ -627,7 +644,12 @@ class Schedule(BaseModel):
             min_min_start_time = math.inf
             for parent_task in parent_tasks:
                 network_edge = self.network.get_edge(parent_task.node, node.name)
-                arrival_time = parent_task.end + (dependency.size / network_edge.speed)
+                if network_edge.speed <= 0:
+                    arrival_time = math.inf
+                elif math.isinf(network_edge.speed):
+                    arrival_time = parent_task.end
+                else:
+                    arrival_time = parent_task.end + (dependency.size / network_edge.speed)
                 min_min_start_time = min(min_min_start_time, arrival_time)
             min_start_time = max(min_start_time, min_min_start_time)
 

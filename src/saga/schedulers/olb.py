@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class OLBScheduler(Scheduler):
@@ -39,19 +40,19 @@ class OLBScheduler(Scheduler):
                 t.name: t for _, tasks in schedule.items() for t in tasks
             }
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         for task in task_graph.topological_sort():
             if task.name in scheduled_tasks:
                 continue
 
+            candidate_nodes = constraints.get_candidate_nodes(task.name, node_names)
             next_available_node = min(
-                node_names,
-                key=lambda node_name: (
-                    comp_schedule[node_name][-1].end
-                    if comp_schedule[node_name]
-                    else min_start_time
-                ),
+                candidate_nodes,
+                key=lambda node_name: comp_schedule[node_name][-1].end
+                if comp_schedule[node_name]
+                else min_start_time,
             )
 
             in_edges = task_graph.in_edges(task.name)

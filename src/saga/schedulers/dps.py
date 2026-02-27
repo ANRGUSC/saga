@@ -3,6 +3,7 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 def calc_TEC(
@@ -209,13 +210,16 @@ class DPSScheduler(Scheduler):
         )
         ready_list = task_list.copy()
         runtimes, commtimes = DPSScheduler.get_runtimes(network, task_graph)
+        constraints = Constraints.from_task_graph(task_graph)
+        node_names = [node.name for node in network.nodes]
 
         while len(ready_list) > 0:
             task_name = ready_list.pop(0)
             # Earliest Finish Time
             min_finish_time = np.inf
-            best_node = next(iter(network.nodes)).name  # arbitrary initialization
-            for node in network.nodes:
+            candidate_names = constraints.get_candidate_nodes(task_name, node_names)
+            best_node = candidate_names[0]  # arbitrary initialization
+            for node in (network.get_node(n) for n in candidate_names):
                 logging.debug(f"Trying to assign task {task_name} to node {node.name}")
                 runtime = runtimes[node.name][task_name]
                 start_time = comp_schedule.get_earliest_start_time(

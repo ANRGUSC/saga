@@ -6,6 +6,7 @@ import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
 from saga.utils.duplication import should_duplicate
+from saga.constraints import Constraints
 
 
 @lru_cache(maxsize=None)
@@ -140,6 +141,9 @@ class CpopScheduler(Scheduler):
                 for scheduled_task in tasks:
                     task_map.setdefault(scheduled_task.name, []).append(scheduled_task)
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
+        node_names = [node.name for node in network.nodes]
+
         ranks = cpop_ranks(network, task_graph)
         entry_tasks = [
             task.name
@@ -175,7 +179,13 @@ class CpopScheduler(Scheduler):
             task_rank, task = heapq.heappop(pq)
 
             is_critical = np.isclose(-task_rank, cp_rank)
-            nodes = frozenset([cp_node]) if is_critical else network.nodes
+            candidate_names = placement_constraints.get_candidate_nodes(task.name, node_names)
+            if is_critical:
+                nodes = [cp_node] if cp_node.name in candidate_names else []
+                if not nodes:
+                    nodes = [network.get_node(n) for n in candidate_names]
+            else:
+                nodes = [network.get_node(n) for n in candidate_names]
 
             best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in nodes:

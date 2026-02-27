@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Generic, Iterable, List, TypeVar
+from typing import Any, Generic, Iterable, List, Optional, TypeVar
 
 from pydantic import BaseModel, Field
-
 
 from saga import (
     NetworkNode,
@@ -13,6 +12,7 @@ from saga import (
     TaskGraph,
     TaskGraphNode,
 )
+from saga.constraints import Constraints
 
 
 class IntialPriority(BaseModel, ABC):
@@ -72,6 +72,7 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
         self,
         network: Network,
         task_graph: TaskGraph,
+        constraints: Optional[Constraints] = None,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
     ) -> Schedule:
@@ -80,12 +81,17 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
         Args:
             network (Network): The network graph.
             task_graph (TaskGraph): The task graph.
+            constraints (Optional[Constraints]): Placement constraints. If None,
+                constraints are derived from any ``pinned_to`` fields in the task graph.
             schedule (Schedule): The current schedule.
             min_start_time (float): The current moment in time.
 
         Returns:
             Schedule: The resulting schedule.
         """
+        if constraints is None:
+            constraints = Constraints.from_task_graph(task_graph)
+        node_names = [n.name for n in network.nodes]
         if schedule is None:
             schedule = Schedule(task_graph, network)
         queue = self.initial_priority.call(network, task_graph)
@@ -95,7 +101,12 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
                 continue
             else:
                 self.insert_task.call(
-                    network, task_graph, schedule, task_name, min_start_time
+                    network,
+                    task_graph,
+                    schedule,
+                    task_name,
+                    min_start_time,
+                    nodes=constraints.get_candidate_nodes(task_name, node_names),
                 )
         return schedule
 

@@ -7,6 +7,7 @@ import numpy as np
 from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
 from saga.schedulers.cpop import upward_rank
 from saga.utils.duplication import should_duplicate
+from saga.constraints import Constraints
 
 
 thisdir = pathlib.Path(__file__).resolve().parent
@@ -61,35 +62,42 @@ class HeftScheduler(Scheduler):
         """
         schedule_order = heft_rank_sort(network, task_graph)
         schedule = Schedule(task_graph, network)
+
+        constraints = Constraints.from_task_graph(task_graph)
+        node_names = [n.name for n in network.nodes]
+
+
         for task_name in schedule_order:
             task = task_graph.get_task(task_name)
 
             if schedule.is_scheduled(task_name):
                 continue
 
-            duplicate_factor = 1 
+            duplicate_factor = 1
             if should_duplicate(task_name, task_graph, network):
                 duplicate_factor = min(self.duplication_factor, len(task_graph.out_edges(task_name)))
 
+            candidate_nodes = [
+                network.get_node(n)
+                for n in constraints.get_candidate_nodes(task_name, node_names)
+            ]
             min_finish_time = np.inf
             best_nodes: PriorityQueue[Any] = PriorityQueue()
-            for node in network.nodes:
+            for node in candidate_nodes:
                 start_time = schedule.get_earliest_start_time(
                     task=task, node=node, append_only=False
                 )
                 start_time = max(start_time, min_start_time)
                 runtime = (
-                    task_graph.get_task(task_name).cost / network.get_node(node).speed
+                    task.cost / network.get_node(node).speed
                 )
                 finish_time = start_time + runtime
                 best_nodes.put((finish_time, node))
-
 
             for _ in range(duplicate_factor):
                 if best_nodes.empty():
                     break
                 min_finish_time, best_node = best_nodes.get()
-                
                 new_task = ScheduledTask(
                     node=best_node.name,
                     name=task_name,

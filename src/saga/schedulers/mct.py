@@ -2,6 +2,7 @@ from functools import partial
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class MCTScheduler(Scheduler):
@@ -70,14 +71,17 @@ class MCTScheduler(Scheduler):
             start_time = max(get_eat(node_name), get_fat(task_name, node_name))
             return start_time + get_exec_time(task_name, node_name)
 
+        constraints = Constraints.from_task_graph(task_graph)
         node_names = [node.name for node in network.nodes]
 
         for task in task_graph.topological_sort():
             if task.name in scheduled_tasks:
                 continue
 
+            candidate_nodes = constraints.get_candidate_nodes(task.name, node_names)
+
             # Find node with minimum completion time for the task
-            sched_node = min(node_names, key=partial(get_completion_time, task.name))
+            sched_node = min(candidate_nodes, key=partial(get_completion_time, task.name))
 
             start_time = max(get_eat(sched_node), get_fat(task.name, sched_node))
             end_time = start_time + get_exec_time(task.name, sched_node)

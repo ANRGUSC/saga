@@ -4,6 +4,7 @@ from queue import PriorityQueue
 from typing import Dict, Optional, Tuple
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class FLBScheduler(Scheduler):

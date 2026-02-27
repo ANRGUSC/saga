@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Set
 from pydantic import Field
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 def get_mcp_priorities(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
@@ -101,6 +102,9 @@ class FCPScheduler(Scheduler):
                 t.name: t for _, tasks in schedule.items() for t in tasks
             }
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
+        node_names = [node.name for node in network.nodes]
+
         queue_priority: PriorityQueue = PriorityQueue(
             maxsize=self.priority_queue_size or len(list(network.nodes))
         )
@@ -155,15 +159,14 @@ class FCPScheduler(Scheduler):
             return max(get_eat(node_name), get_fat(task_name, node_name))
 
         def select_processor(task_name: str) -> str:
-            # processor that becomes idle first
+            candidate_names = placement_constraints.get_candidate_nodes(task_name, node_names)
+            # processor that becomes idle first (among allowed nodes)
             p_start = min(
-                network.nodes,
-                key=lambda node: (
-                    comp_schedule[node.name][-1].end
-                    if comp_schedule[node.name]
-                    else min_start_time
-                ),
-            ).name
+                candidate_names,
+                key=lambda name: comp_schedule[name][-1].end
+                if comp_schedule[name]
+                else min_start_time,
+            )
             # processor with predecessor that last finishes
             in_edges = task_graph.in_edges(task_name)
             if not in_edges:
@@ -173,6 +176,8 @@ class FCPScheduler(Scheduler):
                 key=lambda t: scheduled_tasks[t].end,
             )
             p_arrive = scheduled_tasks[pred].node
+            if p_arrive not in candidate_names:
+                return p_start
 
             if get_start_time(task_name, p_start) <= get_start_time(
                 task_name, p_arrive

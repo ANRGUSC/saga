@@ -3,6 +3,7 @@ from itertools import product
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class MinMinScheduler(Scheduler):
@@ -90,8 +91,12 @@ class MinMinScheduler(Scheduler):
             get_fat.cache_clear()
             get_ect.cache_clear()
 
+        constraints = Constraints.from_task_graph(task_graph)
         num_tasks = len(list(task_graph.tasks))
         node_names = [node.name for node in network.nodes]
+
+        def get_candidate_nodes(task_name: str):
+            return constraints.get_candidate_nodes(task_name, node_names)
 
         while len(scheduled_tasks) < num_tasks:
             available_tasks = [
@@ -106,8 +111,14 @@ class MinMinScheduler(Scheduler):
                 )
             ]
             while available_tasks:
+                # Build task-node pairs respecting pinning constraints
+                task_node_pairs = [
+                    (task_name, node_name)
+                    for task_name in available_tasks
+                    for node_name in get_candidate_nodes(task_name)
+                ]
                 sched_task, sched_node = min(
-                    product(available_tasks, node_names),
+                    task_node_pairs,
                     key=lambda instance: get_ect(instance[0], instance[1]),
                 )
                 new_task = ScheduledTask(

@@ -4,6 +4,7 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 def calulate_sbct(
@@ -240,8 +241,10 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
         )
 
         scheduled_set = set(task_schedule.keys())
+        placement_constraints = Constraints.from_task_graph(task_graph)
+        all_node_names = [node.name for node in network.nodes]
         sorted_nodes = sorted(
-            [node.name for node in network.nodes],
+            all_node_names,
             key=lambda node_name: network.get_node(node_name).speed,
             reverse=True,
         )
@@ -250,9 +253,10 @@ class MsbcScheduler(Scheduler):  # pylint: disable=too-few-public-methods
             task_name = max(ready_set, key=lambda x: priorities[x])
             ready_set.remove(task_name)
             best_start_time = np.inf
-            best_node: str = sorted_nodes[0]
+            candidate_nodes = placement_constraints.get_candidate_nodes(task_name, sorted_nodes)
+            best_node: str = candidate_nodes[0]
 
-            for node_name in sorted_nodes:
+            for node_name in candidate_nodes:
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task_name, node=node_name, append_only=True
                 )

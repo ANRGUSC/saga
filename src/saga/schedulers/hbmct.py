@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 from saga.schedulers.heft import heft_rank_sort
 
 
@@ -88,6 +89,7 @@ def get_initial_assignments(
     runtimes: Dict[str, Dict[str, float]],
     group: List[str],
     est_table: Dict[str, Dict[str, float]],
+    constraints: Optional[Constraints] = None,
 ) -> Dict[str, List[str]]:
     """Get initial assignments of the tasks of an independent group based on their execution times."""
     node_names = [node.name for node in network.nodes]
@@ -97,8 +99,13 @@ def get_initial_assignments(
         return float(np.mean([runtimes[node][task_name] for node in node_names]))
 
     for task_name in group:
+        candidate_nodes = (
+            constraints.get_candidate_nodes(task_name, node_names)
+            if constraints is not None
+            else node_names
+        )
         assigned_node = min(
-            node_names, key=lambda n: est_table[task_name][n] + runtimes[n][task_name]
+            candidate_nodes, key=lambda n: est_table[task_name][n] + runtimes[n][task_name]
         )
         assignments[assigned_node].append(task_name)
 
@@ -249,6 +256,7 @@ class HbmctScheduler(Scheduler):
         commtimes: Dict[Tuple[str, str], Dict[Tuple[str, str], float]],
         comp_schedule: Schedule,
         task_schedule: Dict[str, ScheduledTask],
+        constraints: Optional[Constraints] = None,
     ) -> Schedule:
         """Schedule all the groups independently."""
         node_names = [node.name for node in network.nodes]
@@ -266,7 +274,9 @@ class HbmctScheduler(Scheduler):
                 )
                 for task_name in est_table
             }
-            assignments = get_initial_assignments(network, runtimes, group, est_table)
+            assignments = get_initial_assignments(
+                network, runtimes, group, est_table, constraints
+            )
 
             # Build initial schedule for this group
             for node_name in assignments:
@@ -315,7 +325,12 @@ class HbmctScheduler(Scheduler):
                         min_ft_node = None
                         min_ft_node_schedule = None
                         min_ft = float("inf")
-                        for node_name in node_names:
+                        candidate_alt_nodes = (
+                            constraints.get_candidate_nodes(task_name, node_names)
+                            if constraints is not None
+                            else node_names
+                        )
+                        for node_name in candidate_alt_nodes:
                             if node_name != max_ft_node:
                                 new_ft, node_schedule, _ = get_ft_after_insert(
                                     task_name,
@@ -398,6 +413,7 @@ class HbmctScheduler(Scheduler):
             comp_schedule = schedule.model_copy()
             task_schedule = {t.name: t for _, tasks in schedule.items() for t in tasks}
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
         runtimes, commtimes = HbmctScheduler.get_runtimes(network, task_graph)
         groups = hbmct_create_groups(network, task_graph)
         return self.schedule_groups(
@@ -408,4 +424,5 @@ class HbmctScheduler(Scheduler):
             commtimes,
             comp_schedule,
             task_schedule,
+            constraints=placement_constraints,
         )

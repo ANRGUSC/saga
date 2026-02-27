@@ -1,6 +1,7 @@
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class FastestNodeScheduler(Scheduler):
@@ -24,7 +25,8 @@ class FastestNodeScheduler(Scheduler):
         Returns:
             Schedule: A schedule mapping nodes to a list of tasks.
         """
-        fastest_node = max(network.nodes, key=lambda node: node.speed)
+        placement_constraints = Constraints.from_task_graph(task_graph)
+        node_names = [node.name for node in network.nodes]
 
         comp_schedule = Schedule(task_graph, network)
         scheduled_tasks: Dict[str, ScheduledTask] = {}
@@ -35,15 +37,20 @@ class FastestNodeScheduler(Scheduler):
                 t.name: t for _, tasks in schedule.items() for t in tasks
             }
 
-        free_time = min_start_time
-        if comp_schedule[fastest_node.name]:
-            free_time = max(free_time, comp_schedule[fastest_node.name][-1].end)
-
         for task in task_graph.topological_sort():
             if task.name in scheduled_tasks:
                 continue
 
+            candidate_names = placement_constraints.get_candidate_nodes(task.name, node_names)
+            fastest_node = max(
+                (network.get_node(n) for n in candidate_names),
+                key=lambda node: node.speed,
+            )
             exec_time = task.cost / fastest_node.speed
+
+            node_free_time = min_start_time
+            if comp_schedule[fastest_node.name]:
+                node_free_time = comp_schedule[fastest_node.name][-1].end
 
             # For most instances, the data should probably arrive immediately
             # since everything is executing on the same node.
@@ -54,11 +61,13 @@ class FastestNodeScheduler(Scheduler):
                     scheduled_tasks[in_edge.source].end
                     + (
                         in_edge.size
-                        / network.get_edge(fastest_node.name, fastest_node.name).speed
+                        / network.get_edge(
+                            scheduled_tasks[in_edge.source].node, fastest_node.name
+                        ).speed
                     )
                     for in_edge in in_edges
                 )
-            start_time = max(free_time, data_arrival_time)
+            start_time = max(node_free_time, data_arrival_time)
 
             new_task = ScheduledTask(
                 node=fastest_node.name,
@@ -68,6 +77,5 @@ class FastestNodeScheduler(Scheduler):
             )
             comp_schedule.add_task(new_task)
             scheduled_tasks[task.name] = new_task
-            free_time = new_task.end
 
         return comp_schedule

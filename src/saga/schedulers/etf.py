@@ -2,6 +2,7 @@ from typing import Dict, Optional, Set, Tuple
 import numpy as np
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class ETFScheduler(Scheduler):
@@ -14,6 +15,7 @@ class ETFScheduler(Scheduler):
         ready_nodes: Set[str],
         task_graph: TaskGraph,
         network: Network,
+        constraints: Optional[Constraints] = None,
         min_start_time: float = 0.0,
     ) -> Dict[str, Tuple[str, float]]:
         """Returns the earliest possible start times of the ready tasks on the ready nodes
@@ -24,16 +26,24 @@ class ETFScheduler(Scheduler):
             ready_nodes (Set[str]): The ready nodes.
             task_graph (TaskGraph): The task graph.
             network (Network): The network.
+            constraints (Optional[Constraints]): Placement constraints. Defaults to None.
             min_start_time (float): Minimum start time. Defaults to 0.0.
 
         Returns:
             Dict[str, Tuple[str, float]]: The start times of the ready tasks on the ready nodes.
         """
+        all_node_names = list(ready_nodes)
         start_times: Dict[str, Tuple[str, float]] = {}
         for task_name in ready_tasks:
+            if constraints is not None:
+                task_ready_nodes = set(
+                    constraints.get_candidate_nodes(task_name, all_node_names)
+                ) & ready_nodes
+            else:
+                task_ready_nodes = ready_nodes
             min_node = ""  # arbitrary initialization
             mini_min_start_time = np.inf
-            for node_name in ready_nodes:
+            for node_name in task_ready_nodes:
                 in_edges = task_graph.in_edges(task_name)
                 max_arrival_time = max(
                     [
@@ -119,6 +129,7 @@ class ETFScheduler(Scheduler):
                 current_moment = min_start_time
                 next_moment = np.inf
 
+        placement_constraints = Constraints.from_task_graph(task_graph)
         node_names = {node.name for node in network.nodes}
         num_tasks = len(list(task_graph.tasks))
 
@@ -137,6 +148,7 @@ class ETFScheduler(Scheduler):
                     ready_nodes,
                     task_graph,
                     network,
+                    constraints=placement_constraints,
                     min_start_time=current_moment,
                 )
                 task_to_schedule = min(

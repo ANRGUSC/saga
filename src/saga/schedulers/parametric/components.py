@@ -9,9 +9,10 @@ from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricSch
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
+from saga.constraints import Constraints
 
 import networkx as nx
-from typing import Dict, Iterable, List, Hashable, Literal
+from typing import Dict, Iterable, List, Hashable, Literal, Optional
 
 
 class UpwardRanking(IntialPriority):
@@ -243,6 +244,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
         self,
         network: Network,
         task_graph: TaskGraph,
+        constraints: Optional[Constraints] = None,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
     ) -> Schedule:
@@ -251,12 +253,17 @@ class ParametricSufferageScheduler(ParametricScheduler):
         Args:
             network (Network): The network graph.
             task_graph (TaskGraph): The task graph.
+            constraints (Optional[Constraints]): Placement constraints. If None,
+                constraints are derived from any ``pinned_to`` fields in the task graph.
             schedule (Optional[Schedule]): The current schedule.
             min_start_time (float): The current moment in time.
 
         Returns:
             Schedule: The resulting schedule.
         """
+        if constraints is None:
+            constraints = Constraints.from_task_graph(task_graph)
+        node_names = [n.name for n in network.nodes]
         queue = self.initial_priority.call(network, task_graph)
         if schedule is None:
             schedule = Schedule(task_graph, network)
@@ -275,26 +282,31 @@ class ParametricSufferageScheduler(ParametricScheduler):
             ]
             max_sufferage_task, max_sufferage = None, -np.inf
             for task_name in ready_tasks[: self.top_n]:
+                candidate_nodes = constraints.get_candidate_nodes(task_name, node_names)
                 best_task = self.insert_task.call(
                     network,
                     task_graph,
                     schedule,
                     task_name,
                     min_start_time,
+                    nodes=candidate_nodes,
                     dry_run=True,
                 )
-                second_best_task = self.insert_task.call(
-                    network=network,
-                    task_graph=task_graph,
-                    schedule=schedule,
-                    task=task_name,
-                    min_start_time=min_start_time,
-                    nodes=[
-                        node for node in network.nodes if node.name != best_task.node
-                    ],
-                    dry_run=True,
-                )
-                sufferage = self.insert_task._compare(second_best_task, best_task)
+                second_best_nodes = [n for n in candidate_nodes if n != best_task.node]
+                if second_best_nodes:
+                    second_best_task = self.insert_task.call(
+                        network=network,
+                        task_graph=task_graph,
+                        schedule=schedule,
+                        task=task_name,
+                        min_start_time=min_start_time,
+                        nodes=second_best_nodes,
+                        dry_run=True,
+                    )
+                    sufferage = self.insert_task._compare(second_best_task, best_task)
+                else:
+                    # Only one candidate node — no real choice, sufferage is 0
+                    sufferage = 0.0
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
 

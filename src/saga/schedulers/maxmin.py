@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import Dict, Optional
 
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga.constraints import Constraints
 
 
 class MaxMinScheduler(Scheduler):
@@ -87,8 +88,12 @@ class MaxMinScheduler(Scheduler):
             get_fat.cache_clear()
             get_ect.cache_clear()
 
+        constraints = Constraints.from_task_graph(task_graph)
         num_tasks = len(list(task_graph.tasks))
         node_names = [node.name for node in network.nodes]
+
+        def get_candidate_nodes(task_name: str):
+            return constraints.get_candidate_nodes(task_name, node_names)
 
         while len(scheduled_tasks) < num_tasks:
             available_tasks = [
@@ -104,13 +109,13 @@ class MaxMinScheduler(Scheduler):
             while available_tasks:
                 min_ects = {
                     task_name: min(
-                        get_ect(task_name, node_name) for node_name in node_names
+                        get_ect(task_name, node_name) for node_name in get_candidate_nodes(task_name)
                     )
                     for task_name in available_tasks
                 }
                 sched_task = max(min_ects, key=lambda task_name: min_ects[task_name])
                 sched_node = min(
-                    node_names, key=lambda node_name: get_ect(sched_task, node_name)
+                    get_candidate_nodes(sched_task), key=lambda node_name: get_ect(sched_task, node_name)
                 )
 
                 new_task = ScheduledTask(
