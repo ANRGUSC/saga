@@ -546,6 +546,10 @@ class Schedule(BaseModel):
 
     _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
 
+    _allow_conditional_overlap: bool = PrivateAttr(default=False)
+    _task_to_group: Dict[str, int] = PrivateAttr(default_factory=dict)
+
+
     def __init__(
         self,
         task_graph: "TaskGraph",
@@ -561,7 +565,46 @@ class Schedule(BaseModel):
                 else {node.name: [] for node in network.nodes}
             ),
         )
+#new
+        # If the task graph exposes conditional groups, use them automatically.
+        if hasattr(task_graph, "identify_conditional_groups"):
+            groups = task_graph.identify_conditional_groups()
+            self._task_to_group = dict(groups)
+            self._allow_conditional_overlap = any(
+                group_id >= 0 for group_id in self._task_to_group.values()
+            )
+        else:
+            self._task_to_group = {}
+            self._allow_conditional_overlap = False
 
+    def _task_group(self, task_name: str) -> int:
+        return self._task_to_group.get(task_name, -1)
+
+    def _tasks_can_overlap(self, task_name_a: str, task_name_b: str) -> bool:
+        if not self._allow_conditional_overlap:
+            return False
+        group_a = self._task_group(task_name_a)
+        group_b = self._task_group(task_name_b)
+        return group_a >= 0 and group_a == group_b
+
+    def _tasks_overlap_in_time(self, left: ScheduledTask, right: ScheduledTask) -> bool:
+        # Half-open interval overlap with EPS tolerance: [start, end)
+        return left.start < right.end - EPS and right.start < left.end - EPS
+
+    def _conflicts(self, candidate: ScheduledTask, existing: ScheduledTask) -> bool:
+        return self._tasks_overlap_in_time(candidate, existing) and not self._tasks_can_overlap(
+            candidate.name, existing.name
+        )
+
+    def _get_blockers_for_task(
+        self, task_name: str, node_name: str
+    ) -> List[ScheduledTask]:
+        return [
+            scheduled_task
+            for scheduled_task in self.mapping[node_name]
+            if not self._tasks_can_overlap(task_name, scheduled_task.name)
+        ]
+#new
     @property
     def makespan(self) -> float:
         """Get the makespan of the schedule.
@@ -630,23 +673,16 @@ class Schedule(BaseModel):
                 arrival_time = parent_task.end + (dependency.size / network_edge.speed)
                 min_min_start_time = min(min_min_start_time, arrival_time)
             min_start_time = max(min_start_time, min_min_start_time)
-
+#new
+        blockers = self._get_blockers_for_task(task.name, node.name)
+#new
         if append_only:
-            min_start_time = (
-                max(min_start_time, self.mapping[node.name][-1].end)
-                if self.mapping[node.name]
-                else min_start_time
-            )
+            min_start_time = max(min_start_time, blockers[-1].end) if blockers else min_start_time
             return min_start_time
         else:
-            if (
-                not self.mapping[node.name]
-                or min_start_time + exec_time <= self.mapping[node.name][0].start
-            ):
+            if not blockers or min_start_time + exec_time <= blockers[0].start:
                 return min_start_time
-            for left, right in zip(
-                self.mapping[node.name], self.mapping[node.name][1:]
-            ):
+            for left, right in zip(blockers, blockers[1:]):
                 if (
                     min_start_time >= left.end
                     and min_start_time + exec_time <= right.start
@@ -654,7 +690,7 @@ class Schedule(BaseModel):
                     return min_start_time
                 elif min_start_time < left.end and left.end + exec_time <= right.start:
                     return left.end
-            min_start_time = max(min_start_time, self.mapping[node.name][-1].end)
+            min_start_time = max(min_start_time, blockers[-1].end)
             return min_start_time
 
     def add_task(self, task: ScheduledTask) -> None:
@@ -673,14 +709,13 @@ class Schedule(BaseModel):
             [(t.start, t.end) for t in self.mapping[task.node]], (task.start, task.end)
         )
         self.mapping[task.node].insert(idx, task)
-        # check that next task starts after this task ends (with tolerance for floating point errors)
-        if (
-            idx + 1 < len(self.mapping[task.node])
-            and self.mapping[task.node][idx + 1].start < task.end - EPS
-        ):
-            raise ValueError(
-                f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}."
-            )
+
+        for existing in self.mapping[task.node]:
+            if existing is task:
+                continue
+            if self._conflicts(task, existing):
+                self.mapping[task.node].pop(idx)
+                raise ValueError(f"Task {task} overlaps with existing task {existing}.")
 
         self._task_map.setdefault(task.name, []).append(task)
 

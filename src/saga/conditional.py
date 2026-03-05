@@ -1,3 +1,11 @@
+"""Conditional task graph primitives.
+
+This module intentionally contains only two core pieces:
+- `ConditionalTaskGraphEdge`: edge metadata for conditional branches.
+- `ConditionalTaskGraph`: graph helper(s), including group discovery.
+"""
+
+from typing import Dict, Optional
 from abc import ABC, abstractmethod
 import bisect
 import logging
@@ -6,12 +14,10 @@ from functools import cached_property
 from itertools import product
 from queue import PriorityQueue
 from typing import Dict, FrozenSet, Generator, Iterable, List, Optional, Set, Tuple
-from statistics import mean
 
 import networkx as nx
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, model_validator
 
-from saga.stochastic import StochasticTaskGraph, StochasticTaskGraphNode
 from saga.utils.random_variable import RandomVariable, DEFAULT_NUM_SAMPLES
 from saga import (
     Schedule,
@@ -24,110 +30,65 @@ from saga import (
     TaskGraphEdge,
 )
 
-#Brainstormed steps
-#ConditionalTaskGraphNode can take normal nodes that are not conditional
-#implement ConditionalTaskgraph, all nodes are conditionalTaskGraphNodes, track conditional groups
-#Implement ConditionalScheduler (wraps any shceduler , access internal ranking (heft rank, ect.) allows overlap)- #Add conditionalTask and conditionalSchedyule classes for schedule output
-#Add get_random_conditional_taskgraph() using existing random_graphs.py functions
-#test
 
+class ConditionalTaskGraphEdge(TaskGraphEdge):
+    """Task graph edge with conditional branch metadata."""
 
-class ConditionalTaskGraphNode(StochasticTaskGraphNode):
-    """Represents a task that can have conditional branches.
-    
-        What we want to implement, 
-        Normal Node (no branch)
-        node_a = ConditionalTaskGraphNode(name="A", cost=5.0)
-        #not conditional
-
-        Conditional Branch
-            node_b = ConditionalTaskGraphNode(
-            name="B",
-            conditional_branches=[
-                (graph1, 0.9),  # 90% chance
-                (graph2, 0.1),  # 10% chance
-                ]
-            )
-        #conditional
-
-        Methodology:
-        -When someone creates a ConditionalTaskGraphNode
-
-        -Did they provide branches 
-            If yes: calculate cost from branch costs 
-                    Check probabilities add up to one
-            
-            If No: They must provide cost directly
-                    Set branches to empty list
-
-        cost = weight of nodes
-    """
-    #@property
-    #def is_conditional(self) -> bool:
-    #    return len(self.conditional_branches) > 0
-
-    name: str
-    conditional_branches: List[Tuple[StochasticTaskGraph, float]] = Field(
-        default_factory=list,
-        description="List of (task, probability) pairs representing conditional branches.",
+    conditional: bool = Field(
+        default=False,
+        description="Whether this dependency edge is a conditional branch.",
+    )
+    probability: Optional[float] = Field(
+        default=None,
+        description="Branch probability in [0, 1] when `conditional=True`.",
     )
 
-    def __init__(self, name: str, cost = None, conditional_branches = None, **data):
-        
-        #case 1
-        if conditional_branches and len(conditional_branches) > 0 :
-            cost_by_branch = [
-                sum(task.cost for task in branch.tasks) for branch, _ in conditional_branches
+    @model_validator(mode="after")
+    def validate_conditional_probability(self) -> "ConditionalTaskGraphEdge":
+        """Validate conditional edge probability values."""
+        if self.conditional and self.probability is None:
+            raise ValueError(
+                "Conditional edges must define `probability` in the range [0, 1]."
+            )
+        if self.probability is not None and not (0.0 <= self.probability <= 1.0):
+            raise ValueError("`probability` must be in the range [0, 1].")
+        return self
+
+
+class ConditionalTaskGraph(TaskGraph):
+    """Task graph with helper methods for conditional scheduling."""
+
+    def identify_conditional_groups(self) -> Dict[str, int]:
+        """Return task -> group id mapping for conditional alternatives.
+
+        Grouping rule:
+        - If a parent has multiple outgoing conditional edges, those child tasks
+          are alternatives and are assigned the same group id.
+        - Tasks that are not part of any conditional-alternative set get `-1`.
+
+        Example output (A -> B, A -> C conditionally; B,C -> D):
+            {"A": -1, "B": 0, "C": 0, "D": -1}
+        """
+        groups: Dict[str, int] = {}
+        next_group_id = 0
+        task_names = {task.name for task in self.tasks}
+
+        for parent_name in task_names:
+            conditional_children = [
+                edge.target
+                for edge in self.dependencies
+                if edge.source == parent_name
+                and isinstance(edge, ConditionalTaskGraphEdge)
+                and edge.conditional
             ]
+            if len(conditional_children) > 1:
+                for child_name in conditional_children:
+                    groups[child_name] = next_group_id
+                next_group_id += 1
 
-            cost = RandomVariable(samples=[mean(cost_by_branch)])
-            
-            total_prob = sum(prob for _, prob in conditional_branches)                
-            if not math.isclose(total_prob, 1):
-                raise ValueError("Probabilities don't add to 1")
-                
-        #case 2
-        else:
-            if cost is None:
-                raise ValueError("No cost given")
-            
-            if isinstance(cost, (int, float)):
-                cost = RandomVariable(samples=[float(cost)])
+        for task_name in task_names:
+            groups.setdefault(task_name, -1)
 
-            conditional_branches = []
-
-        super().__init__(name=name, cost=cost, **data)
-        self.conditional_branches = conditional_branches 
-                
-        
+        return groups
 
 
-
-class ConditionalTaskGraph(StochasticTaskGraph):
-    """A TaskGraph that supports conditional branches.
-        -Stores only ConditionalTaskGraphNodes
-        -Reuses StochasticTaskGraph behavior for DAG/dependencies
-        -Computes conditional_groups for sibling branch roots
-
-    """
-
-    #TODO, take in COnditionalTaskGraphNode
-    #TODO, firgure out if conditional if so then mark as conditional so easier to group 
-    #TODO, use dependencies to build taskgraph
-
-    def __init__(
-        self,
-        nodes: List[StochasticTaskGraphNode | ConditionalTaskGraphNode],
-        edges: List[TaskGraphEdge],
-        condition_edges: List[TaskGraphEdge],
-    ):
-        pass # TODO: What to do...
-
-class ConditionalSchedule():
-    """
-    -A schedule that has conditional tasks
-    -wrapper similar to stochastic scheduler that takes heuristic like heft and a 
-    conditionalTaskGraph and NetworkNode and creates a overlapping schedule output like 
-    @\\wsl.localhost\Ubuntu\home\gtwiggho\saga_developer\scripts\examples\conditional\overlapping_scheduler.py 
-    
-    """
