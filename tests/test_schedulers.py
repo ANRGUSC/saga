@@ -5,7 +5,7 @@ import traceback
 from saga import Network, Scheduler, TaskGraph
 from saga.schedulers import (
     BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
-    FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
+    FastestNodeScheduler, FCPScheduler, HeftScheduler, PEFTScheduler, MaxMinScheduler,
     METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
     BILScheduler, FLBScheduler, GDLScheduler
 )
@@ -39,6 +39,7 @@ def run_test(scheduler: Scheduler,
 # Parametrize the schedulers
 schedulers = [
     HeftScheduler(),
+    PEFTScheduler(),
     CpopScheduler(),
     FastestNodeScheduler(),
     BruteForceScheduler(),
