@@ -34,22 +34,14 @@ from saga import (
 class ConditionalTaskGraphEdge(TaskGraphEdge):
     """Task graph edge with conditional branch metadata."""
 
-    conditional: bool = Field(
-        default=False,
-        description="Whether this dependency edge is a conditional branch.",
-    )
-    probability: Optional[float] = Field(
-        default=None,
-        description="Branch probability in [0, 1] when `conditional=True`.",
+    probability: float = Field(
+        default=1.0,
+        description="Branch probability in [0, 1], assum conditionality if probability set to < 1.",
     )
 
     @model_validator(mode="after")
     def validate_conditional_probability(self) -> "ConditionalTaskGraphEdge":
         """Validate conditional edge probability values."""
-        if self.conditional and self.probability is None:
-            raise ValueError(
-                "Conditional edges must define `probability` in the range [0, 1]."
-            )
         if self.probability is not None and not (0.0 <= self.probability <= 1.0):
             raise ValueError("`probability` must be in the range [0, 1].")
         return self
@@ -79,7 +71,7 @@ class ConditionalTaskGraph(TaskGraph):
                 for edge in self.dependencies
                 if edge.source == parent_name
                 and isinstance(edge, ConditionalTaskGraphEdge)
-                and edge.conditional
+                and edge.probability < 1.0
             ]
             if len(conditional_children) > 1:
                 for child_name in conditional_children:
