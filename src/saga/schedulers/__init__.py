@@ -10,6 +10,7 @@ from .flb import FLBScheduler
 from .gdl import GDLScheduler
 from .hbmct import HbmctScheduler
 from .heft import HeftScheduler
+from .peft import PEFTScheduler
 from .hybrid import HybridScheduler
 from .maxmin import MaxMinScheduler
 from .mct import MCTScheduler
@@ -21,6 +22,7 @@ from .olb import OLBScheduler
 from .smt import SMTScheduler
 from .sufferage import SufferageScheduler
 from .wba import WBAScheduler
+
 
 __all__ = [
     "BILScheduler",
@@ -35,6 +37,7 @@ __all__ = [
     "GDLScheduler",
     "HbmctScheduler",
     "HeftScheduler",
+    "PEFTScheduler",
     "HybridScheduler",
     "MaxMinScheduler",
     "MCTScheduler",
