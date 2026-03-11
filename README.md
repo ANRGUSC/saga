@@ -125,8 +125,12 @@ The table of contents in `scripts/examples/Readme.md` lists examples ranging fro
 ### Experiments
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
 
+### Reference
+A research paper that goes with this repo and that contains useful details is available online at [ArXiV](https://arxiv.org/pdf/2403.07120).
+
 
 ### Acknowledgements
 
 This work was supported in part by Army Research Laboratory under Cooperative Agreement [W911NF-17-2-0196](https://www.usaspending.gov/award/ASST_NON_W911NF1720196_097).
+
 This material is based upon work supported by the National Science Foundation under Award No. [2451267](https://www.nsf.gov/awardsearch/show-award?AWD_ID=2451267).
