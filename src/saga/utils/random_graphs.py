@@ -2,7 +2,8 @@ from itertools import product
 from typing import Callable, Optional, TypeVar
 import networkx as nx
 import numpy as np
-from saga import Network, TaskGraph
+from saga import Network, TaskGraph, TaskGraphNode
+from saga.conditional import ConditionalTaskGraph, ConditionalTaskGraphEdge
 from scipy.stats import norm
 
 from saga.utils.random_variable import RandomVariable, UniformRandomVariable
@@ -190,3 +191,108 @@ def get_network(
         network, weight_distribution, node_weight_distribution, edge_weight_distribution
     )
     return Network.from_nx(network)
+
+
+def _from_nx_conditional(dag: nx.DiGraph) -> ConditionalTaskGraph:
+    tasks = [
+        TaskGraphNode(name=str(node), cost=float(dag.nodes[node]["weight"]))
+        for node in dag.nodes
+    ]
+    dependencies = [
+        ConditionalTaskGraphEdge(
+            source=str(u),
+            target=str(v),
+            size=float(dag.edges[u, v]["weight"]),
+            probability=float(dag.edges[u, v].get("probability", 1.0)),
+        )
+        for u, v in dag.edges
+    ]
+    return ConditionalTaskGraph.create(tasks=tasks, dependencies=dependencies)
+
+
+def add_conditional_probabilities(
+    dag: nx.DiGraph,
+    conditional_parent_probability: float = 0.4,
+) -> nx.DiGraph:
+    """Adds conditional probabilities to fan-out edges.
+
+    For each node with more than one outgoing edge:
+    - with probability `conditional_parent_probability`, outgoing edges are
+      treated as conditional alternatives and assigned probabilities summing to 1.
+    - otherwise, each outgoing edge gets probability 1.0.
+    """
+    for parent in dag.nodes:
+        children = list(dag.successors(parent))
+        if len(children) <= 1:
+            continue
+
+        if np.random.random() > conditional_parent_probability:
+            for child in children:
+                dag.edges[parent, child]["probability"] = 1.0
+            continue
+
+        branch_probs = np.random.random(len(children))
+        branch_probs = branch_probs / branch_probs.sum()
+        for child, prob in zip(children, branch_probs):
+            dag.edges[parent, child]["probability"] = float(prob)
+
+    return dag
+
+
+def get_conditional_diamond_dag(
+    weight_distribution: Optional[RandomVariable] = None,
+    node_weight_distribution: Optional[RandomVariable] = None,
+    edge_weight_distribution: Optional[RandomVariable] = None,
+    branch_probability: float = 0.5,
+) -> ConditionalTaskGraph:
+    """Returns a conditional diamond DAG."""
+    dag = nx.DiGraph()
+    dag.add_nodes_from(["A", "B", "C", "D"])
+    dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
+    dag = add_random_weights(
+        dag, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
+    dag.edges["A", "B"]["probability"] = branch_probability
+    dag.edges["A", "C"]["probability"] = 1.0 - branch_probability
+    dag.edges["B", "D"]["probability"] = 1.0
+    dag.edges["C", "D"]["probability"] = 1.0
+    return _from_nx_conditional(dag)
+
+
+def get_random_conditional_branching_dag(
+    levels: int = 3,
+    branching_factor: int = 2,
+    conditional_parent_probability: float = 0.4,
+    weight_distribution: Optional[RandomVariable] = None,
+    node_weight_distribution: Optional[RandomVariable] = None,
+    edge_weight_distribution: Optional[RandomVariable] = None,
+) -> ConditionalTaskGraph:
+    """Returns a branching DAG with random conditional branches."""
+    dag = nx.DiGraph()
+
+    node_id = 0
+    level_nodes = [node_id]
+    dag.add_node(str(node_id))
+    node_id += 1
+
+    for _ in range(1, levels):
+        new_level_nodes = []
+        for parent in level_nodes:
+            children = [node_id + i for i in range(branching_factor)]
+            dag.add_edges_from([(str(parent), str(child)) for child in children])
+            new_level_nodes.extend(children)
+            node_id += branching_factor
+        level_nodes = new_level_nodes
+
+    sink = node_id
+    dag.add_node(str(sink))
+    dag.add_edges_from([(str(node), str(sink)) for node in level_nodes])
+
+    dag = add_random_weights(
+        dag, weight_distribution, node_weight_distribution, edge_weight_distribution
+    )
+    dag = add_conditional_probabilities(
+        dag, conditional_parent_probability=conditional_parent_probability
+    )
+    return _from_nx_conditional(dag)
+
