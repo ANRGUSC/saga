@@ -527,6 +527,8 @@ class ScheduledTask(BaseModel):
 
     def __str__(self) -> str:
         return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
+    
+    __hash__ = object.__hash__
 
 
 class Schedule(BaseModel):
@@ -598,6 +600,7 @@ class Schedule(BaseModel):
         task: str | TaskGraphNode,
         node: str | NetworkNode,
         append_only: bool = False,
+        current_moment: float = 0.0
     ) -> float:
         """Get the earliest start time for a task on a node given the minimum start time and execution time.
 
@@ -613,7 +616,7 @@ class Schedule(BaseModel):
         task = self.task_graph.get_task(task)
 
         exec_time = task.cost / node.speed
-        min_start_time = 0.0
+        min_start_time = current_moment
         for dependency in self.task_graph.in_edges(task):
             if not self.is_scheduled(dependency.source):
                 raise ValueError(

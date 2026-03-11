@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, Iterable, List, TypeVar
 
+#? = Question
+#! = Observation
+#* = Change, commented code will be what was there previoudsly to confirm changes reflect stricter structure
+
 from pydantic import BaseModel, Field
 
 
@@ -15,9 +19,9 @@ from saga import (
 )
 
 
-class IntialPriority(BaseModel, ABC):
+class IntialPriority(BaseModel, ABC): #? what is basemodel
     @abstractmethod
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: #this is no longer __call__, why is that?
         """Return the initial priority of the tasks.
 
         Args:
@@ -38,7 +42,7 @@ class InsertTask(BaseModel, ABC):
         task_graph: TaskGraph,
         schedule: Schedule,
         task: str | TaskGraphNode,
-        min_start_time: float = 0.0,
+        min_start_time: float = 0.0, #! yay, most of the variables I need are still here. 
         nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
         dry_run: bool = False,
     ) -> ScheduledTask:
@@ -59,11 +63,11 @@ class InsertTask(BaseModel, ABC):
         pass
 
 
-TInsert = TypeVar("TInsert", bound=InsertTask)
+TInsert = TypeVar("TInsert", bound=InsertTask) #? What does this do, replacing greedy insert?
 
 
 class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
-    initial_priority: IntialPriority = Field(
+    initial_priority: IntialPriority = Field(       
         ..., description="The initial priority strategy."
     )
     insert_task: TInsert = Field(..., description="The task insertion strategy.")
@@ -75,7 +79,7 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
             initial_priority=initial_priority, insert_task=insert_task, **kwargs
         )
 
-    def schedule(
+    def schedule( 
         self,
         network: Network,
         task_graph: TaskGraph,
@@ -93,6 +97,7 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
         Returns:
             Schedule: The resulting schedule.
         """
+        #! at first glance this looks mostly the same as my implimentation
         if schedule is None:
             schedule = Schedule(task_graph, network)
         queue = self.initial_priority.call(network, task_graph)

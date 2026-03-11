@@ -22,10 +22,10 @@ class UpwardRanking(IntialPriority):
 
 
 class CPoPRanking(IntialPriority):
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: #? what is the reason we are moving away from __call__
         ranks = cpop_ranks(network, task_graph)
         start_task = max(
-            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0],
+            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0], 
             key=lambda t: ranks[t],
         )
         pq = [(-ranks[start_task], start_task)]

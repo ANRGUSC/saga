@@ -5,7 +5,7 @@ from typing import Tuple
 import networkx as nx
 
 from saga.schedulers import HeftScheduler
-from saga.schedulers.stochastic.determinizer import Determinizer
+from saga.schedulers.stochastic.estimate_stochastic_scheduler import EstimateStochasticScheduler
 from saga.stochastic import StochasticNetwork, StochasticTaskGraph
 from saga.utils.random_variable import UniformRandomVariable
 
@@ -39,8 +39,8 @@ def get_instance() -> Tuple[StochasticNetwork, StochasticTaskGraph]:
 
 
 def main():
-    scheduler = Determinizer(
-        scheduler=HeftScheduler(), determinize=lambda rv: rv.mean()
+    scheduler = EstimateStochasticScheduler(
+        scheduler=HeftScheduler(), estimate=lambda rv: rv.mean()
     )
     network, task_graph = get_instance()
     schedule = scheduler.schedule(network, task_graph)

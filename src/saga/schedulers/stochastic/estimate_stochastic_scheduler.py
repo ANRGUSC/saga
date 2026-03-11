@@ -1,4 +1,4 @@
-from typing import Callable, Union
+from typing import Callable, Union, Optional
 
 from saga.utils.random_variable import RandomVariable
 from saga import (
@@ -9,6 +9,7 @@ from saga import (
     TaskGraphNode,
     TaskGraphEdge,
     Scheduler,
+    Schedule
 )
 from saga.stochastic import (
     StochasticNetwork,
@@ -18,13 +19,21 @@ from saga.stochastic import (
     StochasticScheduler,
 )
 
-
-class Determinizer(StochasticScheduler):
+#using this approach, we should be able to make an all-in one online scheduler
+class EstimateStochasticScheduler(StochasticScheduler):
     def __init__(
-        self, scheduler: Scheduler, determinize: Callable[[RandomVariable], float]
+        self, 
+        scheduler: StochasticScheduler,
+        estimate: Callable[[RandomVariable], float],
+        seed: Optional[int]= None
     ) -> None:
         self.scheduler = scheduler
-        self._determinize = determinize
+        self._estimate = estimate
+        self.seed = seed
+    
+
+
+
 
     @property
     def name(self) -> str:
@@ -32,11 +41,15 @@ class Determinizer(StochasticScheduler):
 
     def determinize(self, rv: Union[RandomVariable, int, float]) -> float:
         if isinstance(rv, RandomVariable):
-            return self._determinize(rv)
+            return self._estimate(rv)
         return float(rv)
 
     def schedule(
-        self, network: StochasticNetwork, task_graph: StochasticTaskGraph
+        self, 
+        network: StochasticNetwork, 
+        task_graph: StochasticTaskGraph,  
+        schedule: Optional[Schedule] = None, 
+        min_start_time: float = 0.0 
     ) -> StochasticSchedule:
         """Schedule the tasks on the network.
 
@@ -76,8 +89,20 @@ class Determinizer(StochasticScheduler):
                 for edge in task_graph.dependencies
             ],
         )
-
-        det_schedule = self.scheduler.schedule(det_network, det_task_graph)
+        
+        
+        if schedule is None and min_start_time == 0.0:
+            det_schedule = self.scheduler.schedule(
+                network=det_network,
+                task_graph=det_task_graph
+            )
+        else:
+            det_schedule = self.scheduler.schedule(
+                network=det_network,
+                task_graph=det_task_graph,
+                schedule=schedule,
+                min_start_time=min_start_time
+            )
         schedule = StochasticSchedule(task_graph=task_graph, network=network)
 
         for node_name, tasks in det_schedule.mapping.items():
@@ -87,4 +112,4 @@ class Determinizer(StochasticScheduler):
                 )
                 schedule.add_task(new_task)
 
-        return schedule
+        return schedule, det_network, det_task_graph

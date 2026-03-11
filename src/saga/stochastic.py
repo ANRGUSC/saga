@@ -537,21 +537,25 @@ class StochasticSchedule(BaseModel):
 
     def sample(self) -> Schedule:
         """Sample the stochastic schedule to get a deterministic schedule."""
-        det_network = self.network.sample()
-        det_task_graph = self.task_graph.sample()
-        schedule = Schedule(task_graph=det_task_graph, network=det_network)
+        return self.determinize(
+            network=self.network.sample(),
+            task_graph=self.task_graph.sample()
+        )
+    
+    def determinize(self, network: Network, task_graph: TaskGraph) -> Schedule:
+        schedule = Schedule(task_graph=task_graph, network=network)
         pq: PriorityQueue[tuple[float, StochasticScheduledTask]] = PriorityQueue()
         # add all source tasks to the priority queue
         for _, tasks in self.mapping.items():
             for task in tasks:
-                if det_task_graph.in_degree(task.name) == 0:
+                if task_graph.in_degree(task.name) == 0:
                     pq.put((-task.rank, task))
 
         while not pq.empty():
             _, task = pq.get()
 
-            det_task = det_task_graph.get_task(task.name)
-            det_node = det_network.get_node(task.node)
+            det_task = task_graph.get_task(task.name)
+            det_node = network.get_node(task.node)
             start_time = schedule.get_earliest_start_time(
                 det_task, det_node, append_only=True
             )
@@ -566,14 +570,20 @@ class StochasticSchedule(BaseModel):
 
             # add dependent tasks to the priority queue
             # if all of their dependencies are scheduled
-            for out_edge in det_task_graph.out_edges(task.name):
+            for out_edge in task_graph.out_edges(task.name):
                 if all(
                     schedule.is_scheduled(in_edge.source)
-                    for in_edge in det_task_graph.in_edges(out_edge.target)
+                    for in_edge in task_graph.in_edges(out_edge.target)
                 ):
-                    succ_task = next(
-                        t for t in self.mapping[task.node] if t.name == out_edge.target
+                    succ_task = next(( #had to make changes here from checking only tasks on the node
+                        t 
+                        for tasks in self.mapping.values()
+                        for t in tasks if t.name == out_edge.target
+                    ),
+                    None,
                     )
+                    if succ_task is None:
+                        raise ValueError(f"Could not find successor teas {out_edge.target!r}")
                     pq.put((-succ_task.rank, succ_task))
         return schedule
 
@@ -640,3 +650,5 @@ class StochasticScheduler(ABC):
     def name(self) -> str:
         """Get the name of the scheduler."""
         return self.__class__.__name__
+    
+    
