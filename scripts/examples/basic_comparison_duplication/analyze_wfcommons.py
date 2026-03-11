@@ -31,11 +31,42 @@ def analyze_wfcommons():
     rows_before, rows_after = len(df), len(df_clean)
     print(f"Removed {rows_before - rows_after} outliers ({(rows_before - rows_after) / rows_before * 100:.1f}%)\n")
 
-    df_clean["Dup Factor"] = df_clean["Dup Factor"].astype(str)
+    df_clean["Dup Factor"] = pd.to_numeric(df_clean["Dup Factor"], errors="coerce")
+    df_clean = df_clean.dropna(subset=["Dup Factor"])
 
-    # 1. Makespan per scheduler, grouped by dup factor, faceted by recipe (independent y-axes)
+    # 1. Overall percent change in makespan vs. duplication factor.
+    # Use Dup Factor = 1 when available, otherwise the minimum observed factor.
+    dup_agg = (
+        df_clean.groupby("Dup Factor", as_index=False)["Makespan"]
+        .mean()
+        .sort_values("Dup Factor")
+    )
+    baseline_dup_factor = 1.0 if (dup_agg["Dup Factor"] == 1.0).any() else float(dup_agg["Dup Factor"].min())
+    baseline_makespan = float(dup_agg.loc[dup_agg["Dup Factor"] == baseline_dup_factor, "Makespan"].iloc[0])
+    dup_agg["Makespan % Change"] = (dup_agg["Makespan"] - baseline_makespan) / baseline_makespan * 100.0
+
+    fig = px.line(
+        dup_agg,
+        x="Dup Factor",
+        y="Makespan % Change",
+        markers=True,
+        title=(
+            "Overall % Change in Makespan vs. Duplication Factor (WfCommons)"
+            f"<br><sup>Baseline Dup Factor = {baseline_dup_factor:g}</sup>"
+        ),
+        labels={"Makespan % Change": "Makespan Change (%)"},
+        template="plotly_white"
+    )
+    fig.add_hline(y=0, line_dash="dash", line_color="gray")
+    fig.write_image(thisdir / "wfcommons_overall_makespan_pct_change.png")
+    print("Saved: wfcommons_overall_makespan_pct_change.png")
+
+    df_box = df_clean.copy()
+    df_box["Dup Factor"] = df_box["Dup Factor"].astype(str)
+
+    # 2. Makespan per scheduler, grouped by dup factor, faceted by recipe (independent y-axes)
     fig = px.box(
-        df_clean,
+        df_box,
         x="Scheduler", y="Makespan", color="Dup Factor",
         facet_col="Recipe",
         title="Makespan by Scheduler and Duplication Factor (WfCommons)",
@@ -46,9 +77,9 @@ def analyze_wfcommons():
     fig.write_image(thisdir / "wfcommons_makespan_by_scheduler.png")
     print("Saved: wfcommons_makespan_by_scheduler.png")
 
-    # 2. Makespan per recipe, grouped by dup factor, faceted by scheduler (independent y-axes)
+    # 3. Makespan per recipe, grouped by dup factor, faceted by scheduler (independent y-axes)
     fig = px.box(
-        df_clean,
+        df_box,
         x="Recipe", y="Makespan", color="Dup Factor",
         facet_col="Scheduler",
         title="Makespan by Recipe and Duplication Factor (WfCommons)",
@@ -59,9 +90,9 @@ def analyze_wfcommons():
     fig.write_image(thisdir / "wfcommons_makespan_by_recipe.png")
     print("Saved: wfcommons_makespan_by_recipe.png")
 
-    # 3. Number of processors effect, faceted by scheduler (independent y-axes per recipe via color)
+    # 4. Number of processors effect, faceted by scheduler (independent y-axes per recipe via color)
     fig = px.box(
-        df_clean,
+        df_box,
         x="Num Processors", y="Makespan", color="Dup Factor",
         facet_col="Scheduler", facet_row="Recipe",
         title="Makespan vs. Number of Processors by Duplication Factor (WfCommons)",
