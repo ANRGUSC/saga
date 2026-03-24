@@ -451,12 +451,16 @@ def draw_gantt(
             if axis is None:
                 raise ValueError("Axis could not be created.")
 
+        # Use numeric y positions for compatibility across Matplotlib versions.
+        node_to_y = {node: i for i, node in enumerate(unique_nodes)}
+
         # Plot each task as a horizontal bar with labels
         for index, row in data_frame.iterrows():
             if row["Task"] != "$dummy$":
+                y_pos = node_to_y[row["Node"]]
                 # Plot the bar with white color and black border
                 axis.barh(
-                    row["Node"],
+                    y_pos,
                     row["delta"],
                     left=row["Start"],
                     color="white",
@@ -466,7 +470,7 @@ def draw_gantt(
                 if draw_task_labels:
                     axis.text(
                         float(row["Start"] + row["delta"] / 2),
-                        row["Node"],  # type: ignore[arg-type]
+                        y_pos,
                         row["Task"],  # type: ignore[arg-type]
                         ha="center",
                         va="center",
@@ -475,7 +479,7 @@ def draw_gantt(
                     )
 
         # Set the y-ticks to be the unique set of nodes
-        axis.set_yticks(unique_nodes)
+        axis.set_yticks(list(node_to_y.values()))
         axis.set_yticklabels(unique_nodes)
 
         # set tick font size
