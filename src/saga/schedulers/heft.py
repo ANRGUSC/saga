@@ -1,11 +1,10 @@
-import pathlib
-from typing import Dict,Hashable, List, Optional
-import numpy as np
-from copy import deepcopy
 from queue import PriorityQueue
+import pathlib
+from typing import Any, List, Optional
+import numpy as np
 
 
-from saga import NetworkNode, Schedule, Scheduler, ScheduledTask, TaskGraph, Network
+from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
 from saga.schedulers.cpop import upward_rank
 from saga.utils.duplication import should_duplicate
 
@@ -37,6 +36,7 @@ class HeftScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
     duplication_factor: int = 1
 
     def schedule(
@@ -45,8 +45,6 @@ class HeftScheduler(Scheduler):
         task_graph: TaskGraph,
         schedule: Optional[Schedule] = None,
         min_start_time: float = 0.0,
-
-        
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -74,7 +72,7 @@ class HeftScheduler(Scheduler):
                 duplicate_factor = min(self.duplication_factor, len(task_graph.out_edges(task_name)))
 
             min_finish_time = np.inf
-            best_nodes = PriorityQueue()
+            best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in network.nodes:
                 start_time = schedule.get_earliest_start_time(
                     task=task, node=node, append_only=False
@@ -90,8 +88,6 @@ class HeftScheduler(Scheduler):
             for _ in range(duplicate_factor):
                 if best_nodes.empty():
                     break
-                min_finish_time: float
-                best_node: NetworkNode
                 min_finish_time, best_node = best_nodes.get()
                 
                 new_task = ScheduledTask(

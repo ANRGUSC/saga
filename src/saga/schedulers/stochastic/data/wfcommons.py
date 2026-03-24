@@ -183,6 +183,7 @@ def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
     for _ in range(num):
         num_tasks = random.randint(*get_num_task_range(recipe_name))
         recipe = recipes[recipe_name](num_tasks=num_tasks)  # type: ignore
+        assert WorkflowGenerator is not None
         generator = WorkflowGenerator(recipe)
         workflow = generator.build_workflow()
         with tempfile.NamedTemporaryFile() as tmp:

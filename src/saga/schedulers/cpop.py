@@ -1,7 +1,7 @@
 from functools import lru_cache
 import heapq
 from queue import PriorityQueue
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
@@ -106,6 +106,7 @@ class CpopScheduler(Scheduler):
 
     Source: https://dx.doi.org/10.1109/71.993206
     """
+
     duplication_factor: int = 1
 
     def schedule(
@@ -134,9 +135,10 @@ class CpopScheduler(Scheduler):
         task_map: Dict[str, list[ScheduledTask]] = {}
         if schedule is not None:
             comp_schedule = schedule.model_copy()
-            task_map = {
-                task.name: task for _, tasks in schedule.items() for task in tasks
-            }
+            task_map = {}
+            for node_name, tasks in schedule.items():
+                for scheduled_task in tasks:
+                    task_map.setdefault(scheduled_task.name, []).append(scheduled_task)
 
         ranks = cpop_ranks(network, task_graph)
         entry_tasks = [
@@ -175,7 +177,7 @@ class CpopScheduler(Scheduler):
             is_critical = np.isclose(-task_rank, cp_rank)
             nodes = frozenset([cp_node]) if is_critical else network.nodes
 
-            best_nodes = PriorityQueue()
+            best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in nodes:
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task, node=node, append_only=False

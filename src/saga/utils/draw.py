@@ -465,9 +465,9 @@ def draw_gantt(
                 # Add the task label in the center of the bar
                 if draw_task_labels:
                     axis.text(
-                        row["Start"] + row["delta"] / 2,
-                        row["Node"],
-                        row["Task"],
+                        float(row["Start"] + row["delta"] / 2),
+                        row["Node"],  # type: ignore[arg-type]
+                        row["Task"],  # type: ignore[arg-type]
                         ha="center",
                         va="center",
                         color="black",
@@ -484,7 +484,7 @@ def draw_gantt(
         # Set labels and title
         axis.set_xlabel("Time", fontsize=font_size)
         axis.set_ylabel("Nodes", fontsize=font_size)
-        axis.set_xlim(0, data_frame["Finish"].max())
+        axis.set_xlim(0, float(data_frame["Finish"].max()))  # type: ignore[arg-type]
         # axis.set_title('Gantt Chart by Node (All Nodes with Task Labels)')
         axis.grid(True, which="both", linestyle="--", linewidth=0.5)
         axis.set_axisbelow(True)
@@ -600,8 +600,8 @@ def gradient_heatmap(
             categories = sorted(data[y].drop_duplicates(), key=yorder)
             data[y] = pd.Categorical(data[y], categories=categories, ordered=True)
 
-        global_min = data[color].min()
-        global_max = min(data[color].max(), upper_threshold)
+        global_min = float(data[color].min())  # type: ignore[arg-type]
+        global_max = float(min(data[color].max(), upper_threshold))  # type: ignore[arg-type]
 
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
@@ -613,8 +613,8 @@ def gradient_heatmap(
         listed_cmap = matplotlib.colors.ListedColormap(_cmap_arr)
 
         # Get unique values for x and y in the correct order (by category)
-        xvals = data[x].drop_duplicates().sort_values()
-        yvals = data[y].drop_duplicates().sort_values(ascending=False)
+        xvals = data[x].drop_duplicates().sort_values()  # type: ignore[call-overload]
+        yvals = data[y].drop_duplicates().sort_values(ascending=False)  # type: ignore[call-overload]
 
         # Initialize im to None - it will be set when we have data to plot
         im = None

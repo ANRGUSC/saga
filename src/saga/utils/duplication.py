@@ -1,15 +1,10 @@
-from typing import Dict, Hashable, Tuple
 import numpy as np
 
 
 from saga import Network, TaskGraph
 
 
-def should_duplicate(
-    task_name: Hashable,
-    task_graph: TaskGraph,
-    network: Network
-) -> bool:
+def should_duplicate(task_name: str, task_graph: TaskGraph, network: Network) -> bool:
     """Determine if a task should be duplicated based on computation vs communication costs.
 
     Args:
@@ -22,10 +17,7 @@ def should_duplicate(
     """
     task = task_graph.get_task(task_name)
     average_computation_time = np.mean(
-        [
-            task.cost / node.speed
-            for node in network.nodes
-        ]
+        [task.cost / node.speed for node in network.nodes]
     )
 
     # Calculate average outgoing communication cost
@@ -34,14 +26,14 @@ def should_duplicate(
     #     return False
     if not task_graph.out_edges(task_name):
         return False
-    
+
     # Use only inter-node links (exclude self-loops which represent local memory)
     inter_node_links = [edge for edge in network.edges if edge.source != edge.target]
     if not inter_node_links:
         return False
-    
+
     average_link_speed = np.mean([edge.speed for edge in inter_node_links])
-    
+
     comm_costs = []
     for dependency in task_graph.out_edges(task_name):
         # Communication time for this edge using average network speed
@@ -49,4 +41,4 @@ def should_duplicate(
         comm_costs.append(comm_time)
 
     average_communication_time = np.mean(comm_costs)
-    return average_communication_time > average_computation_time
+    return float(average_communication_time) > float(average_computation_time)
