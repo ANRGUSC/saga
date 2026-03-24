@@ -571,6 +571,28 @@ class Schedule(BaseModel):
             return 0.0
         return max(tasks[-1].end for tasks in self.mapping.values() if tasks)
 
+    def throughput(self) -> float:
+        """Get the throughput of the schedule. 
+
+        Returns:
+            float: The throughput of the schedule.
+        """
+        if not any(self.mapping.values()):
+            return 0.0
+        comm_bottleneck = 0.0
+        for task in self.task_graph.tasks:
+            for task_edge in self.task_graph.out_edges(task.name):
+                network_edge = self.network.get_edge(self.get_scheduled_task(task_edge.source).node, self.get_scheduled_task(task_edge.target).node)
+                if network_edge is not None:
+                    comm_time = task_edge.size / network_edge.speed
+                    comm_bottleneck = max(comm_bottleneck, comm_time)
+
+        compute_bottleneck = max(task.end - task.start for tasks in self.mapping.values() for task in tasks)
+        print(f"Comm bottleneck: {comm_bottleneck:.4f}, Compute bottleneck: {compute_bottleneck:.4f}")
+        return 1/max(
+            comm_bottleneck, compute_bottleneck
+        )
+
     def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
         """Get the tasks scheduled on a node.
 
