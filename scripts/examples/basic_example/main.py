@@ -99,6 +99,7 @@ def main():
         for sched in [schedule, heft_sched, bf_sched]
     )
     print(f"Max makespan: {max_makespan}")
+    print(f"HEFT throughput: {heft_sched.throughput()}")
     draw_schedule(schedule, 'gantt_scaled', xmax=max_makespan)
     draw_schedule(heft_sched, 'heft_gantt_scaled', xmax=max_makespan)
     draw_schedule(bf_sched, 'brute_force_gantt_scaled', xmax=max_makespan)
