@@ -546,9 +546,7 @@ class Schedule(BaseModel):
 
     _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
 
-    _allow_conditional_overlap: bool = PrivateAttr(default=False)
-    _task_to_group: Dict[str, int] = PrivateAttr(default_factory=dict)
-
+    _mutual_exclusion_graph: Optional[nx.Graph] = PrivateAttr(default=None)
 
     def __init__(
         self,
@@ -565,30 +563,18 @@ class Schedule(BaseModel):
                 else {node.name: [] for node in network.nodes}
             ),
         )
-#new
-        # If the task graph exposes conditional groups, use them automatically.
-        if hasattr(task_graph, "identify_conditional_groups"):
-            groups = task_graph.identify_conditional_groups()
-            self._task_to_group = dict(groups)
-            self._allow_conditional_overlap = any(
-                group_id >= 0 for group_id in self._task_to_group.values()
-            )
+        if hasattr(task_graph, "build_mutual_exclusion_graph"):
+            self._mutual_exclusion_graph = task_graph.build_mutual_exclusion_graph()
         else:
-            self._task_to_group = {}
-            self._allow_conditional_overlap = False
-
-    def _task_group(self, task_name: str) -> int:
-        return self._task_to_group.get(task_name, -1)
+            self._mutual_exclusion_graph = None
 
     def _tasks_can_overlap(self, task_name_a: str, task_name_b: str) -> bool:
-        if not self._allow_conditional_overlap:
+        """Two tasks can overlap iff they are mutually exclusive."""
+        if self._mutual_exclusion_graph is None:
             return False
-        group_a = self._task_group(task_name_a)
-        group_b = self._task_group(task_name_b)
-        return group_a >= 0 and group_a == group_b
+        return self._mutual_exclusion_graph.has_edge(task_name_a, task_name_b)
 
     def _tasks_overlap_in_time(self, left: ScheduledTask, right: ScheduledTask) -> bool:
-        # Half-open interval overlap with EPS tolerance: [start, end)
         return left.start < right.end - EPS and right.start < left.end - EPS
 
     def _conflicts(self, candidate: ScheduledTask, existing: ScheduledTask) -> bool:
@@ -604,7 +590,7 @@ class Schedule(BaseModel):
             for scheduled_task in self.mapping[node_name]
             if not self._tasks_can_overlap(task_name, scheduled_task.name)
         ]
-#new
+
     @property
     def makespan(self) -> float:
         """Get the makespan of the schedule.

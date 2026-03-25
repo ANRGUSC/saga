@@ -730,3 +730,80 @@ def gradient_heatmap(
         ax.set_ylabel(y_label if y_label else y, labelpad=20, fontsize=font_size)
 
         return ax
+
+
+def draw_mutual_exclusion_graph(
+    meg: nx.Graph,
+    axis: Optional[Axes] = None,
+    use_latex: bool = False,
+    node_size: int = 2000,
+    linewidths: int = 2,
+    font_size: int = 20,
+    figsize: Optional[Tuple[int, int]] = None,
+    pos: Optional[Dict[str, Tuple[float, float]]] = None,
+) -> Axes:
+    """Draw a mutual exclusion graph.
+
+    Nodes are tasks.  Edges (drawn as red dashed lines) connect pairs of
+    tasks that are mutually exclusive — they never execute together in any
+    branch.
+
+    Args:
+        meg: Mutual exclusion graph (undirected ``nx.Graph``).
+        axis: Matplotlib axes to draw on.
+        use_latex: Whether to render labels with LaTeX.
+        node_size: Node size.
+        linewidths: Line width for node borders and edges.
+        font_size: Label font size.
+        figsize: Figure size.
+        pos: Optional pre-computed node positions.
+    """
+    if use_latex and not is_latex_installed():
+        logger.warning("Latex is not installed. Using non-latex mode.")
+        use_latex = False
+
+    rc_context_opts = {"text.usetex": use_latex}
+    with rc_context(rc=rc_context_opts):
+        if axis is None:
+            _, axis = plt.subplots(figsize=figsize or (10, 8))
+        if axis is None:
+            raise ValueError("Axis could not be created.")
+
+        if pos is None:
+            pos = nx.spring_layout(meg, seed=42, k=2.0)
+
+        nx.draw_networkx_nodes(
+            meg,
+            pos=pos,
+            ax=axis,
+            node_size=node_size,
+            node_color="white",
+            edgecolors="black",
+            linewidths=linewidths,
+        )
+
+        nx.draw_networkx_edges(
+            meg,
+            pos=pos,
+            ax=axis,
+            width=linewidths,
+            edge_color="red",
+            style="dashed",
+            alpha=0.7,
+        )
+
+        labels = {
+            n: (r"$%s$" % n if use_latex else n) for n in meg.nodes
+        }
+        nx.draw_networkx_labels(
+            meg,
+            pos=pos,
+            labels=labels,
+            ax=axis,
+            font_size=font_size,
+        )
+
+        axis.set_title("Mutual Exclusion Graph", fontsize=font_size)
+        axis.axis("off")
+
+    return axis
