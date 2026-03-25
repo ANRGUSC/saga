@@ -50,13 +50,24 @@ class ConditionalTaskGraph(TaskGraph):
         return False
 
     def identify_branches(self) -> List[Tuple[str, List[str]]]:
-        """Enumerate every possible execution branch via recursive BFS.
-
-        At each conditional branching point the search forks: one sub-path
-        per conditional child.  Non-conditional children are always included.
-
+        """Identify all possible execution branches in the conditional task graph.
+        
+        Uses a recursive BFS-like approach similar to bfs.py to handle multiple branching points.
+        
+        Args:
+            task_graph: The conditional task graph
+            
         Returns:
-            List of ``(branch_name, tasks_in_branch)`` tuples.
+            List of (branch_name, tasks_in_branch) tuples
+            
+        Example:
+            For A -> B/C -> D where both B and C lead to D:
+            Returns: [("Path: B", ["A", "B", "D"]), ("Path: C", ["A", "C", "D"])]
+            
+            For A -> B/C, B -> D/E (multiple branches):
+            Returns: [("Path: B-D", ["A", "B", "D"]), 
+                    ("Path: B-E", ["A", "B", "E"]),
+                    ("Path: C", ["A", "C"])]
         """
         dag = self.graph
 
