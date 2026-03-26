@@ -187,7 +187,7 @@ class CpopScheduler(Scheduler):
 
             duplicate_factor = 1
             if not is_critical and should_duplicate(task.name, task_graph, network):
-                duplicate_factor = max(
+                duplicate_factor = min(
                     self.duplication_factor, len(task_graph.out_edges(task.name))
                 )
 

@@ -17,7 +17,7 @@ def build_uniform_network() -> Network:
 	"""Create a small homogeneous network for the diamond example."""
 	nodes = [
 		("v_1", 1.0),
-		("v_2", 1.5),
+		("v_2", 1.1),
 	]
 	edges = [
 		("v_1", "v_2", 1.0)
@@ -86,7 +86,7 @@ def run_experiment():
 
 	for name, scheduler_class in scheduler_classes:
 		schedules_by_factor: dict[int, Schedule] = {}
-		for duplication_factor in (1, 2):
+		for duplication_factor in (1,2):
 			scheduler = scheduler_class(duplication_factor=duplication_factor)
 			schedule = scheduler.schedule(network, task_graph)
 			schedules_by_factor[duplication_factor] = schedule
