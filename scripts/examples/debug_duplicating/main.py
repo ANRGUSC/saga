@@ -25,20 +25,19 @@ def build_uniform_network() -> Network:
 	return Network.create(nodes=nodes, edges=edges)
 
 
-def build_diamond_task_graph(
-) -> TaskGraph:
+def build_diamond_task_graph() -> TaskGraph:
 	"""Build diamond DAG: t_1 -> {t_2, t_3} -> t_4."""
 	tasks = [
-		("t_1", 4.9),
-		("t_2", 4.9),
-		("t_3", 4.9),
-		("t_4", 4.9),
+		("t_1", 1.0),
+		("t_2", 1.0),
+		("t_3", 1.0),
+		("t_4", 1.0),
 	]
 	dependencies = [
 		("t_1", "t_2", 5.0),
 		("t_1", "t_3", 5.0),
-		("t_2", "t_4", 5.0),
-		("t_3", "t_4", 5.0),
+		("t_2", "t_4", 1/4),
+		("t_3", "t_4", 1/4),
 	]
 	return TaskGraph.create(tasks=tasks, dependencies=dependencies)
 
