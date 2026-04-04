@@ -1,8 +1,12 @@
 from pathlib import Path
 
+import matplotlib.pyplot as plt
+
 from saga.schedulers import HeftScheduler
-from saga.utils.draw import draw_gantt, draw_task_graph, draw_mutual_exclusion_graph
+from saga.utils.draw import draw_gantt, draw_task_graph
 from saga.utils.random_graphs import get_network, get_random_conditional_branching_dag
+from saga.conditional import extract_branches_with_recalculation
+
 
 def main() -> None:
     output_dir = Path(__file__).resolve().parent / "outputs"
@@ -10,20 +14,37 @@ def main() -> None:
     network = get_network(num_nodes=4)
 
     task_graph = get_random_conditional_branching_dag(
-        levels=4, branching_factor=2, conditional_parent_probability=0.9
+        levels=3, branching_factor=2, conditional_parent_probability=0.2
     )
 
     branches = task_graph.identify_branches()
     meg = task_graph.build_mutual_exclusion_graph()
     schedule = HeftScheduler().schedule(network=network, task_graph=task_graph)
+    branch_schedules = extract_branches_with_recalculation(schedule)
 
-    graph_fig = draw_task_graph(task_graph.graph, use_latex=False).get_figure()
-    graph_fig.savefig(output_dir / "conditional_task_graph.pdf")
-    gantt_fig = draw_gantt(schedule.mapping, use_latex=False).get_figure()
-    gantt_fig.savefig(output_dir / "conditional_schedule.pdf")
-    meg_fig = draw_mutual_exclusion_graph(meg, use_latex=False).get_figure()
-    meg_fig.savefig(output_dir / "mutual_exclusion_graph.pdf")
+    # --- Save full-graph visualisations ---
+    draw_task_graph(task_graph.graph, use_latex=False).get_figure().savefig(
+        output_dir / "conditional_task_graph.pdf"
+    )
+    draw_gantt(schedule.mapping, use_latex=False).get_figure().savefig(
+        output_dir / "conditional_schedule.pdf"
+    )
 
+    # --- Save per-branch visualisations ---
+    for branch_name, branch_mapping in branch_schedules.items():
+        safe_name = branch_name.replace(" ", "_").replace(":", "")
+        branch_tasks = {t.name for tasks in branch_mapping.values() for t in tasks}
+        branch_subgraph = task_graph.graph.subgraph(branch_tasks).copy()
+
+        draw_task_graph(branch_subgraph, use_latex=False).get_figure().savefig(
+            output_dir / f"branch_taskgraph_{safe_name}.pdf"
+        )
+        draw_gantt(branch_mapping, use_latex=False).get_figure().savefig(
+            output_dir / f"branch_schedule_{safe_name}.pdf"
+        )
+        plt.close("all")
+
+    # --- Console summary ---
     print(f"Tasks: {len(task_graph.tasks)}, Edges: {len(task_graph.dependencies)}")
     print("\nEdge probabilities:")
     for edge in sorted(task_graph.dependencies):
@@ -36,8 +57,13 @@ def main() -> None:
     print(f"Mutually exclusive pairs ({meg.number_of_edges()}):")
     for a, b in sorted(meg.edges):
         print(f"  {a} <-> {b}")
-    print(f"\nMakespan: {schedule.makespan:.3f}")
-    print(f"Saved PDFs in: {output_dir}")
+    print(f"\nOverlapping schedule makespan: {schedule.makespan:.3f}")
+    for branch_name, branch_mapping in branch_schedules.items():
+        branch_makespan = max(
+            (t.end for tasks in branch_mapping.values() for t in tasks), default=0.0
+        )
+        print(f"  {branch_name} makespan (recalculated): {branch_makespan:.3f}")
+    print(f"\nSaved PDFs in: {output_dir}")
 
 
 if __name__ == "__main__":

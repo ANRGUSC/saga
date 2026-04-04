@@ -1,9 +1,9 @@
-"""Conditional task graph primitives.
+"""Helpers for scheduling conditional task graphs (CTGs).
 
-This module contains:
-- `ConditionalTaskGraphEdge`: edge metadata for conditional branches.
-- `ConditionalTaskGraph`: graph helper(s), including BFS branch extraction
-  and mutual-exclusion graph construction.
+When scheduling a CTG:
+1) Identify all individual execution branches.
+2) Build a mutual-exclusion graph linking tasks that can overlap.
+3) During scheduling, use that graph to decide whether overlaps are allowed.
 """
 
 from itertools import combinations
@@ -13,6 +13,9 @@ import networkx as nx
 from pydantic import Field, model_validator
 
 from saga import (
+    Network,
+    Schedule,
+    ScheduledTask,
     TaskGraph,
     TaskGraphEdge,
 )
@@ -122,7 +125,13 @@ class ConditionalTaskGraph(TaskGraph):
 
         Every task appears as a node.  An edge between two tasks means they
         are **mutually exclusive** (never execute together in any branch).
-        If two tasks can co-occur in at least one branch, there is no edge.
+
+        This logic is simple, it finds every possible task pair in the taskgraph
+        then it goes through each branch and creates all possible task pairs
+
+        then it compares the task pairs found in branches and all existing task pairs, 
+        if there is a task pair that did not exist when going through branches then 
+        it means the tasks are not mutually exclusive and we draw a line between them
 
         Returns:
             ``nx.Graph`` whose edges represent mutually exclusive task pairs.
@@ -146,3 +155,126 @@ class ConditionalTaskGraph(TaskGraph):
         return meg
 
 
+def extract_branch_schedules(
+    schedule: Schedule,
+) -> Dict[str, Dict[str, List[ScheduledTask]]]:
+    """Split an overlapping conditional schedule into per-branch schedules.
+
+    For each branch identified in the task graph, returns a copy of the
+    schedule mapping containing only the tasks that belong to that branch.
+
+    Args:
+        schedule: The overlapping schedule produced by any scheduler.
+
+    Example return of retuned scheudule mapping:
+        {
+        "Path: B-D": {"n0": [A, D], "n1": [B]},
+        "Path: C-F": {"n0": [A, F], "n1": [C]},
+        }
+    """
+    task_graph: ConditionalTaskGraph = schedule.task_graph  
+    branches = task_graph.identify_branches()
+
+    branch_schedules: Dict[str, Dict[str, List[ScheduledTask]]] = {}
+    #loop through all branches
+    for branch_name, branch_tasks in branches:
+        task_set = set(branch_tasks)
+        branch_mapping: Dict[str, List[ScheduledTask]] = {}
+        #loop through all tasks in schedule mapping and if current task not in current branch then skip it otherwise add it to new mapping
+        for node_name, tasks in schedule.mapping.items():
+            branch_mapping[node_name] = [
+                ScheduledTask(node=t.node, name=t.name, start=t.start, end=t.end)
+                for t in tasks
+                if t.name in task_set
+            ]
+        branch_schedules[branch_name] = branch_mapping
+
+    return branch_schedules
+
+
+def recalculate_branch_times(
+    branch_mapping: Dict[str, List[ScheduledTask]],
+    schedule: Schedule,
+) -> Dict[str, List[ScheduledTask]]:
+    """Recalculate start/end times for a branch schedule to remove gaps.
+
+    Keeps the same node assignments but walks tasks in topological order
+    and computes the earliest feasible start based on predecessors that
+    actually exist in this branch.
+
+    Args:
+        branch_mapping: Per-node task lists for one branch (may have gaps).
+        schedule: The original overlapping schedule (provides task graph &
+            network for cost / speed lookups).
+
+    Returns:
+        A new mapping ``{node_name: [ScheduledTask, ...]}`` with tight times.
+    """
+    task_graph = schedule.task_graph
+    network = schedule.network
+
+    task_info: Dict[str, Tuple[str, ScheduledTask]] = {}
+    for node_name, tasks in branch_mapping.items():
+        for t in tasks:
+            task_info[t.name] = (node_name, t)
+
+    end_times: Dict[str, float] = {}
+    new_mapping: Dict[str, List[ScheduledTask]] = {n: [] for n in branch_mapping}
+
+    for task_name in nx.topological_sort(task_graph.graph):
+        if task_name not in task_info:
+            continue
+
+        node_name, original = task_info[task_name]
+        node = network.get_node(node_name)
+        exec_time = task_graph.get_task(task_name).cost / node.speed
+
+        predecessors = [
+            p for p in task_graph.graph.predecessors(task_name) if p in task_info
+        ]
+        if predecessors:
+            start = max(
+                end_times[p] + _comm_time(p, task_info[p][0], task_name, node_name, task_graph, network)
+                for p in predecessors
+            )
+        else:
+            start = 0.0
+
+        end = start + exec_time
+        end_times[task_name] = end
+        new_mapping[node_name].append(
+            ScheduledTask(node=node_name, name=task_name, start=start, end=end)
+        )
+
+    for node_tasks in new_mapping.values():
+        node_tasks.sort(key=lambda t: t.start)
+
+    return new_mapping
+
+
+def extract_branches_with_recalculation(
+    schedule: Schedule,
+) -> Dict[str, Dict[str, List[ScheduledTask]]]:
+    """
+    Extract per-branch schedules and recalculate times to remove gaps.
+    """
+    branch_schedules = extract_branch_schedules(schedule)
+    return {
+        name: recalculate_branch_times(mapping, schedule)
+        for name, mapping in branch_schedules.items()
+    }
+
+
+def _comm_time(
+    src_task: str, src_node: str,
+    dst_task: str, dst_node: str,
+    task_graph: TaskGraph, network: Network,
+) -> float:
+    """Communication cost between two tasks on (possibly different) nodes."""
+    if src_node == dst_node:
+        return 0.0
+    edge = network.get_edge(src_node, dst_node)
+    dep = task_graph.get_dependency(src_task, dst_task)
+    if edge.speed == 0.0:
+        return 0.0
+    return dep.size / edge.speed

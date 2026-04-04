@@ -578,6 +578,7 @@ class Schedule(BaseModel):
         return left.start < right.end - EPS and right.start < left.end - EPS
 
     def _conflicts(self, candidate: ScheduledTask, existing: ScheduledTask) -> bool:
+        #conflict if true
         return self._tasks_overlap_in_time(candidate, existing) and not self._tasks_can_overlap(
             candidate.name, existing.name
         )
@@ -659,9 +660,8 @@ class Schedule(BaseModel):
                 arrival_time = parent_task.end + (dependency.size / network_edge.speed)
                 min_min_start_time = min(min_min_start_time, arrival_time)
             min_start_time = max(min_start_time, min_min_start_time)
-#new
         blockers = self._get_blockers_for_task(task.name, node.name)
-#new
+
         if append_only:
             min_start_time = max(min_start_time, blockers[-1].end) if blockers else min_start_time
             return min_start_time
