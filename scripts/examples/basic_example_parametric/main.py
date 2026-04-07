@@ -80,7 +80,7 @@ def parametric_schedule():
     scheduler = ParametricScheduler(
         initial_priority=UpwardRanking(),
         insert_task=GreedyInsert(
-            append_only=False, compare=GreedyInsertCompareFuncs.EFT, critical_path=False
+            append_only=False, compare=GreedyInsertCompareFuncs.Throughput, critical_path=False
         ),
     )
     schedule = scheduler.schedule(network, task_graph)

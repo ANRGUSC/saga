@@ -571,6 +571,7 @@ class Schedule(BaseModel):
             return 0.0
         return max(tasks[-1].end for tasks in self.mapping.values() if tasks)
 
+    @property
     def throughput(self) -> float:
         """Get the throughput of the schedule. 
 

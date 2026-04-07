@@ -1,5 +1,7 @@
 from copy import deepcopy
+from hashlib import new
 import heapq
+from xxlimited import new
 import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -11,7 +13,7 @@ from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
-from typing import Dict, Iterable, List, Hashable, Literal
+from typing import Dict, Iterable, List, Hashable, Literal, Optional
 
 
 class UpwardRanking(IntialPriority):
@@ -57,16 +59,42 @@ class GreedyInsertCompareFuncs(Enum):
     EFT = "EFT"
     EST = "EST"
     Quickest = "Quickest"
+    Throughput = "Throughput"
+    Makespan = "Makespan"
 
-    def compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
+    def compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Optional[Schedule]) -> float:
+        """Compare the placement of a task on two nodes.
+
+        Args:
+            new (ScheduledTask): Potential placement of the task.
+            cur (ScheduledTask): Current placement of the task.
+            schedule (Optional[Schedule]): The current schedule.
+
+        Returns:
+            Float. Positive value means select current, negative means select new.
+        """
         if self == GreedyInsertCompareFuncs.EFT:
             return new.end - cur.end
         elif self == GreedyInsertCompareFuncs.EST:
             return new.start - cur.start
         elif self == GreedyInsertCompareFuncs.Quickest:
             return (new.end - new.start) - (cur.end - cur.start)
+        elif self == GreedyInsertCompareFuncs.Throughput:
+            cur_schedule = deepcopy(schedule)
+            cur_schedule.add_task(cur)
+            new_schedule = deepcopy(schedule) 
+            new_schedule.add_task(new)
+            return (1/new_schedule.throughput) - (1/cur_schedule.throughput)
+        elif self == GreedyInsertCompareFuncs.Makespan:
+            cur_schedule = deepcopy(schedule)
+            cur_schedule.add_task(cur)
+            new_schedule = deepcopy(schedule) 
+            new_schedule.add_task(new)
+            return (new_schedule.makespan) - (cur_schedule.makespan)
+            
         else:
             raise ValueError(f"Unknown comparison function: {self.value}")
+        
 
 
 # Insert Task functions
@@ -82,8 +110,8 @@ class GreedyInsert(InsertTask):
         False, description="Whether to only schedule tasks on the critical path."
     )
 
-    def _compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
-        return self.compare.compare(new, cur)
+    def _compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Schedule) -> float:
+        return self.compare.compare(new, cur, schedule)
 
     def call(
         self,
@@ -126,7 +154,7 @@ class GreedyInsert(InsertTask):
                 start=start_time,
                 end=start_time + exec_time,
             )
-            if best_task is None or self._compare(new_task, best_task) < 0:
+            if best_task is None or self._compare(new_task, best_task, schedule) < 0:
                 best_task = new_task
 
         if best_task is None:
