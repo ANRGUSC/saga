@@ -15,6 +15,7 @@ from pydantic import Field, model_validator
 from saga import (
     Network,
     Schedule,
+    Scheduler,
     ScheduledTask,
     TaskGraph,
     TaskGraphEdge,
@@ -264,6 +265,33 @@ def extract_branches_with_recalculation(
         for name, mapping in branch_schedules.items()
     }
 
+
+'''
+def schedule_branch_standalone(
+    branch_tasks: List[str],
+    task_graph: ConditionalTaskGraph,
+    network: Network,
+    scheduler: Scheduler,
+) -> Schedule:
+    """Schedule a branch as a standalone (non-conditional) task graph.
+
+    Extracts the subgraph for the given branch tasks, converts it to a
+    plain TaskGraph (stripping conditional metadata), and schedules it
+    from scratch with the given heuristic.
+
+    Args:
+        branch_tasks: Task names belonging to this branch.
+        task_graph: The original conditional task graph.
+        network: The network to schedule on.
+        scheduler: The heuristic to use.
+
+    Returns:
+        A fresh Schedule for just this branch's tasks.
+    """
+    branch_subgraph = task_graph.graph.subgraph(branch_tasks).copy()
+    standalone_tg = TaskGraph.from_nx(branch_subgraph)
+    return scheduler.schedule(network=network, task_graph=standalone_tg)
+'''
 
 def _comm_time(
     src_task: str, src_node: str,
