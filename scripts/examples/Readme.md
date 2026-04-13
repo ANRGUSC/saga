@@ -5,4 +5,5 @@ Standalone examples of how to use the library, different use-cases, etc.
 - [Example 1: Basic Example](./basic_example)
 - [Example 2: Parametric Scheduler](./basic_example_parametric)
 - [Example 3: Stochastic Scheduling](./basic_example_stochastic)
+- [Example 4: Real-world execution on Chameleon via Makeflow / Work Queue](./dagprofiler_chameleon)
 

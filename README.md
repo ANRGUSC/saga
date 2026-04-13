@@ -122,6 +122,35 @@ python scripts/examples/<example_name>/main.py
 The table of contents in `scripts/examples/Readme.md` lists examples ranging from basic usage to dynamic networks and scheduler comparisons.
 
 
+### Real-World Execution (Makeflow / Work Queue / Chameleon)
+
+In addition to simulating scheduling algorithms, SAGA can now execute actual Python task graphs on real compute clusters.  Users define tasks with a Dask/Parsl-style decorator, SAGA picks the placement, and the emitted workflow runs on CCTools Makeflow or Work Queue — with per-node pinning honoured by the cluster.
+
+```python
+from saga.execution import saga_task, SagaGraph
+from saga.execution.chameleon import ChameleonNode, build_network
+from saga.execution.makeflow import emit_makeflow
+from saga.execution.workqueue import WorkQueueRunner
+from saga.schedulers import HeftScheduler
+
+@saga_task(inputs=[], outputs=["x"], cost=lambda cfg: cfg["N"])
+def generate(cfg): ...
+
+@saga_task(inputs=["x"], outputs=["y"], cost=lambda cfg: 10 * cfg["N"])
+def transform(x, cfg): ...
+
+graph = SagaGraph([generate, transform], config={"N": 10_000})
+network = build_network([ChameleonNode("worker-0", 2.0), ChameleonNode("worker-1", 1.0)])
+schedule = HeftScheduler().schedule(network, graph.to_task_graph())
+
+# Emit a Makeflow JSON for portable / local execution, or run on Work Queue
+# with hard per-node pinning via specify_feature.
+emit_makeflow(graph, schedule, "out/", task_module="my_pkg.tasks")
+WorkQueueRunner(graph, schedule, task_module="my_pkg.tasks").run()
+```
+
+See [scripts/examples/dagprofiler_chameleon](./scripts/examples/dagprofiler_chameleon) for a full end-to-end example and `provision_workers.sh` helper for launching CCTools workers on a Chameleon Cloud lease.  SAGA also integrates with [dagprofiler](https://github.com/ANRGUSC/dagprofiler) via `saga.execution.profile_to_task_graph(...)` so you can drive the scheduler from measured runtimes and edge data sizes.
+
 ### Experiments
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
 
