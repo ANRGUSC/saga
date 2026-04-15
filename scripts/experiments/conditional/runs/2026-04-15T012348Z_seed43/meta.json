@@ -1,0 +1,18 @@
+{
+  "run_id": "2026-04-15T012348Z_seed43",
+  "seed": 43,
+  "num_repeats": 1,
+  "heuristics": [
+    "HEFT"
+  ],
+  "networks": [
+    "3node_hetero"
+  ],
+  "ctg_configs": [
+    {
+      "levels": 3,
+      "branching_factor": 2,
+      "conditional_parent_probability": 0.3
+    }
+  ]
+}

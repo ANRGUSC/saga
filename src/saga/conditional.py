@@ -53,25 +53,52 @@ class ConditionalTaskGraph(TaskGraph):
                 return True
         return False
 
+    def _get_edge_probability(self, source: str, target: str) -> float:
+        """Return the probability on a conditional edge, or 1.0 for deterministic."""
+        for edge in self.dependencies:
+            if edge.source == source and edge.target == target:
+                if isinstance(edge, ConditionalTaskGraphEdge):
+                    return edge.probability
+                return 1.0
+        return 1.0
+
+    # ------------------------------------------------------------------
+    # Branch discovery
+    # ------------------------------------------------------------------
+
     def identify_branches(self) -> List[Tuple[str, List[str]]]:
-        """Identify all possible execution branches in the conditional task graph.
-        
-        Uses a recursive BFS-like approach similar to bfs.py to handle multiple branching points.
-        
-        Args:
-            task_graph: The conditional task graph
-            
+        """Lightweight branch enumeration (name + task list only).
+
+        See :meth:`identify_branches_detailed` for the full version that
+        also computes path probabilities and conditional edges used.
+        """
+        detailed = self.identify_branches_detailed()
+        return [(b["name"], b["tasks"]) for b in detailed]
+
+    def identify_branches_detailed(self) -> List[dict]:
+        """Enumerate every execution branch with probabilities.
+
+        Uses recursive BFS.  At each conditional fork the search splits,
+        multiplying the running probability by the edge probability of the
+        chosen child.
+
         Returns:
-            List of (branch_name, tasks_in_branch) tuples
-            
-        Example:
-            For A -> B/C -> D where both B and C lead to D:
-            Returns: [("Path: B", ["A", "B", "D"]), ("Path: C", ["A", "C", "D"])]
-            
-            For A -> B/C, B -> D/E (multiple branches):
-            Returns: [("Path: B-D", ["A", "B", "D"]), 
-                    ("Path: B-E", ["A", "B", "E"]),
-                    ("Path: C", ["A", "C"])]
+            List of dicts, each with keys:
+
+            - ``name``  — human-readable branch label
+            - ``tasks`` — sorted list of task names in this branch
+            - ``probability`` — product of conditional-edge probabilities
+            - ``conditional_edges`` — list of ``[parent, child]`` pairs
+              used at each fork (useful for debugging)
+
+        Example::
+
+            [
+                {"name": "Path: B-D", "tasks": ["A","B","D"],
+                 "probability": 0.35,
+                 "conditional_edges": [["A","B"], ["B","D"]]},
+                ...
+            ]
         """
         dag = self.graph
 
@@ -79,13 +106,17 @@ class ConditionalTaskGraph(TaskGraph):
             queue: Optional[List[str]] = None,
             visited: Optional[Set[str]] = None,
             path_names: Optional[List[str]] = None,
-        ) -> List[Tuple[List[str], Set[str]]]:
+            probability: float = 1.0,
+            cond_edges: Optional[List[List[str]]] = None,
+        ) -> List[Tuple[List[str], Set[str], float, List[List[str]]]]:
             if queue is None:
                 queue = [n for n in dag.nodes if dag.in_degree(n) == 0]
             if visited is None:
                 visited = set()
             if path_names is None:
                 path_names = []
+            if cond_edges is None:
+                cond_edges = []
 
             while queue:
                 current = queue.pop(0)
@@ -100,11 +131,18 @@ class ConditionalTaskGraph(TaskGraph):
                 ]
 
                 if conditional_children:
-                    all_branches: List[Tuple[List[str], Set[str]]] = []
+                    all_branches: List[Tuple[List[str], Set[str], float, List[List[str]]]] = []
                     for child in conditional_children:
+                        edge_prob = self._get_edge_probability(current, child)
                         new_queue = [child] + non_conditional_children + queue.copy()
                         all_branches.extend(
-                            _explore(new_queue, visited.copy(), path_names + [child])
+                            _explore(
+                                new_queue,
+                                visited.copy(),
+                                path_names + [child],
+                                probability * edge_prob,
+                                cond_edges + [[current, child]],
+                            )
                         )
                     return all_branches
                 else:
@@ -112,13 +150,18 @@ class ConditionalTaskGraph(TaskGraph):
                         if child not in visited and child not in queue:
                             queue.append(child)
 
-            return [(path_names, visited)]
+            return [(path_names, visited, probability, cond_edges)]
 
         raw = _explore()
-        branches: List[Tuple[str, List[str]]] = []
-        for path_names, visited in raw:
+        branches: List[dict] = []
+        for path_names, visited, prob, cond_edges in raw:
             name = f"Path: {'-'.join(path_names)}" if path_names else "No conditionals"
-            branches.append((name, sorted(visited)))
+            branches.append({
+                "name": name,
+                "tasks": sorted(visited),
+                "probability": round(prob, 6),
+                "conditional_edges": cond_edges,
+            })
         return branches
 
     def build_mutual_exclusion_graph(self) -> nx.Graph:
@@ -221,6 +264,7 @@ def recalculate_branch_times(
 
     end_times: Dict[str, float] = {}
     new_mapping: Dict[str, List[ScheduledTask]] = {n: [] for n in branch_mapping}
+    node_available: Dict[str, float] = {n: 0.0 for n in branch_mapping}
 
     for task_name in nx.topological_sort(task_graph.graph):
         if task_name not in task_info:
@@ -234,15 +278,17 @@ def recalculate_branch_times(
             p for p in task_graph.graph.predecessors(task_name) if p in task_info
         ]
         if predecessors:
-            start = max(
+            dep_ready = max(
                 end_times[p] + _comm_time(p, task_info[p][0], task_name, node_name, task_graph, network)
                 for p in predecessors
             )
         else:
-            start = 0.0
+            dep_ready = 0.0
 
+        start = max(dep_ready, node_available[node_name])
         end = start + exec_time
         end_times[task_name] = end
+        node_available[node_name] = end
         new_mapping[node_name].append(
             ScheduledTask(node=node_name, name=task_name, start=start, end=end)
         )
@@ -266,7 +312,6 @@ def extract_branches_with_recalculation(
     }
 
 
-'''
 def schedule_branch_standalone(
     branch_tasks: List[str],
     task_graph: ConditionalTaskGraph,
@@ -291,7 +336,6 @@ def schedule_branch_standalone(
     branch_subgraph = task_graph.graph.subgraph(branch_tasks).copy()
     standalone_tg = TaskGraph.from_nx(branch_subgraph)
     return scheduler.schedule(network=network, task_graph=standalone_tg)
-'''
 
 def _comm_time(
     src_task: str, src_node: str,

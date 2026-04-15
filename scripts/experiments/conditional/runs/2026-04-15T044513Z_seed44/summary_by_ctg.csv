@@ -1,0 +1,5 @@
+heuristic,network,ctg_id,num_branches,mean_gap,median_gap,max_gap,mean_ratio,median_ratio
+CPOP,3node_hetero,0,2,0.0,0.0,0.0,1.0,1.0
+CPOP,3node_hetero,1,3,0.5404,0.7771,0.8441,0.6815000000000001,0.5894
+HEFT,3node_hetero,0,2,0.0524,0.0524,0.1048,0.9788,0.9788
+HEFT,3node_hetero,1,3,0.0,0.0,0.0,1.0,1.0

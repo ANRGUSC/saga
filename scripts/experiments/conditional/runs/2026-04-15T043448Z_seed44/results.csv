@@ -1,0 +1,5 @@
+heuristic,network,ctg_id,branch,branch_path_probability,num_tasks_ctg,num_tasks_branch,ctg_overlapping_makespan,branch_ctg_makespan,branch_standalone_makespan,branch_gap,branch_ratio_standalone_over_ctg
+HEFT,3node_hetero,0,Path: 3,0.19475,8,7,2.3735,1.8838,1.8838,0.0,1.0
+HEFT,3node_hetero,0,Path: 4,0.80525,8,7,2.3735,1.8946,1.8946,0.0,1.0
+CPOP,3node_hetero,0,Path: 3,0.19475,8,7,2.2535,3.214,2.2535,0.9605,0.7012
+CPOP,3node_hetero,0,Path: 4,0.80525,8,7,2.2535,2.4442,2.0021,0.4421,0.8191

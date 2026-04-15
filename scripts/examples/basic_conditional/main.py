@@ -14,7 +14,7 @@ def main() -> None:
     network = get_network(num_nodes=4)
 
     task_graph = get_random_conditional_branching_dag(
-        levels=3, branching_factor=2, conditional_parent_probability=0.2
+        levels=3, branching_factor=2, conditional_parent_probability=0.5
     )
 
     branches = task_graph.identify_branches()

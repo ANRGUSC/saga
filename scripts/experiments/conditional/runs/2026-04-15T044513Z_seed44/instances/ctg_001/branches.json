@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Path: 1-3",
+    "tasks": [
+      "0",
+      "1",
+      "3",
+      "7"
+    ],
+    "probability": 0.363117,
+    "conditional_edges": [
+      [
+        "0",
+        "1"
+      ],
+      [
+        "1",
+        "3"
+      ]
+    ]
+  },
+  {
+    "name": "Path: 1-4",
+    "tasks": [
+      "0",
+      "1",
+      "4",
+      "7"
+    ],
+    "probability": 0.349383,
+    "conditional_edges": [
+      [
+        "0",
+        "1"
+      ],
+      [
+        "1",
+        "4"
+      ]
+    ]
+  },
+  {
+    "name": "Path: 2",
+    "tasks": [
+      "0",
+      "2",
+      "5",
+      "6",
+      "7"
+    ],
+    "probability": 0.287499,
+    "conditional_edges": [
+      [
+        "0",
+        "2"
+      ]
+    ]
+  }
+]
