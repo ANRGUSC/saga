@@ -1,0 +1,2 @@
+heuristic,network,ctg_id,num_branches,mean_gap,median_gap,max_gap,mean_ratio,median_ratio
+HEFT,3node_hetero,0,42,0.4366023809523809,0.37934999999999997,1.3058,0.8907761904761904,0.8973500000000001

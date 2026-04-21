@@ -18,6 +18,11 @@ Workflow:
         - save visualisations & JSON dumps
 """
 
+#change branch to trace
+#work on visualisation workflow
+#get the multiplier of each trace and times by the probability to get expected makespan, this will give us makespan of entire taskgraph
+# (makespan online / makespan offline ) * probability 
+
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,7 +50,7 @@ from saga.conditional import (
 
 HEURISTICS: Dict[str, Scheduler] = {
     "HEFT": HeftScheduler(),
-    "CPOP": CpopScheduler(),
+    #"CPOP": CpopScheduler(),
 }
 
 NETWORKS: Dict[str, Network] = {
@@ -60,8 +65,8 @@ NETWORKS: Dict[str, Network] = {
 }
 
 CTG_CONFIGS: List[dict] = [
-    {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.30},
-    {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
+    {"levels": 6, "branching_factor": 2, "conditional_parent_probability": 0.50},
+    #{"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
 ]
 
 SEED = 44
