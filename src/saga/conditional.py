@@ -1,7 +1,7 @@
 """Helpers for scheduling conditional task graphs (CTGs).
 
 When scheduling a CTG:
-1) Identify all individual execution branches.
+1) Identify all individual execution traces.
 2) Build a mutual-exclusion graph linking tasks that can overlap.
 3) During scheduling, use that graph to decide whether overlaps are allowed.
 """
@@ -23,11 +23,14 @@ from saga import (
 
 
 class ConditionalTaskGraphEdge(TaskGraphEdge):
-    """Task graph edge with conditional branch metadata."""
+    """Task graph edge with conditional probability metadata."""
 
     probability: float = Field(
         default=1.0,
-        description="Branch probability in [0, 1], assume conditionality if probability set to < 1.",
+        description=(
+            "Conditional edge probability in [0, 1], assume conditionality "
+            "if probability set to < 1."
+        ),
     )
 
     @model_validator(mode="after")
@@ -63,40 +66,40 @@ class ConditionalTaskGraph(TaskGraph):
         return 1.0
 
     # ------------------------------------------------------------------
-    # Branch discovery
+    # Trace discovery
     # ------------------------------------------------------------------
 
-    def identify_branches(self) -> List[Tuple[str, List[str]]]:
-        """Lightweight branch enumeration (name + task list only).
+    def identify_traces(self) -> List[Tuple[str, List[str]]]:
+        """Lightweight trace enumeration (name + task list only).
 
-        See :meth:`identify_branches_detailed` for the full version that
-        also computes path probabilities and conditional edges used.
+        See :meth:`identify_traces_detailed` for the full version that also
+        computes trace probabilities and conditional edges used.
         """
-        detailed = self.identify_branches_detailed()
-        return [(b["name"], b["tasks"]) for b in detailed]
+        detailed = self.identify_traces_detailed()
+        return [(trace["name"], trace["tasks"]) for trace in detailed]
 
-    def identify_branches_detailed(self) -> List[dict]:
-        """Enumerate every execution branch with probabilities.
+    def identify_traces_detailed(self) -> List[dict]:
+        """Enumerate every execution trace with probabilities.
 
-        Uses recursive BFS.  At each conditional fork the search splits,
+        Uses recursive BFS. At each conditional fork the search splits,
         multiplying the running probability by the edge probability of the
         chosen child.
 
         Returns:
             List of dicts, each with keys:
 
-            - ``name``  — human-readable branch label
-            - ``tasks`` — sorted list of task names in this branch
-            - ``probability`` — product of conditional-edge probabilities
-            - ``conditional_edges`` — list of ``[parent, child]`` pairs
-              used at each fork (useful for debugging)
+            - ``name``: human-readable trace label
+            - ``tasks``: sorted list of task names in this trace
+            - ``probability``: product of conditional-edge probabilities
+            - ``conditional_edges``: list of ``[parent, child]`` pairs
+              used at each fork, useful for debugging
 
         Example::
 
             [
-                {"name": "Path: B-D", "tasks": ["A","B","D"],
+                {"name": "Trace: B-D", "tasks": ["A", "B", "D"],
                  "probability": 0.35,
-                 "conditional_edges": [["A","B"], ["B","D"]]},
+                 "conditional_edges": [["A", "B"], ["B", "D"]]},
                 ...
             ]
         """
@@ -131,11 +134,13 @@ class ConditionalTaskGraph(TaskGraph):
                 ]
 
                 if conditional_children:
-                    all_branches: List[Tuple[List[str], Set[str], float, List[List[str]]]] = []
+                    all_traces: List[
+                        Tuple[List[str], Set[str], float, List[List[str]]]
+                    ] = []
                     for child in conditional_children:
                         edge_prob = self._get_edge_probability(current, child)
                         new_queue = [child] + non_conditional_children + queue.copy()
-                        all_branches.extend(
+                        all_traces.extend(
                             _explore(
                                 new_queue,
                                 visited.copy(),
@@ -144,49 +149,56 @@ class ConditionalTaskGraph(TaskGraph):
                                 cond_edges + [[current, child]],
                             )
                         )
-                    return all_branches
-                else:
-                    for child in children:
-                        if child not in visited and child not in queue:
-                            queue.append(child)
+                    return all_traces
+
+                for child in children:
+                    if child not in visited and child not in queue:
+                        queue.append(child)
 
             return [(path_names, visited, probability, cond_edges)]
 
         raw = _explore()
-        branches: List[dict] = []
+        traces: List[dict] = []
         for path_names, visited, prob, cond_edges in raw:
-            name = f"Path: {'-'.join(path_names)}" if path_names else "No conditionals"
-            branches.append({
-                "name": name,
-                "tasks": sorted(visited),
-                "probability": round(prob, 6),
-                "conditional_edges": cond_edges,
-            })
-        return branches
+            name = f"Trace: {'-'.join(path_names)}" if path_names else "No conditionals"
+            traces.append(
+                {
+                    "name": name,
+                    "tasks": sorted(visited),
+                    "probability": round(prob, 6),
+                    "conditional_edges": cond_edges,
+                }
+            )
+        return traces
+
+    def identify_branches(self) -> List[Tuple[str, List[str]]]:
+        """Backward-compatible alias for :meth:`identify_traces`."""
+        return self.identify_traces()
+
+    def identify_branches_detailed(self) -> List[dict]:
+        """Backward-compatible alias for :meth:`identify_traces_detailed`."""
+        return self.identify_traces_detailed()
 
     def build_mutual_exclusion_graph(self) -> nx.Graph:
         """Build an undirected graph encoding mutual exclusion between tasks.
 
-        Every task appears as a node.  An edge between two tasks means they
-        are **mutually exclusive** (never execute together in any branch).
+        Every task appears as a node. An edge between two tasks means they
+        are mutually exclusive: they never execute together in any trace.
 
-        This logic is simple, it finds every possible task pair in the taskgraph
-        then it goes through each branch and creates all possible task pairs
-
-        then it compares the task pairs found in branches and all existing task pairs, 
-        if there is a task pair that did not exist when going through branches then 
-        it means the tasks are not mutually exclusive and we draw a line between them
+        This logic finds every possible task pair in the task graph, then
+        records all pairs that co-occur in at least one trace. Any pair that
+        never co-occurs is mutually exclusive.
 
         Returns:
             ``nx.Graph`` whose edges represent mutually exclusive task pairs.
         """
-        branches = self.identify_branches()
+        traces = self.identify_traces()
         all_tasks = {task.name for task in self.tasks}
 
         co_occurring: Set[frozenset] = set()
-        for _name, branch_tasks in branches:
-            branch_set = set(branch_tasks)
-            for a, b in combinations(branch_set, 2):
+        for _name, trace_tasks in traces:
+            trace_set = set(trace_tasks)
+            for a, b in combinations(trace_set, 2):
                 co_occurring.add(frozenset((a, b)))
 
         meg = nx.Graph()
@@ -199,57 +211,55 @@ class ConditionalTaskGraph(TaskGraph):
         return meg
 
 
-def extract_branch_schedules(
+def extract_trace_schedules(
     schedule: Schedule,
 ) -> Dict[str, Dict[str, List[ScheduledTask]]]:
-    """Split an overlapping conditional schedule into per-branch schedules.
+    """Split an overlapping conditional schedule into per-trace schedules.
 
-    For each branch identified in the task graph, returns a copy of the
-    schedule mapping containing only the tasks that belong to that branch.
+    For each trace identified in the task graph, returns a copy of the
+    schedule mapping containing only the tasks that belong to that trace.
 
     Args:
         schedule: The overlapping schedule produced by any scheduler.
 
-    Example return of retuned scheudule mapping:
+    Example returned schedule mapping:
         {
-        "Path: B-D": {"n0": [A, D], "n1": [B]},
-        "Path: C-F": {"n0": [A, F], "n1": [C]},
+        "Trace: B-D": {"n0": [A, D], "n1": [B]},
+        "Trace: C-F": {"n0": [A, F], "n1": [C]},
         }
     """
-    task_graph: ConditionalTaskGraph = schedule.task_graph  
-    branches = task_graph.identify_branches()
+    task_graph: ConditionalTaskGraph = schedule.task_graph
+    traces = task_graph.identify_traces()
 
-    branch_schedules: Dict[str, Dict[str, List[ScheduledTask]]] = {}
-    #loop through all branches
-    for branch_name, branch_tasks in branches:
-        task_set = set(branch_tasks)
-        branch_mapping: Dict[str, List[ScheduledTask]] = {}
-        #loop through all tasks in schedule mapping and if current task not in current branch then skip it otherwise add it to new mapping
+    trace_schedules: Dict[str, Dict[str, List[ScheduledTask]]] = {}
+    for trace_name, trace_tasks in traces:
+        task_set = set(trace_tasks)
+        trace_mapping: Dict[str, List[ScheduledTask]] = {}
         for node_name, tasks in schedule.mapping.items():
-            branch_mapping[node_name] = [
+            trace_mapping[node_name] = [
                 ScheduledTask(node=t.node, name=t.name, start=t.start, end=t.end)
                 for t in tasks
                 if t.name in task_set
             ]
-        branch_schedules[branch_name] = branch_mapping
+        trace_schedules[trace_name] = trace_mapping
 
-    return branch_schedules
+    return trace_schedules
 
 
-def recalculate_branch_times(
-    branch_mapping: Dict[str, List[ScheduledTask]],
+def recalculate_trace_times(
+    trace_mapping: Dict[str, List[ScheduledTask]],
     schedule: Schedule,
 ) -> Dict[str, List[ScheduledTask]]:
-    """Recalculate start/end times for a branch schedule to remove gaps.
+    """Recalculate start/end times for a trace schedule to remove gaps.
 
     Keeps the same node assignments but walks tasks in topological order
     and computes the earliest feasible start based on predecessors that
-    actually exist in this branch.
+    actually exist in this trace.
 
     Args:
-        branch_mapping: Per-node task lists for one branch (may have gaps).
-        schedule: The original overlapping schedule (provides task graph &
-            network for cost / speed lookups).
+        trace_mapping: Per-node task lists for one trace, possibly with gaps.
+        schedule: The original overlapping schedule, which provides task graph
+            and network data for cost and speed lookups.
 
     Returns:
         A new mapping ``{node_name: [ScheduledTask, ...]}`` with tight times.
@@ -258,19 +268,19 @@ def recalculate_branch_times(
     network = schedule.network
 
     task_info: Dict[str, Tuple[str, ScheduledTask]] = {}
-    for node_name, tasks in branch_mapping.items():
-        for t in tasks:
-            task_info[t.name] = (node_name, t)
+    for node_name, tasks in trace_mapping.items():
+        for scheduled_task in tasks:
+            task_info[scheduled_task.name] = (node_name, scheduled_task)
 
     end_times: Dict[str, float] = {}
-    new_mapping: Dict[str, List[ScheduledTask]] = {n: [] for n in branch_mapping}
-    node_available: Dict[str, float] = {n: 0.0 for n in branch_mapping}
+    new_mapping: Dict[str, List[ScheduledTask]] = {n: [] for n in trace_mapping}
+    node_available: Dict[str, float] = {n: 0.0 for n in trace_mapping}
 
     for task_name in nx.topological_sort(task_graph.graph):
         if task_name not in task_info:
             continue
 
-        node_name, original = task_info[task_name]
+        node_name, _original = task_info[task_name]
         node = network.get_node(node_name)
         exec_time = task_graph.get_task(task_name).cost / node.speed
 
@@ -279,7 +289,15 @@ def recalculate_branch_times(
         ]
         if predecessors:
             dep_ready = max(
-                end_times[p] + _comm_time(p, task_info[p][0], task_name, node_name, task_graph, network)
+                end_times[p]
+                + _comm_time(
+                    p,
+                    task_info[p][0],
+                    task_name,
+                    node_name,
+                    task_graph,
+                    network,
+                )
                 for p in predecessors
             )
         else:
@@ -299,50 +317,84 @@ def recalculate_branch_times(
     return new_mapping
 
 
-def extract_branches_with_recalculation(
+def extract_traces_with_recalculation(
     schedule: Schedule,
 ) -> Dict[str, Dict[str, List[ScheduledTask]]]:
-    """
-    Extract per-branch schedules and recalculate times to remove gaps.
-    """
-    branch_schedules = extract_branch_schedules(schedule)
+    """Extract per-trace schedules and recalculate times to remove gaps."""
+    trace_schedules = extract_trace_schedules(schedule)
     return {
-        name: recalculate_branch_times(mapping, schedule)
-        for name, mapping in branch_schedules.items()
+        name: recalculate_trace_times(mapping, schedule)
+        for name, mapping in trace_schedules.items()
     }
 
 
-def schedule_branch_standalone(
-    branch_tasks: List[str],
+def schedule_trace_standalone(
+    trace_tasks: List[str],
     task_graph: ConditionalTaskGraph,
     network: Network,
     scheduler: Scheduler,
 ) -> Schedule:
-    """Schedule a branch as a standalone (non-conditional) task graph.
+    """Schedule a trace as a standalone non-conditional task graph.
 
-    Extracts the subgraph for the given branch tasks, converts it to a
-    plain TaskGraph (stripping conditional metadata), and schedules it
-    from scratch with the given heuristic.
+    Extracts the subgraph for the given trace tasks, converts it to a plain
+    TaskGraph, stripping conditional metadata, and schedules it from scratch
+    with the given heuristic.
 
     Args:
-        branch_tasks: Task names belonging to this branch.
+        trace_tasks: Task names belonging to this trace.
         task_graph: The original conditional task graph.
         network: The network to schedule on.
         scheduler: The heuristic to use.
 
     Returns:
-        A fresh Schedule for just this branch's tasks.
+        A fresh Schedule for just this trace's tasks.
     """
-    branch_subgraph = task_graph.graph.subgraph(branch_tasks).copy()
-    standalone_tg = TaskGraph.from_nx(branch_subgraph)
+    trace_subgraph = task_graph.graph.subgraph(trace_tasks).copy()
+    standalone_tg = TaskGraph.from_nx(trace_subgraph)
     return scheduler.schedule(network=network, task_graph=standalone_tg)
 
+
+def extract_branch_schedules(
+    schedule: Schedule,
+) -> Dict[str, Dict[str, List[ScheduledTask]]]:
+    """Backward-compatible alias for :func:`extract_trace_schedules`."""
+    return extract_trace_schedules(schedule)
+
+
+def recalculate_branch_times(
+    mapping: Dict[str, List[ScheduledTask]],
+    schedule: Schedule,
+) -> Dict[str, List[ScheduledTask]]:
+    """Backward-compatible alias for :func:`recalculate_trace_times`."""
+    return recalculate_trace_times(mapping, schedule)
+
+
+def extract_branches_with_recalculation(
+    schedule: Schedule,
+) -> Dict[str, Dict[str, List[ScheduledTask]]]:
+    """Backward-compatible alias for :func:`extract_traces_with_recalculation`."""
+    return extract_traces_with_recalculation(schedule)
+
+
+def schedule_branch_standalone(
+    tasks: List[str],
+    task_graph: ConditionalTaskGraph,
+    network: Network,
+    scheduler: Scheduler,
+) -> Schedule:
+    """Backward-compatible alias for :func:`schedule_trace_standalone`."""
+    return schedule_trace_standalone(tasks, task_graph, network, scheduler)
+
+
 def _comm_time(
-    src_task: str, src_node: str,
-    dst_task: str, dst_node: str,
-    task_graph: TaskGraph, network: Network,
+    src_task: str,
+    src_node: str,
+    dst_task: str,
+    dst_node: str,
+    task_graph: TaskGraph,
+    network: Network,
 ) -> float:
-    """Communication cost between two tasks on (possibly different) nodes."""
+    """Communication cost between two tasks on possibly different nodes."""
     if src_node == dst_node:
         return 0.0
     edge = network.get_edge(src_node, dst_node)

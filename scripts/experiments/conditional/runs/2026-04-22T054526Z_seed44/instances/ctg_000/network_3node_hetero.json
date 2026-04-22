@@ -1,16 +1,16 @@
 {
   "nodes": [
     {
+      "name": "n2",
+      "speed": 2.0
+    },
+    {
       "name": "n1",
       "speed": 1.5
     },
     {
       "name": "n0",
       "speed": 1.0
-    },
-    {
-      "name": "n2",
-      "speed": 2.0
     }
   ],
   "edges": [
@@ -20,24 +20,24 @@
       "speed": Infinity
     },
     {
+      "source": "n0",
+      "target": "n2",
+      "speed": 1.0
+    },
+    {
       "source": "n1",
       "target": "n2",
       "speed": 1.0
     },
     {
       "source": "n0",
-      "target": "n2",
-      "speed": 1.0
+      "target": "n0",
+      "speed": Infinity
     },
     {
       "source": "n0",
       "target": "n1",
       "speed": 1.0
-    },
-    {
-      "source": "n0",
-      "target": "n0",
-      "speed": Infinity
     },
     {
       "source": "n1",

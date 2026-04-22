@@ -231,9 +231,9 @@ def add_conditional_probabilities(
                 dag.edges[parent, child]["probability"] = 1.0
             continue
 
-        branch_probs = np.random.random(len(children))
-        branch_probs = branch_probs / branch_probs.sum()
-        for child, prob in zip(children, branch_probs):
+        alternative_probs = np.random.random(len(children))
+        alternative_probs = alternative_probs / alternative_probs.sum()
+        for child, prob in zip(children, alternative_probs):
             dag.edges[parent, child]["probability"] = float(prob)
 
     return dag
@@ -243,17 +243,26 @@ def get_conditional_diamond_dag(
     weight_distribution: Optional[RandomVariable] = None,
     node_weight_distribution: Optional[RandomVariable] = None,
     edge_weight_distribution: Optional[RandomVariable] = None,
-    branch_probability: float = 0.5,
+    trace_probability: float = 0.5,
+    branch_probability: Optional[float] = None,
 ) -> ConditionalTaskGraph:
-    """Returns a conditional diamond DAG."""
+    """Returns a conditional diamond DAG.
+
+    Args:
+        trace_probability: Probability of the trace that takes edge A -> B.
+        branch_probability: Deprecated alias for ``trace_probability``.
+    """
+    if branch_probability is not None:
+        trace_probability = branch_probability
+
     dag = nx.DiGraph()
     dag.add_nodes_from(["A", "B", "C", "D"])
     dag.add_edges_from([("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
     dag = add_random_weights(
         dag, weight_distribution, node_weight_distribution, edge_weight_distribution
     )
-    dag.edges["A", "B"]["probability"] = branch_probability
-    dag.edges["A", "C"]["probability"] = 1.0 - branch_probability
+    dag.edges["A", "B"]["probability"] = trace_probability
+    dag.edges["A", "C"]["probability"] = 1.0 - trace_probability
     dag.edges["B", "D"]["probability"] = 1.0
     dag.edges["C", "D"]["probability"] = 1.0
     return _from_nx_conditional(dag)
@@ -267,7 +276,7 @@ def get_random_conditional_branching_dag(
     node_weight_distribution: Optional[RandomVariable] = None,
     edge_weight_distribution: Optional[RandomVariable] = None,
 ) -> ConditionalTaskGraph:
-    """Returns a branching DAG with random conditional branches."""
+    """Returns a branching DAG with random conditional alternatives."""
     dag = nx.DiGraph()
 
     node_id = 0

@@ -1,6 +1,6 @@
 {
-  "run_id": "2026-04-15T012348Z_seed43",
-  "seed": 43,
+  "run_id": "2026-04-22T054526Z_seed44",
+  "seed": 44,
   "num_repeats": 1,
   "heuristics": [
     "HEFT"
@@ -12,7 +12,7 @@
     {
       "levels": 3,
       "branching_factor": 2,
-      "conditional_parent_probability": 0.3
+      "conditional_parent_probability": 0.5
     }
   ]
 }

@@ -1,48 +1,42 @@
 """Conditional scheduling experiment.
 
-Compares branch makespans from overlapping CTG scheduling vs scheduling
-each branch as a standalone task graph.
+Compares trace makespans from overlapping CTG scheduling vs scheduling each
+trace as a standalone task graph.
 
-Each execution creates a self-contained run folder under runs/<run_id>/
-with JSON instance dumps, CSVs, and plots so results are reproducible
-and PDFs can be regenerated from the saved JSON files.
+Each execution creates a self-contained run folder under runs/<run_id>/ with
+JSON instance dumps, CSVs, and plots so results are reproducible and PDFs can
+be regenerated from the saved JSON files.
 
 Workflow:
   for each heuristic
     for each network
       for each CTG
         - schedule CTG with overlapping conditional logic
-        - extract per-branch schedules (recalculated to remove gaps)
-        - schedule each branch standalone (plain TaskGraph, no conditionals)
+        - extract per-trace schedules, recalculated to remove gaps
+        - schedule each trace standalone as a plain TaskGraph
         - log makespans + metrics to CSV
         - save visualisations & JSON dumps
 """
-
-#change branch to trace
-#work on visualisation workflow
-#get the multiplier of each trace and times by the probability to get expected makespan, this will give us makespan of entire taskgraph
-# (makespan online / makespan offline ) * probability 
 
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List
-from saga import TaskGraphNode
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph
-from saga.schedulers import HeftScheduler, CpopScheduler
-from saga.utils.draw import draw_gantt, draw_task_graph, draw_mutual_exclusion_graph
-from saga.utils.random_graphs import get_random_conditional_branching_dag
+from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraphNode
 from saga.conditional import (
     ConditionalTaskGraph,
     ConditionalTaskGraphEdge,
-    extract_branches_with_recalculation,
-    schedule_branch_standalone,
+    extract_traces_with_recalculation,
+    schedule_trace_standalone,
 )
+from saga.schedulers import CpopScheduler, HeftScheduler
+from saga.utils.draw import draw_gantt, draw_mutual_exclusion_graph, draw_task_graph
+from saga.utils.random_graphs import get_random_conditional_branching_dag
 
 
 # Configuration ---------------------------------------------------------------------------
@@ -50,7 +44,7 @@ from saga.conditional import (
 
 HEURISTICS: Dict[str, Scheduler] = {
     "HEFT": HeftScheduler(),
-    #"CPOP": CpopScheduler(),
+    # "CPOP": CpopScheduler(),
 }
 
 NETWORKS: Dict[str, Network] = {
@@ -58,15 +52,15 @@ NETWORKS: Dict[str, Network] = {
         nodes=[("n0", 1.0), ("n1", 1.5), ("n2", 2.0)],
         edges=[("n0", "n1", 1.0), ("n0", "n2", 1.0), ("n1", "n2", 1.0)],
     ),
-    #"2node_homo": Network.create(
-    #    nodes=[("n0", 1.0), ("n1", 1.0)],
-    #    edges=[("n0", "n1", 1.0)],
-    #),
+    # "2node_homo": Network.create(
+    #     nodes=[("n0", 1.0), ("n1", 1.0)],
+    #     edges=[("n0", "n1", 1.0)],
+    # ),
 }
 
 CTG_CONFIGS: List[dict] = [
-    {"levels": 6, "branching_factor": 2, "conditional_parent_probability": 0.50},
-    #{"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
+    {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.50},
+    # {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
 ]
 
 SEED = 44
@@ -83,7 +77,7 @@ def _safe(name: str) -> str:
     return name.replace(" ", "_").replace(":", "").replace("/", "-")
 
 
-def _branch_makespan(mapping: Dict[str, list]) -> float:
+def _trace_makespan(mapping: Dict[str, list]) -> float:
     return max(
         (t.end for tasks in mapping.values() for t in tasks),
         default=0.0,
@@ -121,7 +115,7 @@ def _ctg_to_json(ctg: ConditionalTaskGraph) -> dict:
     """Serialise a ConditionalTaskGraph, preserving probability on each edge.
 
     Pydantic serialises ``dependencies`` using the base ``TaskGraphEdge``
-    schema, which silently drops ``probability``.  We rebuild the dict
+    schema, which silently drops ``probability``. We rebuild the dict
     explicitly so probability is always present.
     """
     data = ctg.model_dump(mode="json")
@@ -138,11 +132,10 @@ def _ctg_to_json(ctg: ConditionalTaskGraph) -> dict:
 def _ctg_from_json(data: dict) -> ConditionalTaskGraph:
     """Reconstruct a ConditionalTaskGraph from a model_dump JSON dict.
 
-    Pydantic would deserialise dependencies as base TaskGraphEdge objects
-    (losing probability), so we explicitly rebuild ConditionalTaskGraphEdge
+    Pydantic would deserialise dependencies as base TaskGraphEdge objects,
+    losing probability, so we explicitly rebuild ConditionalTaskGraphEdge
     objects from the raw dict data.
     """
-
     tasks = [TaskGraphNode(**t) for t in data["tasks"]]
     deps = [
         ConditionalTaskGraphEdge(
@@ -155,7 +148,9 @@ def _ctg_from_json(data: dict) -> ConditionalTaskGraph:
     ]
     return ConditionalTaskGraph.create(tasks=tasks, dependencies=deps)
 
+
 # Instance saving ---------------------------------------------------------------------------
+
 
 def save_instance(
     run_root: Path,
@@ -163,13 +158,14 @@ def save_instance(
     ctg: ConditionalTaskGraph,
     network: Network,
     network_name: str,
-    branches_detailed: List[dict],
+    traces_detailed: List[dict],
 ) -> None:
     inst_dir = run_root / "instances" / f"ctg_{ctg_idx:03d}"
     inst_dir.mkdir(parents=True, exist_ok=True)
     _save_json(_network_to_json(network), inst_dir / f"network_{network_name}.json")
     _save_json(_ctg_to_json(ctg), inst_dir / "taskgraph_ctg.json")
-    _save_json(branches_detailed, inst_dir / "branches.json")
+    _save_json(traces_detailed, inst_dir / "traces.json")
+
 
 def save_meta(run_root: Path) -> None:
     meta = {
@@ -183,7 +179,7 @@ def save_meta(run_root: Path) -> None:
     _save_json(meta, run_root / "meta.json")
 
 
-# Plot generation (factored out for replay) ---------------------------------------------------------------------------
+# Plot generation, factored out for replay -----------------------------------------------------
 
 
 def generate_plots(
@@ -192,8 +188,8 @@ def generate_plots(
     ctg: ConditionalTaskGraph,
     schedule,
     meg,
-    branches_detailed: List[dict],
-    branch_schedules: Dict[str, Dict[str, list]],
+    traces_detailed: List[dict],
+    trace_schedules: Dict[str, Dict[str, list]],
     standalone_schedules: Dict[str, Schedule],
     ctg_makespan: float,
 ) -> None:
@@ -213,58 +209,70 @@ def generate_plots(
     )
     plt.close("all")
 
-    for branch_info in branches_detailed:
-        branch_name = branch_info["name"]
-        branch_tasks = branch_info["tasks"]
-        safe_branch = _safe(branch_name)
+    for trace_info in traces_detailed:
+        trace_name = trace_info["name"]
+        trace_tasks = trace_info["tasks"]
+        safe_trace = _safe(trace_name)
 
-        branch_mapping = branch_schedules[branch_name]
-        branch_ctg_ms = _branch_makespan(branch_mapping)
-        standalone = standalone_schedules[branch_name]
+        trace_mapping = trace_schedules[trace_name]
+        trace_ctg_ms = _trace_makespan(trace_mapping)
+        standalone = standalone_schedules[trace_name]
         standalone_ms = standalone.makespan
 
-        branch_sub = ctg.graph.subgraph(branch_tasks).copy()
-        draw_task_graph(branch_sub, use_latex=False).get_figure().savefig(
-            full_dir / f"branch_taskgraph_{safe_branch}.pdf"
+        trace_subgraph = ctg.graph.subgraph(trace_tasks).copy()
+        draw_task_graph(trace_subgraph, use_latex=False).get_figure().savefig(
+            full_dir / f"trace_taskgraph_{safe_trace}.pdf"
         )
-        draw_gantt(branch_mapping, use_latex=False).get_figure().savefig(
-            full_dir / f"branch_ctg_schedule_{safe_branch}.pdf"
+        draw_gantt(trace_mapping, use_latex=False).get_figure().savefig(
+            full_dir / f"trace_ctg_schedule_{safe_trace}.pdf"
         )
         draw_gantt(standalone.mapping, use_latex=False).get_figure().savefig(
-            full_dir / f"branch_standalone_schedule_{safe_branch}.pdf"
+            full_dir / f"trace_standalone_schedule_{safe_trace}.pdf"
         )
         plt.close("all")
 
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 4))
         xmax = max(ctg_makespan, standalone_ms) * 1.05
-        draw_gantt(branch_mapping, use_latex=False, axis=ax1, xmax=xmax)
-        ax1.set_title(f"From CTG ({branch_ctg_ms:.2f})")
+        draw_gantt(trace_mapping, use_latex=False, axis=ax1, xmax=xmax)
+        ax1.set_title(f"From CTG ({trace_ctg_ms:.2f})")
         draw_gantt(standalone.mapping, use_latex=False, axis=ax2, xmax=xmax)
         ax2.set_title(f"Standalone ({standalone_ms:.2f})")
-        fig.suptitle(branch_name, fontsize=14)
+        fig.suptitle(trace_name, fontsize=14)
         fig.tight_layout()
-        fig.savefig(simp_dir / f"{safe_branch}_comparison.pdf")
+        fig.savefig(simp_dir / f"{safe_trace}_comparison.pdf")
         plt.close("all")
 
 
-# Replay: regenerate PDFs from saved JSON instances ---------------------------------------------------------------------------
+# Replay: regenerate PDFs from saved JSON instances ---------------------------------------------
 
-def _extract_schedules_from_branches(
+
+def _load_traces_json(ctg_dir: Path) -> List[dict]:
+    """Load trace metadata, with fallback for old runs saved as branches.json."""
+    traces_json_path = ctg_dir / "traces.json"
+    if not traces_json_path.exists():
+        traces_json_path = ctg_dir / "branches.json"
+
+    with open(traces_json_path) as f:
+        return json.load(f)
+
+
+def _extract_schedules_from_traces(
     schedule: Schedule,
-    branches_detailed: List[dict],
+    traces_detailed: List[dict],
 ) -> Dict[str, Dict[str, List[ScheduledTask]]]:
-    """Filter and recalculate branch schedules using pre-computed branch info.
+    """Filter and recalculate trace schedules using pre-computed trace info.
 
-    Equivalent to extract_branches_with_recalculation() but uses the branch
-    task lists supplied directly instead of re-identifying them from the CTG.
-    Safe to use with old JSON files that may be missing probability fields.
+    Equivalent to extract_traces_with_recalculation() but uses the trace task
+    lists supplied directly instead of re-identifying them from the CTG. This
+    also keeps replay safe for old JSON files that may be missing probability
+    fields.
     """
-    from saga.conditional import recalculate_branch_times
+    from saga.conditional import recalculate_trace_times
 
     result: Dict[str, Dict[str, List[ScheduledTask]]] = {}
-    for b in branches_detailed:
-        task_set = set(b["tasks"])
-        branch_mapping: Dict[str, List[ScheduledTask]] = {
+    for trace_info in traces_detailed:
+        task_set = set(trace_info["tasks"])
+        trace_mapping: Dict[str, List[ScheduledTask]] = {
             node_name: [
                 ScheduledTask(node=t.node, name=t.name, start=t.start, end=t.end)
                 for t in tasks
@@ -272,7 +280,7 @@ def _extract_schedules_from_branches(
             ]
             for node_name, tasks in schedule.mapping.items()
         }
-        result[b["name"]] = recalculate_branch_times(branch_mapping, schedule)
+        result[trace_info["name"]] = recalculate_trace_times(trace_mapping, schedule)
     return result
 
 
@@ -295,14 +303,12 @@ def replay_plots(run_dir: Path) -> None:
     for ctg_dir in ctg_dirs:
         ctg_idx = int(ctg_dir.name.split("_")[1])
         ctg_json_path = ctg_dir / "taskgraph_ctg.json"
-        branches_json_path = ctg_dir / "branches.json"
 
         with open(ctg_json_path) as f:
             ctg_data = json.load(f)
         ctg = _ctg_from_json(ctg_data)
 
-        with open(branches_json_path) as f:
-            branches_detailed = json.load(f)
+        traces_detailed = _load_traces_json(ctg_dir)
 
         for heuristic_name, scheduler in heuristics.items():
             for network_name, network in networks.items():
@@ -311,32 +317,40 @@ def replay_plots(run_dir: Path) -> None:
                 ctg_makespan = schedule.makespan
                 meg = ctg.build_mutual_exclusion_graph()
 
-                # Use branches from JSON as source of truth rather than
-                # re-identifying from the CTG (guards against old JSON files
-                # where probability was not serialised).
-                branch_schedules = _extract_schedules_from_branches(
-                    schedule, branches_detailed
+                # Use traces from JSON as source of truth rather than
+                # re-identifying from the CTG. This guards against old JSON
+                # files where probability was not serialised.
+                trace_schedules = _extract_schedules_from_traces(
+                    schedule, traces_detailed
                 )
 
                 standalone_schedules = {}
-                for b in branches_detailed:
-                    standalone_schedules[b["name"]] = schedule_branch_standalone(
-                        b["tasks"], ctg, network, scheduler
+                for trace_info in traces_detailed:
+                    standalone_schedules[trace_info["name"]] = schedule_trace_standalone(
+                        trace_info["tasks"], ctg, network, scheduler
                     )
 
                 generate_plots(
-                    run_dir, tag, ctg, schedule, meg,
-                    branches_detailed, branch_schedules,
-                    standalone_schedules, ctg_makespan,
+                    run_dir,
+                    tag,
+                    ctg,
+                    schedule,
+                    meg,
+                    traces_detailed,
+                    trace_schedules,
+                    standalone_schedules,
+                    ctg_makespan,
                 )
                 print(f"[replay] {tag} plots regenerated")
 
+
 # Main experiment loop ---------------------------------------------------------------------------
+
 
 def run() -> None:
     run_root = _make_run_root()
     save_meta(run_root)
-    #print(f"Run folder: {run_root}")
+    # print(f"Run folder: {run_root}")
 
     rows: List[dict] = []
     ctgs = generate_ctgs()
@@ -347,60 +361,68 @@ def run() -> None:
                 tag = f"{heuristic_name}_{network_name}_ctg{ctg_idx}"
                 print(f"[{tag}] scheduling CTG ({len(ctg.tasks)} tasks) ...")
 
-                branches_detailed = ctg.identify_branches_detailed()
+                traces_detailed = ctg.identify_traces_detailed()
 
                 save_instance(
-                    run_root, ctg_idx, ctg, network, network_name, branches_detailed,
+                    run_root, ctg_idx, ctg, network, network_name, traces_detailed,
                 )
 
                 schedule = scheduler.schedule(network=network, task_graph=ctg)
                 ctg_makespan = schedule.makespan
                 meg = ctg.build_mutual_exclusion_graph()
 
-                branch_schedules = extract_branches_with_recalculation(schedule)
+                trace_schedules = extract_traces_with_recalculation(schedule)
 
                 standalone_schedules: Dict[str, Schedule] = {}
-                for b in branches_detailed:
-                    standalone_schedules[b["name"]] = schedule_branch_standalone(
-                        b["tasks"], ctg, network, scheduler
+                for trace_info in traces_detailed:
+                    standalone_schedules[trace_info["name"]] = schedule_trace_standalone(
+                        trace_info["tasks"], ctg, network, scheduler
                     )
 
                 generate_plots(
-                    run_root, tag, ctg, schedule, meg,
-                    branches_detailed, branch_schedules,
-                    standalone_schedules, ctg_makespan,
+                    run_root,
+                    tag,
+                    ctg,
+                    schedule,
+                    meg,
+                    traces_detailed,
+                    trace_schedules,
+                    standalone_schedules,
+                    ctg_makespan,
                 )
 
-                for b in branches_detailed:
-                    branch_name = b["name"]
-                    branch_tasks = b["tasks"]
-                    branch_mapping = branch_schedules[branch_name]
-                    branch_ctg_ms = _branch_makespan(branch_mapping)
-                    standalone_ms = standalone_schedules[branch_name].makespan
+                for trace_info in traces_detailed:
+                    trace_name = trace_info["name"]
+                    trace_tasks = trace_info["tasks"]
+                    trace_mapping = trace_schedules[trace_name]
+                    trace_ctg_ms = _trace_makespan(trace_mapping)
+                    standalone_ms = standalone_schedules[trace_name].makespan
 
-                    branch_gap = branch_ctg_ms - standalone_ms
-                    branch_ratio = standalone_ms / max(branch_ctg_ms, 1e-9)
+                    trace_gap = trace_ctg_ms - standalone_ms
+                    trace_ratio = standalone_ms / max(trace_ctg_ms, 1e-9)
 
-                    rows.append({
-                        "heuristic": heuristic_name,
-                        "network": network_name,
-                        "ctg_id": ctg_idx,
-                        "branch": branch_name,
-                        "branch_path_probability": b["probability"],
-                        "num_tasks_ctg": len(ctg.tasks),
-                        "num_tasks_branch": len(branch_tasks),
-                        "ctg_overlapping_makespan": round(ctg_makespan, 4),
-                        "branch_ctg_makespan": round(branch_ctg_ms, 4),
-                        "branch_standalone_makespan": round(standalone_ms, 4),
-                        "branch_gap": round(branch_gap, 4),
-                        "branch_ratio_standalone_over_ctg": round(branch_ratio, 4),
-                    })
+                    rows.append(
+                        {
+                            "heuristic": heuristic_name,
+                            "network": network_name,
+                            "ctg_id": ctg_idx,
+                            "trace": trace_name,
+                            "trace_probability": trace_info["probability"],
+                            "num_tasks_ctg": len(ctg.tasks),
+                            "num_tasks_trace": len(trace_tasks),
+                            "ctg_overlapping_makespan": round(ctg_makespan, 4),
+                            "trace_ctg_makespan": round(trace_ctg_ms, 4),
+                            "trace_standalone_makespan": round(standalone_ms, 4),
+                            "trace_gap": round(trace_gap, 4),
+                            "trace_ratio_standalone_over_ctg": round(trace_ratio, 4),
+                        }
+                    )
 
                     print(
-                        f"  {branch_name} (p={b['probability']:.3f}): "
-                        f"ctg={branch_ctg_ms:.3f}  "
+                        f"  {trace_name} (p={trace_info['probability']:.3f}): "
+                        f"ctg={trace_ctg_ms:.3f}  "
                         f"standalone={standalone_ms:.3f}  "
-                        f"gap={branch_gap:.3f}"
+                        f"gap={trace_gap:.3f}"
                     )
 
     df = pd.DataFrame(rows)
@@ -409,12 +431,12 @@ def run() -> None:
     summary = (
         df.groupby(["heuristic", "network", "ctg_id"])
         .agg(
-            num_branches=("branch", "count"),
-            mean_gap=("branch_gap", "mean"),
-            median_gap=("branch_gap", "median"),
-            max_gap=("branch_gap", "max"),
-            mean_ratio=("branch_ratio_standalone_over_ctg", "mean"),
-            median_ratio=("branch_ratio_standalone_over_ctg", "median"),
+            num_traces=("trace", "count"),
+            mean_gap=("trace_gap", "mean"),
+            median_gap=("trace_gap", "median"),
+            max_gap=("trace_gap", "max"),
+            mean_ratio=("trace_ratio_standalone_over_ctg", "mean"),
+            median_ratio=("trace_ratio_standalone_over_ctg", "median"),
         )
         .reset_index()
     )
@@ -426,8 +448,8 @@ def run() -> None:
 
 
 def main():
-    run()
-    #replay_plots(Path("runs/2026-04-15T012348Z_seed43"))
+    #run()
+    replay_plots(Path("runs/2026-04-22T054526Z_seed44"))
 
 
 if __name__ == "__main__":

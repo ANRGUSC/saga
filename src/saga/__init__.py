@@ -586,11 +586,12 @@ class Schedule(BaseModel):
     def _get_blockers_for_task(
         self, task_name: str, node_name: str
     ) -> List[ScheduledTask]:
-        return [
+        blockers = [
             scheduled_task
             for scheduled_task in self.mapping[node_name]
             if not self._tasks_can_overlap(task_name, scheduled_task.name)
         ]
+        return sorted(blockers, key=lambda t: (t.start, t.end))
 
     @property
     def makespan(self) -> float:
@@ -663,21 +664,19 @@ class Schedule(BaseModel):
         blockers = self._get_blockers_for_task(task.name, node.name)
 
         if append_only:
-            min_start_time = max(min_start_time, blockers[-1].end) if blockers else min_start_time
+            if blockers:
+                min_start_time = max(
+                    min_start_time, max(blocker.end for blocker in blockers)
+                )
             return min_start_time
-        else:
-            if not blockers or min_start_time + exec_time <= blockers[0].start:
-                return min_start_time
-            for left, right in zip(blockers, blockers[1:]):
-                if (
-                    min_start_time >= left.end
-                    and min_start_time + exec_time <= right.start
-                ):
-                    return min_start_time
-                elif min_start_time < left.end and left.end + exec_time <= right.start:
-                    return left.end
-            min_start_time = max(min_start_time, blockers[-1].end)
-            return min_start_time
+
+        start_time = min_start_time
+        for blocker in blockers:
+            if start_time + exec_time <= blocker.start + EPS:
+                return start_time
+            if start_time < blocker.end - EPS:
+                start_time = blocker.end
+        return start_time
 
     def add_task(self, task: ScheduledTask) -> None:
         """Add a task to the schedule.

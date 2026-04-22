@@ -1,0 +1,5 @@
+heuristic,network,ctg_id,trace,trace_probability,num_tasks_ctg,num_tasks_trace,ctg_overlapping_makespan,trace_ctg_makespan,trace_standalone_makespan,trace_gap,trace_ratio_standalone_over_ctg
+HEFT,3node_hetero,0,Trace: 5-4,0.745573,8,6,2.2772,2.2772,2.2772,0.0,1.0
+HEFT,3node_hetero,0,Trace: 5-3,0.180318,8,6,2.2772,1.9986,1.9986,0.0,1.0
+HEFT,3node_hetero,0,Trace: 6-4,0.059676,8,6,2.2772,2.2772,1.9141,0.3631,0.8406
+HEFT,3node_hetero,0,Trace: 6-3,0.014433,8,6,2.2772,1.9986,2.0034,-0.0048,1.0024

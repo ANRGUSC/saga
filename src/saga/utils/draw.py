@@ -745,8 +745,8 @@ def draw_mutual_exclusion_graph(
     """Draw a mutual exclusion graph.
 
     Nodes are tasks.  Edges (drawn as red dashed lines) connect pairs of
-    tasks that are mutually exclusive — they never execute together in any
-    branch.
+    tasks that are mutually exclusive: they never execute together in any
+    trace.
 
     Args:
         meg: Mutual exclusion graph (undirected ``nx.Graph``).
