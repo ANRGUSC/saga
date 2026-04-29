@@ -1,0 +1,59 @@
+[
+  {
+    "name": "Trace: 1",
+    "tasks": [
+      "0",
+      "1",
+      "3",
+      "4",
+      "7"
+    ],
+    "probability": 0.552991,
+    "conditional_edges": [
+      [
+        "0",
+        "1"
+      ]
+    ]
+  },
+  {
+    "name": "Trace: 2-6",
+    "tasks": [
+      "0",
+      "2",
+      "6",
+      "7"
+    ],
+    "probability": 0.153858,
+    "conditional_edges": [
+      [
+        "0",
+        "2"
+      ],
+      [
+        "2",
+        "6"
+      ]
+    ]
+  },
+  {
+    "name": "Trace: 2-5",
+    "tasks": [
+      "0",
+      "2",
+      "5",
+      "7"
+    ],
+    "probability": 0.293151,
+    "conditional_edges": [
+      [
+        "0",
+        "2"
+      ],
+      [
+        "2",
+        "5"
+      ]
+    ]
+  }
+]

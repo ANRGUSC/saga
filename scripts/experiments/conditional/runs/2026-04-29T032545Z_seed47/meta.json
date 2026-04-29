@@ -1,0 +1,23 @@
+{
+  "run_id": "2026-04-29T032545Z_seed47",
+  "seed": 47,
+  "num_repeats": 1,
+  "heuristics": [
+    "HEFT",
+    "CPOP",
+    "MinMin",
+    "MaxMin",
+    "Sufferage",
+    "ETF"
+  ],
+  "networks": [
+    "2node_homo"
+  ],
+  "ctg_configs": [
+    {
+      "levels": 2,
+      "branching_factor": 2,
+      "conditional_parent_probability": 0.5
+    }
+  ]
+}

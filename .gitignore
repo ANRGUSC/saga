@@ -5,6 +5,10 @@
 
 build
 
+# Generated conditional experiment visual artifacts
+scripts/experiments/conditional/runs/**/*.pdf
+scripts/experiments/conditional/visualizations/**/*.pdf
+
 # sphinx build folder
 _build
 

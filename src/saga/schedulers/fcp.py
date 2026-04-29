@@ -70,6 +70,8 @@ class FCPScheduler(Scheduler):
     will still perform poorly for heterogeneous networks, but it will at least produce valid schedules).
     """
 
+    priority_queue_size: Optional[int] = None
+
     def __init__(self, priority_queue_size: Optional[int] = None):
         super().__init__()
         self.priority_queue_size = priority_queue_size

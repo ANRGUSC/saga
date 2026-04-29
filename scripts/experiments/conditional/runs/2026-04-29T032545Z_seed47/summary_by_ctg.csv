@@ -1,0 +1,7 @@
+heuristic,network,ctg_id,num_traces,mean_gap,median_gap,max_gap,mean_ratio,median_ratio,expected_ratio,expected_online_makespan,expected_offline_makespan
+CPOP,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,2.3461,2.3461
+ETF,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,1.5697,1.5697
+HEFT,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,2.3461,2.3461
+MaxMin,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,2.3461,2.3461
+MinMin,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,1.5697,1.5697
+Sufferage,2node_homo,0,1,0.0,0.0,0.0,1.0,1.0,1.0,2.3461,2.3461

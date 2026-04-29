@@ -34,7 +34,23 @@ from saga.conditional import (
     extract_traces_with_recalculation,
     schedule_trace_standalone,
 )
-from saga.schedulers import CpopScheduler, HeftScheduler
+from saga.schedulers import (
+    CpopScheduler,
+    HeftScheduler,
+    ETFScheduler,
+    MinMinScheduler,
+    MaxMinScheduler,
+    SufferageScheduler,
+
+   # BILScheduler,
+   # FastestNodeScheduler,
+   # FCPScheduler,
+   # GDLScheduler,
+   # MCTScheduler,
+   # METScheduler,
+   # OLBScheduler,
+   # WBAScheduler,
+)
 from saga.utils.draw import draw_gantt, draw_mutual_exclusion_graph, draw_task_graph
 from saga.utils.random_graphs import get_random_conditional_branching_dag
 
@@ -44,26 +60,40 @@ from saga.utils.random_graphs import get_random_conditional_branching_dag
 
 HEURISTICS: Dict[str, Scheduler] = {
     "HEFT": HeftScheduler(),
-    # "CPOP": CpopScheduler(),
+    "CPOP": CpopScheduler(),
+    "MinMin": MinMinScheduler(),
+    "MaxMin": MaxMinScheduler(),
+    "Sufferage": SufferageScheduler(),
+    "ETF": ETFScheduler(),
+    
+    #"MCT": MCTScheduler(),
+    #"MET": METScheduler(),
+    #"OLB": OLBScheduler(),
+    #"FastestNode": FastestNodeScheduler(),
+    #"BIL": BILScheduler(),
+    #"FCP": FCPScheduler(),
+    #"GDL": GDLScheduler(),
+    #"WBA": WBAScheduler(),
 }
 
 NETWORKS: Dict[str, Network] = {
-    "3node_hetero": Network.create(
-        nodes=[("n0", 1.0), ("n1", 1.5), ("n2", 2.0)],
-        edges=[("n0", "n1", 1.0), ("n0", "n2", 1.0), ("n1", "n2", 1.0)],
-    ),
-    # "2node_homo": Network.create(
-    #     nodes=[("n0", 1.0), ("n1", 1.0)],
-    #     edges=[("n0", "n1", 1.0)],
-    # ),
+    #"3node_hetero": Network.create(
+    #    nodes=[("n0", 1.0), ("n1", 1.5), ("n2", 2.0)],
+    #    edges=[("n0", "n1", 1.0), ("n0", "n2", 1.0), ("n1", "n2", 1.0)],
+    #),
+    "2node_homo": Network.create(
+        nodes=[("n0", 1.0), ("n1", 1.0)],
+        edges=[("n0", "n1", 1.0)],
+     ),
 }
 
 CTG_CONFIGS: List[dict] = [
-    {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.50},
-    # {"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
+    #{"levels": 5, "branching_factor": 2, "conditional_parent_probability": 0.50},
+    #{"levels": 3, "branching_factor": 2, "conditional_parent_probability": 0.9},
+    {"levels": 2, "branching_factor": 2, "conditional_parent_probability": 0.5},
 ]
 
-SEED = 44
+SEED = 47
 NUM_REPEATS = 1
 
 
@@ -428,6 +458,14 @@ def run() -> None:
     df = pd.DataFrame(rows)
     df.to_csv(run_root / "results.csv", index=False)
 
+    # -- Expected-value analysis per CTG --
+    # For each trace: (online / offline) * P(trace), summed across traces
+    df["weighted_ratio"] = (
+        df["trace_ctg_makespan"] / df["trace_standalone_makespan"].clip(lower=1e-9)
+    ) * df["trace_probability"]
+    df["weighted_online"] = df["trace_ctg_makespan"] * df["trace_probability"]
+    df["weighted_offline"] = df["trace_standalone_makespan"] * df["trace_probability"]
+
     summary = (
         df.groupby(["heuristic", "network", "ctg_id"])
         .agg(
@@ -437,6 +475,9 @@ def run() -> None:
             max_gap=("trace_gap", "max"),
             mean_ratio=("trace_ratio_standalone_over_ctg", "mean"),
             median_ratio=("trace_ratio_standalone_over_ctg", "median"),
+            expected_ratio=("weighted_ratio", "sum"),
+            expected_online_makespan=("weighted_online", "sum"),
+            expected_offline_makespan=("weighted_offline", "sum"),
         )
         .reset_index()
     )
@@ -448,8 +489,8 @@ def run() -> None:
 
 
 def main():
-    #run()
-    replay_plots(Path("runs/2026-04-22T054526Z_seed44"))
+    run()
+    #replay_plots(Path("runs/2026-04-22T054526Z_seed44"))
 
 
 if __name__ == "__main__":

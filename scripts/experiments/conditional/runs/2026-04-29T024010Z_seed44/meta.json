@@ -1,0 +1,30 @@
+{
+  "run_id": "2026-04-29T024010Z_seed44",
+  "seed": 44,
+  "num_repeats": 3,
+  "heuristics": [
+    "HEFT",
+    "CPOP"
+  ],
+  "networks": [
+    "3node_hetero",
+    "2node_homo"
+  ],
+  "ctg_configs": [
+    {
+      "levels": 5,
+      "branching_factor": 2,
+      "conditional_parent_probability": 0.5
+    },
+    {
+      "levels": 3,
+      "branching_factor": 2,
+      "conditional_parent_probability": 0.9
+    },
+    {
+      "levels": 3,
+      "branching_factor": 2,
+      "conditional_parent_probability": 0.5
+    }
+  ]
+}

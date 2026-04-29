@@ -11,6 +11,8 @@ class WBAScheduler(Scheduler):
     Source: http://dx.doi.org/10.1109/CCGRID.2005.1558639
     """
 
+    alpha: float = 0.5
+
     def __init__(self, alpha: float = 0.5) -> None:
         """Initializes the WBA scheduler.
 

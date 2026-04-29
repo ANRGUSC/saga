@@ -1,0 +1,7 @@
+heuristic,network,ctg_id,trace,trace_probability,num_tasks_ctg,num_tasks_trace,ctg_overlapping_makespan,trace_ctg_makespan,trace_standalone_makespan,trace_gap,trace_ratio_standalone_over_ctg
+HEFT,2node_homo,0,No conditionals,1.0,4,4,2.3461,2.3461,2.3461,0.0,1.0
+CPOP,2node_homo,0,No conditionals,1.0,4,4,2.3461,2.3461,2.3461,0.0,1.0
+MinMin,2node_homo,0,No conditionals,1.0,4,4,1.5697,1.5697,1.5697,0.0,1.0
+MaxMin,2node_homo,0,No conditionals,1.0,4,4,2.3461,2.3461,2.3461,0.0,1.0
+Sufferage,2node_homo,0,No conditionals,1.0,4,4,2.3461,2.3461,2.3461,0.0,1.0
+ETF,2node_homo,0,No conditionals,1.0,4,4,1.5697,1.5697,1.5697,0.0,1.0

@@ -13,6 +13,8 @@ class GDLScheduler(Scheduler):
     Notes: Considers homogenous communication speeds (not homogenous compute speeds, though)
     """
 
+    dynamic_level: int = 2
+
     def __init__(self, dynamic_level: int = 2):
         super().__init__()
         self.dynamic_level = dynamic_level
