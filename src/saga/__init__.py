@@ -589,7 +589,7 @@ class Schedule(BaseModel):
                     comm_bottleneck = max(comm_bottleneck, comm_time)
 
         compute_bottleneck = max(task.end - task.start for tasks in self.mapping.values() for task in tasks)
-        print(f"Comm bottleneck: {comm_bottleneck:.4f}, Compute bottleneck: {compute_bottleneck:.4f}")
+        #print(f"Comm bottleneck: {comm_bottleneck:.4f}, Compute bottleneck: {compute_bottleneck:.4f}")
         return 1/max(
             comm_bottleneck, compute_bottleneck
         )

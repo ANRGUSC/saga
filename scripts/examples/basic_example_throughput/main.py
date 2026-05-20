@@ -81,9 +81,10 @@ def main():
     max_makespan = max(multi_obj_sched.makespan, heft_sched.makespan)
     max_throughput = max(multi_obj_sched.throughput, heft_sched.throughput)
     print(f"MultiObj makespan: {multi_obj_sched.makespan}")
-    print(f"HEFT makespan:     {heft_sched.makespan}")
-
     print(f"MultiObj throughput: {multi_obj_sched.throughput}")
+
+
+    print(f"HEFT makespan:     {heft_sched.makespan}")
     print(f"HEFT throughput:     {heft_sched.throughput}")
 
     draw_schedule(multi_obj_sched, "multi_obj_gantt")
