@@ -20,16 +20,16 @@ The algorithms are all implemented in Python using a common interface.  Scripts 
 
 ### Python Version
 
-All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
+All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[uv](https://docs.astral.sh/uv/)**, a fast Python package and project manager.
 
-To create a new Conda environment with Python 3.11:
+To create a new virtual environment with Python 3.11 (uv will download Python 3.11 for you if it isn't already installed):
 
 ```bash
-conda create -n saga-env python=3.11
-conda activate saga-env
+uv venv --python 3.11
+source .venv/bin/activate
 ```
 
-For more information on managing Python versions with Conda, refer to the [Conda documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html). ([Managing Python — conda 25.3.0 documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html?utm_source=chatgpt.com))
+For more information on managing Python versions with uv, refer to the [uv documentation](https://docs.astral.sh/uv/guides/install-python/).
 
 ## Usage
 
@@ -42,7 +42,7 @@ Clone the repository and install the requirements:
 ```bash
 git clone https://github.com/ANRGUSC/saga.git
 cd saga
-pip install -e .
+uv pip install -e .
 ```
 
 ### Running the Tests
