@@ -69,8 +69,8 @@ class HeftScheduler(Scheduler):
 
             duplicate_factor = 1 
             if should_duplicate(task_name, task_graph, network):
-                duplicate_factor = min(self.duplication_factor, len(task_graph.out_edges(task_name)))
-
+                duplicate_factor = self.duplication_factor
+                
             min_finish_time = np.inf
             best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in network.nodes:

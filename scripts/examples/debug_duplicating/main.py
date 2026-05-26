@@ -6,6 +6,8 @@ from saga import Network, Schedule, TaskGraph
 from saga.schedulers import CpopScheduler, HeftScheduler
 from saga.utils.duplication import should_duplicate
 from saga.utils.draw import draw_gantt
+import saga.schedulers.heft as heft_mod
+import saga.schedulers.cpop as cpop_mod
 
 
 thisdir = pathlib.Path(__file__).parent.absolute()
@@ -13,32 +15,52 @@ savedir = thisdir / "outputs"
 savedir.mkdir(exist_ok=True)
 
 
+def select_should_duplicate(task_name: str, task_graph: TaskGraph, network: Network) -> bool:
+    return task_name in ALLOWED_DUPLICATES
+
+
 def build_uniform_network() -> Network:
 	"""Create a small homogeneous network for the diamond example."""
 	nodes = [
-		("v_1", 1.0),
-		("v_2", 1.1),
+		("processor1", 1.0),
+		("processor2", 1.0),
 	]
 	edges = [
-		("v_1", "v_2", 1.0)
+		("processor1", "processor2", 1.0)
 	]
 	return Network.create(nodes=nodes, edges=edges)
 
 
 def build_diamond_task_graph() -> TaskGraph:
-	"""Build diamond DAG: t_1 -> {t_2, t_3} -> t_4."""
+	"""
+               A
+             /   \
+            B     C
+           / \    |
+          D   E   F 
+		    \ | /
+		      G 
+			 / \
+			H   I  
+      
+    """
 	tasks = [
-		("t_1", 1.0),
-		("t_2", 1.0),
-		("t_3", 1.0),
-		("t_4", 1.0),
-	]
+        ("A", 2.0),
+        ("B", 2.0), ("C", 2.0), 
+		("D", 2.0), ("E", 2.0), ("F", 2.0),
+		("G", 2.0), 
+		("H", 2.0), ("I", 2.0)
+    ]
+
 	dependencies = [
-		("t_1", "t_2", 5.0),
-		("t_1", "t_3", 5.0),
-		("t_2", "t_4", 1/4),
-		("t_3", "t_4", 1/4),
-	]
+        ("A", "B", 5.0), 
+        ("B", "D", 8.0), ("B", "E", 6.0), 
+		("C", "F", 20.0), 
+		("D", "G", 5.0), 
+		("E", "G", 5.0),
+		("F", "G", 20.0),
+		("G", "H", 20.0), ("G", "I", 2.0)
+    ]
 	return TaskGraph.create(tasks=tasks, dependencies=dependencies)
 
 
@@ -108,11 +130,29 @@ def run_experiment():
 	print(f"\nSaved Gantt charts to: {savedir}")
 
 def main() -> None:
-	network, task_graph = get_instance()
+    global ALLOWED_DUPLICATES
 
-	duplicate = should_duplicate("t_1", task_graph, network)
-	print(f"\nshould_duplicate('t_1'): {duplicate}")
-	run_experiment()
+    test_cases = {
+		"ABD_only": {"A", "B"},
+
+    }
+
+    heft_mod.should_duplicate = select_should_duplicate
+    cpop_mod.should_duplicate = select_should_duplicate
+
+    for case_name, duplicate_set in test_cases.items():
+        print("\n" + "=" * 50)
+        print(f"TEST CASE: {case_name}")
+        print(f"ALLOWED_DUPLICATES = {duplicate_set}")
+
+        ALLOWED_DUPLICATES = duplicate_set
+
+        network, task_graph = get_instance()
+        for task_name in ["A", "B", "C", "D", "E", "F", "G", "H", "I"]:
+            duplicate = select_should_duplicate(task_name, task_graph, network)
+            print(f"should_duplicate('{task_name}'): {duplicate}")
+
+        run_experiment()
 
 
 if __name__ == "__main__":
