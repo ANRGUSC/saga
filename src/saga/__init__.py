@@ -581,9 +581,9 @@ class Schedule(BaseModel):
         if not any(self.mapping.values()):
             return 0.0
         comm_bottleneck = 0.0
-        for task in self.task_graph.tasks:
-            for task_edge in self.task_graph.out_edges(task.name):
-                network_edge = self.network.get_edge(self.get_scheduled_task(task_edge.source).node, self.get_scheduled_task(task_edge.target).node)
+        for name, scheduled_task in self._task_map.items():
+            for task_edge in self.task_graph.in_edges(name):
+                network_edge = self.network.get_edge(self.get_scheduled_task(task_edge.source).node, scheduled_task.node)
                 if network_edge is not None:
                     comm_time = task_edge.size / network_edge.speed
                     comm_bottleneck = max(comm_bottleneck, comm_time)
