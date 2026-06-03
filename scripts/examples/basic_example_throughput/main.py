@@ -6,7 +6,7 @@ from typing import Tuple
 import networkx as nx
 
 from saga import Network, Schedule, TaskGraph
-from saga.schedulers import HeftScheduler
+from saga.schedulers import HeftScheduler, CpopScheduler
 from saga.schedulers.throughput.multi_obj import MultiObjScheduler
 from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
 
@@ -21,22 +21,25 @@ savedir.mkdir(exist_ok=True)
 def get_instance() -> Tuple[Network, TaskGraph]:
     network = nx.Graph()
     network.add_node("v_1", weight=1)
-    network.add_node("v_2", weight=2)
-    network.add_node("v_3", weight=2)
-    network.add_edge("v_1", "v_2", weight=2)
-    network.add_edge("v_1", "v_3", weight=2)
+    network.add_node("v_2", weight=1)
+    network.add_node("v_3", weight=1)
+    network.add_edge("v_1", "v_2", weight=1)
+    network.add_edge("v_1", "v_3", weight=1)
     network.add_edge("v_2", "v_3", weight=1)
 
     task_graph = nx.DiGraph()
-    task_graph.add_node("t_1", weight=1)
+    task_graph.add_node("t_1", weight=3)
     task_graph.add_node("t_2", weight=3)
-    task_graph.add_node("t_3", weight=2)
-    task_graph.add_node("t_4", weight=1)
+    task_graph.add_node("t_3", weight=3)
+    task_graph.add_node("t_4", weight=3)
+    task_graph.add_node("t_5", weight=3)
 
-    task_graph.add_edge("t_1", "t_2", weight=1)
-    task_graph.add_edge("t_1", "t_3", weight=1)
-    task_graph.add_edge("t_2", "t_4", weight=5)
-    task_graph.add_edge("t_3", "t_4", weight=5)
+    task_graph.add_edge("t_1", "t_2", weight=2)
+    task_graph.add_edge("t_1", "t_3", weight=2)
+    task_graph.add_edge("t_1", "t_4", weight=2)
+    task_graph.add_edge("t_3", "t_5", weight=3)
+    task_graph.add_edge("t_2", "t_5", weight=3)
+    task_graph.add_edge("t_4", "t_5", weight=3)
 
     return Network.from_nx(network), TaskGraph.from_nx(task_graph)
 
@@ -71,12 +74,19 @@ def heft_schedule() -> Schedule:
     scheduler = HeftScheduler()
     return scheduler.schedule(network, task_graph)
 
+def cpop_schedule() -> Schedule:
+    # for now, just use multi_obj as a placeholder for CPOP
+    network, task_graph = get_instance()
+    scheduler = CpopScheduler()
+    return scheduler.schedule(network, task_graph)
+
 
 def main():
     draw_instance(*get_instance())
 
     multi_obj_sched = multi_obj_schedule()
     heft_sched = heft_schedule()
+    cpop_sched = cpop_schedule()  # for now, just use multi_obj as a placeholder for CPOP
 
     max_makespan = max(multi_obj_sched.makespan, heft_sched.makespan)
     max_throughput = max(multi_obj_sched.throughput, heft_sched.throughput)
@@ -87,10 +97,15 @@ def main():
     print(f"HEFT makespan:     {heft_sched.makespan}")
     print(f"HEFT throughput:     {heft_sched.throughput}")
 
+    print(f"CPOP makespan:     {cpop_sched.makespan}")
+    print(f"CPOP throughput:     {cpop_sched.throughput}")
+
     draw_schedule(multi_obj_sched, "multi_obj_gantt")
     draw_schedule(heft_sched, "heft_gantt")
     draw_schedule(multi_obj_sched, "multi_obj_gantt_scaled", xmax=max_makespan)
     draw_schedule(heft_sched, "heft_gantt_scaled", xmax=max_makespan)
+    draw_schedule(cpop_sched, "cpop_gantt")
+    draw_schedule(cpop_sched, "cpop_gantt_scaled", xmax=max_makespan)
 
 
 if __name__ == "__main__":
