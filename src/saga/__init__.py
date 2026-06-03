@@ -580,16 +580,27 @@ class Schedule(BaseModel):
         """
         if not any(self.mapping.values()):
             return 0.0
-        comm_bottleneck = 0.0
+            
+        
+        network_comms = {(min(edge.source,edge.target),max(edge.source,edge.target)): 0 for edge in self.network.edges}
         for name, scheduled_task in self._task_map.items():
             for task_edge in self.task_graph.in_edges(name):
                 network_edge = self.network.get_edge(self.get_scheduled_task(task_edge.source).node, scheduled_task.node)
+                key = (min(network_edge.source, network_edge.target), max(network_edge.source, network_edge.target))
                 if network_edge is not None:
-                    comm_time = task_edge.size / network_edge.speed
-                    comm_bottleneck = max(comm_bottleneck, comm_time)
+                    network_comms[key] += task_edge.size / network_edge.speed
+                else:
+                    raise ValueError(f"No network edge between {self.get_scheduled_task(task_edge.source).node} and {scheduled_task.node}")
 
-        compute_bottleneck = max(task.end - task.start for tasks in self.mapping.values() for task in tasks)
+        comm_bottleneck = max(network_comms.values()) if network_comms else 0.0
+        
+        
+
+        compute_bottleneck = max(
+            sum(scheduled_task.end - scheduled_task.start for scheduled_task in self.mapping[key]) for key in self.mapping)
+        # compute_bottleneck = max(task.end - task.start for tasks in self.mapping.values() for task in tasks)
         #print(f"Comm bottleneck: {comm_bottleneck:.4f}, Compute bottleneck: {compute_bottleneck:.4f}")
+        
         return 1/max(
             comm_bottleneck, compute_bottleneck
         )
