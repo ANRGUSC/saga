@@ -19,9 +19,9 @@ from saga import (
 )
 
 
-class IntialPriority(BaseModel, ABC): #? what is basemodel
+class IntialPriority(BaseModel, ABC): 
     @abstractmethod
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: #this is no longer __call__, why is that?
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: 
         """Return the initial priority of the tasks.
 
         Args:
@@ -42,7 +42,7 @@ class InsertTask(BaseModel, ABC):
         task_graph: TaskGraph,
         schedule: Schedule,
         task: str | TaskGraphNode,
-        min_start_time: float = 0.0, #! yay, most of the variables I need are still here. 
+        min_start_time: float = 0.0, 
         nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
         dry_run: bool = False,
     ) -> ScheduledTask:
@@ -63,7 +63,7 @@ class InsertTask(BaseModel, ABC):
         pass
 
 
-TInsert = TypeVar("TInsert", bound=InsertTask) #? What does this do, replacing greedy insert?
+TInsert = TypeVar("TInsert", bound=InsertTask) 
 
 
 class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):

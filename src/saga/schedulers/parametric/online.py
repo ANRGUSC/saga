@@ -4,6 +4,8 @@ import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
 from typing import Callable, Tuple, Set, Optional
+import logging
+
 
 from saga import NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
@@ -205,6 +207,13 @@ class OnlineParametricScheduler(Scheduler):
 
             #------step 6------
             current_moment = next_task.end
+            logging.info(
+                "[OnlineParametricScheduler] t=%.4f | finished=%d running=%d remaining=%d",
+                current_moment,
+                len(finished_tasks),
+                len(running_tasks),
+                len(remaining_tasks),
+            )
         
         
         

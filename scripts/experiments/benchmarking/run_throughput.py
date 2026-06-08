@@ -14,6 +14,7 @@ from saga.schedulers import HeftScheduler
 from saga.schedulers.data import Dataset, ProblemInstance
 from saga.schedulers.data.wfcommons import get_networks, get_workflows
 from saga.schedulers.throughput.multi_obj import MultiObjScheduler
+from saga.schedulers.throughput.inspirit import compute_inspiring_effeciency, compute_inspiring_ability
 
 logging.basicConfig(level=logging.ERROR)
 
