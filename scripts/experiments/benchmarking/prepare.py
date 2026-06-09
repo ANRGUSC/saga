@@ -240,18 +240,12 @@ def _prepare_dataset_task(task: Tuple[str, dict]) -> Tuple[str, int]:
     return ds.name, ds.size
 
 
-def prepare_datasets(
-    overwrite: bool = False,
-    num_workers: int = num_processors,
-    skip_excluded: bool = True,
-):
+def prepare_datasets(overwrite: bool = False, num_workers: int = num_processors):
     """Generate the datasets using multiprocessing.
 
     Args:
         overwrite: Whether to overwrite existing instances.
         num_workers: Number of worker processes.
-        skip_excluded: Whether to skip datasets in exclude_datasets. Pass False
-            to prepare all datasets including wfcommons workflows.
     """
     tasks: List[Tuple[str, dict]] = []
 
@@ -280,32 +274,25 @@ def prepare_datasets(
     ]:
         tasks.append((f"wfcommons_{recipe_name}", {"overwrite": overwrite}))
 
-    if skip_excluded:
-        tasks_to_run = []
-        for dataset_name, kwargs in tasks:
-            if any(excluded in dataset_name for excluded in exclude_datasets):
-                print(f"Skipping excluded dataset {dataset_name}")
-                continue
-            tasks_to_run.append((dataset_name, kwargs))
-    else:
-        tasks_to_run = tasks
+    # remove any excluded datasets
+    # tasks = [task for task in tasks if task[0] not in exclude_datasets]
+    tasks_not_excluded = []
+    for dataset_name, kwargs in tasks:
+        if any(
+            excluded_dataset in dataset_name for excluded_dataset in exclude_datasets
+        ):
+            print(f"Skipping excluded dataset {dataset_name}")
+            continue
+        tasks_not_excluded.append((dataset_name, kwargs))
 
     with Pool(processes=num_workers) as pool:
-        results = pool.map(_prepare_dataset_task, tasks_to_run)
+        results = pool.map(_prepare_dataset_task, tasks_not_excluded)
 
     print(f"\nPrepared {len(results)} datasets.")
 
 
 def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--all", action="store_true",
-        help="Prepare all datasets including those excluded from the paper benchmarks."
-    )
-    parser.add_argument("--overwrite", action="store_true")
-    args = parser.parse_args()
-    prepare_datasets(overwrite=args.overwrite, skip_excluded=not args.all)
+    prepare_datasets(overwrite=False)
 
 
 if __name__ == "__main__":
