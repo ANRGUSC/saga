@@ -1,67 +1,148 @@
 import logging
 import pathlib
 import random
-import sys
 from multiprocessing import Pool
-from typing import Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import filelock
 import pandas as pd
 from tqdm import tqdm
 
+import saga.schedulers as s
+from common import datadir, num_processors
 from saga import Scheduler
-from saga.schedulers import HeftScheduler
-from saga.schedulers.data import Dataset, ProblemInstance
-from saga.schedulers.data.wfcommons import get_networks, get_workflows
-from saga.schedulers.throughput.multi_obj import MultiObjScheduler
-from saga.schedulers.throughput.inspirit import compute_inspiring_effeciency, compute_inspiring_ability
+from saga.schedulers.data import Dataset
+from saga.schedulers.throughput import multi_obj, mt_scheduler
+from saga.schedulers.throughput.inspirit import InspriritScheduler
+from saga.schedulers import HeftScheduler, CpopScheduler
+from saga.schedulers.parametric import ParametricScheduler
+from saga.schedulers.parametric.components import UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs
+from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
 
 logging.basicConfig(level=logging.ERROR)
 
 thisdir = pathlib.Path(__file__).parent.resolve()
-datadir = thisdir / "data" / "throughput"
 resultsdir = thisdir / "results" / "throughput"
 
-WFCOMMONS_RECIPES = ["montage", "epigenomics", "cycles", "seismology"]
+# ---------------------------------------------------------------------------
+# Regular schedulers — standard schedule(network, task_graph) interface
+# ---------------------------------------------------------------------------
 
 schedulers: Dict[str, Scheduler] = {
     "HEFT": HeftScheduler(),
-    "MultiObj": MultiObjScheduler(),
+    "CPoP": CpopScheduler(),
+    "HEFT_Throughput": ParametricScheduler(
+        initial_priority=UpwardRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare=GreedyInsertCompareFuncs.Throughput,
+            critical_path=False,
+        ),
+    ),
+    "CPoP_Throughput": ParametricScheduler(
+        initial_priority=CPoPRanking(),
+        insert_task=GreedyInsert(
+            append_only=False,
+            compare=GreedyInsertCompareFuncs.Throughput,
+            critical_path=True,
+        ),
+    ),
+    "FIFO": FIFOScheduler(),
+    "Mt_Scheduler": mt_scheduler(),
+    "Multi_Obj": multi_obj(),
+    "BILScheduler": s.BILScheduler(),
+    "BruteForceScheduler": s.BruteForceScheduler(),
+    "DPSScheduler": s.DPSScheduler(),
+    "DuplexScheduler": s.DuplexScheduler(),
+    "ETFScheduler": s.ETFScheduler(),
+    "FastestNodeScheduler": s.FastestNodeScheduler(),
+    "FCPScheduler": s.FCPScheduler(),
+    "FLBScheduler": s.FLBScheduler(),
+    "GDLScheduler": s.GDLScheduler(),
+    "HbmctScheduler": s.HbmctScheduler(),
+    "HeftScheduler": s.HeftScheduler(),
+    "HybridScheduler": s.HybridScheduler(),
+    "MaxMinScheduler": s.MaxMinScheduler(),
+    "MCTScheduler": s.MCTScheduler(),
+    "METScheduler": s.METScheduler(),
+    "MinMinScheduler": s.MinMinScheduler(),
+    "MsbcScheduler": s.MsbcScheduler(),
+    "MSTScheduler": s.MSTScheduler(),
+    "OLBScheduler": s.OLBScheduler(),
+    "SMTScheduler": s.SMTScheduler(),
+    "SufferageScheduler": s.SufferageScheduler(),
+    "WBAScheduler": s.WBAScheduler(),
 }
+
+
+# ---------------------------------------------------------------------------
+# Sweepable scheduler factories
+# Inspirit schedulers need (threshold, delta_ready) that scale with num_workers.
+# Factory functions must be module-level (not lambdas) to be picklable by Pool.
+# ---------------------------------------------------------------------------
+
+def _make_inspirit_heft(threshold: int, delta_ready: int) -> Scheduler:
+    return InspriritScheduler(HeftScheduler(), threshold, delta_ready)
+
+
+def _make_inspirit_cpop(threshold: int, delta_ready: int) -> Scheduler:
+    return InspriritScheduler(CpopScheduler(), threshold, delta_ready)
+
+
+def _make_inspirit_fifo(threshold: int, delta_ready: int) -> Scheduler:
+    return InspiritFIFOScheduler(threshold, delta_ready)
+
+
+# Maps base name -> factory(threshold, delta_ready) -> Scheduler.
+# Each combination becomes a separate row named "BaseName_threshold_deltaready".
+sweepable_scheduler_factories: Dict[str, Callable[[int, int], Scheduler]] = {
+    "Inspirit_HEFT": _make_inspirit_heft,
+    "Inspirit_CPoP": _make_inspirit_cpop,
+    "Inspirit_FIFO": _make_inspirit_fifo,
+}
+
+
+# ---------------------------------------------------------------------------
+# Multiprocessing worker state
+# ---------------------------------------------------------------------------
 
 _worker_resultsdir: pathlib.Path
 _worker_schedulers: Dict[str, Scheduler]
+_worker_sweepable_factories: Dict[str, Callable[[int, int], Scheduler]]
 
 
-def _init_worker(results_dir: pathlib.Path, sched: Dict[str, Scheduler]):
-    global _worker_resultsdir, _worker_schedulers
+def _init_worker(
+    results_dir: pathlib.Path,
+    sched: Dict[str, Scheduler],
+    sweepable: Dict[str, Callable[[int, int], Scheduler]],
+) -> None:
+    global _worker_resultsdir, _worker_schedulers, _worker_sweepable_factories
     _worker_resultsdir = results_dir
     _worker_schedulers = sched
+    _worker_sweepable_factories = sweepable
 
 
-def prepare_wfcommons_dataset(
-    recipe_name: str,
-    num_instances: int = 10,
-    ccr: float = 1.0,
-    overwrite: bool = False,
-) -> Dataset:
-    dataset_name = f"wfcommons_{recipe_name}"
-    dataset = Dataset(name=dataset_name)
-    existing = set(dataset.instances) if not overwrite else set()
-    instance_names = {f"{dataset_name}_{i}" for i in range(num_instances)}
-    new_instances = instance_names - existing
-    if not new_instances:
-        return dataset
+def _save_result(result: Dict, savepath: pathlib.Path, lock_path: pathlib.Path) -> None:
+    with filelock.FileLock(lock_path):
+        result_df = pd.DataFrame([result])
+        if savepath.exists():
+            result_df.to_csv(savepath, mode="a", header=False, index=False)
+        else:
+            result_df.to_csv(savepath, index=False)
 
-    networks = get_networks(num=len(new_instances), cloud_name="chameleon")
-    workflows = get_workflows(num=len(new_instances), recipe_name=recipe_name)
-    for i, instance_name in enumerate(new_instances):
-        network = networks[i].scale_to_ccr(workflows[i], ccr)
-        dataset.save_instance(
-            ProblemInstance(name=instance_name, network=network, task_graph=workflows[i])
-        )
-    print(f"Prepared {dataset_name}: {dataset.size} instances.")
-    return dataset
+
+def _already_done(
+    dataset_name: str, instance_name: str, scheduler_name: str,
+    savepath: pathlib.Path, lock_path: pathlib.Path,
+) -> bool:
+    with filelock.FileLock(lock_path):
+        if savepath.exists():
+            finished_df = pd.read_csv(savepath)
+            finished = set(
+                zip(finished_df["Dataset"], finished_df["Instance"], finished_df["Scheduler"])
+            )
+            return (dataset_name, instance_name, scheduler_name) in finished
+    return False
 
 
 def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
@@ -72,42 +153,63 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
     lock_path = savepath.with_suffix(".csv.lock")
 
     results = []
-    for scheduler_name, scheduler in _worker_schedulers.items():
-        with filelock.FileLock(lock_path):
-            if savepath.exists():
-                finished_df = pd.read_csv(savepath)
-                finished = set(zip(finished_df["Dataset"], finished_df["Instance"], finished_df["Scheduler"]))
-                if (dataset_name, instance_name, scheduler_name) in finished:
-                    continue
 
+    # --- Regular schedulers ---
+    for scheduler_name, scheduler in _worker_schedulers.items():
+        if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
+            continue
         try:
             schedule = scheduler.schedule(network=instance.network, task_graph=instance.task_graph)
-            makespan = schedule.makespan
-            throughput = schedule.throughput
         except Exception as e:
             logging.warning("Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e)
             continue
-
         result = {
             "Dataset": dataset_name,
             "Instance": instance_name,
             "Scheduler": scheduler_name,
-            "Makespan": makespan,
-            "Throughput": throughput,
+            "Makespan": schedule.makespan,
+            "Throughput": schedule.throughput,
         }
         results.append(result)
+        _save_result(result, savepath, lock_path)
 
-        with filelock.FileLock(lock_path):
-            result_df = pd.DataFrame([result])
-            if savepath.exists():
-                result_df.to_csv(savepath, mode="a", header=False, index=False)
-            else:
-                result_df.to_csv(savepath, index=False)
+    # --- Sweepable schedulers: expand over (threshold, delta_ready) ---
+    n = len(list(instance.network.nodes))
+    thresholds = sorted({2, max(1, n), n * 2, n * 3, n * 4})
+    delta_readys = sorted({2, max(1, n), n * 2, n * 3, n * 4})
+
+    for base_name, factory in _worker_sweepable_factories.items():
+        for threshold in thresholds:
+            for delta_ready in delta_readys:
+                scheduler_name = f"{base_name}_{threshold}_{delta_ready}"
+                if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
+                    continue
+                try:
+                    sched = factory(threshold, delta_ready)
+                    schedule = sched.schedule(network=instance.network, task_graph=instance.task_graph)
+                except Exception as e:
+                    logging.warning(
+                        "Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e
+                    )
+                    continue
+                result = {
+                    "Dataset": dataset_name,
+                    "Instance": instance_name,
+                    "Scheduler": scheduler_name,
+                    "Makespan": schedule.makespan,
+                    "Throughput": schedule.throughput,
+                }
+                results.append(result)
+                _save_result(result, savepath, lock_path)
 
     return results
 
 
-def evaluate_dataset(dataset_name: str, num_workers: int = 4, seed: int = 42):
+def evaluate_dataset(
+    dataset_name: str,
+    num_workers: int = num_processors,
+    seed: int = 42,
+) -> None:
     savepath = resultsdir / f"{dataset_name}.csv"
     savepath.parent.mkdir(exist_ok=True, parents=True)
 
@@ -118,7 +220,7 @@ def evaluate_dataset(dataset_name: str, num_workers: int = 4, seed: int = 42):
     with Pool(
         processes=num_workers,
         initializer=_init_worker,
-        initargs=(resultsdir, schedulers),
+        initargs=(resultsdir, schedulers, sweepable_scheduler_factories),
     ) as pool:
         list(tqdm(
             pool.imap_unordered(_evaluate_instance, work_items),
@@ -128,41 +230,10 @@ def evaluate_dataset(dataset_name: str, num_workers: int = 4, seed: int = 42):
         ))
 
 
-def print_summary():
-    print("\n=== Results Summary ===")
-    for recipe in WFCOMMONS_RECIPES:
-        dataset_name = f"wfcommons_{recipe}"
-        savepath = resultsdir / f"{dataset_name}.csv"
-        if not savepath.exists():
-            continue
-        df = pd.read_csv(savepath)
-        cols = {"Makespan": "mean", "Throughput": "mean"} if "Throughput" in df.columns else {"Makespan": "mean"}
-        pivot = df.groupby("Scheduler").agg(cols).reset_index()
-        print(f"\n{dataset_name}:")
-        print(pivot.to_string(index=False))
-
-
 def main():
-    import os
-    os.environ["SAGA_DATA_DIR"] = str(datadir)
-    datadir.mkdir(exist_ok=True, parents=True)
-
-    print("Preparing wfcommons datasets...")
-    for recipe in WFCOMMONS_RECIPES:
-        try:
-            prepare_wfcommons_dataset(recipe, num_instances=10, ccr=1.0)
-        except Exception as e:
-            print(f"Failed to prepare {recipe}: {e}")
-
-    print("\nRunning benchmarks...")
-    for recipe in WFCOMMONS_RECIPES:
-        dataset_name = f"wfcommons_{recipe}"
-        try:
-            evaluate_dataset(dataset_name)
-        except Exception as e:
-            print(f"Failed to evaluate {recipe}: {e}")
-
-    print_summary()
+    datasets = [path.name for path in datadir.iterdir() if path.is_dir()]
+    for dataset in datasets:
+        evaluate_dataset(dataset)
 
 
 if __name__ == "__main__":

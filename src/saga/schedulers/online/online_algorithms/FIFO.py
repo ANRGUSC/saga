@@ -73,7 +73,7 @@ class FIFOEnvironment(FrontierEnvironment):
                 heapq.heappush(self.frontier, (self.current_time, name))
 
 
-class FIFO(Scheduler):
+class FIFOScheduler(Scheduler):
     def __init__(self):
         super().__init__()
     def schedule(
@@ -114,7 +114,7 @@ class Inspirit_FIFO_Environment(InspiritEnvironment):
         super().__init__(
             network=network,
             task_graph=task_graph,
-            scheduler=FIFO(),
+            scheduler=FIFOScheduler(),
             step_strategy=TaskEventStep(),
             observer=ReadyChangeObserver(delta_ready),
             time_window=None,
@@ -127,17 +127,23 @@ class Inspirit_FIFO_Environment(InspiritEnvironment):
 
 
 
-class Inspirit_FIFO(Scheduler):
-    def __init__(self, network, task_graph, environment: Inspirit_FIFO_Environment):
+class InspiritFIFOScheduler(Scheduler):
+    def __init__(self, threshold: int, delta_ready: int) -> None:
         super().__init__()
-        self.environment = environment
-    def schedule(self,
-            network,
-            task_graph,
-            schedule: Optional[Schedule] = None,
-            min_start_time: float = 0.0,
-        ):
-        return self.environment.run()
+        self.threshold = threshold
+        self.delta_ready = delta_ready
+
+    def schedule(self, network, task_graph, schedule=None, min_start_time: float = 0.0):
+        env = Inspirit_FIFO_Environment(
+            network=network,
+            task_graph=task_graph,
+            on_step=None,
+            delta_ready=self.delta_ready,
+            dec_step=self.threshold,
+            s_inc=self.threshold,
+            s_dec=self.threshold,
+        )
+        return env.run()
 
 
 

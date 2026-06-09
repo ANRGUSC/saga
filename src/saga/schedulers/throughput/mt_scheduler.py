@@ -52,8 +52,8 @@ def _transfer_time(task_graph: TaskGraph, network: Network,
     # network edge carries link capacity. Self-loop on a network node has
     # infinite/very-large bandwidth in saga, so this still works if you ever
     # call it with src==dst.
-    data_size = task_graph.get_edge(src_task, dst_task).weight
-    bandwidth = network.get_edge(src_node, dst_node).bandwidth
+    data_size = task_graph.get_dependency(src_task, dst_task).size
+    bandwidth = network.get_edge(src_node, dst_node).speed
     return data_size / bandwidth
 
 
@@ -75,11 +75,11 @@ def _average_transfer(task_graph: TaskGraph, network: Network,
     nodes = list(network.nodes)
     for i, u in enumerate(nodes):
         for v in nodes[i + 1:]:
-            bws.append(network.get_edge(u.name, v.name).bandwidth)
+            bws.append(network.get_edge(u.name, v.name).speed)
     if not bws:
         return 0.0
     avg_bw = sum(bws) / len(bws)
-    data_size = task_graph.get_edge(src_task, dst_task).weight
+    data_size = task_graph.get_dependency(src_task, dst_task).size
     return data_size / avg_bw
 
 
@@ -97,7 +97,8 @@ def _critical_path(task_graph: TaskGraph, network: Network) -> List[str]:
         node_cost = _average_compute(task_graph, network, t)
         best_len = node_cost
         best_pred: Optional[str] = None
-        for pred in task_graph.predecessors(t):
+        for edge in task_graph.in_edges(t):
+            pred = edge.source
             edge_cost = _average_transfer(task_graph, network, pred, t)
             cand = longest[pred][0] + edge_cost + node_cost
             if cand > best_len:
@@ -207,8 +208,8 @@ def _map_non_critical(non_cp_tasks: List[str],
     # Sort non-CP tasks within their topological layer by descending cost.
     def task_weight(t: str) -> float:
         c = _average_compute(task_graph, network, t)
-        x = sum(_average_transfer(task_graph, network, p, t)
-                for p in task_graph.predecessors(t))
+        x = sum(_average_transfer(task_graph, network, e.source, t)
+                for e in task_graph.in_edges(t))
         return c + x
 
     # Process in topological order so predecessors are already placed when
@@ -226,7 +227,8 @@ def _map_non_critical(non_cp_tasks: List[str],
         for nd in network.nodes:
             comp = _compute_time(task_graph, network, t, nd.name)
             transfer = 0.0
-            for pred in task_graph.predecessors(t):
+            for edge in task_graph.in_edges(t):
+                pred = edge.source
                 if pred in assignment:
                     transfer += _transfer_time(
                         task_graph, network, pred, t,

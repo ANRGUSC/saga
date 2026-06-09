@@ -113,98 +113,27 @@ def get_children(task_graph: TaskGraph, task_name: str) -> List[TaskGraphNode]:
 
 
 
+class InspriritScheduler(Scheduler):
+    def __init__(self, scheduler: Scheduler, threshold: int, delta_ready: int, smoothing_rate: float = 0.8):
+        super().__init__()
+        self.scheduler = scheduler
+        self.threshold = threshold
+        self.delta_ready = delta_ready
+        self.smoothing_rate = smoothing_rate
 
-
-
- 
-if __name__ == "__main__":
-    import networkx as nx
-
-    # Simple 1-node network with speed=1 → average_network_speed=1
-    # so child.cost / average_network_speed == child.cost (weight)
-    net = nx.Graph()
-    net.add_node("v1", weight=1.0)
-    from saga import Network
-    network = Network.from_nx(net)
-
-    def make_tg(nodes, edges):
-        g = nx.DiGraph()
-        for n in nodes:
-            g.add_node(n, weight=1)
-        for u, v in edges:
-            g.add_edge(u, v, weight=1)
-        return TaskGraph.from_nx(g)
-
-    # --- compute_inspiring_efficiency tests ---
-
-    # Test 1: linear chain A→B→C (all cost=1)
-    # time_window=2.5: B(time=1), C(time=2) → 2
-    # time_window=1.5: B(time=1), C(time=2 >= 1.5) → 1
-    # time_window=0.5: B(time=1 >= 0.5) → 0
-    tg_chain = make_tg(["A", "B", "C"], [("A", "B"), ("B", "C")])
-    assert compute_inspiring_effeciency(tg_chain, network, 2.5)["A"] == 2, "chain window=2.5"
-    assert compute_inspiring_effeciency(tg_chain, network, 1.5)["A"] == 1, "chain window=1.5"
-    assert compute_inspiring_effeciency(tg_chain, network, 0.5)["A"] == 0, "chain window=0.5"
-    print("Test 1 passed: linear chain")
-
-    # Test 2: leaf task — no children, always 0
-    tg_leaf = make_tg(["A"], [])
-    assert compute_inspiring_effeciency(tg_leaf, network, 10.0)["A"] == 0, "leaf"
-    print("Test 2 passed: leaf task")
-
-    # Test 3: time_window=0 → always 0
-    assert compute_inspiring_effeciency(tg_chain, network, 0.0)["A"] == 0, "window=0"
-    print("Test 3 passed: time_window=0")
-
-    # Test 4: diamond A→B, A→C, B→D, C→D — D counted once
-    # For A: children B(time=1), C(time=2), then D(time=3) once → count=3
-    tg_diamond = make_tg(["A", "B", "C", "D"], [("A", "B"), ("A", "C"), ("B", "D"), ("C", "D")])
-    assert compute_inspiring_effeciency(tg_diamond, network, 3.5)["A"] == 3, "diamond D once"
-    # Narrow window cuts off before D: B(1), C(2), D would be 3 >= 2.5 → count=2
-    assert compute_inspiring_effeciency(tg_diamond, network, 2.5)["A"] == 2, "diamond window=2.5"
-    print("Test 4 passed: diamond (D counted once)")
-
-    # Test 5: fan-out A→B, A→C, A→D (no convergence)
-    # For A: B(1), C(2), D(3) → 3
-    tg_fanout = make_tg(["A", "B", "C", "D"], [("A", "B"), ("A", "C"), ("A", "D")])
-    assert compute_inspiring_effeciency(tg_fanout, network, 3.5)["A"] == 3, "fan-out"
-    assert compute_inspiring_effeciency(tg_fanout, network, 1.5)["A"] == 1, "fan-out window=1.5"
-    print("Test 5 passed: fan-out")
-
-    # --- compute_inspiring_ability tests ---
-
-    # Two roots, multiple merge/fan-out points:
-    #
-    # t_1 --> t_3 --> t_5 --> t_7
-    # t_1 --> t_4 --> t_6 --> t_7
-    # t_2 --> t_4
-    # t_2 --> t_5
-    # t_3 --> t_6
-    #
-    # expected:
-    #   t_7: 1
-    #   t_5: 2  (1 + t_7)
-    #   t_6: 2  (1 + t_7)
-    #   t_3: 5  (1 + t_5 + t_6) -- t_7 counted once per path
-    #   t_4: 5  (1 + t_6 + t_5) -- same
-    #   t_1: 11 (1 + t_3 + t_4)
-    #   t_2: 11 (1 + t_4 + t_5)
-    g = nx.DiGraph()
-    for t in ["t_1", "t_2", "t_3", "t_4", "t_5", "t_6", "t_7", "t_8"]:
-        g.add_node(t, weight=1)
-    g.add_edge("t_1", "t_3", weight=1)
-    g.add_edge("t_1", "t_4", weight=1)
-    g.add_edge("t_2", "t_4", weight=1)
-    g.add_edge("t_2", "t_5", weight=1)
-    g.add_edge("t_3", "t_5", weight=1)
-    g.add_edge("t_3", "t_6", weight=1)
-    g.add_edge("t_4", "t_6", weight=1)
-    g.add_edge("t_5", "t_7", weight=1)
-    g.add_edge("t_6", "t_7", weight=1)
-    g.add_edge("t_5", "t_8", weight=1)
-    tg = TaskGraph.from_nx(g)
-    result = compute_inspiring_ability(tg)
-    for k, v in sorted(result.items()):
-        print(f"{k}: {v}")
-
-    # 
+    def schedule(self, network, task_graph, schedule=None, min_start_time: float = 0.0):
+        from saga.schedulers.online import InspiritController, InspiritEnvironment, TaskCompletionStep, ReadyChangeObserver
+        env = InspiritEnvironment(
+            network=network,
+            task_graph=task_graph,
+            scheduler=self.scheduler,
+            step_strategy=TaskCompletionStep(),
+            observer=ReadyChangeObserver(self.delta_ready),
+            time_window=None,
+            controller=InspiritController(smoothing_rate=self.smoothing_rate),
+            on_step=None,
+            dec_step=self.threshold,
+            s_inc=self.threshold,
+            s_dec=self.threshold,
+        )
+        return env.run()

@@ -238,6 +238,7 @@ def main() -> None:
     # HEFT offline baseline
     heft_schedule = run_heft(network, task_graph)
     print(f"  HEFT (offline)    makespan: {heft_schedule.makespan:.4f}")
+    print(f" HEFT (offline) throughput: {heft_schedule.throughput:.4f}")
     save_fig(draw_gantt(heft_schedule.mapping, use_latex=False), "heft_gantt")
 
     # Inspirit online scheduler
@@ -249,6 +250,7 @@ def main() -> None:
         delta_ready=delta_ready,
     )
     print(f"  Inspirit (online) makespan: {inspirit_schedule.makespan:.4f}")
+    print(f" Inspirit (online) throughput: {inspirit_schedule.throughput:.4f}")
     save_fig(draw_gantt(inspirit_schedule.mapping, use_latex=False), "inspirit_gantt")
 
     n_dispatched = sum(1 for r in inspirit_log if r.dispatched)
