@@ -12,7 +12,8 @@ import saga.schedulers as s
 from common import datadir, num_processors
 from saga import Scheduler
 from saga.schedulers.data import Dataset
-from saga.schedulers.throughput import multi_obj, mt_scheduler
+from saga.schedulers.throughput.mt_scheduler import MTScheduler
+from saga.schedulers.throughput.multi_obj import MultiObjScheduler
 from saga.schedulers.throughput.inspirit import InspriritScheduler
 from saga.schedulers import HeftScheduler, CpopScheduler
 from saga.schedulers.parametric import ParametricScheduler
@@ -48,8 +49,8 @@ schedulers: Dict[str, Scheduler] = {
         ),
     ),
     "FIFO": FIFOScheduler(),
-    "Mt_Scheduler": mt_scheduler(),
-    "Multi_Obj": multi_obj(),
+    "Mt_Scheduler": MTScheduler(),
+    "Multi_Obj": MultiObjScheduler(),
     "BILScheduler": s.BILScheduler(),
     "BruteForceScheduler": s.BruteForceScheduler(),
     "DPSScheduler": s.DPSScheduler(),
