@@ -585,12 +585,16 @@ class Schedule(BaseModel):
         network_comms = {(min(edge.source,edge.target),max(edge.source,edge.target)): 0 for edge in self.network.edges}
         for name, scheduled_task in self._task_map.items():
             for task_edge in self.task_graph.in_edges(name):
-                network_edge = self.network.get_edge(self.get_scheduled_task(task_edge.source).node, scheduled_task.node)
+                if task_edge.source not in self._task_map:
+                    continue  # skip virtual nodes (__super_source__ etc.) or unscheduled predecessors
+                src_node = self.get_scheduled_task(task_edge.source).node
+                dst_node = scheduled_task.node
+                if src_node == dst_node:
+                    continue  # intra-node transfer has no network cost
+                network_edge = self.network.get_edge(src_node, dst_node)
                 key = (min(network_edge.source, network_edge.target), max(network_edge.source, network_edge.target))
-                if network_edge is not None:
+                if key in network_comms:
                     network_comms[key] += task_edge.size / network_edge.speed
-                else:
-                    raise ValueError(f"No network edge between {self.get_scheduled_task(task_edge.source).node} and {scheduled_task.node}")
 
         comm_bottleneck = max(network_comms.values()) if network_comms else 0.0
         

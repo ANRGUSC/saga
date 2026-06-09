@@ -52,7 +52,6 @@ schedulers: Dict[str, Scheduler] = {
     "Mt_Scheduler": MTScheduler(),
     "Multi_Obj": MultiObjScheduler(),
     "BILScheduler": s.BILScheduler(),
-    "BruteForceScheduler": s.BruteForceScheduler(),
     "DPSScheduler": s.DPSScheduler(),
     "DuplexScheduler": s.DuplexScheduler(),
     "ETFScheduler": s.ETFScheduler(),
@@ -160,16 +159,16 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
             continue
         try:
             schedule = scheduler.schedule(network=instance.network, task_graph=instance.task_graph)
+            result = {
+                "Dataset": dataset_name,
+                "Instance": instance_name,
+                "Scheduler": scheduler_name,
+                "Makespan": schedule.makespan,
+                "Throughput": schedule.throughput,
+            }
         except Exception as e:
             logging.warning("Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e)
             continue
-        result = {
-            "Dataset": dataset_name,
-            "Instance": instance_name,
-            "Scheduler": scheduler_name,
-            "Makespan": schedule.makespan,
-            "Throughput": schedule.throughput,
-        }
         results.append(result)
         _save_result(result, savepath, lock_path)
 
@@ -187,18 +186,18 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
                 try:
                     sched = factory(threshold, delta_ready)
                     schedule = sched.schedule(network=instance.network, task_graph=instance.task_graph)
+                    result = {
+                        "Dataset": dataset_name,
+                        "Instance": instance_name,
+                        "Scheduler": scheduler_name,
+                        "Makespan": schedule.makespan,
+                        "Throughput": schedule.throughput,
+                    }
                 except Exception as e:
                     logging.warning(
                         "Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e
                     )
                     continue
-                result = {
-                    "Dataset": dataset_name,
-                    "Instance": instance_name,
-                    "Scheduler": scheduler_name,
-                    "Makespan": schedule.makespan,
-                    "Throughput": schedule.throughput,
-                }
                 results.append(result)
                 _save_result(result, savepath, lock_path)
 
