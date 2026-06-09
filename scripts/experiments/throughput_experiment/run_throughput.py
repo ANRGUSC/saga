@@ -62,7 +62,6 @@ schedulers: Dict[str, Scheduler] = {
     "GDLScheduler": s.GDLScheduler(),
     "HbmctScheduler": s.HbmctScheduler(),
     "HeftScheduler": s.HeftScheduler(),
-    "HybridScheduler": s.HybridScheduler(),
     "MaxMinScheduler": s.MaxMinScheduler(),
     "MCTScheduler": s.MCTScheduler(),
     "METScheduler": s.METScheduler(),

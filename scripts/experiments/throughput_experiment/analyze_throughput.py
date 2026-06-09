@@ -2,7 +2,8 @@ import logging
 import pathlib
 
 from saga.utils.draw import gradient_heatmap
-from analyze import load_data
+from scripts.experiments.benchmarking.analyze import load_data
+
 
 thisdir = pathlib.Path(__file__).parent.resolve()
 resultsdir = thisdir / "results" / "throughput"
