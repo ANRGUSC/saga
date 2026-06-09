@@ -169,7 +169,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         except Exception as e:
             logging.warning("Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e)
             continue
-        print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", flush=True)
+        tqdm.write(f"[{dataset_name}/{instance_name}] {scheduler_name} done")
         results.append(result)
         _save_result(result, savepath, lock_path)
 
