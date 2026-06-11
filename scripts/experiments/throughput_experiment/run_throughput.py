@@ -69,7 +69,6 @@ schedulers: Dict[str, Scheduler] = {
     "MsbcScheduler": s.MsbcScheduler(),
     "MSTScheduler": s.MSTScheduler(),
     "OLBScheduler": s.OLBScheduler(),
-    "SMTScheduler": s.SMTScheduler(),
     "SufferageScheduler": s.SufferageScheduler(),
     "WBAScheduler": s.WBAScheduler(),
 }
@@ -82,11 +81,31 @@ schedulers: Dict[str, Scheduler] = {
 # ---------------------------------------------------------------------------
 
 def _make_inspirit_heft(threshold: int, delta_ready: int) -> Scheduler:
-    return InspriritScheduler(HeftScheduler(), threshold, delta_ready)
+    return InspriritScheduler(
+        ParametricScheduler(
+            initial_priority=UpwardRanking(),
+            insert_task=GreedyInsert(
+                append_only=False,
+                compare=GreedyInsertCompareFuncs.EFT,
+                critical_path=False,
+            )
+        ), 
+        threshold, 
+        delta_ready)
 
 
 def _make_inspirit_cpop(threshold: int, delta_ready: int) -> Scheduler:
-    return InspriritScheduler(CpopScheduler(), threshold, delta_ready)
+    return InspriritScheduler(
+        ParametricScheduler(
+            initial_priority=CPoPRanking(),
+            insert_task=GreedyInsert(
+                append_only=False,
+                compare=GreedyInsertCompareFuncs.EFT,
+                critical_path=True,
+            )
+        ), 
+        threshold, 
+        delta_ready)
 
 
 def _make_inspirit_fifo(threshold: int, delta_ready: int) -> Scheduler:
@@ -157,12 +176,9 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
 
     # --- Regular schedulers ---
     for scheduler_name, scheduler in _worker_schedulers.items():
-        print("A")
         if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
-            print("B")
             continue
         try:
-            print("C")
             schedule = scheduler.schedule(network=instance.network, task_graph=instance.task_graph)
             print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
             result = {
@@ -178,8 +194,6 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
         results.append(result)
         _save_result(result, savepath, lock_path)
-        print("D")
-    print("E")
     # --- Sweepable schedulers: expand over (threshold, delta_ready) ---
     n = len(list(instance.network.nodes))
     thresholds = sorted({max(1, n), n * 2, n * 3})
