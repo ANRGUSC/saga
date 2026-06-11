@@ -65,8 +65,8 @@ class InspiritEnvironment(Environment):
         )
         
         self.time_window = len(self.network.nodes) * (np.mean([task.cost for task in task_graph.tasks])/np.mean([node.speed for node in network.nodes])) if time_window is None else time_window
-        print ("Network nodes count: ", len(self.network.nodes), "Mean task cost: ", np.mean([task.cost for task in task_graph.tasks]), "Mean node speed: ", np.mean([node.speed for node in network.nodes]))
-        print(f"Using time_window={self.time_window:.2f} for efficiency score computation.")
+        #print ("Network nodes count: ", len(self.network.nodes), "Mean task cost: ", np.mean([task.cost for task in task_graph.tasks]), "Mean node speed: ", np.mean([node.speed for node in network.nodes]))
+        #print(f"Using time_window={self.time_window:.2f} for efficiency score computation.")
         # Static scores — computed once from the task graph structure.
         # These never change between steps; only the heap membership changes.
         self.efficiency_ranks: Dict[str, float] = compute_inspiring_effeciency(
