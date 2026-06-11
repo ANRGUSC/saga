@@ -166,7 +166,7 @@ def _already_done(
 
 def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
     dataset_name, instance_name = args
-    print(f"[{dataset_name}/{instance_name}] starting", file=sys.stderr, flush=True)
+    #print(f"[{dataset_name}/{instance_name}] starting", file=sys.stderr, flush=True)
     dataset = Dataset(name=dataset_name)
     instance = dataset.get_instance(instance_name)
     savepath = _worker_resultsdir / f"{dataset_name}.csv"
@@ -180,7 +180,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
             continue
         try:
             schedule = scheduler.schedule(network=instance.network, task_graph=instance.task_graph)
-            print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
+            #print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
             result = {
                 "Dataset": dataset_name,
                 "Instance": instance_name,
@@ -191,7 +191,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         except Exception as e:
             logging.warning("Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e)
             continue
-        print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
+        #print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
         results.append(result)
         _save_result(result, savepath, lock_path)
     # --- Sweepable schedulers: expand over (threshold, delta_ready) ---
@@ -203,7 +203,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         for threshold in thresholds:
             for delta_ready in delta_readys:
                 scheduler_name = f"{base_name}_{threshold}_{delta_ready}"
-                print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
+                #print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
                 if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
                     continue
                 try:
@@ -221,7 +221,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
                         "Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e
                     )
                     continue
-                print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
+                #print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
                 results.append(result)
                 _save_result(result, savepath, lock_path)
 
