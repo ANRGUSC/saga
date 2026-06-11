@@ -48,21 +48,34 @@ def run_analysis(
     data["Scheduler"] = data["Scheduler"].replace(SCHEDULER_RENAMES)
 
     for dataset, group in data.groupby("dataset"):
-        stats = group.groupby("Scheduler")["Throughput"].agg(["mean", "std"]).fillna(0)
-        best = stats["mean"].max()
-        stats["ratio"] = stats["mean"] / best
-        stats["err"] = stats["std"] / best
-        stats = stats.sort_values("ratio")
+        best_mean = group.groupby("Scheduler")["Throughput"].mean().max()
+        group = group.copy()
+        group["ratio"] = group["Throughput"] / best_mean
 
-        fig, ax = plt.subplots(figsize=(6, max(3, len(stats) * 0.35)))
-        ax.barh(stats.index, stats["ratio"], xerr=stats["err"],
-                color="steelblue", height=0.6, capsize=3, error_kw={"linewidth": 0.8})
-        ax.axvline(1.0, color="black", linewidth=0.6)
+        order = (
+            group.groupby("Scheduler")["ratio"]
+            .median()
+            .sort_values()
+            .index.tolist()
+        )
+        plot_data = [group.loc[group["Scheduler"] == s, "ratio"].values for s in order]
+
+        fig, ax = plt.subplots(figsize=(6, max(3, len(order) * 0.3)))
+        ax.boxplot(
+            plot_data,
+            vert=False,
+            patch_artist=True,
+            labels=order,
+            medianprops={"color": "black", "linewidth": 1.2},
+            boxprops={"facecolor": "steelblue", "alpha": 0.7},
+            flierprops={"marker": ".", "markersize": 2, "alpha": 0.5},
+            whiskerprops={"linewidth": 0.8},
+            capprops={"linewidth": 0.8},
+        )
 
         dataset_title = f"{title} — {dataset}" if title else str(dataset)
         ax.set_title(dataset_title, fontsize=7)
         ax.set_xlabel("Throughput ratio vs best (1.0 = best)", fontsize=6)
-        ax.set_ylabel("Scheduler", fontsize=6)
         ax.tick_params(axis="both", labelsize=6)
         fig.tight_layout(pad=0.5)
 
