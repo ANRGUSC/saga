@@ -1,0 +1,2819 @@
+{
+    "name": "blast_97",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "blastall_00000055",
+                "cost": 1853.671
+            },
+            {
+                "name": "blastall_00000131",
+                "cost": 941.616
+            },
+            {
+                "name": "blastall_00000059",
+                "cost": 1236.458
+            },
+            {
+                "name": "blastall_00000036",
+                "cost": 1563.399
+            },
+            {
+                "name": "blastall_00000045",
+                "cost": 1261.701
+            },
+            {
+                "name": "blastall_00000054",
+                "cost": 1393.433
+            },
+            {
+                "name": "blastall_00000004",
+                "cost": 869.402
+            },
+            {
+                "name": "blastall_00000035",
+                "cost": 418.026
+            },
+            {
+                "name": "blastall_00000009",
+                "cost": 1572.205
+            },
+            {
+                "name": "cat_00000043",
+                "cost": 0.002
+            },
+            {
+                "name": "blastall_00000093",
+                "cost": 1724.398
+            },
+            {
+                "name": "blastall_00000125",
+                "cost": 1459.918
+            },
+            {
+                "name": "blastall_00000135",
+                "cost": 1713.8
+            },
+            {
+                "name": "blastall_00000027",
+                "cost": 565.529
+            },
+            {
+                "name": "blastall_00000033",
+                "cost": 500.928
+            },
+            {
+                "name": "blastall_00000085",
+                "cost": 1631.279
+            },
+            {
+                "name": "blastall_00000082",
+                "cost": 1206.797
+            },
+            {
+                "name": "blastall_00000134",
+                "cost": 485.472
+            },
+            {
+                "name": "blastall_00000026",
+                "cost": 908.975
+            },
+            {
+                "name": "blastall_00000138",
+                "cost": 1581.356
+            },
+            {
+                "name": "blastall_00000068",
+                "cost": 1958.794
+            },
+            {
+                "name": "blastall_00000078",
+                "cost": 736.336
+            },
+            {
+                "name": "blastall_00000084",
+                "cost": 1687.912
+            },
+            {
+                "name": "blastall_00000108",
+                "cost": 1126.18
+            },
+            {
+                "name": "blastall_00000141",
+                "cost": 1044.819
+            },
+            {
+                "name": "blastall_00000089",
+                "cost": 488.72
+            },
+            {
+                "name": "blastall_00000044",
+                "cost": 1801.447
+            },
+            {
+                "name": "blastall_00000008",
+                "cost": 1105.477
+            },
+            {
+                "name": "blastall_00000119",
+                "cost": 1253.493
+            },
+            {
+                "name": "blastall_00000098",
+                "cost": 1775.716
+            },
+            {
+                "name": "blastall_00000126",
+                "cost": 1737.642
+            },
+            {
+                "name": "blastall_00000123",
+                "cost": 1231.066
+            },
+            {
+                "name": "cat_blast_00000042",
+                "cost": 2.201
+            },
+            {
+                "name": "blastall_00000024",
+                "cost": 1379.609
+            },
+            {
+                "name": "blastall_00000072",
+                "cost": 1830.94
+            },
+            {
+                "name": "blastall_00000050",
+                "cost": 1303.137
+            },
+            {
+                "name": "blastall_00000091",
+                "cost": 1495.148
+            },
+            {
+                "name": "blastall_00000022",
+                "cost": 1619.476
+            },
+            {
+                "name": "blastall_00000057",
+                "cost": 1351.639
+            },
+            {
+                "name": "blastall_00000015",
+                "cost": 1628.672
+            },
+            {
+                "name": "blastall_00000060",
+                "cost": 1830.891
+            },
+            {
+                "name": "blastall_00000038",
+                "cost": 885.477
+            },
+            {
+                "name": "blastall_00000046",
+                "cost": 1947.763
+            },
+            {
+                "name": "blastall_00000114",
+                "cost": 1912.039
+            },
+            {
+                "name": "blastall_00000111",
+                "cost": 1505.737
+            },
+            {
+                "name": "blastall_00000019",
+                "cost": 1286.841
+            },
+            {
+                "name": "blastall_00000104",
+                "cost": 1601.437
+            },
+            {
+                "name": "blastall_00000025",
+                "cost": 1002.335
+            },
+            {
+                "name": "blastall_00000102",
+                "cost": 1948.818
+            },
+            {
+                "name": "blastall_00000124",
+                "cost": 1798.276
+            },
+            {
+                "name": "blastall_00000062",
+                "cost": 1546.617
+            },
+            {
+                "name": "blastall_00000148",
+                "cost": 561.658
+            },
+            {
+                "name": "blastall_00000011",
+                "cost": 1117.983
+            },
+            {
+                "name": "blastall_00000088",
+                "cost": 1236.642
+            },
+            {
+                "name": "blastall_00000030",
+                "cost": 1611.723
+            },
+            {
+                "name": "blastall_00000013",
+                "cost": 1796.648
+            },
+            {
+                "name": "blastall_00000002",
+                "cost": 1618.842
+            },
+            {
+                "name": "blastall_00000070",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000129",
+                "cost": 1124.746
+            },
+            {
+                "name": "blastall_00000145",
+                "cost": 1353.02
+            },
+            {
+                "name": "blastall_00000029",
+                "cost": 1119.229
+            },
+            {
+                "name": "blastall_00000137",
+                "cost": 895.259
+            },
+            {
+                "name": "blastall_00000047",
+                "cost": 1887.994
+            },
+            {
+                "name": "blastall_00000048",
+                "cost": 1553.617
+            },
+            {
+                "name": "blastall_00000016",
+                "cost": 902.011
+            },
+            {
+                "name": "blastall_00000081",
+                "cost": 1453.99
+            },
+            {
+                "name": "blastall_00000121",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000101",
+                "cost": 1517.761
+            },
+            {
+                "name": "blastall_00000039",
+                "cost": 1911.467
+            },
+            {
+                "name": "blastall_00000090",
+                "cost": 1202.493
+            },
+            {
+                "name": "blastall_00000136",
+                "cost": 790.857
+            },
+            {
+                "name": "blastall_00000099",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000037",
+                "cost": 1151.524
+            },
+            {
+                "name": "blastall_00000007",
+                "cost": 1249.763
+            },
+            {
+                "name": "blastall_00000034",
+                "cost": 1685.829
+            },
+            {
+                "name": "blastall_00000053",
+                "cost": 713.292
+            },
+            {
+                "name": "blastall_00000073",
+                "cost": 1205.926
+            },
+            {
+                "name": "blastall_00000106",
+                "cost": 757.218
+            },
+            {
+                "name": "blastall_00000031",
+                "cost": 1740.025
+            },
+            {
+                "name": "blastall_00000074",
+                "cost": 1095.136
+            },
+            {
+                "name": "blastall_00000061",
+                "cost": 797.844
+            },
+            {
+                "name": "blastall_00000065",
+                "cost": 1709.607
+            },
+            {
+                "name": "blastall_00000023",
+                "cost": 1460.545
+            },
+            {
+                "name": "blastall_00000063",
+                "cost": 1676.676
+            },
+            {
+                "name": "blastall_00000032",
+                "cost": 1456.152
+            },
+            {
+                "name": "blastall_00000079",
+                "cost": 551.613
+            },
+            {
+                "name": "blastall_00000117",
+                "cost": 1051.149
+            },
+            {
+                "name": "blastall_00000132",
+                "cost": 211.954
+            },
+            {
+                "name": "blastall_00000064",
+                "cost": 349.976
+            },
+            {
+                "name": "blastall_00000077",
+                "cost": 1106.6
+            },
+            {
+                "name": "blastall_00000107",
+                "cost": 1454.814
+            },
+            {
+                "name": "blastall_00000005",
+                "cost": 1863.764
+            },
+            {
+                "name": "blastall_00000071",
+                "cost": 1855.413
+            },
+            {
+                "name": "blastall_00000115",
+                "cost": 1837.989
+            },
+            {
+                "name": "blastall_00000116",
+                "cost": 918.981
+            },
+            {
+                "name": "blastall_00000010",
+                "cost": 1713.264
+            },
+            {
+                "name": "blastall_00000028",
+                "cost": 772.875
+            },
+            {
+                "name": "blastall_00000118",
+                "cost": 355.893
+            },
+            {
+                "name": "blastall_00000086",
+                "cost": 235.659
+            },
+            {
+                "name": "blastall_00000066",
+                "cost": 1433.319
+            },
+            {
+                "name": "blastall_00000096",
+                "cost": 736.665
+            },
+            {
+                "name": "blastall_00000018",
+                "cost": 1644.093
+            },
+            {
+                "name": "blastall_00000122",
+                "cost": 1576.592
+            },
+            {
+                "name": "blastall_00000140",
+                "cost": 855.021
+            },
+            {
+                "name": "blastall_00000103",
+                "cost": 1480.381
+            },
+            {
+                "name": "split_fasta_00000001",
+                "cost": 2.68
+            },
+            {
+                "name": "blastall_00000012",
+                "cost": 1914.038
+            },
+            {
+                "name": "blastall_00000006",
+                "cost": 466.498
+            },
+            {
+                "name": "blastall_00000130",
+                "cost": 1266.176
+            },
+            {
+                "name": "blastall_00000020",
+                "cost": 1874.055
+            },
+            {
+                "name": "blastall_00000094",
+                "cost": 1108.297
+            },
+            {
+                "name": "blastall_00000014",
+                "cost": 1805.852
+            },
+            {
+                "name": "blastall_00000075",
+                "cost": 1603.36
+            },
+            {
+                "name": "blastall_00000113",
+                "cost": 1958.094
+            },
+            {
+                "name": "blastall_00000144",
+                "cost": 1264.71
+            },
+            {
+                "name": "blastall_00000147",
+                "cost": 799.261
+            },
+            {
+                "name": "blastall_00000052",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000139",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000133",
+                "cost": 1672.083
+            },
+            {
+                "name": "blastall_00000076",
+                "cost": 517.095
+            },
+            {
+                "name": "blastall_00000058",
+                "cost": 1947.741
+            },
+            {
+                "name": "blastall_00000112",
+                "cost": 1328.078
+            },
+            {
+                "name": "blastall_00000127",
+                "cost": 1940.379
+            },
+            {
+                "name": "blastall_00000128",
+                "cost": 1669.638
+            },
+            {
+                "name": "blastall_00000017",
+                "cost": 691.952
+            },
+            {
+                "name": "blastall_00000087",
+                "cost": 1659.622
+            },
+            {
+                "name": "blastall_00000040",
+                "cost": 1214.371
+            },
+            {
+                "name": "blastall_00000109",
+                "cost": 339.538
+            },
+            {
+                "name": "blastall_00000041",
+                "cost": 958.948
+            },
+            {
+                "name": "blastall_00000056",
+                "cost": 647.21
+            },
+            {
+                "name": "blastall_00000051",
+                "cost": 1320.4
+            },
+            {
+                "name": "blastall_00000120",
+                "cost": 1765.917
+            },
+            {
+                "name": "blastall_00000097",
+                "cost": 179.956
+            },
+            {
+                "name": "blastall_00000080",
+                "cost": 1926.381
+            },
+            {
+                "name": "blastall_00000083",
+                "cost": 901.355
+            },
+            {
+                "name": "blastall_00000142",
+                "cost": 1907.181
+            },
+            {
+                "name": "blastall_00000049",
+                "cost": 758.636
+            },
+            {
+                "name": "blastall_00000100",
+                "cost": 1401.535
+            },
+            {
+                "name": "blastall_00000092",
+                "cost": 1923.635
+            },
+            {
+                "name": "DST",
+                "cost": 1e-9
+            },
+            {
+                "name": "blastall_00000105",
+                "cost": 1125.939
+            },
+            {
+                "name": "blastall_00000143",
+                "cost": 1565.564
+            },
+            {
+                "name": "blastall_00000146",
+                "cost": 1898.695
+            },
+            {
+                "name": "blastall_00000021",
+                "cost": 1825.655
+            },
+            {
+                "name": "blastall_00000095",
+                "cost": 1258.382
+            },
+            {
+                "name": "blastall_00000067",
+                "cost": 1099.641
+            },
+            {
+                "name": "blastall_00000069",
+                "cost": 1213.343
+            },
+            {
+                "name": "blastall_00000110",
+                "cost": 1844.325
+            },
+            {
+                "name": "blastall_00000003",
+                "cost": 1157.842
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000097",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000146",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000036",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000129",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000090",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000142",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000091",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000059",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000048",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000145",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000122",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000127",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000034",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000144",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000038",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000040",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000103",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000067",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000068",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000011",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000121",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000114",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000054",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000131",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000049",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000051",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000074",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000084",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000137",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000010",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000108",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000108",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000131",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000078",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000064",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000041",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000121",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000145",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000119",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000012",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000060",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000141",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000046",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000148",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000048",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000052",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000058",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000138",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000133",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000033",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000100",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000077",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000072",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000015",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000119",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000076",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000126",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000133",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000029",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000083",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000033",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000050",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000093",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000123",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000147",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000063",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000053",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000116",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000071",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000050",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000044",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000067",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000006",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000132",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000117",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000026",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000061",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000126",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000110",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000032",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "cat_00000043",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "blastall_00000146",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000095",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000105",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000109",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000061",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000048",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000092",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000111",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000031",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000038",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000018",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000095",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000057",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000078",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000101",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000124",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000125",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000136",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000016",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000116",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000140",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000074",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000039",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000137",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000076",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000027",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000089",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000102",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000087",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000007",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000010",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000086",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000078",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000139",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000002",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000124",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000012",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000057",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000094",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000082",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000058",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000122",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000110",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000146",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000098",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000015",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000104",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000075",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000014",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000133",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000135",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000063",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000123",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000035",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000021",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000066",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000069",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000115",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000053",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000099",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000026",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000062",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000113",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000052",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000142",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000059",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000128",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000068",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000094",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000004",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000134",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000061",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000100",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000049",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000070",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000134",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000113",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000101",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000118",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000008",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000045",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000085",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000088",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000136",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000114",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000137",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000047",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000007",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000086",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000107",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000024",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000013",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000143",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000037",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000045",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000081",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000064",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000055",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000139",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000132",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000124",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000056",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000072",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000073",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000005",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000028",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000019",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000022",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000071",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000056",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000109",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000030",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000097",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000075",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000036",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000090",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000035",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000021",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000128",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000091",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000059",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000122",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000034",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000040",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000009",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000099",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000103",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000068",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000011",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000142",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000054",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000114",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000115",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000049",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000134",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000084",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000096",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000079",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000112",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000070",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000003",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000113",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000130",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000023",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000131",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000147",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000118",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000064",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000041",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000102",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000060",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000145",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000106",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000088",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000080",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000047",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000051",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000148",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000138",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000052",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000107",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000080",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000135",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000013",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000017",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000144",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000066",
+                "size": 1.0
+            },
+            {
+                "source": "cat_blast_00000042",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000055",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000072",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000112",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000033",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000126",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000111",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000083",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000053",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000147",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000006",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000132",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000140",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000005",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000117",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000046",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000028",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000106",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000022",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000032",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000030",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000095",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000138",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000105",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000109",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000077",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000025",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000018",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000092",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000009",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000031",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000057",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000125",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000016",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000079",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000058",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000055",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000044",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000116",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000039",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000096",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000102",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000089",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000076",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000087",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000027",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000112",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000141",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000118",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000003",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000130",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000023",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000002",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000020",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000120",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000060",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000106",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000080",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000125",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000051",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000094",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000082",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000110",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000139",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000135",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000017",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000062",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000065",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000069",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000098",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000104",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000014",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000129",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000111",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000066",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000140",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000069",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000115",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000127",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000144",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000062",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000067",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000129",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000107",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000004",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000128",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000047",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000074",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000025",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000108",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000096",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000143",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000008",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000079",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000065",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000045",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000085",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000148",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000136",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000120",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000121",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000046",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000141",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000143",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000100",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000073",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000024",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000077",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000037",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000117",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000075",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000081",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000020",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000120",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000119",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000029",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000050",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000093",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000093",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000123",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000056",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000063",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000044",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000073",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "split_fasta_00000001",
+                "target": "blastall_00000130",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000019",
+                "target": "cat_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000071",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "blastall_00000065",
+                "target": "cat_blast_00000042",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N0",
+                "speed": 0.8142073119238302
+            },
+            {
+                "name": "N1",
+                "speed": 0.7480578584133275
+            }
+        ],
+        "edges": [
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.0006306865768918602
+            },
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.0006306865768918602
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.0006306865768918602
+            }
+        ]
+    }
+}

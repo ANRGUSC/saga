@@ -7,7 +7,7 @@ import heapq
 
 import networkx as nx
 
-from saga import Network, Schedule, TaskGraph, Scheduler
+from saga import Network, Schedule, TaskGraph, Scheduler, TaskGraphNode
 from saga.schedulers.online.environments import Environment, FrontierEnvironment
 from saga.schedulers.online.controllers import FrontierPopController
 from saga.schedulers.online import (
@@ -38,6 +38,7 @@ class FIFOEnvironment(FrontierEnvironment):
         self,
         network: Network,
         task_graph: TaskGraph,
+        **kwargs
     ) -> None:
         super().__init__(
             network=network,
@@ -45,33 +46,12 @@ class FIFOEnvironment(FrontierEnvironment):
             step_strategy=TaskEventStep(),
             observer=OnStepObserver(),
             controller=FrontierPopController(),
+            **kwargs
         )
-    def _update_task_state(self) -> None:
-        super()._update_task_state()
+        self.ready_condition: str = "p_complete"
+        self.ready_node_only: bool = True
 
-        finished_names = {t.name for t in self.finished_tasks}
-        committed_names = finished_names | {t.name for t in self.running_tasks}
-        scheduled_names = {
-            t.name for tasks in self.schedule.mapping.values() for t in tasks
-        }
-
-        # Drop committed tasks from the frontier
-        stale = committed_names & self.frontier_set
-        if stale:
-            self.frontier_set -= stale
-            self.frontier = [(t, n) for t, n in self.frontier if n not in stale]
-            heapq.heapify(self.frontier)
-
-        # Enqueue unscheduled tasks whose predecessors have all finished
-        for task in self.task_graph.tasks:
-            name = task.name
-            if name in scheduled_names or name in self.frontier_set:
-                continue
-            predecessors = {dep.source for dep in self.task_graph.in_edges(name)}
-            if predecessors.issubset(finished_names):
-                self.frontier_set.add(name)
-                heapq.heappush(self.frontier, (self.current_time, name))
-
+    
 
 class FIFOScheduler(Scheduler):
     def __init__(self):
@@ -84,21 +64,17 @@ class FIFOScheduler(Scheduler):
         min_start_time: float = 0.0,
     ) -> Schedule:
         env = FIFOEnvironment(network, task_graph)
-        env.reset(schedule=schedule, min_start_time=min_start_time)
-        # Drain tasks immediately ready at min_start_time before entering the
-        # event-driven loop. TaskEventStep requires a future event in the
-        # schedule to advance; if the partial schedule only has past-committed
-        # tasks there are no such events yet, so the controller must fire once
-        # per ready frontier task before the first step can proceed.
-        while env.frontier:
-            trigger = env.observer.observe(env)
-            if trigger is not None and env.controller is not None:
-                env.schedule = env.controller.control(env, trigger)
-            env._update_task_state()
-            env._update_network_state()
-        while env.step():
-            pass
-        return env.schedule
+        # env.reset(schedule=schedule, min_start_time=min_start_time)
+        return env.run()
+        # while env.frontier:
+        #     trigger = env.observer.observe(env)
+        #     if trigger is not None and env.controller is not None:
+        #         env.schedule = env.controller.control(env, trigger)
+        #     env._update_task_state(lambda _: env.current_time)
+        #     env._update_network_state()
+        # while env.step(): #this also calls update_task_state
+        #     pass
+        # return env.schedule
 SMOOTHING_RATE = 0.8  
 class Inspirit_FIFO_Environment(InspiritEnvironment):
     def __init__(

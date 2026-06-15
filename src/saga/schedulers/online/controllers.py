@@ -190,7 +190,7 @@ class InspiritController(Controller):
             )
         return env.schedule  # No change
 
-#need to confirm that multiple tasks can be popped and scheduled at once, if multiple available nodes.
+
 class FrontierPopController(Controller):
     """Controller that pops a task from the frontier whenever triggered, without checking a threshold."""
     def __init__(self, insertion_strategy: Optional[GreedyInsert] = None):
@@ -217,7 +217,11 @@ class FrontierPopController(Controller):
         env = environment
         if not env.frontier:
             return env.schedule
-        ready_node_count = len(environment.available_nodes)
+        if env.ready_node_only:
+            #Schedule an amount of tasks equal to the amount of available network nodes
+            ready_node_count = len(env.available_nodes)
+        else:
+            ready_node_count = len(env.frontier)
         for _ in range(ready_node_count):
             if not env.frontier:
                 break

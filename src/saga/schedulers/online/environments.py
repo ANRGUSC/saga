@@ -154,7 +154,6 @@ class InspiritEnvironment(Environment):
         super()._update_task_state()
 
         # Rebuild frontiers as a fresh heap over the current ready_tasks.
-        # heapq.heapify is O(n); for typical n this is negligible.
         ready_names = {t.name for t in self.ready_tasks}
         self.efficiency_frontier = [
             (-self.efficiency_ranks[name], name) for name in ready_names
@@ -254,7 +253,6 @@ class StochasticEnvironment(Environment):
         committed_names = finished_names | {t.name for t in self.running_tasks}
 
         self.ready_tasks = set()
-        self.unready_tasks = set()
         for tasks in self.schedule_actual.mapping.values():
             for task in tasks:
                 if task.name in committed_names:
@@ -262,8 +260,7 @@ class StochasticEnvironment(Environment):
                 predecessors = {dep.source for dep in self.task_graph.in_edges(task.name)}
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
-                else:
-                    self.unready_tasks.add(task)
+                    self.unready_tasks.discard()
 
         
 
@@ -289,6 +286,8 @@ class FrontierEnvironment(Environment):
             controller=controller,
             on_step=on_step,
         )
+        self.ready_condition: str = "p_complete"
+        self.ready_node_only: bool = True
         self.frontier: List[Tuple[float, str]] = []
         self.frontier_set: Set[str] = set()
         # Default insertion strategy used for bootstrapping root tasks in reset()
@@ -297,6 +296,7 @@ class FrontierEnvironment(Environment):
             compare=GreedyInsertCompareFuncs.EST,
             critical_path=False,
         )
+        self.priority_condition: Callable[[TaskGraphNode],float] = lambda _: self.current_time
 
     def reset(
         self,
@@ -332,8 +332,54 @@ class FrontierEnvironment(Environment):
                     self._bootstrap_insert.call(
                         self.network, self.task_graph, self.schedule, task.name, min_start_time=min_start_time
                     )
-        self._update_task_state()
+        self._update_task_state(self.pri)
         self._update_network_state()
 
-    def _update_task_state(self) -> None:
-        super()._update_task_state()
+    def _update_task_state(self, priority_definition:Callable[[TaskGraphNode],float]) -> None:
+        if priority_definition is None:
+            priority_definition = lambda _: self.current_time
+        
+        self.finished_tasks = self.get_finished_tasks()
+        self.running_tasks = self.get_running_tasks()
+        self.committed = {t for tasks in self.schedule.mapping.values() for t in tasks}
+
+        finished_names = {t.name for t in self.finished_tasks}
+        committed_names = {t.name for t in self.committed}
+        finished_or_running = {t.name for t in self.running_tasks} | finished_names
+        self.ready_tasks = set()
+        stale = committed_names & self.frontier_set
+        if stale:
+            self.frontier_set -= stale
+            self.frontier = [(t, n) for t, n in self.frontier if n not in stale]
+            heapq.heapify(self.frontier)
+
+        # Enqueue unscheduled tasks whose predecessors have all finished
+        for task in self.task_graph.tasks:
+            name = task.name
+            #if name in scheduled_names or name in self.frontier_set:
+            if name in committed_names or name in self.frontier_set:
+                continue
+            predecessors = {dep.source for dep in self.task_graph.in_edges(name)}
+            #tasks are considered ready to schedule when all parents have completed
+            if self.ready_condition == "p_complete":
+                if predecessors.issubset(finished_names):
+                    self.frontier_set.add(name)
+                    self.ready_tasks.add(task)
+                    self.unready_tasks.discard(task)
+                    heapq.heappush(self.frontier, (priority_definition(task), name))
+            #tasks are considered ready to schedule when all parents have completed or are running (committed)
+            elif self.ready_condition == "p_committed":
+                if predecessors.issubset(finished_or_running):
+                    self.frontier_set.add(name)
+                    self.ready_tasks.add(task)
+                    self.unready_tasks.discard(task)
+                    heapq.heappush(self.frontier, (priority_definition(task), name))
+            #tasks are considered ready to schedule when all parents have been scheduled 
+            elif self.ready_condition == "p_scheduled":
+                if predecessors.issubset(committed_names):
+                    self.frontier_set.add(name)
+                    self.ready_tasks.add(task)
+                    self.unready_tasks.discard(task)
+                    heapq.heappush(self.frontier, (priority_definition(task), name))
+
+

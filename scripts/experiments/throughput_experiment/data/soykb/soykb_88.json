@@ -1,0 +1,3199 @@
+{
+    "name": "soykb_88",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "haplotype_caller_00000060",
+                "cost": 263.858
+            },
+            {
+                "name": "genotype_gvcfs_00000086",
+                "cost": 89.923
+            },
+            {
+                "name": "haplotype_caller_00000100",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000141",
+                "cost": 70.95
+            },
+            {
+                "name": "realign_target_creator_00000132",
+                "cost": 464.279
+            },
+            {
+                "name": "haplotype_caller_00000154",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000028",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000127",
+                "cost": 89.923
+            },
+            {
+                "name": "dedup_00000035",
+                "cost": 216.6
+            },
+            {
+                "name": "genotype_gvcfs_00000085",
+                "cost": 345.888
+            },
+            {
+                "name": "sort_sam_00000066",
+                "cost": 25.531
+            },
+            {
+                "name": "alignment_to_reference_00000001",
+                "cost": 40.906
+            },
+            {
+                "name": "haplotype_caller_00000128",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000011",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000010",
+                "cost": 565.242
+            },
+            {
+                "name": "haplotype_caller_00000079",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000131",
+                "cost": 578.272
+            },
+            {
+                "name": "haplotype_caller_00000047",
+                "cost": 70.95
+            },
+            {
+                "name": "indel_realign_00000022",
+                "cost": 122.201
+            },
+            {
+                "name": "sort_sam_00000120",
+                "cost": 8.924
+            },
+            {
+                "name": "haplotype_caller_00000177",
+                "cost": 70.95
+            },
+            {
+                "name": "add_replace_00000111",
+                "cost": 70.513
+            },
+            {
+                "name": "haplotype_caller_00000147",
+                "cost": 372.714
+            },
+            {
+                "name": "genotype_gvcfs_00000087",
+                "cost": 89.923
+            },
+            {
+                "name": "genotype_gvcfs_00000088",
+                "cost": 89.923
+            },
+            {
+                "name": "haplotype_caller_00000194",
+                "cost": 181.68
+            },
+            {
+                "name": "haplotype_caller_00000161",
+                "cost": 70.95
+            },
+            {
+                "name": "alignment_to_reference_00000033",
+                "cost": 170.659
+            },
+            {
+                "name": "haplotype_caller_00000013",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000170",
+                "cost": 677.033
+            },
+            {
+                "name": "haplotype_caller_00000129",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000168",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000097",
+                "cost": 293.643
+            },
+            {
+                "name": "haplotype_caller_00000156",
+                "cost": 509.348
+            },
+            {
+                "name": "dedup_00000067",
+                "cost": 151.065
+            },
+            {
+                "name": "add_replace_00000036",
+                "cost": 123.086
+            },
+            {
+                "name": "realign_target_creator_00000005",
+                "cost": 360.462
+            },
+            {
+                "name": "haplotype_caller_00000108",
+                "cost": 155.574
+            },
+            {
+                "name": "haplotype_caller_00000115",
+                "cost": 313.963
+            },
+            {
+                "name": "haplotype_caller_00000184",
+                "cost": 218.66
+            },
+            {
+                "name": "alignment_to_reference_00000065",
+                "cost": 79.895
+            },
+            {
+                "name": "haplotype_caller_00000063",
+                "cost": 336.054
+            },
+            {
+                "name": "indel_realign_00000006",
+                "cost": 87.186
+            },
+            {
+                "name": "haplotype_caller_00000148",
+                "cost": 682.058
+            },
+            {
+                "name": "realign_target_creator_00000037",
+                "cost": 47.455
+            },
+            {
+                "name": "select_variants_indel_00000095",
+                "cost": 20.767
+            },
+            {
+                "name": "haplotype_caller_00000144",
+                "cost": 506.936
+            },
+            {
+                "name": "haplotype_caller_00000160",
+                "cost": 70.95
+            },
+            {
+                "name": "add_replace_00000004",
+                "cost": 139.801
+            },
+            {
+                "name": "haplotype_caller_00000016",
+                "cost": 453.244
+            },
+            {
+                "name": "haplotype_caller_00000031",
+                "cost": 107.339
+            },
+            {
+                "name": "dedup_00000167",
+                "cost": 217.525
+            },
+            {
+                "name": "indel_realign_00000172",
+                "cost": 226.503
+            },
+            {
+                "name": "haplotype_caller_00000045",
+                "cost": 92.698
+            },
+            {
+                "name": "haplotype_caller_00000130",
+                "cost": 70.95
+            },
+            {
+                "name": "alignment_to_reference_00000135",
+                "cost": 74.07
+            },
+            {
+                "name": "haplotype_caller_00000024",
+                "cost": 70.95
+            },
+            {
+                "name": "indel_realign_00000054",
+                "cost": 221.209
+            },
+            {
+                "name": "dedup_00000179",
+                "cost": 168.117
+            },
+            {
+                "name": "haplotype_caller_00000185",
+                "cost": 210.417
+            },
+            {
+                "name": "sort_sam_00000050",
+                "cost": 8.924
+            },
+            {
+                "name": "select_variants_snp_00000093",
+                "cost": 19.749
+            },
+            {
+                "name": "haplotype_caller_00000178",
+                "cost": 482.406
+            },
+            {
+                "name": "haplotype_caller_00000106",
+                "cost": 606.833
+            },
+            {
+                "name": "haplotype_caller_00000174",
+                "cost": 556.863
+            },
+            {
+                "name": "genotype_gvcfs_00000090",
+                "cost": 512.172
+            },
+            {
+                "name": "add_replace_00000020",
+                "cost": 139.148
+            },
+            {
+                "name": "realign_target_creator_00000069",
+                "cost": 323.541
+            },
+            {
+                "name": "haplotype_caller_00000026",
+                "cost": 394.968
+            },
+            {
+                "name": "add_replace_00000163",
+                "cost": 135.824
+            },
+            {
+                "name": "haplotype_caller_00000030",
+                "cost": 534.369
+            },
+            {
+                "name": "haplotype_caller_00000151",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000046",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000074",
+                "cost": 700.563
+            },
+            {
+                "name": "haplotype_caller_00000071",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000056",
+                "cost": 123.832
+            },
+            {
+                "name": "haplotype_caller_00000073",
+                "cost": 546.496
+            },
+            {
+                "name": "dedup_00000019",
+                "cost": 180.439
+            },
+            {
+                "name": "haplotype_caller_00000059",
+                "cost": 512.539
+            },
+            {
+                "name": "filtering_snp_00000094",
+                "cost": 6.751
+            },
+            {
+                "name": "alignment_to_reference_00000164",
+                "cost": 99.922
+            },
+            {
+                "name": "haplotype_caller_00000023",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000008",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000064",
+                "cost": 633.396
+            },
+            {
+                "name": "add_replace_00000068",
+                "cost": 13.98
+            },
+            {
+                "name": "genotype_gvcfs_00000101",
+                "cost": 680.58
+            },
+            {
+                "name": "haplotype_caller_00000176",
+                "cost": 157.585
+            },
+            {
+                "name": "indel_realign_00000116",
+                "cost": 116.977
+            },
+            {
+                "name": "haplotype_caller_00000137",
+                "cost": 548.75
+            },
+            {
+                "name": "indel_realign_00000038",
+                "cost": 49.681
+            },
+            {
+                "name": "haplotype_caller_00000190",
+                "cost": 70.95
+            },
+            {
+                "name": "DST",
+                "cost": 1e-9
+            },
+            {
+                "name": "haplotype_caller_00000112",
+                "cost": 325.008
+            },
+            {
+                "name": "haplotype_caller_00000055",
+                "cost": 556.646
+            },
+            {
+                "name": "haplotype_caller_00000105",
+                "cost": 70.95
+            },
+            {
+                "name": "SRC",
+                "cost": 1e-9
+            },
+            {
+                "name": "genotype_gvcfs_00000089",
+                "cost": 89.923
+            },
+            {
+                "name": "haplotype_caller_00000123",
+                "cost": 70.95
+            },
+            {
+                "name": "realign_target_creator_00000021",
+                "cost": 168.08
+            },
+            {
+                "name": "haplotype_caller_00000076",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000122",
+                "cost": 137.609
+            },
+            {
+                "name": "haplotype_caller_00000114",
+                "cost": 70.95
+            },
+            {
+                "name": "alignment_to_reference_00000049",
+                "cost": 188.126
+            },
+            {
+                "name": "haplotype_caller_00000126",
+                "cost": 366.246
+            },
+            {
+                "name": "haplotype_caller_00000183",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000119",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000103",
+                "cost": 89.923
+            },
+            {
+                "name": "add_replace_00000052",
+                "cost": 13.98
+            },
+            {
+                "name": "haplotype_caller_00000057",
+                "cost": 505.212
+            },
+            {
+                "name": "haplotype_caller_00000117",
+                "cost": 460.054
+            },
+            {
+                "name": "haplotype_caller_00000186",
+                "cost": 193.78
+            },
+            {
+                "name": "haplotype_caller_00000121",
+                "cost": 216.819
+            },
+            {
+                "name": "haplotype_caller_00000025",
+                "cost": 172.985
+            },
+            {
+                "name": "haplotype_caller_00000169",
+                "cost": 444.731
+            },
+            {
+                "name": "sort_sam_00000034",
+                "cost": 8.924
+            },
+            {
+                "name": "haplotype_caller_00000042",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000084",
+                "cost": 398.909
+            },
+            {
+                "name": "sort_sam_00000142",
+                "cost": 8.924
+            },
+            {
+                "name": "haplotype_caller_00000173",
+                "cost": 152.16
+            },
+            {
+                "name": "haplotype_caller_00000175",
+                "cost": 244.75
+            },
+            {
+                "name": "sort_sam_00000166",
+                "cost": 88.467
+            },
+            {
+                "name": "haplotype_caller_00000145",
+                "cost": 142.913
+            },
+            {
+                "name": "haplotype_caller_00000107",
+                "cost": 70.95
+            },
+            {
+                "name": "realign_target_creator_00000181",
+                "cost": 144.301
+            },
+            {
+                "name": "haplotype_caller_00000196",
+                "cost": 583.28
+            },
+            {
+                "name": "haplotype_caller_00000048",
+                "cost": 566.106
+            },
+            {
+                "name": "haplotype_caller_00000134",
+                "cost": 463.04
+            },
+            {
+                "name": "sort_sam_00000018",
+                "cost": 27.402
+            },
+            {
+                "name": "haplotype_caller_00000118",
+                "cost": 489.935
+            },
+            {
+                "name": "genotype_gvcfs_00000192",
+                "cost": 885.741
+            },
+            {
+                "name": "alignment_to_reference_00000113",
+                "cost": 43.763
+            },
+            {
+                "name": "merge_gcvf_00000081",
+                "cost": 3786.136
+            },
+            {
+                "name": "haplotype_caller_00000102",
+                "cost": 211.099
+            },
+            {
+                "name": "haplotype_caller_00000109",
+                "cost": 403.975
+            },
+            {
+                "name": "haplotype_caller_00000044",
+                "cost": 283.15
+            },
+            {
+                "name": "haplotype_caller_00000187",
+                "cost": 652.589
+            },
+            {
+                "name": "genotype_gvcfs_00000082",
+                "cost": 89.923
+            },
+            {
+                "name": "haplotype_caller_00000157",
+                "cost": 633.276
+            },
+            {
+                "name": "haplotype_caller_00000077",
+                "cost": 70.95
+            },
+            {
+                "name": "dedup_00000146",
+                "cost": 103.057
+            },
+            {
+                "name": "haplotype_caller_00000075",
+                "cost": 377.53
+            },
+            {
+                "name": "sort_sam_00000002",
+                "cost": 74.477
+            },
+            {
+                "name": "add_replace_00000180",
+                "cost": 114.829
+            },
+            {
+                "name": "haplotype_caller_00000193",
+                "cost": 405.844
+            },
+            {
+                "name": "haplotype_caller_00000015",
+                "cost": 471.91
+            },
+            {
+                "name": "haplotype_caller_00000159",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000009",
+                "cost": 70.95
+            },
+            {
+                "name": "sort_sam_00000182",
+                "cost": 9.467
+            },
+            {
+                "name": "haplotype_caller_00000062",
+                "cost": 327.133
+            },
+            {
+                "name": "haplotype_caller_00000032",
+                "cost": 231.392
+            },
+            {
+                "name": "haplotype_caller_00000139",
+                "cost": 438.108
+            },
+            {
+                "name": "haplotype_caller_00000043",
+                "cost": 240.715
+            },
+            {
+                "name": "haplotype_caller_00000143",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000061",
+                "cost": 271.395
+            },
+            {
+                "name": "haplotype_caller_00000153",
+                "cost": 220.656
+            },
+            {
+                "name": "indel_realign_00000070",
+                "cost": 91.584
+            },
+            {
+                "name": "genotype_gvcfs_00000155",
+                "cost": 89.923
+            },
+            {
+                "name": "haplotype_caller_00000104",
+                "cost": 573.876
+            },
+            {
+                "name": "haplotype_caller_00000027",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000080",
+                "cost": 319.386
+            },
+            {
+                "name": "haplotype_caller_00000099",
+                "cost": 70.95
+            },
+            {
+                "name": "indel_realign_00000138",
+                "cost": 46.683
+            },
+            {
+                "name": "indel_realign_00000188",
+                "cost": 81.744
+            },
+            {
+                "name": "haplotype_caller_00000039",
+                "cost": 70.95
+            },
+            {
+                "name": "dedup_00000124",
+                "cost": 216.07
+            },
+            {
+                "name": "add_replace_00000133",
+                "cost": 119.405
+            },
+            {
+                "name": "alignment_to_reference_00000189",
+                "cost": 99.83
+            },
+            {
+                "name": "realign_target_creator_00000162",
+                "cost": 299.483
+            },
+            {
+                "name": "dedup_00000051",
+                "cost": 181.57
+            },
+            {
+                "name": "combine_variants_00000092",
+                "cost": 16.391
+            },
+            {
+                "name": "realign_target_creator_00000110",
+                "cost": 437.521
+            },
+            {
+                "name": "filtering_indel_00000096",
+                "cost": 33.859
+            },
+            {
+                "name": "alignment_to_reference_00000017",
+                "cost": 43.982
+            },
+            {
+                "name": "haplotype_caller_00000150",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000091",
+                "cost": 481.438
+            },
+            {
+                "name": "haplotype_caller_00000012",
+                "cost": 510.772
+            },
+            {
+                "name": "haplotype_caller_00000014",
+                "cost": 123.305
+            },
+            {
+                "name": "haplotype_caller_00000041",
+                "cost": 217.443
+            },
+            {
+                "name": "haplotype_caller_00000072",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000152",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000040",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000149",
+                "cost": 644.6
+            },
+            {
+                "name": "haplotype_caller_00000098",
+                "cost": 487.47
+            },
+            {
+                "name": "haplotype_caller_00000125",
+                "cost": 653.456
+            },
+            {
+                "name": "haplotype_caller_00000058",
+                "cost": 597.352
+            },
+            {
+                "name": "haplotype_caller_00000171",
+                "cost": 591.262
+            },
+            {
+                "name": "haplotype_caller_00000158",
+                "cost": 196.958
+            },
+            {
+                "name": "dedup_00000003",
+                "cost": 99.893
+            },
+            {
+                "name": "haplotype_caller_00000078",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000140",
+                "cost": 607.022
+            },
+            {
+                "name": "haplotype_caller_00000165",
+                "cost": 70.95
+            },
+            {
+                "name": "genotype_gvcfs_00000083",
+                "cost": 805.092
+            },
+            {
+                "name": "haplotype_caller_00000007",
+                "cost": 70.95
+            },
+            {
+                "name": "haplotype_caller_00000029",
+                "cost": 242.433
+            },
+            {
+                "name": "haplotype_caller_00000136",
+                "cost": 555.11
+            },
+            {
+                "name": "haplotype_caller_00000191",
+                "cost": 641.145
+            },
+            {
+                "name": "realign_target_creator_00000053",
+                "cost": 47.455
+            },
+            {
+                "name": "haplotype_caller_00000195",
+                "cost": 671.759
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "haplotype_caller_00000159",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000076",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000010",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000048",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000193",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000115",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000195",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000123",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000075",
+                "size": 1.0
+            },
+            {
+                "source": "filtering_indel_00000096",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "add_replace_00000133",
+                "target": "realign_target_creator_00000132",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000109",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000030",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000080",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000064",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000143",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000005",
+                "target": "indel_realign_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000152",
+                "size": 1.0
+            },
+            {
+                "source": "combine_variants_00000092",
+                "target": "select_variants_indel_00000095",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000158",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000170",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000119",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000088",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000140",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000107",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000110",
+                "target": "indel_realign_00000116",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000194",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000009",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000177",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000106",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000122",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000056",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000011",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000055",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000045",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000142",
+                "target": "dedup_00000146",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000040",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000050",
+                "target": "dedup_00000051",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000024",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000029",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000150",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000102",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000123",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000178",
+                "size": 1.0
+            },
+            {
+                "source": "select_variants_snp_00000093",
+                "target": "filtering_snp_00000094",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000114",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000077",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000108",
+                "target": "genotype_gvcfs_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000196",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000171",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000007",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000067",
+                "target": "add_replace_00000068",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000136",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000051",
+                "target": "add_replace_00000052",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000084",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000130",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000169",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000052",
+                "target": "indel_realign_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000113",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000058",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000174",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000148",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000098",
+                "target": "genotype_gvcfs_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000126",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000109",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000115",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000140",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000154",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000113",
+                "target": "sort_sam_00000120",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000040",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000001",
+                "target": "sort_sam_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000178",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000071",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000024",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000118",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000062",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000025",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000103",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000146",
+                "target": "add_replace_00000133",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000128",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000036",
+                "target": "realign_target_creator_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000139",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000046",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000066",
+                "target": "dedup_00000067",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000017",
+                "target": "sort_sam_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000190",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000152",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000111",
+                "target": "realign_target_creator_00000110",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000029",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000086",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000122",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000174",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000037",
+                "target": "indel_realign_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000079",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000039",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000044",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000106",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000012",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000150",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000073",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000061",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000162",
+                "target": "indel_realign_00000172",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000046",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000157",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000060",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000136",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000061",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000027",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000128",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000101",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000117",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000098",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000074",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000076",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000171",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000062",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000107",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000049",
+                "size": 1e-9
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000108",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000087",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000186",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000099",
+                "target": "genotype_gvcfs_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000043",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000149",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000150",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000017",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000075",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000117",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000120",
+                "target": "dedup_00000124",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000130",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000163",
+                "target": "realign_target_creator_00000162",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000114",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000025",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000176",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000055",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000144",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000159",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000121",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000014",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000061",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000125",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000126",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000106",
+                "target": "genotype_gvcfs_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000163",
+                "target": "indel_realign_00000172",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000016",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000147",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000069",
+                "target": "indel_realign_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000148",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000060",
+                "size": 1.0
+            },
+            {
+                "source": "filtering_snp_00000094",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000059",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000106",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000145",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000160",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000072",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000153",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000161",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000099",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000047",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000028",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000042",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000121",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000192",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000107",
+                "target": "genotype_gvcfs_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000057",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000036",
+                "target": "indel_realign_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000059",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000076",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000190",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000068",
+                "target": "realign_target_creator_00000069",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000018",
+                "target": "dedup_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000135",
+                "target": "sort_sam_00000142",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000131",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000151",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000117",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000134",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000143",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000131",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000080",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000068",
+                "target": "indel_realign_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000072",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000187",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000104",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000186",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000026",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000195",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000175",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000189",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000139",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000176",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000147",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000183",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000055",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000112",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000196",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000129",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000176",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000187",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000173",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000180",
+                "target": "indel_realign_00000188",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000078",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000170",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000159",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000137",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000131",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000130",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000153",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000191",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000078",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000010",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "merge_gcvf_00000081",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000013",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000160",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000189",
+                "target": "sort_sam_00000182",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000157",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000144",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000169",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000011",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000154",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000079",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000063",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000161",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000033",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000109",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000020",
+                "target": "realign_target_creator_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000083",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000137",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000097",
+                "target": "genotype_gvcfs_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000071",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000168",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000128",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000151",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000169",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000177",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000154",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000180",
+                "target": "realign_target_creator_00000181",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000185",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000171",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000080",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000133",
+                "target": "indel_realign_00000138",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000178",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000168",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000144",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000102",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000112",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000104",
+                "target": "genotype_gvcfs_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000150",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000137",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000023",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000184",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000048",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000004",
+                "target": "realign_target_creator_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000139",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000173",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000031",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000145",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000153",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000105",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000196",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000073",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000194",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000165",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000085",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000045",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000140",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000193",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000012",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000035",
+                "target": "add_replace_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000031",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000063",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000126",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000058",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000114",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000121",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000122",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000097",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000123",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000122",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000071",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000148",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000124",
+                "target": "add_replace_00000111",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000019",
+                "target": "add_replace_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000077",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000108",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000014",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000034",
+                "target": "dedup_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000001",
+                "size": 1e-9
+            },
+            {
+                "source": "dedup_00000179",
+                "target": "add_replace_00000180",
+                "size": 1.0
+            },
+            {
+                "source": "combine_variants_00000092",
+                "target": "select_variants_snp_00000093",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000129",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000183",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000047",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000049",
+                "target": "sort_sam_00000050",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000167",
+                "target": "add_replace_00000163",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000048",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000114",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000164",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000015",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000156",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000185",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000112",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000004",
+                "target": "indel_realign_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000053",
+                "target": "indel_realign_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000191",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000102",
+                "target": "genotype_gvcfs_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000184",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000041",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000056",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000118",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000116",
+                "target": "haplotype_caller_00000118",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000175",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000091",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000075",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000013",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000072",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000177",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000128",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000105",
+                "target": "genotype_gvcfs_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000065",
+                "target": "sort_sam_00000066",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000157",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000030",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000073",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000119",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000161",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000152",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000058",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000033",
+                "target": "sort_sam_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000032",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000160",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000156",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000129",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000143",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000127",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000183",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000174",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000028",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000172",
+                "target": "haplotype_caller_00000165",
+                "size": 1.0
+            },
+            {
+                "source": "select_variants_indel_00000095",
+                "target": "filtering_indel_00000096",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000190",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000007",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000195",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000175",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000115",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000144",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000059",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000184",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000008",
+                "target": "genotype_gvcfs_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000090",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000100",
+                "target": "genotype_gvcfs_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000187",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000078",
+                "target": "genotype_gvcfs_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000074",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000044",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000119",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000125",
+                "target": "genotype_gvcfs_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000158",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000191",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000074",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000134",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000174",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000136",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000165",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000027",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000044",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000115",
+                "target": "genotype_gvcfs_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000168",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000047",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000041",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "alignment_to_reference_00000164",
+                "target": "sort_sam_00000166",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000042",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000039",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000060",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000129",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000008",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000070",
+                "target": "haplotype_caller_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000052",
+                "target": "realign_target_creator_00000053",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000156",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000145",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000022",
+                "target": "haplotype_caller_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000057",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000043",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000137",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000181",
+                "target": "indel_realign_00000188",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000126",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000173",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000186",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000122",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000046",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "dedup_00000003",
+                "target": "add_replace_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000032",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000077",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000166",
+                "target": "dedup_00000167",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000135",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000100",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000141",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000020",
+                "target": "indel_realign_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000147",
+                "target": "genotype_gvcfs_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000100",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000144",
+                "target": "genotype_gvcfs_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000021",
+                "target": "indel_realign_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000108",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "alignment_to_reference_00000065",
+                "size": 1e-9
+            },
+            {
+                "source": "haplotype_caller_00000063",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000038",
+                "target": "haplotype_caller_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000026",
+                "target": "genotype_gvcfs_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000138",
+                "target": "haplotype_caller_00000141",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000016",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000158",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000079",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000064",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000064",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000148",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000194",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "realign_target_creator_00000132",
+                "target": "indel_realign_00000138",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000193",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000023",
+                "target": "genotype_gvcfs_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000009",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000062",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000154",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000170",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000054",
+                "target": "haplotype_caller_00000056",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000175",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000156",
+                "target": "genotype_gvcfs_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000089",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "add_replace_00000111",
+                "target": "indel_realign_00000116",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000141",
+                "target": "genotype_gvcfs_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000006",
+                "target": "haplotype_caller_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "indel_realign_00000188",
+                "target": "haplotype_caller_00000185",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000155",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000015",
+                "target": "genotype_gvcfs_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000182",
+                "target": "dedup_00000179",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000057",
+                "target": "genotype_gvcfs_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "genotype_gvcfs_00000082",
+                "target": "combine_variants_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000125",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000151",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000108",
+                "target": "merge_gcvf_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000045",
+                "target": "genotype_gvcfs_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "haplotype_caller_00000134",
+                "target": "genotype_gvcfs_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "sort_sam_00000002",
+                "target": "dedup_00000003",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N2",
+                "speed": 0.9068863122573209
+            },
+            {
+                "name": "N0",
+                "speed": 0.7933920293773375
+            },
+            {
+                "name": "N1",
+                "speed": 1.5623989927879114
+            }
+        ],
+        "edges": [
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.004212037230415288
+            },
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.004212037230415288
+            },
+            {
+                "source": "N2",
+                "target": "N2",
+                "speed": 0.004212037230415288
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.004212037230415288
+            },
+            {
+                "source": "N1",
+                "target": "N2",
+                "speed": 0.004212037230415288
+            },
+            {
+                "source": "N0",
+                "target": "N2",
+                "speed": 0.004212037230415288
+            }
+        ]
+    }
+}

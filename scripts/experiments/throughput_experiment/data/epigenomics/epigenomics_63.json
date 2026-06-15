@@ -1,0 +1,442 @@
+{
+    "name": "epigenomics_63",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "chr21_00000001",
+                "cost": 12.027
+            },
+            {
+                "name": "map_00000039",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000020",
+                "cost": 26.789
+            },
+            {
+                "name": "sol2sanger_00000010",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000037",
+                "cost": 12.517
+            },
+            {
+                "name": "sol2sanger_00000014",
+                "cost": 13.344
+            },
+            {
+                "name": "filterContams_00000023",
+                "cost": 17.773
+            },
+            {
+                "name": "fast2bfq_00000009",
+                "cost": 5.28
+            },
+            {
+                "name": "fast2bfq_00000017",
+                "cost": 6.022
+            },
+            {
+                "name": "filterContams_00000022",
+                "cost": 16.155
+            },
+            {
+                "name": "map_00000035",
+                "cost": 13.72
+            },
+            {
+                "name": "sol2sanger_00000008",
+                "cost": 25.546
+            },
+            {
+                "name": "filterContams_00000024",
+                "cost": 6.448
+            },
+            {
+                "name": "fastqSplit_00000021",
+                "cost": 878.473
+            },
+            {
+                "name": "map_00000040",
+                "cost": 14.601
+            },
+            {
+                "name": "sol2sanger_00000012",
+                "cost": 15.088
+            },
+            {
+                "name": "pileup_00000041",
+                "cost": 81.28
+            },
+            {
+                "name": "fast2bfq_00000019",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000029",
+                "cost": 10.417
+            },
+            {
+                "name": "mapMerge_00000031",
+                "cost": 3.725
+            },
+            {
+                "name": "filterContams_00000030",
+                "cost": 18.107
+            },
+            {
+                "name": "fast2bfq_00000007",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000004",
+                "cost": 11.112
+            },
+            {
+                "name": "sol2sanger_00000018",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000011",
+                "cost": 8.374
+            },
+            {
+                "name": "map_00000033",
+                "cost": 64.537
+            },
+            {
+                "name": "filterContams_00000026",
+                "cost": 23.124
+            },
+            {
+                "name": "sol2sanger_00000016",
+                "cost": 17.942
+            },
+            {
+                "name": "fast2bfq_00000015",
+                "cost": 6.728
+            },
+            {
+                "name": "map_00000036",
+                "cost": 38.466
+            },
+            {
+                "name": "fast2bfq_00000005",
+                "cost": 6.836
+            },
+            {
+                "name": "map_00000038",
+                "cost": 87.579
+            },
+            {
+                "name": "fast2bfq_00000013",
+                "cost": 7.171
+            },
+            {
+                "name": "map_00000034",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000006",
+                "cost": 14.084
+            },
+            {
+                "name": "map_00000032",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000027",
+                "cost": 17.045
+            },
+            {
+                "name": "filterContams_00000028",
+                "cost": 39.436
+            },
+            {
+                "name": "mapMerge_00000002",
+                "cost": 3.725
+            },
+            {
+                "name": "fast2bfq_00000003",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000025",
+                "cost": 4.742
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "fast2bfq_00000017",
+                "target": "map_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000036",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000012",
+                "target": "fast2bfq_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000030",
+                "target": "sol2sanger_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000022",
+                "target": "sol2sanger_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000010",
+                "target": "fast2bfq_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000038",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000024",
+                "target": "sol2sanger_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000020",
+                "target": "fast2bfq_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000023",
+                "target": "sol2sanger_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000008",
+                "target": "fast2bfq_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000037",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000014",
+                "target": "fast2bfq_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000015",
+                "target": "map_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000040",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000027",
+                "target": "sol2sanger_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000009",
+                "target": "map_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000034",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000025",
+                "target": "sol2sanger_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000035",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000032",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000007",
+                "target": "map_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000028",
+                "target": "sol2sanger_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000016",
+                "target": "fast2bfq_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000004",
+                "target": "fast2bfq_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000005",
+                "target": "map_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000033",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000013",
+                "target": "map_00000033",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000003",
+                "target": "map_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000031",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000011",
+                "target": "map_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000029",
+                "target": "sol2sanger_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000019",
+                "target": "map_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000002",
+                "target": "chr21_00000001",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000026",
+                "target": "sol2sanger_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000018",
+                "target": "fast2bfq_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000006",
+                "target": "fast2bfq_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000021",
+                "target": "filterContams_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "chr21_00000001",
+                "target": "pileup_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000039",
+                "target": "mapMerge_00000031",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N0",
+                "speed": 0.9285318853830804
+            },
+            {
+                "name": "N1",
+                "speed": 0.960929333052429
+            }
+        ],
+        "edges": [
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.024610613174341982
+            },
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.024610613174341982
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.024610613174341982
+            }
+        ]
+    }
+}

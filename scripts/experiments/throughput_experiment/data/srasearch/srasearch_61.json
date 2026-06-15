@@ -1,0 +1,419 @@
+{
+    "name": "srasearch_61",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "fasterq-dump_00000027",
+                "cost": 2080.108
+            },
+            {
+                "name": "fasterq-dump_00000016",
+                "cost": 816.005
+            },
+            {
+                "name": "bowtie2_00000009",
+                "cost": 12.307
+            },
+            {
+                "name": "fasterq-dump_00000025",
+                "cost": 434.37
+            },
+            {
+                "name": "fasterq-dump_00000004",
+                "cost": 3309.56
+            },
+            {
+                "name": "bowtie2_00000011",
+                "cost": 12.102
+            },
+            {
+                "name": "bowtie2_00000013",
+                "cost": 15.641
+            },
+            {
+                "name": "bowtie2_00000028",
+                "cost": 104.76
+            },
+            {
+                "name": "fasterq-dump_00000018",
+                "cost": 1643.588
+            },
+            {
+                "name": "bowtie2_00000005",
+                "cost": 12.102
+            },
+            {
+                "name": "bowtie2_00000021",
+                "cost": 12.102
+            },
+            {
+                "name": "fasterq-dump_00000024",
+                "cost": 490.961
+            },
+            {
+                "name": "bowtie2_00000023",
+                "cost": 116.219
+            },
+            {
+                "name": "SRC",
+                "cost": 1e-9
+            },
+            {
+                "name": "fasterq-dump_00000014",
+                "cost": 5638.751
+            },
+            {
+                "name": "merge_00000022",
+                "cost": 0.03
+            },
+            {
+                "name": "bowtie2_00000003",
+                "cost": 21.23
+            },
+            {
+                "name": "bowtie2_00000007",
+                "cost": 85.781
+            },
+            {
+                "name": "fasterq-dump_00000002",
+                "cost": 1883.585
+            },
+            {
+                "name": "fasterq-dump_00000008",
+                "cost": 3023.966
+            },
+            {
+                "name": "fasterq-dump_00000006",
+                "cost": 1598.33
+            },
+            {
+                "name": "bowtie2_00000017",
+                "cost": 13.665
+            },
+            {
+                "name": "bowtie2_00000019",
+                "cost": 12.102
+            },
+            {
+                "name": "fasterq-dump_00000020",
+                "cost": 2809.533
+            },
+            {
+                "name": "bowtie2_00000015",
+                "cost": 28.762
+            },
+            {
+                "name": "bowtie2-build_00000001",
+                "cost": 4.819
+            },
+            {
+                "name": "fasterq-dump_00000012",
+                "cost": 835.17
+            },
+            {
+                "name": "bowtie2_00000026",
+                "cost": 12.102
+            },
+            {
+                "name": "fasterq-dump_00000010",
+                "cost": 434.37
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000016",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "bowtie2-build_00000001",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000020",
+                "size": 1e-9
+            },
+            {
+                "source": "fasterq-dump_00000025",
+                "target": "bowtie2_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000014",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000011",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000028",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000008",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000027",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000008",
+                "target": "bowtie2_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000002",
+                "size": 1e-9
+            },
+            {
+                "source": "fasterq-dump_00000012",
+                "target": "bowtie2_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000017",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000025",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2_00000013",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000002",
+                "target": "bowtie2_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000010",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2_00000003",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000026",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000024",
+                "target": "bowtie2_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000016",
+                "target": "bowtie2_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000020",
+                "target": "bowtie2_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000019",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000023",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000010",
+                "target": "bowtie2_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000006",
+                "target": "bowtie2_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000012",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000018",
+                "size": 1e-9
+            },
+            {
+                "source": "fasterq-dump_00000014",
+                "target": "bowtie2_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000006",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000004",
+                "target": "bowtie2_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000018",
+                "target": "bowtie2_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000021",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "fasterq-dump_00000027",
+                "target": "bowtie2_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000005",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000004",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "fasterq-dump_00000024",
+                "size": 1e-9
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000015",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2-build_00000001",
+                "target": "bowtie2_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000009",
+                "target": "merge_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bowtie2_00000007",
+                "target": "merge_00000022",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N0",
+                "speed": 1.1213820787313156
+            },
+            {
+                "name": "N1",
+                "speed": 0.9243462059982197
+            }
+        ],
+        "edges": [
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.000857258534954079
+            },
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.000857258534954079
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.000857258534954079
+            }
+        ]
+    }
+}

@@ -1,0 +1,5967 @@
+{
+    "name": "epigenomics_91",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "fast2bfq_00000093",
+                "cost": 1.913
+            },
+            {
+                "name": "chr21_00000001",
+                "cost": 12.027
+            },
+            {
+                "name": "sol2sanger_00000126",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000130",
+                "cost": 25.419
+            },
+            {
+                "name": "fast2bfq_00000069",
+                "cost": 6.414
+            },
+            {
+                "name": "sol2sanger_00000426",
+                "cost": 26.52
+            },
+            {
+                "name": "fast2bfq_00000025",
+                "cost": 6.423
+            },
+            {
+                "name": "map_00000456",
+                "cost": 49.599
+            },
+            {
+                "name": "filterContams_00000256",
+                "cost": 9.543
+            },
+            {
+                "name": "fast2bfq_00000009",
+                "cost": 1.589
+            },
+            {
+                "name": "fast2bfq_00000175",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000226",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000026",
+                "cost": 10.309
+            },
+            {
+                "name": "filterContams_00000286",
+                "cost": 30.868
+            },
+            {
+                "name": "sol2sanger_00000581",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000536",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000449",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000297",
+                "cost": 12.947
+            },
+            {
+                "name": "fast2bfq_00000205",
+                "cost": 4.173
+            },
+            {
+                "name": "fast2bfq_00000085",
+                "cost": 8.756
+            },
+            {
+                "name": "sol2sanger_00000048",
+                "cost": 18.419
+            },
+            {
+                "name": "sol2sanger_00000092",
+                "cost": 19.819
+            },
+            {
+                "name": "filterContams_00000556",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000068",
+                "cost": 3.771
+            },
+            {
+                "name": "filterContams_00000272",
+                "cost": 44.58
+            },
+            {
+                "name": "fastqSplit_00000469",
+                "cost": 878.473
+            },
+            {
+                "name": "sol2sanger_00000204",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000035",
+                "cost": 3.192
+            },
+            {
+                "name": "sol2sanger_00000142",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000435",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000254",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000451",
+                "cost": 14.061
+            },
+            {
+                "name": "fast2bfq_00000454",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000411",
+                "cost": 29.808
+            },
+            {
+                "name": "map_00000331",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000283",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000507",
+                "cost": 9.433
+            },
+            {
+                "name": "sol2sanger_00000138",
+                "cost": 7.434
+            },
+            {
+                "name": "sol2sanger_00000489",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000079",
+                "cost": 9.827
+            },
+            {
+                "name": "fast2bfq_00000521",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000361",
+                "cost": 80.923
+            },
+            {
+                "name": "filterContams_00000264",
+                "cost": 14.123
+            },
+            {
+                "name": "fast2bfq_00000155",
+                "cost": 3.679
+            },
+            {
+                "name": "fast2bfq_00000179",
+                "cost": 9.845
+            },
+            {
+                "name": "map_00000354",
+                "cost": 28.764
+            },
+            {
+                "name": "fast2bfq_00000424",
+                "cost": 4.186
+            },
+            {
+                "name": "fast2bfq_00000441",
+                "cost": 7.194
+            },
+            {
+                "name": "map_00000414",
+                "cost": 19.384
+            },
+            {
+                "name": "map_00000339",
+                "cost": 14.594
+            },
+            {
+                "name": "fast2bfq_00000043",
+                "cost": 9.28
+            },
+            {
+                "name": "filterContams_00000248",
+                "cost": 11.821
+            },
+            {
+                "name": "map_00000346",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000302",
+                "cost": 7.472
+            },
+            {
+                "name": "sol2sanger_00000194",
+                "cost": 13.489
+            },
+            {
+                "name": "sol2sanger_00000551",
+                "cost": 15.251
+            },
+            {
+                "name": "sol2sanger_00000090",
+                "cost": 22.021
+            },
+            {
+                "name": "filterContams_00000268",
+                "cost": 22.576
+            },
+            {
+                "name": "fastqSplit_00000207",
+                "cost": 878.473
+            },
+            {
+                "name": "fastqSplit_00000209",
+                "cost": 878.473
+            },
+            {
+                "name": "map_00000407",
+                "cost": 28.441
+            },
+            {
+                "name": "map_00000373",
+                "cost": 22.386
+            },
+            {
+                "name": "fast2bfq_00000199",
+                "cost": 7.913
+            },
+            {
+                "name": "fast2bfq_00000059",
+                "cost": 4.477
+            },
+            {
+                "name": "filterContams_00000568",
+                "cost": 28.218
+            },
+            {
+                "name": "map_00000406",
+                "cost": 34.105
+            },
+            {
+                "name": "sol2sanger_00000545",
+                "cost": 3.982
+            },
+            {
+                "name": "map_00000408",
+                "cost": 56.606
+            },
+            {
+                "name": "map_00000325",
+                "cost": 78.992
+            },
+            {
+                "name": "fast2bfq_00000005",
+                "cost": 8.276
+            },
+            {
+                "name": "fast2bfq_00000147",
+                "cost": 3.577
+            },
+            {
+                "name": "map_00000358",
+                "cost": 17.956
+            },
+            {
+                "name": "fast2bfq_00000141",
+                "cost": 4.746
+            },
+            {
+                "name": "sol2sanger_00000050",
+                "cost": 15.933
+            },
+            {
+                "name": "sol2sanger_00000032",
+                "cost": 11.437
+            },
+            {
+                "name": "fast2bfq_00000169",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000432",
+                "cost": 27.762
+            },
+            {
+                "name": "fast2bfq_00000471",
+                "cost": 10.465
+            },
+            {
+                "name": "filterContams_00000235",
+                "cost": 19.233
+            },
+            {
+                "name": "filterContams_00000470",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000580",
+                "cost": 20.236
+            },
+            {
+                "name": "fast2bfq_00000564",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000237",
+                "cost": 17.377
+            },
+            {
+                "name": "map_00000324",
+                "cost": 12.264
+            },
+            {
+                "name": "mapMerge_00000314",
+                "cost": 12.431
+            },
+            {
+                "name": "fast2bfq_00000017",
+                "cost": 4.589
+            },
+            {
+                "name": "filterContams_00000262",
+                "cost": 18.423
+            },
+            {
+                "name": "SRC",
+                "cost": 1e-9
+            },
+            {
+                "name": "sol2sanger_00000008",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000326",
+                "cost": 59.445
+            },
+            {
+                "name": "sol2sanger_00000156",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000497",
+                "cost": 11.587
+            },
+            {
+                "name": "fast2bfq_00000019",
+                "cost": 4.453
+            },
+            {
+                "name": "filterContams_00000300",
+                "cost": 35.005
+            },
+            {
+                "name": "sol2sanger_00000128",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000146",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000088",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000466",
+                "cost": 25.33
+            },
+            {
+                "name": "map_00000370",
+                "cost": 38.186
+            },
+            {
+                "name": "sol2sanger_00000423",
+                "cost": 8.446
+            },
+            {
+                "name": "filterContams_00000218",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000459",
+                "cost": 18.091
+            },
+            {
+                "name": "map_00000492",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000529",
+                "cost": 17.328
+            },
+            {
+                "name": "fast2bfq_00000105",
+                "cost": 9.067
+            },
+            {
+                "name": "sol2sanger_00000482",
+                "cost": 19.416
+            },
+            {
+                "name": "fast2bfq_00000171",
+                "cost": 2.338
+            },
+            {
+                "name": "fast2bfq_00000087",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000360",
+                "cost": 44.495
+            },
+            {
+                "name": "filterContams_00000246",
+                "cost": 26.156
+            },
+            {
+                "name": "sol2sanger_00000154",
+                "cost": 3.375
+            },
+            {
+                "name": "map_00000357",
+                "cost": 19.597
+            },
+            {
+                "name": "sol2sanger_00000122",
+                "cost": 23.612
+            },
+            {
+                "name": "sol2sanger_00000144",
+                "cost": 20.516
+            },
+            {
+                "name": "sol2sanger_00000168",
+                "cost": 21.434
+            },
+            {
+                "name": "fast2bfq_00000107",
+                "cost": 1.593
+            },
+            {
+                "name": "sol2sanger_00000170",
+                "cost": 10.288
+            },
+            {
+                "name": "filterContams_00000213",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000323",
+                "cost": 23.43
+            },
+            {
+                "name": "sol2sanger_00000012",
+                "cost": 12.044
+            },
+            {
+                "name": "map_00000479",
+                "cost": 62.496
+            },
+            {
+                "name": "fast2bfq_00000502",
+                "cost": 8.734
+            },
+            {
+                "name": "fast2bfq_00000530",
+                "cost": 8.164
+            },
+            {
+                "name": "sol2sanger_00000028",
+                "cost": 23.999
+            },
+            {
+                "name": "sol2sanger_00000056",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000186",
+                "cost": 19.026
+            },
+            {
+                "name": "sol2sanger_00000118",
+                "cost": 5.267
+            },
+            {
+                "name": "sol2sanger_00000076",
+                "cost": 7.616
+            },
+            {
+                "name": "fast2bfq_00000111",
+                "cost": 2.785
+            },
+            {
+                "name": "fast2bfq_00000193",
+                "cost": 2.815
+            },
+            {
+                "name": "filterContams_00000305",
+                "cost": 4.742
+            },
+            {
+                "name": "pileup_00000421",
+                "cost": 98.679
+            },
+            {
+                "name": "fast2bfq_00000167",
+                "cost": 7.488
+            },
+            {
+                "name": "filterContams_00000219",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000442",
+                "cost": 54.638
+            },
+            {
+                "name": "fast2bfq_00000131",
+                "cost": 5.179
+            },
+            {
+                "name": "fast2bfq_00000191",
+                "cost": 6.768
+            },
+            {
+                "name": "sol2sanger_00000080",
+                "cost": 3.738
+            },
+            {
+                "name": "fast2bfq_00000103",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000478",
+                "cost": 5.584
+            },
+            {
+                "name": "map_00000344",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000552",
+                "cost": 42.314
+            },
+            {
+                "name": "map_00000337",
+                "cost": 35.497
+            },
+            {
+                "name": "map_00000333",
+                "cost": 58.224
+            },
+            {
+                "name": "sol2sanger_00000559",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000036",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000319",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000543",
+                "cost": 57.843
+            },
+            {
+                "name": "map_00000380",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000180",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000176",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000234",
+                "cost": 9.571
+            },
+            {
+                "name": "filterContams_00000212",
+                "cost": 25.256
+            },
+            {
+                "name": "map_00000413",
+                "cost": 13.612
+            },
+            {
+                "name": "fast2bfq_00000445",
+                "cost": 1.051
+            },
+            {
+                "name": "fast2bfq_00000195",
+                "cost": 4.41
+            },
+            {
+                "name": "fast2bfq_00000565",
+                "cost": 6.146
+            },
+            {
+                "name": "map_00000402",
+                "cost": 71.206
+            },
+            {
+                "name": "filterContams_00000280",
+                "cost": 36.142
+            },
+            {
+                "name": "sol2sanger_00000488",
+                "cost": 9.589
+            },
+            {
+                "name": "sol2sanger_00000505",
+                "cost": 2.917
+            },
+            {
+                "name": "fast2bfq_00000149",
+                "cost": 2.556
+            },
+            {
+                "name": "map_00000336",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000039",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000493",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000369",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000055",
+                "cost": 4.052
+            },
+            {
+                "name": "filterContams_00000214",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000091",
+                "cost": 6.759
+            },
+            {
+                "name": "filterContams_00000562",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000511",
+                "cost": 7.032
+            },
+            {
+                "name": "fast2bfq_00000527",
+                "cost": 9.186
+            },
+            {
+                "name": "filterContams_00000306",
+                "cost": 5.48
+            },
+            {
+                "name": "map_00000374",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000434",
+                "cost": 5.387
+            },
+            {
+                "name": "sol2sanger_00000572",
+                "cost": 6.047
+            },
+            {
+                "name": "fast2bfq_00000447",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000228",
+                "cost": 16.591
+            },
+            {
+                "name": "map_00000351",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000514",
+                "cost": 28.264
+            },
+            {
+                "name": "map_00000382",
+                "cost": 28.621
+            },
+            {
+                "name": "sol2sanger_00000044",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000229",
+                "cost": 17.85
+            },
+            {
+                "name": "sol2sanger_00000078",
+                "cost": 4.714
+            },
+            {
+                "name": "map_00000378",
+                "cost": 81.428
+            },
+            {
+                "name": "sol2sanger_00000106",
+                "cost": 10.329
+            },
+            {
+                "name": "map_00000420",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000391",
+                "cost": 34.677
+            },
+            {
+                "name": "sol2sanger_00000164",
+                "cost": 21.549
+            },
+            {
+                "name": "fast2bfq_00000151",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000116",
+                "cost": 12.939
+            },
+            {
+                "name": "map_00000368",
+                "cost": 53.022
+            },
+            {
+                "name": "map_00000412",
+                "cost": 65.048
+            },
+            {
+                "name": "fast2bfq_00000197",
+                "cost": 2.623
+            },
+            {
+                "name": "fast2bfq_00000547",
+                "cost": 1.051
+            },
+            {
+                "name": "fast2bfq_00000053",
+                "cost": 4.587
+            },
+            {
+                "name": "fast2bfq_00000011",
+                "cost": 1.637
+            },
+            {
+                "name": "map_00000540",
+                "cost": 55.141
+            },
+            {
+                "name": "fast2bfq_00000089",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000475",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000188",
+                "cost": 27.872
+            },
+            {
+                "name": "map_00000546",
+                "cost": 19.065
+            },
+            {
+                "name": "filterContams_00000498",
+                "cost": 4.939
+            },
+            {
+                "name": "sol2sanger_00000160",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000243",
+                "cost": 28.053
+            },
+            {
+                "name": "fast2bfq_00000109",
+                "cost": 4.23
+            },
+            {
+                "name": "fast2bfq_00000067",
+                "cost": 1.051
+            },
+            {
+                "name": "fast2bfq_00000496",
+                "cost": 6.788
+            },
+            {
+                "name": "map_00000321",
+                "cost": 17.695
+            },
+            {
+                "name": "map_00000503",
+                "cost": 18.289
+            },
+            {
+                "name": "map_00000376",
+                "cost": 34.278
+            },
+            {
+                "name": "fast2bfq_00000201",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000301",
+                "cost": 20.948
+            },
+            {
+                "name": "filterContams_00000512",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000548",
+                "cost": 80.982
+            },
+            {
+                "name": "filterContams_00000236",
+                "cost": 21.066
+            },
+            {
+                "name": "sol2sanger_00000020",
+                "cost": 20.533
+            },
+            {
+                "name": "filterContams_00000450",
+                "cost": 26.069
+            },
+            {
+                "name": "map_00000515",
+                "cost": 27.54
+            },
+            {
+                "name": "fast2bfq_00000139",
+                "cost": 7.009
+            },
+            {
+                "name": "sol2sanger_00000178",
+                "cost": 12.424
+            },
+            {
+                "name": "filterContams_00000223",
+                "cost": 31.492
+            },
+            {
+                "name": "sol2sanger_00000437",
+                "cost": 13.564
+            },
+            {
+                "name": "sol2sanger_00000104",
+                "cost": 12.301
+            },
+            {
+                "name": "map_00000353",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000531",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000390",
+                "cost": 43.309
+            },
+            {
+                "name": "sol2sanger_00000072",
+                "cost": 7.554
+            },
+            {
+                "name": "filterContams_00000544",
+                "cost": 16.269
+            },
+            {
+                "name": "filterContams_00000245",
+                "cost": 39.124
+            },
+            {
+                "name": "fast2bfq_00000021",
+                "cost": 2.451
+            },
+            {
+                "name": "fast2bfq_00000119",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000500",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000252",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000405",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000029",
+                "cost": 4.281
+            },
+            {
+                "name": "map_00000394",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000016",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000499",
+                "cost": 33.566
+            },
+            {
+                "name": "map_00000484",
+                "cost": 39.859
+            },
+            {
+                "name": "map_00000393",
+                "cost": 26.893
+            },
+            {
+                "name": "fastqSplit_00000208",
+                "cost": 878.473
+            },
+            {
+                "name": "fast2bfq_00000129",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000311",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000504",
+                "cost": 13.541
+            },
+            {
+                "name": "fastqSplit_00000210",
+                "cost": 878.473
+            },
+            {
+                "name": "mapMerge_00000002",
+                "cost": 17.885
+            },
+            {
+                "name": "sol2sanger_00000152",
+                "cost": 6.897
+            },
+            {
+                "name": "fast2bfq_00000003",
+                "cost": 1.051
+            },
+            {
+                "name": "fast2bfq_00000183",
+                "cost": 9.34
+            },
+            {
+                "name": "map_00000418",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000123",
+                "cost": 2.481
+            },
+            {
+                "name": "sol2sanger_00000519",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000247",
+                "cost": 44.629
+            },
+            {
+                "name": "fast2bfq_00000037",
+                "cost": 1.385
+            },
+            {
+                "name": "filterContams_00000265",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000375",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000086",
+                "cost": 8.465
+            },
+            {
+                "name": "fast2bfq_00000571",
+                "cost": 1.868
+            },
+            {
+                "name": "sol2sanger_00000014",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000124",
+                "cost": 9.06
+            },
+            {
+                "name": "filterContams_00000282",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000573",
+                "cost": 3.149
+            },
+            {
+                "name": "fast2bfq_00000203",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000399",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000534",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000430",
+                "cost": 24.258
+            },
+            {
+                "name": "filterContams_00000255",
+                "cost": 28.869
+            },
+            {
+                "name": "filterContams_00000287",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000577",
+                "cost": 11.859
+            },
+            {
+                "name": "sol2sanger_00000046",
+                "cost": 11.643
+            },
+            {
+                "name": "sol2sanger_00000162",
+                "cost": 24.409
+            },
+            {
+                "name": "sol2sanger_00000038",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000042",
+                "cost": 26.312
+            },
+            {
+                "name": "filterContams_00000261",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000453",
+                "cost": 25.097
+            },
+            {
+                "name": "fast2bfq_00000157",
+                "cost": 1.129
+            },
+            {
+                "name": "map_00000332",
+                "cost": 26.6
+            },
+            {
+                "name": "filterContams_00000285",
+                "cost": 5.383
+            },
+            {
+                "name": "filterContams_00000253",
+                "cost": 31.464
+            },
+            {
+                "name": "map_00000416",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000094",
+                "cost": 18.956
+            },
+            {
+                "name": "fast2bfq_00000027",
+                "cost": 10.264
+            },
+            {
+                "name": "filterContams_00000284",
+                "cost": 36.965
+            },
+            {
+                "name": "map_00000385",
+                "cost": 16.087
+            },
+            {
+                "name": "sol2sanger_00000518",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000472",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000457",
+                "cost": 12.499
+            },
+            {
+                "name": "map_00000384",
+                "cost": 36.284
+            },
+            {
+                "name": "fast2bfq_00000047",
+                "cost": 7.45
+            },
+            {
+                "name": "map_00000561",
+                "cost": 17.506
+            },
+            {
+                "name": "fast2bfq_00000083",
+                "cost": 8.25
+            },
+            {
+                "name": "map_00000388",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000320",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000291",
+                "cost": 16.468
+            },
+            {
+                "name": "fast2bfq_00000041",
+                "cost": 3.838
+            },
+            {
+                "name": "sol2sanger_00000060",
+                "cost": 13.986
+            },
+            {
+                "name": "fast2bfq_00000535",
+                "cost": 7.425
+            },
+            {
+                "name": "sol2sanger_00000463",
+                "cost": 3.937
+            },
+            {
+                "name": "filterContams_00000312",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000387",
+                "cost": 57.058
+            },
+            {
+                "name": "filterContams_00000242",
+                "cost": 39.915
+            },
+            {
+                "name": "filterContams_00000225",
+                "cost": 21.275
+            },
+            {
+                "name": "sol2sanger_00000528",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000216",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000052",
+                "cost": 23.997
+            },
+            {
+                "name": "map_00000397",
+                "cost": 55.957
+            },
+            {
+                "name": "filterContams_00000281",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000327",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000506",
+                "cost": 34.864
+            },
+            {
+                "name": "filterContams_00000303",
+                "cost": 34.347
+            },
+            {
+                "name": "sol2sanger_00000082",
+                "cost": 5.583
+            },
+            {
+                "name": "sol2sanger_00000084",
+                "cost": 7.966
+            },
+            {
+                "name": "map_00000381",
+                "cost": 45.119
+            },
+            {
+                "name": "sol2sanger_00000490",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000240",
+                "cost": 20.702
+            },
+            {
+                "name": "sol2sanger_00000058",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000313",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000345",
+                "cost": 41.982
+            },
+            {
+                "name": "sol2sanger_00000054",
+                "cost": 12.01
+            },
+            {
+                "name": "map_00000363",
+                "cost": 36.225
+            },
+            {
+                "name": "map_00000477",
+                "cost": 32.122
+            },
+            {
+                "name": "fast2bfq_00000428",
+                "cost": 3.348
+            },
+            {
+                "name": "sol2sanger_00000006",
+                "cost": 6.81
+            },
+            {
+                "name": "fast2bfq_00000145",
+                "cost": 5.785
+            },
+            {
+                "name": "filterContams_00000310",
+                "cost": 37.64
+            },
+            {
+                "name": "sol2sanger_00000024",
+                "cost": 18.995
+            },
+            {
+                "name": "fast2bfq_00000563",
+                "cost": 4.27
+            },
+            {
+                "name": "filterContams_00000277",
+                "cost": 23.325
+            },
+            {
+                "name": "sol2sanger_00000132",
+                "cost": 11.134
+            },
+            {
+                "name": "filterContams_00000279",
+                "cost": 41.997
+            },
+            {
+                "name": "sol2sanger_00000192",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000227",
+                "cost": 22.071
+            },
+            {
+                "name": "fast2bfq_00000438",
+                "cost": 8.261
+            },
+            {
+                "name": "filterContams_00000307",
+                "cost": 24.142
+            },
+            {
+                "name": "filterContams_00000517",
+                "cost": 34.775
+            },
+            {
+                "name": "sol2sanger_00000174",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000077",
+                "cost": 1.051
+            },
+            {
+                "name": "mapMerge_00000315",
+                "cost": 27.712
+            },
+            {
+                "name": "fast2bfq_00000101",
+                "cost": 5.791
+            },
+            {
+                "name": "filterContams_00000523",
+                "cost": 43.358
+            },
+            {
+                "name": "filterContams_00000278",
+                "cost": 28.611
+            },
+            {
+                "name": "sol2sanger_00000196",
+                "cost": 26.864
+            },
+            {
+                "name": "fast2bfq_00000473",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000309",
+                "cost": 41.042
+            },
+            {
+                "name": "sol2sanger_00000098",
+                "cost": 23.638
+            },
+            {
+                "name": "sol2sanger_00000172",
+                "cost": 13.359
+            },
+            {
+                "name": "sol2sanger_00000022",
+                "cost": 3.574
+            },
+            {
+                "name": "map_00000461",
+                "cost": 17.111
+            },
+            {
+                "name": "filterContams_00000298",
+                "cost": 12.671
+            },
+            {
+                "name": "fast2bfq_00000446",
+                "cost": 4.667
+            },
+            {
+                "name": "map_00000569",
+                "cost": 41.635
+            },
+            {
+                "name": "filterContams_00000273",
+                "cost": 32.651
+            },
+            {
+                "name": "mapMerge_00000318",
+                "cost": 3.725
+            },
+            {
+                "name": "map_00000404",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000533",
+                "cost": 8.386
+            },
+            {
+                "name": "fast2bfq_00000135",
+                "cost": 5.001
+            },
+            {
+                "name": "map_00000341",
+                "cost": 36.437
+            },
+            {
+                "name": "fast2bfq_00000153",
+                "cost": 5.765
+            },
+            {
+                "name": "sol2sanger_00000030",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000340",
+                "cost": 39.522
+            },
+            {
+                "name": "sol2sanger_00000034",
+                "cost": 10.116
+            },
+            {
+                "name": "sol2sanger_00000190",
+                "cost": 19.501
+            },
+            {
+                "name": "filterContams_00000238",
+                "cost": 15.489
+            },
+            {
+                "name": "map_00000367",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000395",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000419",
+                "cost": 14.887
+            },
+            {
+                "name": "fast2bfq_00000163",
+                "cost": 7.413
+            },
+            {
+                "name": "sol2sanger_00000158",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000403",
+                "cost": 18.703
+            },
+            {
+                "name": "map_00000410",
+                "cost": 41.278
+            },
+            {
+                "name": "map_00000330",
+                "cost": 76.344
+            },
+            {
+                "name": "map_00000348",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000113",
+                "cost": 3.309
+            },
+            {
+                "name": "sol2sanger_00000010",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000383",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000120",
+                "cost": 2.964
+            },
+            {
+                "name": "filterContams_00000217",
+                "cost": 37.602
+            },
+            {
+                "name": "filterContams_00000275",
+                "cost": 20.325
+            },
+            {
+                "name": "filterContams_00000292",
+                "cost": 16.568
+            },
+            {
+                "name": "fast2bfq_00000483",
+                "cost": 9.22
+            },
+            {
+                "name": "filterContams_00000258",
+                "cost": 24.123
+            },
+            {
+                "name": "sol2sanger_00000114",
+                "cost": 25.405
+            },
+            {
+                "name": "map_00000350",
+                "cost": 24.655
+            },
+            {
+                "name": "sol2sanger_00000066",
+                "cost": 5.95
+            },
+            {
+                "name": "fast2bfq_00000524",
+                "cost": 6.017
+            },
+            {
+                "name": "sol2sanger_00000182",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000133",
+                "cost": 4.707
+            },
+            {
+                "name": "map_00000352",
+                "cost": 58.056
+            },
+            {
+                "name": "map_00000557",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000232",
+                "cost": 14.265
+            },
+            {
+                "name": "fast2bfq_00000117",
+                "cost": 3.345
+            },
+            {
+                "name": "sol2sanger_00000110",
+                "cost": 16.403
+            },
+            {
+                "name": "map_00000417",
+                "cost": 50.365
+            },
+            {
+                "name": "fast2bfq_00000023",
+                "cost": 8.302
+            },
+            {
+                "name": "map_00000400",
+                "cost": 52.111
+            },
+            {
+                "name": "mapMerge_00000316",
+                "cost": 11.466
+            },
+            {
+                "name": "filterContams_00000542",
+                "cost": 40.269
+            },
+            {
+                "name": "filterContams_00000554",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000335",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000244",
+                "cost": 16.7
+            },
+            {
+                "name": "filterContams_00000495",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000250",
+                "cost": 23.14
+            },
+            {
+                "name": "map_00000409",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000257",
+                "cost": 38.885
+            },
+            {
+                "name": "filterContams_00000263",
+                "cost": 30.589
+            },
+            {
+                "name": "fast2bfq_00000510",
+                "cost": 6.59
+            },
+            {
+                "name": "fast2bfq_00000115",
+                "cost": 4.351
+            },
+            {
+                "name": "map_00000372",
+                "cost": 41.67
+            },
+            {
+                "name": "fast2bfq_00000063",
+                "cost": 4.847
+            },
+            {
+                "name": "map_00000347",
+                "cost": 27.903
+            },
+            {
+                "name": "filterContams_00000270",
+                "cost": 35.338
+            },
+            {
+                "name": "fastqSplit_00000211",
+                "cost": 878.473
+            },
+            {
+                "name": "filterContams_00000259",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000230",
+                "cost": 14.997
+            },
+            {
+                "name": "map_00000567",
+                "cost": 101.281
+            },
+            {
+                "name": "map_00000427",
+                "cost": 56.37
+            },
+            {
+                "name": "fast2bfq_00000159",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000455",
+                "cost": 5.777
+            },
+            {
+                "name": "map_00000322",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000467",
+                "cost": 32.039
+            },
+            {
+                "name": "map_00000468",
+                "cost": 54.101
+            },
+            {
+                "name": "map_00000377",
+                "cost": 63.191
+            },
+            {
+                "name": "filterContams_00000267",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000576",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000458",
+                "cost": 4.406
+            },
+            {
+                "name": "filterContams_00000460",
+                "cost": 11.611
+            },
+            {
+                "name": "fast2bfq_00000007",
+                "cost": 2.535
+            },
+            {
+                "name": "sol2sanger_00000064",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000161",
+                "cost": 1.051
+            },
+            {
+                "name": "mapMerge_00000526",
+                "cost": 36.348
+            },
+            {
+                "name": "map_00000487",
+                "cost": 17.031
+            },
+            {
+                "name": "map_00000525",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000356",
+                "cost": 26.229
+            },
+            {
+                "name": "fast2bfq_00000051",
+                "cost": 7.365
+            },
+            {
+                "name": "fast2bfq_00000081",
+                "cost": 6.987
+            },
+            {
+                "name": "filterContams_00000464",
+                "cost": 28.645
+            },
+            {
+                "name": "filterContams_00000274",
+                "cost": 44.645
+            },
+            {
+                "name": "filterContams_00000294",
+                "cost": 22.909
+            },
+            {
+                "name": "map_00000355",
+                "cost": 16.556
+            },
+            {
+                "name": "sol2sanger_00000198",
+                "cost": 17.729
+            },
+            {
+                "name": "fast2bfq_00000187",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000365",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000371",
+                "cost": 13.622
+            },
+            {
+                "name": "filterContams_00000486",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000125",
+                "cost": 5.333
+            },
+            {
+                "name": "map_00000396",
+                "cost": 52.201
+            },
+            {
+                "name": "filterContams_00000539",
+                "cost": 13.998
+            },
+            {
+                "name": "sol2sanger_00000150",
+                "cost": 4.667
+            },
+            {
+                "name": "filterContams_00000550",
+                "cost": 22.852
+            },
+            {
+                "name": "fast2bfq_00000071",
+                "cost": 1.051
+            },
+            {
+                "name": "map_00000343",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000570",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000033",
+                "cost": 5.247
+            },
+            {
+                "name": "fast2bfq_00000520",
+                "cost": 4.863
+            },
+            {
+                "name": "sol2sanger_00000202",
+                "cost": 19.794
+            },
+            {
+                "name": "filterContams_00000221",
+                "cost": 33.726
+            },
+            {
+                "name": "filterContams_00000260",
+                "cost": 39.698
+            },
+            {
+                "name": "map_00000462",
+                "cost": 24.793
+            },
+            {
+                "name": "fast2bfq_00000189",
+                "cost": 10.311
+            },
+            {
+                "name": "fast2bfq_00000075",
+                "cost": 7.017
+            },
+            {
+                "name": "fast2bfq_00000073",
+                "cost": 4.984
+            },
+            {
+                "name": "fast2bfq_00000013",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000296",
+                "cost": 38.178
+            },
+            {
+                "name": "sol2sanger_00000436",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000364",
+                "cost": 41.377
+            },
+            {
+                "name": "filterContams_00000231",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000040",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000422",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000425",
+                "cost": 23.154
+            },
+            {
+                "name": "map_00000452",
+                "cost": 53.548
+            },
+            {
+                "name": "fast2bfq_00000049",
+                "cost": 5.181
+            },
+            {
+                "name": "fast2bfq_00000045",
+                "cost": 8.466
+            },
+            {
+                "name": "filterContams_00000541",
+                "cost": 15.178
+            },
+            {
+                "name": "map_00000359",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000102",
+                "cost": 9.663
+            },
+            {
+                "name": "fast2bfq_00000065",
+                "cost": 8.771
+            },
+            {
+                "name": "filterContams_00000241",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000165",
+                "cost": 3.451
+            },
+            {
+                "name": "fast2bfq_00000185",
+                "cost": 1.051
+            },
+            {
+                "name": "sol2sanger_00000494",
+                "cost": 13.428
+            },
+            {
+                "name": "sol2sanger_00000474",
+                "cost": 28.052
+            },
+            {
+                "name": "map_00000328",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000553",
+                "cost": 2.055
+            },
+            {
+                "name": "sol2sanger_00000096",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000516",
+                "cost": 26.642
+            },
+            {
+                "name": "filterContams_00000251",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000481",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000004",
+                "cost": 4.287
+            },
+            {
+                "name": "filterContams_00000440",
+                "cost": 11.229
+            },
+            {
+                "name": "map_00000398",
+                "cost": 12.264
+            },
+            {
+                "name": "filterContams_00000308",
+                "cost": 27.251
+            },
+            {
+                "name": "map_00000379",
+                "cost": 30.729
+            },
+            {
+                "name": "sol2sanger_00000134",
+                "cost": 5.957
+            },
+            {
+                "name": "fast2bfq_00000513",
+                "cost": 1.051
+            },
+            {
+                "name": "filterContams_00000276",
+                "cost": 39.366
+            },
+            {
+                "name": "sol2sanger_00000166",
+                "cost": 17.572
+            },
+            {
+                "name": "map_00000389",
+                "cost": 51.138
+            },
+            {
+                "name": "filterContams_00000429",
+                "cost": 6.389
+            },
+            {
+                "name": "fast2bfq_00000560",
+                "cost": 6.655
+            },
+            {
+                "name": "sol2sanger_00000062",
+                "cost": 3.851
+            },
+            {
+                "name": "map_00000342",
+                "cost": 31.322
+            },
+            {
+                "name": "filterContams_00000266",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000509",
+                "cost": 4.066
+            },
+            {
+                "name": "map_00000401",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000431",
+                "cost": 47.757
+            },
+            {
+                "name": "fast2bfq_00000476",
+                "cost": 2.146
+            },
+            {
+                "name": "sol2sanger_00000100",
+                "cost": 13.067
+            },
+            {
+                "name": "sol2sanger_00000532",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000112",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000061",
+                "cost": 2.801
+            },
+            {
+                "name": "map_00000362",
+                "cost": 12.264
+            },
+            {
+                "name": "sol2sanger_00000538",
+                "cost": 2.857
+            },
+            {
+                "name": "fast2bfq_00000097",
+                "cost": 5.77
+            },
+            {
+                "name": "filterContams_00000269",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000184",
+                "cost": 20.447
+            },
+            {
+                "name": "fast2bfq_00000537",
+                "cost": 9.03
+            },
+            {
+                "name": "filterContams_00000289",
+                "cost": 17.881
+            },
+            {
+                "name": "filterContams_00000508",
+                "cost": 41.749
+            },
+            {
+                "name": "filterContams_00000555",
+                "cost": 4.742
+            },
+            {
+                "name": "map_00000392",
+                "cost": 56.592
+            },
+            {
+                "name": "fast2bfq_00000173",
+                "cost": 1.051
+            },
+            {
+                "name": "fastqSplit_00000444",
+                "cost": 878.473
+            },
+            {
+                "name": "fast2bfq_00000181",
+                "cost": 7.029
+            },
+            {
+                "name": "filterContams_00000249",
+                "cost": 24.775
+            },
+            {
+                "name": "map_00000386",
+                "cost": 31.198
+            },
+            {
+                "name": "map_00000334",
+                "cost": 28.589
+            },
+            {
+                "name": "mapMerge_00000448",
+                "cost": 3.725
+            },
+            {
+                "name": "mapMerge_00000317",
+                "cost": 13.392
+            },
+            {
+                "name": "fast2bfq_00000465",
+                "cost": 5.41
+            },
+            {
+                "name": "fast2bfq_00000015",
+                "cost": 10.039
+            },
+            {
+                "name": "filterContams_00000222",
+                "cost": 31.3
+            },
+            {
+                "name": "filterContams_00000288",
+                "cost": 18.214
+            },
+            {
+                "name": "map_00000575",
+                "cost": 40.937
+            },
+            {
+                "name": "filterContams_00000271",
+                "cost": 15.571
+            },
+            {
+                "name": "map_00000338",
+                "cost": 31.654
+            },
+            {
+                "name": "map_00000349",
+                "cost": 12.52
+            },
+            {
+                "name": "map_00000491",
+                "cost": 43.523
+            },
+            {
+                "name": "map_00000579",
+                "cost": 68.19
+            },
+            {
+                "name": "sol2sanger_00000549",
+                "cost": 2.857
+            },
+            {
+                "name": "sol2sanger_00000574",
+                "cost": 4.689
+            },
+            {
+                "name": "filterContams_00000299",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000485",
+                "cost": 34.605
+            },
+            {
+                "name": "sol2sanger_00000070",
+                "cost": 16.944
+            },
+            {
+                "name": "filterContams_00000304",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000220",
+                "cost": 4.742
+            },
+            {
+                "name": "sol2sanger_00000140",
+                "cost": 22.797
+            },
+            {
+                "name": "filterContams_00000439",
+                "cost": 22.603
+            },
+            {
+                "name": "fast2bfq_00000127",
+                "cost": 5.212
+            },
+            {
+                "name": "sol2sanger_00000558",
+                "cost": 2.857
+            },
+            {
+                "name": "filterContams_00000433",
+                "cost": 4.742
+            },
+            {
+                "name": "filterContams_00000293",
+                "cost": 27.616
+            },
+            {
+                "name": "fast2bfq_00000137",
+                "cost": 2.543
+            },
+            {
+                "name": "map_00000443",
+                "cost": 12.264
+            },
+            {
+                "name": "fast2bfq_00000057",
+                "cost": 7.846
+            },
+            {
+                "name": "map_00000366",
+                "cost": 12.264
+            },
+            {
+                "name": "map_00000415",
+                "cost": 54.658
+            },
+            {
+                "name": "sol2sanger_00000206",
+                "cost": 8.481
+            },
+            {
+                "name": "sol2sanger_00000501",
+                "cost": 15.43
+            },
+            {
+                "name": "filterContams_00000290",
+                "cost": 5.58
+            },
+            {
+                "name": "filterContams_00000522",
+                "cost": 6.435
+            },
+            {
+                "name": "sol2sanger_00000074",
+                "cost": 27.598
+            },
+            {
+                "name": "fast2bfq_00000099",
+                "cost": 6.344
+            },
+            {
+                "name": "sol2sanger_00000200",
+                "cost": 13.953
+            },
+            {
+                "name": "sol2sanger_00000018",
+                "cost": 19.351
+            },
+            {
+                "name": "filterContams_00000224",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000578",
+                "cost": 2.826
+            },
+            {
+                "name": "filterContams_00000295",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000143",
+                "cost": 2.734
+            },
+            {
+                "name": "sol2sanger_00000108",
+                "cost": 10.033
+            },
+            {
+                "name": "fast2bfq_00000121",
+                "cost": 5.839
+            },
+            {
+                "name": "fast2bfq_00000177",
+                "cost": 7.876
+            },
+            {
+                "name": "filterContams_00000215",
+                "cost": 30.618
+            },
+            {
+                "name": "filterContams_00000233",
+                "cost": 4.742
+            },
+            {
+                "name": "fast2bfq_00000031",
+                "cost": 10.041
+            },
+            {
+                "name": "sol2sanger_00000148",
+                "cost": 19.43
+            },
+            {
+                "name": "filterContams_00000239",
+                "cost": 26.38
+            },
+            {
+                "name": "sol2sanger_00000136",
+                "cost": 2.857
+            },
+            {
+                "name": "map_00000329",
+                "cost": 15.741
+            },
+            {
+                "name": "map_00000480",
+                "cost": 21.919
+            },
+            {
+                "name": "fast2bfq_00000095",
+                "cost": 8.301
+            },
+            {
+                "name": "sol2sanger_00000566",
+                "cost": 2.857
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000207",
+                "size": 1e-9
+            },
+            {
+                "source": "filterContams_00000555",
+                "target": "sol2sanger_00000519",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000142",
+                "target": "fast2bfq_00000141",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000329",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000375",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000214",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000260",
+                "target": "sol2sanger_00000100",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000165",
+                "target": "map_00000396",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000059",
+                "target": "map_00000358",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000299",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000238",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000462",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000233",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000174",
+                "target": "fast2bfq_00000173",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000083",
+                "target": "map_00000373",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000273",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000486",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000325",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000216",
+                "target": "sol2sanger_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000313",
+                "target": "sol2sanger_00000206",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000556",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000532",
+                "target": "fast2bfq_00000524",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000133",
+                "target": "map_00000400",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000148",
+                "target": "fast2bfq_00000147",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000341",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000541",
+                "target": "sol2sanger_00000531",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000297",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000228",
+                "target": "sol2sanger_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000426",
+                "target": "fast2bfq_00000438",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000294",
+                "target": "sol2sanger_00000168",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000231",
+                "target": "sol2sanger_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000076",
+                "target": "fast2bfq_00000075",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000546",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000577",
+                "target": "sol2sanger_00000570",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000205",
+                "target": "map_00000409",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000119",
+                "target": "map_00000382",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000368",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000149",
+                "target": "map_00000385",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000248",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000286",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000312",
+                "target": "sol2sanger_00000204",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000293",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000439",
+                "target": "sol2sanger_00000436",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000158",
+                "target": "fast2bfq_00000157",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000398",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000104",
+                "target": "fast2bfq_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000490",
+                "target": "fast2bfq_00000507",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000545",
+                "target": "fast2bfq_00000533",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000145",
+                "target": "map_00000387",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000548",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000509",
+                "target": "map_00000543",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000044",
+                "target": "fast2bfq_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000186",
+                "target": "fast2bfq_00000185",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000282",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000113",
+                "target": "map_00000357",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000154",
+                "target": "fast2bfq_00000153",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000258",
+                "target": "sol2sanger_00000096",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000577",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000295",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000079",
+                "target": "map_00000374",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000262",
+                "target": "sol2sanger_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000035",
+                "target": "map_00000341",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000025",
+                "target": "map_00000346",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000418",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000075",
+                "target": "map_00000352",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000160",
+                "target": "fast2bfq_00000159",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000543",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000031",
+                "target": "map_00000339",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000141",
+                "target": "map_00000389",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000336",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000056",
+                "target": "fast2bfq_00000055",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000382",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000550",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000536",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000273",
+                "target": "sol2sanger_00000126",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000311",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000257",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000399",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000140",
+                "target": "fast2bfq_00000139",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000436",
+                "target": "fast2bfq_00000458",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000294",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000005",
+                "target": "map_00000324",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000038",
+                "target": "fast2bfq_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000363",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000065",
+                "target": "map_00000349",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000192",
+                "target": "fast2bfq_00000191",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000562",
+                "target": "sol2sanger_00000490",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000267",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000573",
+                "target": "map_00000514",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000156",
+                "target": "fast2bfq_00000155",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000314",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000575",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000171",
+                "target": "map_00000405",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000349",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000228",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000009",
+                "target": "map_00000326",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000292",
+                "target": "sol2sanger_00000164",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000047",
+                "target": "map_00000333",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000223",
+                "target": "sol2sanger_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000268",
+                "target": "sol2sanger_00000116",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000078",
+                "target": "fast2bfq_00000077",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000557",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000183",
+                "target": "map_00000420",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000120",
+                "target": "fast2bfq_00000119",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000362",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000340",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000048",
+                "target": "fast2bfq_00000047",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000441",
+                "target": "map_00000427",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000380",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000239",
+                "target": "sol2sanger_00000058",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000130",
+                "target": "fast2bfq_00000129",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000446",
+                "target": "map_00000456",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000407",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000477",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000579",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000225",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000147",
+                "target": "map_00000388",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000312",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000523",
+                "target": "sol2sanger_00000474",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000539",
+                "target": "sol2sanger_00000545",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000218",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000277",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000196",
+                "target": "fast2bfq_00000195",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000291",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000431",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000034",
+                "target": "fast2bfq_00000033",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000492",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000197",
+                "target": "map_00000413",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000212",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000305",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000106",
+                "target": "fast2bfq_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000300",
+                "target": "sol2sanger_00000180",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000285",
+                "target": "sol2sanger_00000150",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000550",
+                "target": "sol2sanger_00000559",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000417",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000098",
+                "target": "fast2bfq_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000580",
+                "target": "sol2sanger_00000482",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000527",
+                "target": "map_00000548",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000450",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000360",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000536",
+                "target": "sol2sanger_00000549",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000221",
+                "target": "sol2sanger_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000150",
+                "target": "fast2bfq_00000149",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000419",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000028",
+                "target": "fast2bfq_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000472",
+                "target": "fast2bfq_00000535",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000188",
+                "target": "fast2bfq_00000187",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000082",
+                "target": "fast2bfq_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000236",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000271",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000087",
+                "target": "map_00000368",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000282",
+                "target": "sol2sanger_00000144",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000440",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000223",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000338",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000388",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000495",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000244",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000485",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000191",
+                "target": "map_00000410",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000189",
+                "target": "map_00000403",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000224",
+                "target": "sol2sanger_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000369",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000547",
+                "target": "map_00000569",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000060",
+                "target": "fast2bfq_00000059",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000560",
+                "target": "map_00000575",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000231",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000155",
+                "target": "map_00000384",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000265",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000172",
+                "target": "fast2bfq_00000171",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000215",
+                "target": "sol2sanger_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000152",
+                "target": "fast2bfq_00000151",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000381",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000249",
+                "target": "sol2sanger_00000078",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000566",
+                "target": "fast2bfq_00000502",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000122",
+                "target": "fast2bfq_00000121",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000541",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000562",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000026",
+                "target": "fast2bfq_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000296",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000379",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000453",
+                "target": "fast2bfq_00000446",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000403",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000425",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000434",
+                "target": "map_00000462",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000089",
+                "target": "map_00000367",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000291",
+                "target": "sol2sanger_00000162",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000433",
+                "target": "sol2sanger_00000463",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000517",
+                "target": "sol2sanger_00000538",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000393",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000041",
+                "target": "map_00000344",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000470",
+                "target": "sol2sanger_00000572",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000464",
+                "target": "sol2sanger_00000466",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000124",
+                "target": "fast2bfq_00000123",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000256",
+                "target": "sol2sanger_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000204",
+                "target": "fast2bfq_00000203",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000164",
+                "target": "fast2bfq_00000163",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000495",
+                "target": "sol2sanger_00000494",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000242",
+                "target": "sol2sanger_00000064",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000315",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000555",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000085",
+                "target": "map_00000372",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000058",
+                "target": "fast2bfq_00000057",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000198",
+                "target": "fast2bfq_00000197",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000269",
+                "target": "sol2sanger_00000118",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000578",
+                "target": "map_00000479",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000110",
+                "target": "fast2bfq_00000109",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000135",
+                "target": "map_00000401",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000095",
+                "target": "map_00000371",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000299",
+                "target": "sol2sanger_00000178",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000070",
+                "target": "fast2bfq_00000069",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000534",
+                "target": "sol2sanger_00000529",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000217",
+                "target": "sol2sanger_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000451",
+                "target": "sol2sanger_00000449",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000091",
+                "target": "map_00000366",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000409",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000451",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000448",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000260",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000435",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000513",
+                "target": "map_00000557",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000212",
+                "target": "sol2sanger_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000295",
+                "target": "sol2sanger_00000170",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000444",
+                "size": 1e-9
+            },
+            {
+                "source": "filterContams_00000234",
+                "target": "sol2sanger_00000048",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000385",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000209",
+                "size": 1e-9
+            },
+            {
+                "source": "sol2sanger_00000068",
+                "target": "fast2bfq_00000067",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000107",
+                "target": "map_00000363",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000389",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000220",
+                "target": "sol2sanger_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000278",
+                "target": "sol2sanger_00000136",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000159",
+                "target": "map_00000393",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000415",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000559",
+                "target": "fast2bfq_00000553",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000175",
+                "target": "map_00000416",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000300",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000116",
+                "target": "fast2bfq_00000115",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000306",
+                "target": "sol2sanger_00000192",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000316",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000480",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000271",
+                "target": "sol2sanger_00000122",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000439",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000054",
+                "target": "fast2bfq_00000053",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000345",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000537",
+                "target": "map_00000515",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000100",
+                "target": "fast2bfq_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000313",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000406",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000323",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000049",
+                "target": "map_00000332",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000488",
+                "target": "fast2bfq_00000547",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000309",
+                "target": "sol2sanger_00000198",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000280",
+                "target": "sol2sanger_00000140",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000335",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000391",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000460",
+                "target": "sol2sanger_00000453",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000195",
+                "target": "map_00000412",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000489",
+                "target": "fast2bfq_00000571",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000247",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000331",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000308",
+                "target": "sol2sanger_00000196",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000364",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000542",
+                "target": "sol2sanger_00000558",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000307",
+                "target": "sol2sanger_00000194",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000146",
+                "target": "fast2bfq_00000145",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000004",
+                "target": "fast2bfq_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000442",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000302",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000241",
+                "target": "sol2sanger_00000062",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000237",
+                "target": "sol2sanger_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000502",
+                "target": "map_00000576",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000570",
+                "target": "fast2bfq_00000560",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000322",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000115",
+                "target": "map_00000394",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000274",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000553",
+                "target": "map_00000561",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000224",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000396",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000237",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000423",
+                "target": "fast2bfq_00000424",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000272",
+                "target": "sol2sanger_00000124",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000239",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000353",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000476",
+                "target": "map_00000481",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000176",
+                "target": "fast2bfq_00000175",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000007",
+                "target": "map_00000323",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000366",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000051",
+                "target": "map_00000331",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000137",
+                "target": "map_00000395",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000252",
+                "target": "sol2sanger_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000449",
+                "target": "fast2bfq_00000445",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000270",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000127",
+                "target": "map_00000378",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000123",
+                "target": "map_00000380",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000125",
+                "target": "map_00000377",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000052",
+                "target": "fast2bfq_00000051",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000317",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000564",
+                "target": "map_00000503",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000210",
+                "size": 1e-9
+            },
+            {
+                "source": "filterContams_00000425",
+                "target": "sol2sanger_00000423",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000330",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000213",
+                "target": "sol2sanger_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000167",
+                "target": "map_00000397",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000153",
+                "target": "map_00000383",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000178",
+                "target": "fast2bfq_00000177",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000020",
+                "target": "fast2bfq_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000413",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000474",
+                "target": "fast2bfq_00000527",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000332",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000266",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000571",
+                "target": "map_00000540",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000253",
+                "target": "sol2sanger_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000343",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000420",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000030",
+                "target": "fast2bfq_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000261",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000298",
+                "target": "sol2sanger_00000176",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000342",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000230",
+                "target": "sol2sanger_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000117",
+                "target": "map_00000381",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000304",
+                "target": "sol2sanger_00000188",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000289",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000401",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000131",
+                "target": "map_00000376",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000027",
+                "target": "map_00000337",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000208",
+                "size": 1e-9
+            },
+            {
+                "source": "fast2bfq_00000061",
+                "target": "map_00000355",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000229",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000105",
+                "target": "map_00000362",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000251",
+                "target": "sol2sanger_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000498",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000002",
+                "target": "chr21_00000001",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000182",
+                "target": "fast2bfq_00000181",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000073",
+                "target": "map_00000353",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000524",
+                "target": "map_00000477",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000292",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000552",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000080",
+                "target": "fast2bfq_00000079",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000190",
+                "target": "fast2bfq_00000189",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000376",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000012",
+                "target": "fast2bfq_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000250",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000233",
+                "target": "sol2sanger_00000046",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000361",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000460",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000303",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000290",
+                "target": "sol2sanger_00000160",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000279",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000193",
+                "target": "map_00000411",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000243",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000568",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000008",
+                "target": "fast2bfq_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000463",
+                "target": "fast2bfq_00000447",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000500",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000169",
+                "target": "map_00000402",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000112",
+                "target": "fast2bfq_00000111",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000151",
+                "target": "map_00000386",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000211",
+                "size": 1e-9
+            },
+            {
+                "source": "filterContams_00000506",
+                "target": "sol2sanger_00000472",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000549",
+                "target": "fast2bfq_00000496",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000412",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000138",
+                "target": "fast2bfq_00000137",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000422",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000053",
+                "target": "map_00000330",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000468",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000017",
+                "target": "map_00000322",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000321",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000497",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000309",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000226",
+                "target": "sol2sanger_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000429",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000533",
+                "target": "map_00000475",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000256",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000556",
+                "target": "sol2sanger_00000532",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000262",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000040",
+                "target": "fast2bfq_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000384",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000357",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000304",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000405",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000432",
+                "target": "fast2bfq_00000454",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000539",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000287",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000006",
+                "target": "fast2bfq_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000538",
+                "target": "fast2bfq_00000537",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000424",
+                "target": "map_00000422",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000217",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000498",
+                "target": "sol2sanger_00000518",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000497",
+                "target": "sol2sanger_00000478",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000339",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000551",
+                "target": "fast2bfq_00000476",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000479",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000414",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000043",
+                "target": "map_00000335",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000397",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000168",
+                "target": "fast2bfq_00000167",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000021",
+                "target": "map_00000336",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000264",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000394",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000242",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000014",
+                "target": "fast2bfq_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000281",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000530",
+                "target": "map_00000492",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000581",
+                "target": "fast2bfq_00000520",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000508",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000101",
+                "target": "map_00000360",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000088",
+                "target": "fast2bfq_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000240",
+                "target": "sol2sanger_00000060",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000067",
+                "target": "map_00000348",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000136",
+                "target": "fast2bfq_00000135",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000187",
+                "target": "map_00000404",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000097",
+                "target": "map_00000370",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000283",
+                "target": "sol2sanger_00000146",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000255",
+                "target": "sol2sanger_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000227",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000457",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000184",
+                "target": "fast2bfq_00000183",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000534",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000324",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000377",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000103",
+                "target": "map_00000361",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000036",
+                "target": "fast2bfq_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000263",
+                "target": "sol2sanger_00000106",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000358",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000019",
+                "target": "map_00000321",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000263",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000428",
+                "target": "map_00000443",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000378",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000219",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000170",
+                "target": "fast2bfq_00000169",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000528",
+                "target": "fast2bfq_00000565",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000248",
+                "target": "sol2sanger_00000076",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000542",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000011",
+                "target": "map_00000325",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000126",
+                "target": "fast2bfq_00000125",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000565",
+                "target": "map_00000579",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000310",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000144",
+                "target": "fast2bfq_00000143",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000531",
+                "target": "fast2bfq_00000483",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000254",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000288",
+                "target": "sol2sanger_00000156",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000501",
+                "target": "fast2bfq_00000564",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000050",
+                "target": "fast2bfq_00000049",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000482",
+                "target": "fast2bfq_00000510",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000383",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000333",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000232",
+                "target": "sol2sanger_00000044",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000387",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000356",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000367",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000096",
+                "target": "fast2bfq_00000095",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000245",
+                "target": "sol2sanger_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000268",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000206",
+                "target": "fast2bfq_00000205",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000425",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000514",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000289",
+                "target": "sol2sanger_00000158",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000433",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000108",
+                "target": "fast2bfq_00000107",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000255",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000094",
+                "target": "fast2bfq_00000093",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000512",
+                "target": "sol2sanger_00000488",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000499",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000311",
+                "target": "sol2sanger_00000202",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000544",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000374",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000215",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000483",
+                "target": "map_00000491",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000261",
+                "target": "sol2sanger_00000102",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000278",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000444",
+                "target": "filterContams_00000430",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000334",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000386",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000092",
+                "target": "fast2bfq_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000522",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000395",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000580",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000319",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000235",
+                "target": "sol2sanger_00000050",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000297",
+                "target": "sol2sanger_00000174",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000253",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000250",
+                "target": "sol2sanger_00000080",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000430",
+                "target": "sol2sanger_00000437",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000216",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000010",
+                "target": "fast2bfq_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000283",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000511",
+                "target": "map_00000468",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000328",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000227",
+                "target": "sol2sanger_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000128",
+                "target": "fast2bfq_00000127",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000452",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000355",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000074",
+                "target": "fast2bfq_00000073",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000099",
+                "target": "map_00000369",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000303",
+                "target": "sol2sanger_00000186",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000410",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000567",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000568",
+                "target": "sol2sanger_00000489",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000093",
+                "target": "map_00000365",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000230",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000284",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000365",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000177",
+                "target": "map_00000415",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000045",
+                "target": "map_00000334",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000016",
+                "target": "fast2bfq_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000561",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000157",
+                "target": "map_00000391",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000267",
+                "target": "sol2sanger_00000114",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000118",
+                "target": "fast2bfq_00000117",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000484",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000066",
+                "target": "fast2bfq_00000065",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000494",
+                "target": "fast2bfq_00000473",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000554",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000302",
+                "target": "sol2sanger_00000184",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastqSplit_00000469",
+                "size": 1e-9
+            },
+            {
+                "source": "sol2sanger_00000529",
+                "target": "fast2bfq_00000563",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000520",
+                "target": "map_00000504",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000464",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000293",
+                "target": "sol2sanger_00000166",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000018",
+                "target": "fast2bfq_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000203",
+                "target": "map_00000408",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000162",
+                "target": "fast2bfq_00000161",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000245",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000102",
+                "target": "fast2bfq_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000473",
+                "target": "map_00000499",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000563",
+                "target": "map_00000516",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000515",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000558",
+                "target": "fast2bfq_00000573",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000032",
+                "target": "fast2bfq_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000320",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000226",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000247",
+                "target": "sol2sanger_00000074",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000443",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000552",
+                "target": "sol2sanger_00000581",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000090",
+                "target": "fast2bfq_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000114",
+                "target": "fast2bfq_00000113",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000077",
+                "target": "map_00000351",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000037",
+                "target": "map_00000342",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000086",
+                "target": "fast2bfq_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000523",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000249",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000346",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000296",
+                "target": "sol2sanger_00000172",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000351",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000510",
+                "target": "map_00000487",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000487",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000275",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000221",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000372",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000284",
+                "target": "sol2sanger_00000148",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000063",
+                "target": "map_00000350",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000084",
+                "target": "fast2bfq_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000139",
+                "target": "map_00000392",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000450",
+                "target": "sol2sanger_00000455",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000519",
+                "target": "fast2bfq_00000521",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000508",
+                "target": "sol2sanger_00000528",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000500",
+                "target": "sol2sanger_00000566",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000200",
+                "target": "fast2bfq_00000199",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000470",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000202",
+                "target": "fast2bfq_00000201",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000143",
+                "target": "map_00000390",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000440",
+                "target": "sol2sanger_00000459",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000402",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000235",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000287",
+                "target": "sol2sanger_00000154",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000163",
+                "target": "map_00000399",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000569",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000544",
+                "target": "sol2sanger_00000501",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000518",
+                "target": "fast2bfq_00000511",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000222",
+                "target": "sol2sanger_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000270",
+                "target": "sol2sanger_00000120",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000486",
+                "target": "sol2sanger_00000551",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000456",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000201",
+                "target": "map_00000407",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000241",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000121",
+                "target": "map_00000379",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000161",
+                "target": "map_00000398",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000264",
+                "target": "sol2sanger_00000108",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000055",
+                "target": "map_00000329",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000269",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000326",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000437",
+                "target": "fast2bfq_00000441",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000229",
+                "target": "sol2sanger_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000288",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000305",
+                "target": "sol2sanger_00000190",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000199",
+                "target": "map_00000406",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000039",
+                "target": "map_00000343",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000129",
+                "target": "map_00000375",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000327",
+                "target": "mapMerge_00000314",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000173",
+                "target": "map_00000414",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000290",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000244",
+                "target": "sol2sanger_00000068",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000408",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000258",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000344",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000459",
+                "target": "fast2bfq_00000434",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000232",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000180",
+                "target": "fast2bfq_00000179",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000277",
+                "target": "sol2sanger_00000134",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000272",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000427",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000276",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000354",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000013",
+                "target": "map_00000320",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000371",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000132",
+                "target": "fast2bfq_00000131",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000307",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000481",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000246",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000225",
+                "target": "sol2sanger_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000507",
+                "target": "map_00000525",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000521",
+                "target": "map_00000546",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000400",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000109",
+                "target": "map_00000364",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000257",
+                "target": "sol2sanger_00000094",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000069",
+                "target": "map_00000347",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000279",
+                "target": "sol2sanger_00000138",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000243",
+                "target": "sol2sanger_00000066",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000503",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000222",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000003",
+                "target": "map_00000327",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000455",
+                "target": "fast2bfq_00000428",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000246",
+                "target": "sol2sanger_00000072",
+                "size": 1.0
+            },
+            {
+                "source": "chr21_00000001",
+                "target": "pileup_00000421",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000219",
+                "target": "sol2sanger_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000259",
+                "target": "sol2sanger_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000359",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000467",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000286",
+                "target": "sol2sanger_00000152",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000022",
+                "target": "fast2bfq_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000574",
+                "target": "fast2bfq_00000578",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000274",
+                "target": "sol2sanger_00000128",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000251",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000337",
+                "target": "mapMerge_00000315",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000015",
+                "target": "map_00000319",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000306",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000240",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000298",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000134",
+                "target": "fast2bfq_00000133",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000166",
+                "target": "fast2bfq_00000165",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000310",
+                "target": "sol2sanger_00000200",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000352",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000429",
+                "target": "sol2sanger_00000432",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000461",
+                "target": "mapMerge_00000448",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000516",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000447",
+                "target": "map_00000461",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000276",
+                "target": "sol2sanger_00000132",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000347",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000301",
+                "target": "sol2sanger_00000182",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000072",
+                "target": "fast2bfq_00000071",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000218",
+                "target": "sol2sanger_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000445",
+                "target": "map_00000435",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000411",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000024",
+                "target": "fast2bfq_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000506",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000208",
+                "target": "filterContams_00000234",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000478",
+                "target": "fast2bfq_00000530",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000485",
+                "target": "sol2sanger_00000493",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000454",
+                "target": "map_00000452",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000064",
+                "target": "fast2bfq_00000063",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000185",
+                "target": "map_00000419",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000465",
+                "target": "map_00000467",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000525",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000416",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000081",
+                "target": "map_00000359",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000504",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000526",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000033",
+                "target": "map_00000340",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000554",
+                "target": "sol2sanger_00000574",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000254",
+                "target": "sol2sanger_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000466",
+                "target": "fast2bfq_00000465",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000572",
+                "target": "fast2bfq_00000513",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000275",
+                "target": "sol2sanger_00000130",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000042",
+                "target": "fast2bfq_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000214",
+                "target": "sol2sanger_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000266",
+                "target": "sol2sanger_00000112",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000496",
+                "target": "map_00000567",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000057",
+                "target": "map_00000328",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000062",
+                "target": "fast2bfq_00000061",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000023",
+                "target": "map_00000345",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000301",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000517",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000350",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000522",
+                "target": "sol2sanger_00000505",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000471",
+                "target": "map_00000480",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000029",
+                "target": "map_00000338",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000220",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000046",
+                "target": "fast2bfq_00000045",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000491",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000348",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000238",
+                "target": "sol2sanger_00000056",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000280",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000457",
+                "target": "sol2sanger_00000426",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000576",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000071",
+                "target": "map_00000354",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000252",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000207",
+                "target": "filterContams_00000213",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000469",
+                "target": "filterContams_00000512",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000475",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000505",
+                "target": "fast2bfq_00000509",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000493",
+                "target": "fast2bfq_00000471",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000265",
+                "target": "sol2sanger_00000110",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000209",
+                "target": "filterContams_00000259",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000211",
+                "target": "filterContams_00000308",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000404",
+                "target": "mapMerge_00000316",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000236",
+                "target": "sol2sanger_00000052",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000535",
+                "target": "map_00000484",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000390",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000422",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000370",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000540",
+                "target": "mapMerge_00000526",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000438",
+                "target": "map_00000442",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000179",
+                "target": "map_00000418",
+                "size": 1.0
+            },
+            {
+                "source": "fastqSplit_00000210",
+                "target": "filterContams_00000285",
+                "size": 1.0
+            },
+            {
+                "source": "mapMerge_00000318",
+                "target": "mapMerge_00000002",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000181",
+                "target": "map_00000417",
+                "size": 1.0
+            },
+            {
+                "source": "filterContams_00000281",
+                "target": "sol2sanger_00000142",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000458",
+                "target": "map_00000431",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000373",
+                "target": "mapMerge_00000318",
+                "size": 1.0
+            },
+            {
+                "source": "sol2sanger_00000194",
+                "target": "fast2bfq_00000193",
+                "size": 1.0
+            },
+            {
+                "source": "fast2bfq_00000111",
+                "target": "map_00000356",
+                "size": 1.0
+            },
+            {
+                "source": "map_00000392",
+                "target": "mapMerge_00000317",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N0",
+                "speed": 0.9406048287626451
+            }
+        ],
+        "edges": [
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.03510632224671207
+            }
+        ]
+    }
+}

@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, FrozenSet, List, Optional, Set
 
-from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask
+from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask, TaskGraphNode
 from saga.schedulers.online.components import Controller, Observer, StepStrategy, Trigger
 
 logger = logging.getLogger(__name__)
@@ -97,8 +97,9 @@ class Environment:
         self.schedule: Optional[Schedule] = None
         self.finished_tasks: Set[ScheduledTask] = set()
         self.running_tasks: Set[ScheduledTask] = set()
-        self.ready_tasks: Set[ScheduledTask] = set()
-        self.unready_tasks: Set[ScheduledTask] = set()
+        self.committed: Set[ScheduledTask] = set()
+        self.ready_tasks: Set[TaskGraphNode] = set()
+        self.unready_tasks: Set[TaskGraphNode] = {task for task in self.task_graph}
         self.available_nodes: Set[NetworkNode] = set()
         self.occupied_nodes: Set[NetworkNode] = set()
         self._step: int = 0
@@ -114,7 +115,8 @@ class Environment:
         self.finished_tasks = set()
         self.running_tasks = set()
         self.ready_tasks = set()
-        self.unready_tasks = set()
+        self.committed = set()
+        self.unready_tasks = {task for task in self.task_graph}
         self.available_nodes = set()
         self.occupied_nodes = set()
         self._step = 0
@@ -232,7 +234,6 @@ class Environment:
         committed_names = finished_names | {t.name for t in self.running_tasks}
 
         self.ready_tasks = set()
-        self.unready_tasks = set()
         for tasks in self.schedule.mapping.values():
             for task in tasks:
                 if task.name in committed_names:
@@ -240,8 +241,7 @@ class Environment:
                 predecessors = {dep.source for dep in self.task_graph.in_edges(task.name)}
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
-                else:
-                    self.unready_tasks.add(task)
+                    self.unready_tasks.discard(task)
 
     def _update_network_state(self) -> None:
         """Recompute available and occupied node sets from the current running tasks."""

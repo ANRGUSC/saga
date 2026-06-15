@@ -1,0 +1,214 @@
+{
+    "name": "chains_99",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "T1",
+                "cost": 2.0
+            },
+            {
+                "name": "T3",
+                "cost": 2.0
+            },
+            {
+                "name": "T2",
+                "cost": 2.0
+            },
+            {
+                "name": "T10",
+                "cost": 2.0
+            },
+            {
+                "name": "T9",
+                "cost": 2.0
+            },
+            {
+                "name": "T0",
+                "cost": 2.0
+            },
+            {
+                "name": "T6",
+                "cost": 2.0
+            },
+            {
+                "name": "T8",
+                "cost": 2.0
+            },
+            {
+                "name": "T5",
+                "cost": 2.0
+            },
+            {
+                "name": "T4",
+                "cost": 2.0
+            },
+            {
+                "name": "T7",
+                "cost": 2.0
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "T0",
+                "target": "T7",
+                "size": 2.0
+            },
+            {
+                "source": "T7",
+                "target": "T8",
+                "size": 2.0
+            },
+            {
+                "source": "T5",
+                "target": "T6",
+                "size": 2.0
+            },
+            {
+                "source": "T0",
+                "target": "T1",
+                "size": 2.0
+            },
+            {
+                "source": "T4",
+                "target": "T5",
+                "size": 2.0
+            },
+            {
+                "source": "T8",
+                "target": "T9",
+                "size": 2.0
+            },
+            {
+                "source": "T1",
+                "target": "T2",
+                "size": 2.0
+            },
+            {
+                "source": "T6",
+                "target": "T10",
+                "size": 2.0
+            },
+            {
+                "source": "T0",
+                "target": "T4",
+                "size": 2.0
+            },
+            {
+                "source": "T2",
+                "target": "T3",
+                "size": 2.0
+            },
+            {
+                "source": "T9",
+                "target": "T10",
+                "size": 2.0
+            },
+            {
+                "source": "T3",
+                "target": "T10",
+                "size": 2.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N0",
+                "speed": 2.0
+            },
+            {
+                "name": "N1",
+                "speed": 2.0
+            },
+            {
+                "name": "N4",
+                "speed": 2.0
+            },
+            {
+                "name": "N3",
+                "speed": 2.0
+            },
+            {
+                "name": "N2",
+                "speed": 2.0
+            }
+        ],
+        "edges": [
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 1000000000.0
+            },
+            {
+                "source": "N0",
+                "target": "N2",
+                "speed": 2.0
+            },
+            {
+                "source": "N3",
+                "target": "N3",
+                "speed": 1000000000.0
+            },
+            {
+                "source": "N1",
+                "target": "N4",
+                "speed": 2.0
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 2.0
+            },
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 1000000000.0
+            },
+            {
+                "source": "N2",
+                "target": "N3",
+                "speed": 2.0
+            },
+            {
+                "source": "N0",
+                "target": "N4",
+                "speed": 2.0
+            },
+            {
+                "source": "N2",
+                "target": "N2",
+                "speed": 1000000000.0
+            },
+            {
+                "source": "N3",
+                "target": "N4",
+                "speed": 2.0
+            },
+            {
+                "source": "N4",
+                "target": "N4",
+                "speed": 1000000000.0
+            },
+            {
+                "source": "N1",
+                "target": "N3",
+                "speed": 2.0
+            },
+            {
+                "source": "N1",
+                "target": "N2",
+                "speed": 2.0
+            },
+            {
+                "source": "N2",
+                "target": "N4",
+                "speed": 2.0
+            },
+            {
+                "source": "N0",
+                "target": "N3",
+                "speed": 2.0
+            }
+        ]
+    }
+}

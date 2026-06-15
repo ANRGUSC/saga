@@ -1,0 +1,2578 @@
+{
+    "name": "bwa_40",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "bwa_00000032",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000041",
+                "cost": 26.01
+            },
+            {
+                "name": "bwa_00000084",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000045",
+                "cost": 16.055
+            },
+            {
+                "name": "bwa_00000071",
+                "cost": 31.277
+            },
+            {
+                "name": "cat_bwa_00000103",
+                "cost": 51.946
+            },
+            {
+                "name": "bwa_00000043",
+                "cost": 30.117
+            },
+            {
+                "name": "bwa_00000027",
+                "cost": 11.769
+            },
+            {
+                "name": "bwa_00000009",
+                "cost": 10.884
+            },
+            {
+                "name": "bwa_00000010",
+                "cost": 17.915
+            },
+            {
+                "name": "bwa_00000096",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000072",
+                "cost": 25.283
+            },
+            {
+                "name": "bwa_00000070",
+                "cost": 7.407
+            },
+            {
+                "name": "bwa_00000040",
+                "cost": 18.191
+            },
+            {
+                "name": "bwa_00000075",
+                "cost": 10.74
+            },
+            {
+                "name": "bwa_index_00000002",
+                "cost": 115.898
+            },
+            {
+                "name": "bwa_00000063",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000081",
+                "cost": 22.978
+            },
+            {
+                "name": "bwa_00000019",
+                "cost": 26.404
+            },
+            {
+                "name": "bwa_00000017",
+                "cost": 23.176
+            },
+            {
+                "name": "bwa_00000034",
+                "cost": 27.161
+            },
+            {
+                "name": "bwa_00000077",
+                "cost": 20.983
+            },
+            {
+                "name": "bwa_00000105",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000004",
+                "cost": 28.234
+            },
+            {
+                "name": "bwa_00000090",
+                "cost": 33.245
+            },
+            {
+                "name": "bwa_00000094",
+                "cost": 20.907
+            },
+            {
+                "name": "bwa_00000062",
+                "cost": 9.228
+            },
+            {
+                "name": "bwa_00000052",
+                "cost": 25.379
+            },
+            {
+                "name": "bwa_00000101",
+                "cost": 28.04
+            },
+            {
+                "name": "bwa_00000099",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000046",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000050",
+                "cost": 19.54
+            },
+            {
+                "name": "bwa_00000018",
+                "cost": 9.48
+            },
+            {
+                "name": "bwa_00000025",
+                "cost": 5.185
+            },
+            {
+                "name": "bwa_00000022",
+                "cost": 25.71
+            },
+            {
+                "name": "bwa_00000066",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000069",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000013",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000023",
+                "cost": 17.491
+            },
+            {
+                "name": "bwa_00000024",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000057",
+                "cost": 5.971
+            },
+            {
+                "name": "bwa_00000082",
+                "cost": 20.73
+            },
+            {
+                "name": "bwa_00000026",
+                "cost": 8.946
+            },
+            {
+                "name": "bwa_00000055",
+                "cost": 11.991
+            },
+            {
+                "name": "bwa_00000102",
+                "cost": 25.559
+            },
+            {
+                "name": "bwa_00000074",
+                "cost": 6.209
+            },
+            {
+                "name": "bwa_00000060",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000093",
+                "cost": 4.883
+            },
+            {
+                "name": "bwa_00000097",
+                "cost": 17.818
+            },
+            {
+                "name": "bwa_00000085",
+                "cost": 32.905
+            },
+            {
+                "name": "bwa_00000031",
+                "cost": 17.863
+            },
+            {
+                "name": "bwa_00000006",
+                "cost": 4.526
+            },
+            {
+                "name": "bwa_00000058",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000038",
+                "cost": 23.845
+            },
+            {
+                "name": "bwa_00000076",
+                "cost": 11.784
+            },
+            {
+                "name": "bwa_00000080",
+                "cost": 20.101
+            },
+            {
+                "name": "bwa_00000042",
+                "cost": 16.599
+            },
+            {
+                "name": "bwa_00000030",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000015",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000007",
+                "cost": 3.695
+            },
+            {
+                "name": "bwa_00000079",
+                "cost": 21.085
+            },
+            {
+                "name": "bwa_00000036",
+                "cost": 4.965
+            },
+            {
+                "name": "bwa_00000003",
+                "cost": 11.996
+            },
+            {
+                "name": "bwa_00000014",
+                "cost": 12.724
+            },
+            {
+                "name": "SRC",
+                "cost": 1e-9
+            },
+            {
+                "name": "bwa_00000029",
+                "cost": 16.782
+            },
+            {
+                "name": "bwa_00000088",
+                "cost": 18.367
+            },
+            {
+                "name": "bwa_00000059",
+                "cost": 13.002
+            },
+            {
+                "name": "bwa_00000092",
+                "cost": 11.82
+            },
+            {
+                "name": "bwa_00000044",
+                "cost": 31.74
+            },
+            {
+                "name": "bwa_00000091",
+                "cost": 29.899
+            },
+            {
+                "name": "bwa_00000008",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000047",
+                "cost": 29.488
+            },
+            {
+                "name": "bwa_00000054",
+                "cost": 20.409
+            },
+            {
+                "name": "bwa_00000049",
+                "cost": 15.961
+            },
+            {
+                "name": "bwa_00000053",
+                "cost": 34.111
+            },
+            {
+                "name": "bwa_00000005",
+                "cost": 6.773
+            },
+            {
+                "name": "bwa_00000089",
+                "cost": 29.182
+            },
+            {
+                "name": "bwa_00000098",
+                "cost": 27.446
+            },
+            {
+                "name": "bwa_00000078",
+                "cost": 27.041
+            },
+            {
+                "name": "bwa_00000065",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000068",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000037",
+                "cost": 9.818
+            },
+            {
+                "name": "bwa_00000035",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000012",
+                "cost": 7.438
+            },
+            {
+                "name": "bwa_00000067",
+                "cost": 18.856
+            },
+            {
+                "name": "bwa_00000100",
+                "cost": 5.36
+            },
+            {
+                "name": "bwa_00000016",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000064",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000073",
+                "cost": 23.361
+            },
+            {
+                "name": "bwa_00000083",
+                "cost": 19.785
+            },
+            {
+                "name": "bwa_00000095",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000061",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000028",
+                "cost": 32.772
+            },
+            {
+                "name": "cat_00000104",
+                "cost": 0.059
+            },
+            {
+                "name": "DST",
+                "cost": 1e-9
+            },
+            {
+                "name": "bwa_00000048",
+                "cost": 3.491
+            },
+            {
+                "name": "fastq_reduce_00000001",
+                "cost": 0.472
+            },
+            {
+                "name": "bwa_00000011",
+                "cost": 14.834
+            },
+            {
+                "name": "bwa_00000021",
+                "cost": 30.627
+            },
+            {
+                "name": "bwa_00000039",
+                "cost": 24.258
+            },
+            {
+                "name": "bwa_00000020",
+                "cost": 29.737
+            },
+            {
+                "name": "bwa_00000056",
+                "cost": 22.774
+            },
+            {
+                "name": "bwa_00000087",
+                "cost": 8.563
+            },
+            {
+                "name": "bwa_00000033",
+                "cost": 34.037
+            },
+            {
+                "name": "bwa_00000086",
+                "cost": 3.491
+            },
+            {
+                "name": "bwa_00000051",
+                "cost": 33.25
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "bwa_00000075",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000015",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000054",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000069",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000083",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000005",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000087",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000105",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000075",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000016",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000015",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000030",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000045",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000057",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000098",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000042",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000003",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000074",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000060",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000013",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000058",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000036",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "cat_00000104",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000052",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000093",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000045",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000057",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000079",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000095",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000082",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000050",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000067",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000003",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000078",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000074",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000075",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000036",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000035",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000024",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000076",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000097",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000064",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000077",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000055",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000041",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000035",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000057",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000047",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000090",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000076",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000056",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000048",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000012",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000006",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000050",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000046",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000097",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000041",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000020",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000047",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000044",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000073",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000052",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000080",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000101",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "fastq_reduce_00000001",
+                "size": 1e-9
+            },
+            {
+                "source": "bwa_00000028",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000072",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000047",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000044",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000044",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000096",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000101",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000060",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000096",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000028",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000065",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000066",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000096",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000067",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000076",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000086",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000072",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000045",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000065",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000049",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000089",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000065",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000084",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000066",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000100",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000010",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000025",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000062",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "cat_bwa_00000103",
+                "target": "DST",
+                "size": 1e-9
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000004",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000089",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000021",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000061",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000014",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000068",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000063",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000071",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000023",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000051",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000014",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000048",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000071",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000102",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000105",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000023",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000043",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000094",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000098",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000027",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000030",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000023",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000061",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000059",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000098",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000073",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000053",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000077",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000068",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000034",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000060",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000017",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000064",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000058",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000027",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000093",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000067",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000078",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000073",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000079",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000066",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000068",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000050",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000017",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000074",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000064",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000008",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000037",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000024",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000093",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000029",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000064",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000055",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000009",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000016",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000048",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000095",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000025",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000008",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000012",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000050",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000006",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000046",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000019",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000038",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000046",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000099",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000020",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000073",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000080",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000038",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000022",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000058",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000037",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000041",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000088",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000099",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000059",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000063",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000040",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000079",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000080",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000078",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000088",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000062",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000091",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000036",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000055",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000071",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000102",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000040",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000013",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000072",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000009",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000078",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000031",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000033",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000065",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000102",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000084",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000100",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000100",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000069",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000009",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000010",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000049",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000082",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000007",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000031",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000025",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000053",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000056",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000033",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000033",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000094",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000032",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000026",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000068",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000017",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000003",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000069",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000083",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000069",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000005",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000021",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000099",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000007",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000028",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000087",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000089",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000091",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000094",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000070",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000014",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000016",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000039",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000048",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000102",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000085",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000091",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000042",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000051",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000013",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000024",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000074",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000019",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000061",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000043",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000094",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000034",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000039",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000053",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000070",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000095",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000007",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000020",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000052",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000059",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000082",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000051",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000077",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000032",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000005",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000090",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000075",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000034",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000070",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000066",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000022",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000086",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000084",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000085",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000077",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000042",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000047",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000090",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000004",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000022",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000040",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000057",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000056",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000093",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000006",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000085",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000095",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000105",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000054",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000092",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000081",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000031",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000010",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000052",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000046",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000087",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000019",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000097",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000072",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000092",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000027",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000012",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000035",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000011",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000038",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000058",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000044",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000037",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000060",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000018",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000096",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000092",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000063",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000008",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000079",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000059",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000067",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000011",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000062",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000021",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000086",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000080",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000076",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000088",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000071",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000045",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000029",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000043",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000049",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000039",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000062",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000055",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000011",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000015",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000030",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000018",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000004",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "bwa_index_00000002",
+                "size": 1e-9
+            },
+            {
+                "source": "bwa_00000026",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000100",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000081",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000029",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000061",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000054",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000063",
+                "target": "cat_bwa_00000103",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000033",
+                "size": 1.0
+            },
+            {
+                "source": "fastq_reduce_00000001",
+                "target": "bwa_00000083",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000049",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000053",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000056",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000018",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000026",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_index_00000002",
+                "target": "bwa_00000051",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000032",
+                "target": "cat_00000104",
+                "size": 1.0
+            },
+            {
+                "source": "bwa_00000081",
+                "target": "cat_00000104",
+                "size": 1.0
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N1",
+                "speed": 1.1517584494619668
+            },
+            {
+                "name": "N0",
+                "speed": 1.0696940713254763
+            },
+            {
+                "name": "N3",
+                "speed": 0.806552080295371
+            },
+            {
+                "name": "N4",
+                "speed": 1.062363382953561
+            },
+            {
+                "name": "N2",
+                "speed": 1.0304756478088222
+            }
+        ],
+        "edges": [
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N2",
+                "target": "N4",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N3",
+                "target": "N4",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N2",
+                "target": "N2",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N0",
+                "target": "N4",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N0",
+                "target": "N2",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N1",
+                "target": "N3",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N4",
+                "target": "N4",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N1",
+                "target": "N4",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N0",
+                "target": "N3",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N2",
+                "target": "N3",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N3",
+                "target": "N3",
+                "speed": 0.06323063917065148
+            },
+            {
+                "source": "N1",
+                "target": "N2",
+                "speed": 0.06323063917065148
+            }
+        ]
+    }
+}

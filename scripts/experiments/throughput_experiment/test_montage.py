@@ -165,7 +165,7 @@ def _run_regular(label: str, scheduler, network, task_graph):
     elapsed = time.time() - t0
     print(
         f"  [{label}] DONE  makespan={schedule.makespan:.3f}"
-        f"  throughput={schedule.throughput:.4f}  wall={elapsed:.2f}s",
+        f"  throughput={schedule.throughput:.8f}  wall={elapsed:.2f}s",
         flush=True,
     )
     return schedule
@@ -268,7 +268,7 @@ def main():
                             elapsed = time.time() - t0
                             print(
                                 f"  [{sched_name}] DONE  makespan={schedule.makespan:.3f}"
-                                f"  throughput={schedule.throughput:.4f}  wall={elapsed:.2f}s",
+                                f"  throughput={schedule.throughput:.8f}  wall={elapsed:.2f}s",
                                 flush=True,
                             )
                         except Exception:

@@ -1,0 +1,3240 @@
+{
+    "name": "seismology_26",
+    "task_graph": {
+        "tasks": [
+            {
+                "name": "sG1IterDecon_00000214",
+                "cost": 0.621
+            },
+            {
+                "name": "sG1IterDecon_00000053",
+                "cost": 1.984
+            },
+            {
+                "name": "sG1IterDecon_00000070",
+                "cost": 1.354
+            },
+            {
+                "name": "sG1IterDecon_00000050",
+                "cost": 3.958
+            },
+            {
+                "name": "sG1IterDecon_00000026",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000108",
+                "cost": 4.219
+            },
+            {
+                "name": "sG1IterDecon_00000203",
+                "cost": 3.179
+            },
+            {
+                "name": "sG1IterDecon_00000057",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000129",
+                "cost": 3.554
+            },
+            {
+                "name": "sG1IterDecon_00000131",
+                "cost": 3.536
+            },
+            {
+                "name": "sG1IterDecon_00000193",
+                "cost": 1.597
+            },
+            {
+                "name": "sG1IterDecon_00000212",
+                "cost": 3.769
+            },
+            {
+                "name": "sG1IterDecon_00000184",
+                "cost": 0.577
+            },
+            {
+                "name": "sG1IterDecon_00000140",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000083",
+                "cost": 2.054
+            },
+            {
+                "name": "sG1IterDecon_00000122",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000097",
+                "cost": 2.53
+            },
+            {
+                "name": "sG1IterDecon_00000042",
+                "cost": 4.367
+            },
+            {
+                "name": "sG1IterDecon_00000079",
+                "cost": 2.104
+            },
+            {
+                "name": "sG1IterDecon_00000209",
+                "cost": 4.712
+            },
+            {
+                "name": "sG1IterDecon_00000111",
+                "cost": 2.005
+            },
+            {
+                "name": "sG1IterDecon_00000174",
+                "cost": 3.978
+            },
+            {
+                "name": "sG1IterDecon_00000041",
+                "cost": 5.216
+            },
+            {
+                "name": "sG1IterDecon_00000166",
+                "cost": 4.386
+            },
+            {
+                "name": "sG1IterDecon_00000030",
+                "cost": 1.232
+            },
+            {
+                "name": "sG1IterDecon_00000177",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000018",
+                "cost": 4.444
+            },
+            {
+                "name": "sG1IterDecon_00000185",
+                "cost": 4.33
+            },
+            {
+                "name": "sG1IterDecon_00000011",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000118",
+                "cost": 3.704
+            },
+            {
+                "name": "sG1IterDecon_00000066",
+                "cost": 2.879
+            },
+            {
+                "name": "sG1IterDecon_00000136",
+                "cost": 1.221
+            },
+            {
+                "name": "sG1IterDecon_00000167",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000178",
+                "cost": 2.854
+            },
+            {
+                "name": "sG1IterDecon_00000181",
+                "cost": 1.302
+            },
+            {
+                "name": "sG1IterDecon_00000099",
+                "cost": 1.531
+            },
+            {
+                "name": "sG1IterDecon_00000147",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000114",
+                "cost": 1.8
+            },
+            {
+                "name": "sG1IterDecon_00000007",
+                "cost": 2.928
+            },
+            {
+                "name": "sG1IterDecon_00000144",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000135",
+                "cost": 4.427
+            },
+            {
+                "name": "sG1IterDecon_00000207",
+                "cost": 4.128
+            },
+            {
+                "name": "sG1IterDecon_00000112",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000155",
+                "cost": 4.495
+            },
+            {
+                "name": "sG1IterDecon_00000128",
+                "cost": 3.972
+            },
+            {
+                "name": "sG1IterDecon_00000063",
+                "cost": 5.073
+            },
+            {
+                "name": "sG1IterDecon_00000001",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000025",
+                "cost": 2.571
+            },
+            {
+                "name": "sG1IterDecon_00000031",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000100",
+                "cost": 4.576
+            },
+            {
+                "name": "sG1IterDecon_00000048",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000198",
+                "cost": 3.404
+            },
+            {
+                "name": "sG1IterDecon_00000051",
+                "cost": 4.42
+            },
+            {
+                "name": "sG1IterDecon_00000115",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000084",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000113",
+                "cost": 3.46
+            },
+            {
+                "name": "sG1IterDecon_00000157",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000061",
+                "cost": 1.659
+            },
+            {
+                "name": "sG1IterDecon_00000145",
+                "cost": 1.816
+            },
+            {
+                "name": "sG1IterDecon_00000197",
+                "cost": 2.283
+            },
+            {
+                "name": "sG1IterDecon_00000035",
+                "cost": 3.145
+            },
+            {
+                "name": "sG1IterDecon_00000164",
+                "cost": 3.679
+            },
+            {
+                "name": "sG1IterDecon_00000074",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000137",
+                "cost": 2.63
+            },
+            {
+                "name": "sG1IterDecon_00000105",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000151",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000071",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000106",
+                "cost": 0.593
+            },
+            {
+                "name": "sG1IterDecon_00000148",
+                "cost": 3.664
+            },
+            {
+                "name": "sG1IterDecon_00000028",
+                "cost": 2.288
+            },
+            {
+                "name": "sG1IterDecon_00000141",
+                "cost": 1.858
+            },
+            {
+                "name": "sG1IterDecon_00000188",
+                "cost": 4.619
+            },
+            {
+                "name": "sG1IterDecon_00000002",
+                "cost": 2.139
+            },
+            {
+                "name": "sG1IterDecon_00000085",
+                "cost": 3.659
+            },
+            {
+                "name": "sG1IterDecon_00000102",
+                "cost": 4.976
+            },
+            {
+                "name": "sG1IterDecon_00000104",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000152",
+                "cost": 2.741
+            },
+            {
+                "name": "sG1IterDecon_00000176",
+                "cost": 3.75
+            },
+            {
+                "name": "sG1IterDecon_00000022",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000033",
+                "cost": 2.566
+            },
+            {
+                "name": "sG1IterDecon_00000019",
+                "cost": 2.912
+            },
+            {
+                "name": "sG1IterDecon_00000117",
+                "cost": 1.118
+            },
+            {
+                "name": "sG1IterDecon_00000125",
+                "cost": 2.929
+            },
+            {
+                "name": "sG1IterDecon_00000159",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000216",
+                "cost": 2.488
+            },
+            {
+                "name": "sG1IterDecon_00000072",
+                "cost": 0.995
+            },
+            {
+                "name": "sG1IterDecon_00000010",
+                "cost": 2.736
+            },
+            {
+                "name": "sG1IterDecon_00000023",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000150",
+                "cost": 3.303
+            },
+            {
+                "name": "sG1IterDecon_00000043",
+                "cost": 1.276
+            },
+            {
+                "name": "sG1IterDecon_00000199",
+                "cost": 2.728
+            },
+            {
+                "name": "sG1IterDecon_00000089",
+                "cost": 1.707
+            },
+            {
+                "name": "sG1IterDecon_00000094",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000081",
+                "cost": 5.589
+            },
+            {
+                "name": "sG1IterDecon_00000163",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000187",
+                "cost": 2.434
+            },
+            {
+                "name": "sG1IterDecon_00000046",
+                "cost": 1.488
+            },
+            {
+                "name": "sG1IterDecon_00000183",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000091",
+                "cost": 0.803
+            },
+            {
+                "name": "sG1IterDecon_00000208",
+                "cost": 4.362
+            },
+            {
+                "name": "sG1IterDecon_00000126",
+                "cost": 3.764
+            },
+            {
+                "name": "sG1IterDecon_00000064",
+                "cost": 1.406
+            },
+            {
+                "name": "sG1IterDecon_00000044",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000078",
+                "cost": 4.442
+            },
+            {
+                "name": "sG1IterDecon_00000036",
+                "cost": 3.391
+            },
+            {
+                "name": "sG1IterDecon_00000168",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000038",
+                "cost": 3.554
+            },
+            {
+                "name": "wrapper_siftSTFByMisfit_00000101",
+                "cost": 0.135
+            },
+            {
+                "name": "sG1IterDecon_00000040",
+                "cost": 3.807
+            },
+            {
+                "name": "sG1IterDecon_00000202",
+                "cost": 5.48
+            },
+            {
+                "name": "sG1IterDecon_00000211",
+                "cost": 0.746
+            },
+            {
+                "name": "sG1IterDecon_00000123",
+                "cost": 0.927
+            },
+            {
+                "name": "sG1IterDecon_00000082",
+                "cost": 1.868
+            },
+            {
+                "name": "sG1IterDecon_00000021",
+                "cost": 2.398
+            },
+            {
+                "name": "sG1IterDecon_00000219",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000054",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000024",
+                "cost": 1.581
+            },
+            {
+                "name": "sG1IterDecon_00000065",
+                "cost": 2.67
+            },
+            {
+                "name": "sG1IterDecon_00000156",
+                "cost": 3.193
+            },
+            {
+                "name": "sG1IterDecon_00000093",
+                "cost": 0.777
+            },
+            {
+                "name": "sG1IterDecon_00000045",
+                "cost": 3.636
+            },
+            {
+                "name": "sG1IterDecon_00000218",
+                "cost": 3.523
+            },
+            {
+                "name": "sG1IterDecon_00000005",
+                "cost": 0.704
+            },
+            {
+                "name": "sG1IterDecon_00000103",
+                "cost": 4.251
+            },
+            {
+                "name": "sG1IterDecon_00000175",
+                "cost": 2.575
+            },
+            {
+                "name": "sG1IterDecon_00000120",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000222",
+                "cost": 5.42
+            },
+            {
+                "name": "sG1IterDecon_00000014",
+                "cost": 3.451
+            },
+            {
+                "name": "sG1IterDecon_00000186",
+                "cost": 3.281
+            },
+            {
+                "name": "sG1IterDecon_00000060",
+                "cost": 4.41
+            },
+            {
+                "name": "sG1IterDecon_00000206",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000062",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000052",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000013",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000133",
+                "cost": 2.993
+            },
+            {
+                "name": "sG1IterDecon_00000161",
+                "cost": 1.999
+            },
+            {
+                "name": "sG1IterDecon_00000134",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000189",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000180",
+                "cost": 2.77
+            },
+            {
+                "name": "sG1IterDecon_00000142",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000080",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000006",
+                "cost": 1.489
+            },
+            {
+                "name": "sG1IterDecon_00000016",
+                "cost": 2.54
+            },
+            {
+                "name": "sG1IterDecon_00000139",
+                "cost": 3.043
+            },
+            {
+                "name": "sG1IterDecon_00000130",
+                "cost": 4.024
+            },
+            {
+                "name": "sG1IterDecon_00000194",
+                "cost": 3.351
+            },
+            {
+                "name": "SRC",
+                "cost": 1e-9
+            },
+            {
+                "name": "sG1IterDecon_00000056",
+                "cost": 1.914
+            },
+            {
+                "name": "sG1IterDecon_00000039",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000068",
+                "cost": 1.7
+            },
+            {
+                "name": "sG1IterDecon_00000153",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000160",
+                "cost": 2.328
+            },
+            {
+                "name": "sG1IterDecon_00000220",
+                "cost": 1.717
+            },
+            {
+                "name": "sG1IterDecon_00000032",
+                "cost": 3.542
+            },
+            {
+                "name": "sG1IterDecon_00000221",
+                "cost": 2.477
+            },
+            {
+                "name": "sG1IterDecon_00000020",
+                "cost": 2.544
+            },
+            {
+                "name": "sG1IterDecon_00000195",
+                "cost": 0.687
+            },
+            {
+                "name": "sG1IterDecon_00000047",
+                "cost": 4.168
+            },
+            {
+                "name": "sG1IterDecon_00000110",
+                "cost": 3.36
+            },
+            {
+                "name": "sG1IterDecon_00000154",
+                "cost": 1.162
+            },
+            {
+                "name": "sG1IterDecon_00000059",
+                "cost": 1.014
+            },
+            {
+                "name": "sG1IterDecon_00000201",
+                "cost": 1.641
+            },
+            {
+                "name": "sG1IterDecon_00000075",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000067",
+                "cost": 0.742
+            },
+            {
+                "name": "sG1IterDecon_00000092",
+                "cost": 5.578
+            },
+            {
+                "name": "sG1IterDecon_00000096",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000049",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000146",
+                "cost": 3.762
+            },
+            {
+                "name": "sG1IterDecon_00000107",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000162",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000224",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000076",
+                "cost": 2.249
+            },
+            {
+                "name": "sG1IterDecon_00000086",
+                "cost": 0.591
+            },
+            {
+                "name": "sG1IterDecon_00000179",
+                "cost": 2.316
+            },
+            {
+                "name": "sG1IterDecon_00000119",
+                "cost": 3.493
+            },
+            {
+                "name": "sG1IterDecon_00000196",
+                "cost": 3.816
+            },
+            {
+                "name": "sG1IterDecon_00000073",
+                "cost": 1.143
+            },
+            {
+                "name": "sG1IterDecon_00000004",
+                "cost": 2.509
+            },
+            {
+                "name": "sG1IterDecon_00000012",
+                "cost": 3.417
+            },
+            {
+                "name": "sG1IterDecon_00000158",
+                "cost": 1.662
+            },
+            {
+                "name": "sG1IterDecon_00000098",
+                "cost": 3.877
+            },
+            {
+                "name": "sG1IterDecon_00000149",
+                "cost": 1.479
+            },
+            {
+                "name": "sG1IterDecon_00000200",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000192",
+                "cost": 3.635
+            },
+            {
+                "name": "sG1IterDecon_00000138",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000169",
+                "cost": 0.773
+            },
+            {
+                "name": "sG1IterDecon_00000205",
+                "cost": 4.444
+            },
+            {
+                "name": "sG1IterDecon_00000058",
+                "cost": 5.254
+            },
+            {
+                "name": "sG1IterDecon_00000171",
+                "cost": 3.631
+            },
+            {
+                "name": "sG1IterDecon_00000008",
+                "cost": 4.38
+            },
+            {
+                "name": "sG1IterDecon_00000204",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000087",
+                "cost": 3.186
+            },
+            {
+                "name": "sG1IterDecon_00000088",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000124",
+                "cost": 2.409
+            },
+            {
+                "name": "sG1IterDecon_00000170",
+                "cost": 2.485
+            },
+            {
+                "name": "sG1IterDecon_00000132",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000121",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000077",
+                "cost": 1.633
+            },
+            {
+                "name": "sG1IterDecon_00000069",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000095",
+                "cost": 4.853
+            },
+            {
+                "name": "sG1IterDecon_00000109",
+                "cost": 1.429
+            },
+            {
+                "name": "sG1IterDecon_00000215",
+                "cost": 2.696
+            },
+            {
+                "name": "sG1IterDecon_00000015",
+                "cost": 0.744
+            },
+            {
+                "name": "sG1IterDecon_00000190",
+                "cost": 1.178
+            },
+            {
+                "name": "sG1IterDecon_00000210",
+                "cost": 3.692
+            },
+            {
+                "name": "sG1IterDecon_00000029",
+                "cost": 2.241
+            },
+            {
+                "name": "sG1IterDecon_00000172",
+                "cost": 3.595
+            },
+            {
+                "name": "sG1IterDecon_00000027",
+                "cost": 3.877
+            },
+            {
+                "name": "sG1IterDecon_00000217",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000034",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000223",
+                "cost": 1.819
+            },
+            {
+                "name": "sG1IterDecon_00000127",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000173",
+                "cost": 5.27
+            },
+            {
+                "name": "sG1IterDecon_00000055",
+                "cost": 1.255
+            },
+            {
+                "name": "sG1IterDecon_00000017",
+                "cost": 2.051
+            },
+            {
+                "name": "sG1IterDecon_00000165",
+                "cost": 5.169
+            },
+            {
+                "name": "sG1IterDecon_00000003",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000090",
+                "cost": 2.528
+            },
+            {
+                "name": "sG1IterDecon_00000037",
+                "cost": 4.636
+            },
+            {
+                "name": "sG1IterDecon_00000143",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000191",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000213",
+                "cost": 4.344
+            },
+            {
+                "name": "sG1IterDecon_00000182",
+                "cost": 3.529
+            },
+            {
+                "name": "sG1IterDecon_00000009",
+                "cost": 0.561
+            },
+            {
+                "name": "sG1IterDecon_00000116",
+                "cost": 3.451
+            }
+        ],
+        "dependencies": [
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000109",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000141",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000220",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000051",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000202",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000100",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000123",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000096",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000008",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000019",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000052",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000213",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000123",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000198",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000169",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000219",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000005",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000097",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000137",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000127",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000112",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000094",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000177",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000056",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000075",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000048",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000010",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000184",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000014",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000038",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000186",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000182",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000128",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000070",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000218",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000089",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000083",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000118",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000162",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000059",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000129",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000004",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000173",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000080",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000209",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000010",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000092",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000037",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000098",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000130",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000181",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000116",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000195",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000006",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000195",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000061",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000149",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000088",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000165",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000223",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000206",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000167",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000166",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000107",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000179",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000155",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000058",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000119",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000130",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000098",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000161",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000080",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000220",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000085",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000105",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000119",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000199",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000050",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000197",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000192",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000072",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000076",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000008",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000072",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000116",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000034",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000153",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000113",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000172",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000091",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000203",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000054",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000093",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000063",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000051",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000036",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000133",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000156",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000007",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000086",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000028",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000127",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000142",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000140",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000074",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000095",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000097",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000021",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000132",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000172",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000079",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000208",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000191",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000035",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000083",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000022",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000038",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000183",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000125",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000092",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000077",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000170",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000102",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000138",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000073",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000183",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000087",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000020",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000041",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000059",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000050",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000042",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000187",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000082",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000122",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000203",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000016",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000106",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000113",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000194",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000049",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000202",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000117",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000002",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000065",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000054",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000118",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000199",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000181",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000032",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000073",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000151",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000221",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000094",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000107",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000148",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000103",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000060",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000146",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000209",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000064",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000171",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000071",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000186",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000188",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000146",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000131",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000147",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000196",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000179",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000216",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000173",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000110",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000201",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000018",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000099",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000200",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000015",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000087",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000168",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000182",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000063",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000034",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000099",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000138",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000144",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000016",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000009",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000081",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000077",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000066",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000078",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000091",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000150",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000040",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000017",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000078",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000218",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000212",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000198",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000180",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000190",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000215",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000114",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000033",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000189",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000040",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000204",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000191",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000085",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000139",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000159",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000088",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000027",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000044",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000219",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000210",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000037",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000046",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000210",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000158",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000044",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000052",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000033",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000028",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000151",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000188",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000194",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000035",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000067",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000036",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000030",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000176",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000013",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000157",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000184",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000205",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000163",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000022",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000023",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000135",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000011",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000200",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000105",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000055",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000025",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000012",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000111",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000207",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000134",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000122",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000197",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000023",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000174",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000012",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000032",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000143",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000090",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000162",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000108",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000212",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000131",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000104",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000133",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000174",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000137",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000019",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000014",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000025",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000214",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000152",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000222",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000103",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000196",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000042",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000140",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000170",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000031",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000064",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000047",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000102",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000009",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000204",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000158",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000215",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000126",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000155",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000005",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000045",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000018",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000193",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000084",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000065",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000002",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000141",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000166",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000156",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000049",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000211",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000211",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000057",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000047",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000192",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000213",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000062",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000055",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000159",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000082",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000154",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000029",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000139",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000145",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000111",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000178",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000046",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000045",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000221",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000026",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000070",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000024",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000109",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000142",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000076",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000223",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000090",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000168",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000164",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000126",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000214",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000024",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000093",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000075",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000120",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000222",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000128",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000096",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000175",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000060",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000208",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000079",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000031",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000081",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000160",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000048",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000017",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000167",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000013",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000041",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000129",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000216",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000067",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000053",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000115",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000120",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000057",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000217",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000029",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000124",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000125",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000157",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000058",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000015",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000121",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000039",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000086",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000154",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000163",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000068",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000004",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000165",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000145",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000104",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000100",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000061",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000011",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000201",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000164",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000003",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000187",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000053",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000143",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000152",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000066",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000001",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000001",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000043",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000224",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000027",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000189",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000207",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000176",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000039",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000144",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000074",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000147",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000205",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000175",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000160",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000224",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000206",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000062",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000114",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000003",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000095",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000110",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000132",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000089",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000135",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000071",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000121",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000177",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000136",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000043",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000178",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000217",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000169",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000069",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000084",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000185",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000026",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000108",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000134",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000136",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000020",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000106",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000112",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000190",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000115",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000007",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000193",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000021",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000161",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000148",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000149",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000150",
+                "size": 1e-9
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000117",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000068",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000030",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000056",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000124",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000153",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000069",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000180",
+                "size": 1e-9
+            },
+            {
+                "source": "sG1IterDecon_00000006",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "sG1IterDecon_00000185",
+                "target": "wrapper_siftSTFByMisfit_00000101",
+                "size": 1.0
+            },
+            {
+                "source": "SRC",
+                "target": "sG1IterDecon_00000171",
+                "size": 1e-9
+            }
+        ]
+    },
+    "network": {
+        "nodes": [
+            {
+                "name": "N1",
+                "speed": 1.1100506705989992
+            },
+            {
+                "name": "N0",
+                "speed": 0.880089759638251
+            },
+            {
+                "name": "N3",
+                "speed": 0.6584703282874529
+            },
+            {
+                "name": "N4",
+                "speed": 1.0442973075392565
+            },
+            {
+                "name": "N2",
+                "speed": 0.8008567926353276
+            }
+        ],
+        "edges": [
+            {
+                "source": "N1",
+                "target": "N1",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N2",
+                "target": "N4",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N3",
+                "target": "N4",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N2",
+                "target": "N2",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N0",
+                "target": "N4",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N0",
+                "target": "N2",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N1",
+                "target": "N3",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N0",
+                "target": "N1",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N4",
+                "target": "N4",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N0",
+                "target": "N0",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N1",
+                "target": "N4",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N0",
+                "target": "N3",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N2",
+                "target": "N3",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N3",
+                "target": "N3",
+                "speed": 0.2035055740714113
+            },
+            {
+                "source": "N1",
+                "target": "N2",
+                "speed": 0.2035055740714113
+            }
+        ]
+    }
+}
