@@ -178,9 +178,9 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
     for scheduler_name, scheduler in _worker_schedulers.items():
         if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
             continue
+        print(f"[{dataset_name}/{instance_name}] trying:   {scheduler_name}", flush=True)
         try:
             schedule = scheduler.schedule(network=instance.network, task_graph=instance.task_graph)
-            print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
             result = {
                 "Dataset": dataset_name,
                 "Instance": instance_name,
@@ -191,7 +191,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         except Exception as e:
             logging.warning("Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e)
             continue
-        print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
+        print(f"[{dataset_name}/{instance_name}] finished: {scheduler_name}", flush=True)
         results.append(result)
         _save_result(result, savepath, lock_path)
     # --- Sweepable schedulers: expand over (threshold, delta_ready) ---
@@ -203,9 +203,9 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         for threshold in thresholds:
             for delta_ready in delta_readys:
                 scheduler_name = f"{base_name}_{threshold}_{delta_ready}"
-                print(f"Trying: {scheduler_name}, {dataset_name}/{instance_name}")
                 if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
                     continue
+                print(f"[{dataset_name}/{instance_name}] trying:   {scheduler_name}", flush=True)
                 try:
                     sched = factory(threshold, delta_ready)
                     schedule = sched.schedule(network=instance.network, task_graph=instance.task_graph)
@@ -221,7 +221,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
                         "Failed %s/%s/%s: %s", dataset_name, instance_name, scheduler_name, e
                     )
                     continue
-                print(f"[{dataset_name}/{instance_name}] {scheduler_name} done", file=sys.stderr, flush=True)
+                print(f"[{dataset_name}/{instance_name}] finished: {scheduler_name}", flush=True)
                 results.append(result)
                 _save_result(result, savepath, lock_path)
 
