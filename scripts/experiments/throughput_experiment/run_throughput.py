@@ -250,6 +250,7 @@ def evaluate_dataset(
             total=len(work_items),
             desc=f"Evaluating {dataset_name}",
             unit="instance",
+            file=sys.stderr,
         ))
 
 

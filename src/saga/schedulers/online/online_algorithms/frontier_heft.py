@@ -32,7 +32,7 @@ class FrontierHeftEnvironment(FrontierEnvironment):
             critical_path=False,
         )
         self.ranks: Dict[str, Tuple[float, int]] = self.compute_upward_ranks()
-        self.priority_condition: Callable[[TaskGraphNode], float] = lambda x: self.ranks[x]
+        self.priority_condition: Callable[[TaskGraphNode], float] = lambda x: self.ranks[x.name]
 
     def compute_upward_ranks(self):
         urank = upward_rank(self.network, self.task_graph)

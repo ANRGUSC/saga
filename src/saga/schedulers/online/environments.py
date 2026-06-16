@@ -171,7 +171,6 @@ class FrontierEnvironment(Environment):
         finished_names = {t.name for t in self.finished_tasks}
         committed_names = {t.name for t in self.committed}
         finished_or_running = {t.name for t in self.running_tasks} | finished_names
-        self.ready_tasks = set()
         stale = committed_names & self.frontier_set
         if stale:
             self.frontier_set -= stale
@@ -186,18 +185,18 @@ class FrontierEnvironment(Environment):
             if self.ready_condition == "p_complete":
                 if predecessors.issubset(finished_names):
                     self.frontier_set.add(name)
-                    self.ready_tasks.add(task)
                     self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
             elif self.ready_condition == "p_committed":
                 if predecessors.issubset(finished_or_running):
                     self.frontier_set.add(name)
-                    self.ready_tasks.add(task)
                     self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
             elif self.ready_condition == "p_scheduled":
                 if predecessors.issubset(committed_names):
                     self.frontier_set.add(name)
-                    self.ready_tasks.add(task)
                     self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
+
+        task_by_name = {task.name: task for task in self.task_graph.tasks}
+        self.ready_tasks = {task_by_name[name] for name in self.frontier_set}

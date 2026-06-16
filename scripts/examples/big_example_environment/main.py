@@ -183,7 +183,7 @@ def run_recipe(recipe_name: str, output_csv: pathlib.Path) -> None:
     heft_schedule = run_heft(network, task_graph)
     heft_makespan = heft_schedule.makespan
     heft_throughput = heft_schedule.throughput
-    print(f"  HEFT (offline)    makespan: {heft_makespan:.4f}, throughput: {heft_throughput:.4f}")
+    print(f"  HEFT (offline)    makespan: {heft_makespan:.8f}, throughput: {heft_throughput:.8f}")
 
     thresholds = sorted({2, max(1, num_workers), num_workers * 2, num_workers * 3, num_workers * 4})
     delta_readys = sorted({2, max(1, num_workers), num_workers * 2, num_workers * 3, num_workers * 4})
@@ -202,8 +202,8 @@ def run_recipe(recipe_name: str, output_csv: pathlib.Path) -> None:
             n_dispatched = sum(1 for r in inspirit_log if r.dispatched)
             print(
                 f"  threshold={threshold} delta_ready={delta_ready}: "
-                f"makespan={inspirit_schedule.makespan:.4f} "
-                f"throughput={inspirit_schedule.throughput:.4f} "
+                f"makespan={inspirit_schedule.makespan:.8f} "
+                f"throughput={inspirit_schedule.throughput:.8f} "
                 f"dispatches={n_dispatched}"
             )
 
