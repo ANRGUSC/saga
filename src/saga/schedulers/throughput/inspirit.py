@@ -122,18 +122,19 @@ class InspriritScheduler(Scheduler):
         self.smoothing_rate = smoothing_rate
 
     def schedule(self, network, task_graph, schedule=None, min_start_time: float = 0.0):
-        from saga.schedulers.online import InspiritController, InspiritEnvironment, TaskCompletionStep, ReadyChangeObserver
-        env = InspiritEnvironment(
+        from saga.schedulers.online import InspiritController, TaskCompletionStep, ReadyChangeObserver
+        from saga.schedulers.online.environment import Environment
+        env = Environment(
             network=network,
             task_graph=task_graph,
             scheduler=self.scheduler,
             step_strategy=TaskCompletionStep(),
             observer=ReadyChangeObserver(self.delta_ready),
-            time_window=None,
-            controller=InspiritController(smoothing_rate=self.smoothing_rate),
-            on_step=None,
-            dec_step=self.threshold,
-            s_inc=self.threshold,
-            s_dec=self.threshold,
+            controller=InspiritController(
+                smoothing_rate=self.smoothing_rate,
+                dec_step=self.threshold,
+                s_inc=self.threshold,
+                s_dec=self.threshold,
+            ),
         )
         return env.run()

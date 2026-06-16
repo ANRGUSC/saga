@@ -99,11 +99,12 @@ class Environment:
         self.running_tasks: Set[ScheduledTask] = set()
         self.committed: Set[ScheduledTask] = set()
         self.ready_tasks: Set[TaskGraphNode] = set()
-        self.unready_tasks: Set[TaskGraphNode] = {task for task in self.task_graph}
+        self.unready_tasks: Set[TaskGraphNode] = set(self.task_graph.tasks)
         self.available_nodes: Set[NetworkNode] = set()
         self.occupied_nodes: Set[NetworkNode] = set()
         self._step: int = 0
         self.history: List[StepRecord] = []
+        self.prev_nready: int = 0
 
     # ------------------------------------------------------------------
     # Public interface
@@ -116,12 +117,15 @@ class Environment:
         self.running_tasks = set()
         self.ready_tasks = set()
         self.committed = set()
-        self.unready_tasks = {task for task in self.task_graph}
+        self.unready_tasks = set(self.task_graph.tasks)
         self.available_nodes = set()
         self.occupied_nodes = set()
         self._step = 0
         self.history = []
+        self.prev_nready = 0
         self.observer.reset()
+        if self.controller is not None:
+            self.controller.reset()
         self.schedule = self.scheduler.schedule(self.network, self.task_graph)
         self._update_task_state()
         self._update_network_state()
@@ -143,6 +147,9 @@ class Environment:
         self.current_time = next_time
         self._update_task_state()
         self._update_network_state()
+
+        if self.controller is not None:
+            self.controller.pre_step(self)
 
         trigger: Optional[Trigger] = self.observer.observe(self)
         if trigger is not None and self.controller is not None:
@@ -227,6 +234,7 @@ class Environment:
 
     def _update_task_state(self) -> None:
         """Recompute all four task-state sets from the current schedule and task graph."""
+        self.prev_nready = len(self.ready_tasks)
         self.finished_tasks = self.get_finished_tasks()
         self.running_tasks = self.get_running_tasks()
 

@@ -1,33 +1,32 @@
-import logging
 import pathlib
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
-import numpy as np
 
 import networkx as nx
 
 from saga import Network, Schedule, TaskGraph
 from saga.schedulers.online import (
     Environment,
+    FrontierEnvironment,
     InspiritController,
+    FrontierPopController,
+    CompositeObserver,
     ReadyChangeObserver,
+    OnStepObserver,
+    TaskEventStep,
     TaskCompletionStep,
 )
+from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
     GreedyInsert,
     GreedyInsertCompareFuncs,
     UpwardRanking,
 )
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
-
-logging.basicConfig(level=logging.WARNING)
 
 SMOOTHING_RATE = 0.8
 
 thisdir = pathlib.Path(__file__).parent.absolute()
-savedir = thisdir / "outputs"
-savedir.mkdir(exist_ok=True)
 
 
 def get_instance() -> Tuple[Network, TaskGraph]:
@@ -57,8 +56,6 @@ def get_instance() -> Tuple[Network, TaskGraph]:
     task_graph.add_node("t_15", weight=2)
     task_graph.add_node("t_16", weight=2)
     task_graph.add_node("t_17", weight=2)
-    task_graph.add_node("t_16", weight=2)
-    task_graph.add_node("t_17", weight=2)
     task_graph.add_node("t_18", weight=6)
     task_graph.add_node("t_19", weight=5)
     task_graph.add_node("t_20", weight=5)
@@ -74,7 +71,6 @@ def get_instance() -> Tuple[Network, TaskGraph]:
     task_graph.add_node("t_30", weight=2)
     task_graph.add_node("t_31", weight=2)
     task_graph.add_node("t_32", weight=1)
-
 
     task_graph.add_edge("t_1", "t_2", weight=2)
     task_graph.add_edge("t_1", "t_3", weight=2)
@@ -122,10 +118,6 @@ def get_instance() -> Tuple[Network, TaskGraph]:
     task_graph.add_edge("t_29", "t_32", weight=2)
     task_graph.add_edge("t_30", "t_32", weight=2)
     task_graph.add_edge("t_31", "t_32", weight=2)
-    
-    
-
-
 
     return Network.from_nx(network), TaskGraph.from_nx(task_graph)
 
@@ -141,8 +133,17 @@ def make_heft_scheduler() -> ParametricScheduler:
     )
 
 
-def run_heft(network: Network, task_graph: TaskGraph) -> Schedule:
-    return make_heft_scheduler().schedule(network, task_graph)
+# ---------------------------------------------------------------------------
+# Step record helpers
+# ---------------------------------------------------------------------------
+
+@dataclass
+class FIFOStepRecord:
+    step: int
+    time: float
+    nready: int
+    frontier_size: int
+    makespan: float
 
 
 @dataclass
@@ -157,16 +158,42 @@ class InspiritStepRecord:
     dispatch_type: Optional[str]
 
 
-def run_inspirit(
-    network: Network,
-    task_graph: TaskGraph,
-    dec_step: Optional[int] = None,
-    s_inc: Optional[int] = None,
-    s_dec: Optional[int] = None,
-    delta_ready: int = 3,
-) -> Tuple[Schedule, Environment, List[InspiritStepRecord]]:
-    log: List[InspiritStepRecord] = []
+# ---------------------------------------------------------------------------
+# FIFO
+# ---------------------------------------------------------------------------
 
+def run_fifo(network: Network, task_graph: TaskGraph) -> Tuple[Schedule, List[FIFOStepRecord]]:
+    log: List[FIFOStepRecord] = []
+
+    def on_step(env: FrontierEnvironment) -> None:
+        log.append(FIFOStepRecord(
+            step=env._step,
+            time=env.current_time,
+            nready=len(env.ready_tasks),
+            frontier_size=len(env.frontier),
+            makespan=env.schedule.makespan,
+        ))
+
+    env = FIFOEnvironment(network=network, task_graph=task_graph, on_step=on_step)
+    return env.run(), log
+
+
+def print_fifo_log(log: List[FIFOStepRecord]) -> None:
+    header = f"  {'Step':>4}  {'Time':>8}  {'NReady':>6}  {'Frontier':>8}  {'Makespan':>10}"
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+    for rec in log:
+        print(
+            f"  {rec.step:>4}  {rec.time:>8.4f}  {rec.nready:>6}  "
+            f"{rec.frontier_size:>8}  {rec.makespan:>10.4f}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Inspirit (shared log/print for FIFO-Inspirit and HEFT-Inspirit)
+# ---------------------------------------------------------------------------
+
+def _inspirit_on_step(log: List[InspiritStepRecord]):
     def on_step(env: Environment) -> None:
         ctrl = env.controller
         assert isinstance(ctrl, InspiritController)
@@ -180,23 +207,7 @@ def run_inspirit(
             dispatched=ctrl.last_dispatched,
             dispatch_type=ctrl.last_dispatch_type,
         ))
-
-    controller = InspiritController(
-        smoothing_rate=SMOOTHING_RATE,
-        dec_step=dec_step,
-        s_inc=s_inc,
-        s_dec=s_dec,
-    )
-    env = Environment(
-        network=network,
-        task_graph=task_graph,
-        scheduler=make_heft_scheduler(),
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=controller,
-        on_step=on_step,
-    )
-    return env.run(), env, log
+    return on_step
 
 
 def print_inspirit_log(log: List[InspiritStepRecord]) -> None:
@@ -207,21 +218,74 @@ def print_inspirit_log(log: List[InspiritStepRecord]) -> None:
     print(header)
     print("  " + "-" * (len(header) - 2))
     for rec in log:
-        dispatched_str = rec.dispatched or "-"
-        type_str = rec.dispatch_type or "-"
         print(
             f"  {rec.step:>4}  {rec.time:>8.4f}  {rec.state:>5}  "
             f"{rec.peak:>4}  {rec.nready:>6}  {rec.makespan:>10.4f}  "
-            f"{dispatched_str:<12}  {type_str}"
+            f"{rec.dispatched or '-':<12}  {rec.dispatch_type or '-'}"
         )
 
 
-def save_fig(ax, name: str) -> None:
-    fig = ax.get_figure()
-    if fig is not None:
-        fig.savefig(str(savedir / f"{name}.png"))
-        fig.clf()
+# ---------------------------------------------------------------------------
+# FIFO-Inspirit
+# ---------------------------------------------------------------------------
 
+def run_fifo_inspirit(
+    network: Network,
+    task_graph: TaskGraph,
+    threshold: int,
+    delta_ready: int,
+) -> Tuple[Schedule, List[InspiritStepRecord]]:
+    log: List[InspiritStepRecord] = []
+
+    env = FrontierEnvironment(
+        network=network,
+        task_graph=task_graph,
+        step_strategy=TaskEventStep(),
+        observer=CompositeObserver([OnStepObserver(), ReadyChangeObserver(delta_ready)]),
+        controller=InspiritController(
+            smoothing_rate=SMOOTHING_RATE,
+            dec_step=threshold,
+            s_inc=threshold,
+            s_dec=threshold,
+            fill_controller=FrontierPopController(),
+        ),
+        on_step=_inspirit_on_step(log),
+    )
+    return env.run(), log
+
+
+# ---------------------------------------------------------------------------
+# HEFT-Inspirit
+# ---------------------------------------------------------------------------
+
+def run_heft_inspirit(
+    network: Network,
+    task_graph: TaskGraph,
+    threshold: int,
+    delta_ready: int,
+) -> Tuple[Schedule, List[InspiritStepRecord]]:
+    log: List[InspiritStepRecord] = []
+
+    env = Environment(
+        network=network,
+        task_graph=task_graph,
+        scheduler=make_heft_scheduler(),
+        step_strategy=TaskCompletionStep(),
+        observer=ReadyChangeObserver(delta_ready),
+        controller=InspiritController(
+            smoothing_rate=SMOOTHING_RATE,
+            dec_step=threshold,
+            s_inc=threshold,
+            s_dec=threshold,
+        ),
+        on_step=_inspirit_on_step(log),
+    )
+    return env.run(), log
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main() -> None:
     network, task_graph = get_instance()
@@ -231,43 +295,31 @@ def main() -> None:
     delta_ready = max(1, num_workers)
 
     print(f"Instance: {num_tasks} tasks, {num_workers} workers")
+    print(f"Threshold / delta_ready: {threshold}\n")
 
-    # Draw instance
-    save_fig(draw_task_graph(task_graph.graph, use_latex=False), "task_graph")
-    save_fig(draw_network(network.graph, draw_colors=False, use_latex=False), "network")
+    # --- FIFO ---
+    fifo_schedule, fifo_log = run_fifo(network, task_graph)
+    print(f"FIFO  makespan: {fifo_schedule.makespan:.4f}  throughput: {fifo_schedule.throughput:.4f}")
+    print(f"  {len(fifo_log)} steps\n")
+    print_fifo_log(fifo_log)
+    print()
 
-    # HEFT offline baseline
-    heft_schedule = run_heft(network, task_graph)
-    print(f"  HEFT (offline)    makespan: {heft_schedule.makespan:.4f}")
-    print(f" HEFT (offline) throughput: {heft_schedule.throughput:.4f}")
-    save_fig(draw_gantt(heft_schedule.mapping, use_latex=False), "heft_gantt")
+    # --- FIFO Inspirit ---
+    fifo_ins_schedule, fifo_ins_log = run_fifo_inspirit(network, task_graph, threshold, delta_ready)
+    fifo_ins_ctrl = None  # controller state available via log
+    n_dispatched = sum(1 for r in fifo_ins_log if r.dispatched)
+    print(f"FIFO-Inspirit  makespan: {fifo_ins_schedule.makespan:.4f}  throughput: {fifo_ins_schedule.throughput:.4f}")
+    print(f"  {len(fifo_ins_log)} steps, {n_dispatched} dispatch(es)\n")
+    print_inspirit_log(fifo_ins_log)
+    print()
 
-    # Inspirit online scheduler
-    inspirit_schedule, inspirit_env, inspirit_log = run_inspirit(
-        network, task_graph,
-        dec_step=threshold,
-        s_inc=threshold,
-        s_dec=threshold,
-        delta_ready=delta_ready,
-    )
-    print(f"  Inspirit (online) makespan: {inspirit_schedule.makespan:.4f}")
-    print(f" Inspirit (online) throughput: {inspirit_schedule.throughput:.4f}")
-    save_fig(draw_gantt(inspirit_schedule.mapping, use_latex=False), "inspirit_gantt")
-
-    ctrl = inspirit_env.controller
-    n_dispatched = sum(1 for r in inspirit_log if r.dispatched)
-    print(
-        f"\n  Inspirit: {n_dispatched} dispatch(es) over {len(inspirit_log)} step(s) | "
-        f"peak ready: {ctrl.peak} | "
-        f"final state: {ctrl.cur_state} | "
-        f"k_inc: {ctrl.k_inc:.4f}"
-    )
-    print("\n  Inspirit step log:")
-    print_inspirit_log(inspirit_log)
-
-    xmax = max(heft_schedule.makespan, inspirit_schedule.makespan)
-    save_fig(draw_gantt(heft_schedule.mapping, use_latex=False, xmax=xmax), "heft_gantt_scaled")
-    save_fig(draw_gantt(inspirit_schedule.mapping, use_latex=False, xmax=xmax), "inspirit_gantt_scaled")
+    # --- HEFT Inspirit ---
+    heft_ins_schedule, heft_ins_log = run_heft_inspirit(network, task_graph, threshold, delta_ready)
+    n_dispatched = sum(1 for r in heft_ins_log if r.dispatched)
+    print(f"HEFT-Inspirit  makespan: {heft_ins_schedule.makespan:.4f}  throughput: {heft_ins_schedule.throughput:.4f}")
+    print(f"  {len(heft_ins_log)} steps, {n_dispatched} dispatch(es)\n")
+    print_inspirit_log(heft_ins_log)
+    print()
 
 
 if __name__ == "__main__":

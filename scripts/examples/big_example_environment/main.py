@@ -20,7 +20,6 @@ from saga.schedulers.data.wfcommons import get_networks, get_workflows
 from saga.schedulers.online import (
     Environment,
     InspiritController,
-    InspiritEnvironment,
     TaskCompletionStep,
     ReadyChangeObserver,
 )
@@ -117,7 +116,7 @@ def run_inspirit(
     dec_step: Optional[int] = None,
     s_inc: Optional[int] = None,
     s_dec: Optional[int] = None,
-) -> Tuple[Schedule, InspiritEnvironment, List[InspiritStepRecord]]:
+) -> Tuple[Schedule, Environment, List[InspiritStepRecord]]:
     log: List[InspiritStepRecord] = []
     pbar = tqdm(
         total=num_tasks,
@@ -129,33 +128,36 @@ def run_inspirit(
 
     def on_step(env: Environment) -> None:
         nonlocal finished_count
-        assert isinstance(env, InspiritEnvironment)
+        ctrl = env.controller
+        assert isinstance(ctrl, InspiritController)
         log.append(InspiritStepRecord(
             step=env._step,
             time=env.current_time,
-            state=env.cur_state or "-",
-            peak=env.peak,
+            state=ctrl.cur_state or "-",
+            peak=ctrl.peak,
             nready=len(env.ready_tasks),
             makespan=env.schedule.makespan,
-            dispatched=env.last_dispatched,
-            dispatch_type=env.last_dispatch_type,
+            dispatched=ctrl.last_dispatched,
+            dispatch_type=ctrl.last_dispatch_type,
         ))
         new_finished = len(env.finished_tasks)
         pbar.update(new_finished - finished_count)
         finished_count = new_finished
 
-    env = InspiritEnvironment(
+    controller = InspiritController(
+        smoothing_rate=SMOOTHING_RATE,
+        dec_step=dec_step,
+        s_inc=s_inc,
+        s_dec=s_dec,
+    )
+    env = Environment(
         network=network,
         task_graph=task_graph,
         scheduler=make_heft_scheduler(),
         step_strategy=TaskCompletionStep(),
         observer=ReadyChangeObserver(delta_ready),
-        time_window=None,
-        controller=InspiritController(smoothing_rate=SMOOTHING_RATE),
+        controller=controller,
         on_step=on_step,
-        dec_step=dec_step,
-        s_inc=s_inc,
-        s_dec=s_dec,
     )
     result = env.run(), env, log
     pbar.close()

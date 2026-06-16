@@ -34,8 +34,9 @@ from saga.schedulers.parametric.components import (
     UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs,
 )
 from saga.schedulers.online import (
-    InspiritController, InspiritEnvironment, TaskCompletionStep, ReadyChangeObserver,
+    InspiritController, TaskCompletionStep, ReadyChangeObserver,
 )
+from saga.schedulers.online.environment import Environment
 from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
 
 
@@ -66,7 +67,7 @@ REGULAR_SCHEDULERS = {
     "Mt_Scheduler": MTScheduler(),
     "Multi_Obj": MultiObjScheduler(),
     "BILScheduler": s.BILScheduler(),
-    "DPSScheduler": s.DPSScheduler(),
+    #"DPSScheduler": s.DPSScheduler(),
     "DuplexScheduler": s.DuplexScheduler(),
     "ETFScheduler": s.ETFScheduler(),
     "FastestNodeScheduler": s.FastestNodeScheduler(),
@@ -135,18 +136,19 @@ def _run_inspirit(label: str, network, task_graph, threshold: int, delta_ready: 
                   base_scheduler, smoothing_rate: float = 0.8):
     """Run one Inspirit variant with per-step debug output; return the schedule."""
     t0 = time.time()
-    env = InspiritEnvironment(
+    env = Environment(
         network=network,
         task_graph=task_graph,
         scheduler=base_scheduler,
         step_strategy=TaskCompletionStep(),
         observer=ReadyChangeObserver(delta_ready),
-        time_window=None,
-        controller=InspiritController(smoothing_rate=smoothing_rate),
+        controller=InspiritController(
+            smoothing_rate=smoothing_rate,
+            dec_step=threshold,
+            s_inc=threshold,
+            s_dec=threshold,
+        ),
         on_step=_make_on_step(label, t0),
-        dec_step=threshold,
-        s_inc=threshold,
-        s_dec=threshold,
     )
     schedule = env.run()
     elapsed = time.time() - t0

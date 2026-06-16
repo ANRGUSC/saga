@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from saga import Schedule, ScheduledTask
 
@@ -211,6 +211,44 @@ class ReadyChangeObserver(Observer):
         return None
 
 
+class CompositeObserver(Observer):
+    """Fires when any of its child observers fires, returning a CompositeTrigger.
+
+    Always emits a trigger (since OnStepObserver fires unconditionally), which
+    lets fill-based controllers run every step while Inspirit-style controllers
+    inspect the trigger for a ReadyChangeTrigger to decide on dispatch.
+
+    Args:
+        observers: List of observers to evaluate each step.
+    """
+
+    def __init__(self, observers: List[Observer]) -> None:
+        self._observers = observers
+
+    def reset(self) -> None:
+        for obs in self._observers:
+            obs.reset()
+
+    def observe(self, environment: "Environment") -> Optional[Trigger]:
+        fired = [t for obs in self._observers if (t := obs.observe(environment)) is not None]
+        return CompositeTrigger(fired) if fired else None
+
+
+class CompositeTrigger(Trigger):
+    """Carries the triggers from all observers that fired in a given step.
+
+    Attributes:
+        triggers: List of individual triggers that fired this step.
+    """
+
+    def __init__(self, triggers: List[Trigger]) -> None:
+        self.triggers = triggers
+
+    def has(self, trigger_type: type) -> bool:
+        """Return True if any sub-trigger is an instance of trigger_type."""
+        return any(isinstance(t, trigger_type) for t in self.triggers)
+
+
 # ---------------------------------------------------------------------------
 # Controller
 # ---------------------------------------------------------------------------
@@ -221,6 +259,19 @@ class Controller(ABC):
     A Controller may internally wrap or inherit from a Scheduler to produce a
     revised schedule (e.g. re-scheduling remaining tasks around committed ones).
     """
+
+    def reset(self) -> None:
+        """Clear per-run state. Called by Environment.reset() before each simulation."""
+        pass
+
+    def pre_step(self, environment: "Environment") -> None:
+        """Called at the start of every step, before the observer runs.
+
+        Override to clear any per-step transient state (e.g. last_dispatched)
+        so that on_step callbacks see clean values on steps where control() does
+        not fire.
+        """
+        pass
 
     @abstractmethod
     def control(self, environment: "Environment", trigger: Trigger) -> Schedule:

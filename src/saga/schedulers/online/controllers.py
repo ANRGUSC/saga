@@ -1,14 +1,19 @@
 import logging
 from copy import deepcopy
-from typing import List, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
 import heapq
+import numpy as np
 
 from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph
 from saga.schedulers.parametric import ParametricScheduler
-from saga.schedulers.online.components import Controller, Trigger
-from saga.schedulers.online.environments import InspiritEnvironment, StochasticEnvironment, FrontierEnvironment
+from saga.schedulers.online.components import Controller, Trigger, CompositeTrigger, ReadyChangeTrigger
+from saga.schedulers.online.environments import StochasticEnvironment, FrontierEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.stochastic import EstimateStochasticScheduler
+from saga.schedulers.throughput.inspirit import (
+    compute_inspiring_ability,
+    compute_inspiring_effeciency,
+)
 from saga.stochastic import (
     StochasticNetwork,
     StochasticTaskGraph,
@@ -24,27 +29,21 @@ if TYPE_CHECKING:
 
 
 def _build_partial_schedule(environment: "Environment") -> Schedule:
-    """Return a Schedule containing only the committed tasks.
-
-    Committed tasks are those that are finished or currently running — they
-    have fixed positions in time that the rescheduler must work around.
-    Running tasks keep their original start/end times (deterministic case).
-    """
+    """Return a Schedule containing only the committed tasks."""
     partial = Schedule(environment.task_graph, environment.network)
     if isinstance(environment, StochasticEnvironment):
         environment.schedule_actual = environment.estimate_schedule.determinize(environment.actual_network, environment.actual_task_graph)
         for task in environment.finished_tasks:
             partial.add_task(task)
 
-        est_running_tasks:List[ScheduledTask] = deepcopy(environment.running_tasks)
-       
+        est_running_tasks: List[ScheduledTask] = deepcopy(environment.running_tasks)
         for task in est_running_tasks:
             est_task_size = environment.task_graph.get_task(task.name).cost
             est_network_speed = environment.network.get_node(task.node).speed
-            task.end = task.start + (est_task_size/est_network_speed)
+            task.end = task.start + (est_task_size / est_network_speed)
             partial.add_task(task)
         return partial
-    else: 
+    else:
         for task in environment.finished_tasks:
             partial.add_task(task)
         for task in environment.running_tasks:
@@ -53,18 +52,7 @@ def _build_partial_schedule(environment: "Environment") -> Schedule:
 
 
 class RescheduleController(Controller):
-    """Reschedules all remaining tasks around committed (finished + running) tasks.
-
-    Builds a partial schedule from the committed tasks, then calls the
-    scheduler to fill in the rest, starting no earlier than current_time.
-
-    By default uses env.scheduler (the same strategy that produced the initial
-    schedule).  Pass an alternate ParametricScheduler to use a different
-    strategy at reschedule time.
-
-    Args:
-        scheduler: Optional alternate scheduler.  If None, env.scheduler is used.
-    """
+    """Reschedules all remaining tasks around committed (finished + running) tasks."""
 
     def control(self, environment: "Environment", trigger: Trigger) -> Schedule:
         if not isinstance(environment.scheduler, ParametricScheduler):
@@ -95,17 +83,153 @@ class RescheduleController(Controller):
                 min_start_time=environment.current_time,
             )
         return new_schedule
+
+
 class InspiritController(Controller):
-    """Controller based on the Inspirit paper's approach of monitoring ready tasks and pop specific tasks when triggerd,
-    with the goal of maximizing throughput. """
-    def __init__(self, smoothing_rate: float = 0.8, scheduler: Optional[Scheduler] = None) -> None:
+    """Controller implementing the Inspirit throughput-maximisation algorithm.
+
+    Owns all Inspirit-specific state (frontiers, bookkeeping) so it can be
+    composed with any Environment — base Environment for batch schedulers like
+    HEFT, or FrontierEnvironment when a fill_controller handles remaining slots.
+
+    Args:
+        smoothing_rate:  EMA smoothing factor for the k_inc rate estimate.
+        dec_step:        Steps-below-peak threshold for entering DEC state.
+                         Defaults to number of workers on first control call.
+        s_inc:           Ready-count delta threshold to trigger in INC state.
+                         Defaults to number of workers on first control call.
+        s_dec:           Ready-count delta per DEC-phase dispatch band.
+                         Defaults to number of workers on first control call.
+        fill_controller: Optional controller used to fill remaining available
+                         slots after pinning a priority task. Use with
+                         FrontierEnvironment (e.g. FrontierPopController).
+                         When None, env.scheduler.schedule() fills the rest.
+    """
+
+    INC = "INC"
+    DEC = "DEC"
+
+    def __init__(
+        self,
+        smoothing_rate: float = 0.8,
+        dec_step: Optional[int] = None,
+        s_inc: Optional[int] = None,
+        s_dec: Optional[int] = None,
+        fill_controller: Optional[Controller] = None,
+    ) -> None:
         if not 0 <= smoothing_rate <= 1:
             raise ValueError("smoothing_rate must be between 0 and 1")
-        self._alt_scheduler = scheduler
         self._smoothing_rate = smoothing_rate
-        self._insertion_strategy = GreedyInsert(append_only=False,
-                                                compare=GreedyInsertCompareFuncs.EFT,
-                                                critical_path=False)
+        self._dec_step_override = dec_step
+        self._s_inc_override = s_inc
+        self._s_dec_override = s_dec
+        self.fill_controller = fill_controller
+
+        self._insertion_strategy = GreedyInsert(
+            append_only=False,
+            compare=GreedyInsertCompareFuncs.EFT,
+            critical_path=False,
+        )
+
+        # Static scores — computed lazily on first control() call.
+        self.efficiency_ranks: Optional[Dict[str, float]] = None
+        self.ability_ranks: Optional[Dict[str, float]] = None
+        self._time_window: Optional[float] = None
+
+        # Per-run bookkeeping — reset by reset().
+        self.efficiency_frontier: List[Tuple[float, str]] = []
+        self.ability_frontier: List[Tuple[float, str]] = []
+        self.peak: int = 0
+        self.cur_state: Optional[str] = None
+        self.dec_step: int = 0
+        self.k_inc: float = 0.0
+        self.cur_k: float = 0.0
+        self.s_inc: int = 0
+        self.s_dec: int = 0
+        self.s_dec_count: int = 0
+        self.c: int = 1
+        self.last_dispatched: Optional[str] = None
+        self.last_dispatch_type: Optional[str] = None
+        self._last_k_time: float = 0.0
+        self._last_k_nready: int = 0
+        self._dispatched_set: set = set()
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    def reset(self) -> None:
+        """Clear per-run bookkeeping. Static ranks are preserved across runs."""
+        self.efficiency_frontier = []
+        self.ability_frontier = []
+        self.peak = 0
+        self.cur_state = None
+        self.dec_step = 0
+        self.k_inc = 0.0
+        self.cur_k = 0.0
+        self.s_inc = 0
+        self.s_dec = 0
+        self.s_dec_count = 0
+        self.c = 1
+        self.last_dispatched = None
+        self.last_dispatch_type = None
+        self._last_k_time = 0.0
+        self._last_k_nready = 0
+        if self.fill_controller is not None:
+            self.fill_controller.reset()
+
+    def pre_step(self, _environment: "Environment") -> None:
+        self.last_dispatched = None
+        self.last_dispatch_type = None
+
+    def _init_ranks(self, environment: "Environment") -> None:
+        """Compute static efficiency/ability ranks and worker-count defaults."""
+        workers = len(environment.network.nodes)
+        time_window = workers * (
+            np.mean([task.cost for task in environment.task_graph.tasks])
+            / np.mean([node.speed for node in environment.network.nodes])
+        )
+        self._time_window = time_window
+        self.efficiency_ranks = compute_inspiring_effeciency(
+            environment.task_graph, environment.network, time_window=time_window
+        )
+        self.ability_ranks = compute_inspiring_ability(environment.task_graph)
+        self.dec_step = self._dec_step_override if self._dec_step_override is not None else workers
+        self.s_inc = self._s_inc_override if self._s_inc_override is not None else workers
+        self.s_dec = self._s_dec_override if self._s_dec_override is not None else workers
+        self.c = max(1, workers // 2)
+
+    # ------------------------------------------------------------------
+    # Frontier management
+    # ------------------------------------------------------------------
+
+    def _rebuild_frontiers(self, environment: "Environment") -> None:
+        """Rebuild efficiency and ability heaps from the current ready_tasks."""
+        ready_names = {t.name for t in environment.ready_tasks}
+        self.efficiency_frontier = [
+            (-self.efficiency_ranks[name], name) for name in ready_names
+        ]
+        self.ability_frontier = [
+            (-self.ability_ranks[name], name) for name in ready_names
+        ]
+        heapq.heapify(self.efficiency_frontier)
+        heapq.heapify(self.ability_frontier)
+
+    def pop_highest_efficiency(self) -> Optional[str]:
+        if self.efficiency_frontier:
+            _, name = heapq.heappop(self.efficiency_frontier)
+            return name
+        return None
+
+    def pop_highest_ability(self) -> Optional[str]:
+        if self.ability_frontier:
+            _, name = heapq.heappop(self.ability_frontier)
+            return name
+        return None
+
+    # ------------------------------------------------------------------
+    # Rate helpers
+    # ------------------------------------------------------------------
 
     @staticmethod
     def _calculate_k(cur_nready: int, prev_nready: int, cur_time: float, prev_time: float) -> float:
@@ -117,82 +241,108 @@ class InspiritController(Controller):
     def _update_adaptive_k(self, cur_k: float, k_inc: float) -> float:
         alpha = self._smoothing_rate
         return alpha * k_inc + (1 - alpha) * cur_k
-    
-    def _insert_task(self, task_name: str, schedule: Schedule, env: InspiritEnvironment) -> None:
-        """Insert task_name into schedule at its earliest feasible slot."""
+
+    # ------------------------------------------------------------------
+    # Insertion helper
+    # ------------------------------------------------------------------
+
+    def _insert_task(self, task_name: str, schedule: Schedule, environment: "Environment") -> None:
         self._insertion_strategy.call(
-            env.network,
-            env.task_graph,
+            environment.network,
+            environment.task_graph,
             schedule,
             task_name,
-            min_start_time=env.current_time,
+            min_start_time=environment.current_time,
         )
-    
+
+    # ------------------------------------------------------------------
+    # Control
+    # ------------------------------------------------------------------
+
+    def _should_evaluate_dispatch(self, trigger: Trigger) -> bool:
+        """Return True if this trigger warrants running the Inspirit dispatch state machine."""
+        if isinstance(trigger, ReadyChangeTrigger):
+            return True
+        if isinstance(trigger, CompositeTrigger):
+            return trigger.has(ReadyChangeTrigger)
+        return True  # unknown trigger type: evaluate by default
 
     def control(self, environment: "Environment", trigger: Trigger) -> Schedule:
-        """Select a priority task (if threshold is met), lock it into the partial
-        schedule, then reschedule all remaining tasks around it.
-        """
-        if not isinstance(environment, InspiritEnvironment):
-            raise ValueError("InspiritController requires an InspiritEnvironment.")
-        env: InspiritEnvironment = environment
+        env = environment
+
+        if self.efficiency_ranks is None:
+            self._init_ranks(env)
+
+        self._rebuild_frontiers(env)
+
         cur_nready = len(env.ready_tasks)
         task_name: Optional[str] = None
-
-        if cur_nready > env.peak:
-            env.peak = cur_nready
-        if cur_nready >= env.peak - env.dec_step:
-            env.cur_state = InspiritEnvironment.INC
-        else:
-            env.cur_state = InspiritEnvironment.DEC
-
         dispatch_type: Optional[str] = None
-        if env.cur_state == InspiritEnvironment.INC:
-            if cur_nready - env.prev_nready > env.s_inc:
-                # Measure rate over the inter-dispatch interval (since last k update),
-                # not the single step interval, to avoid blowup when task completions
-                # are closely spaced in time.
-                env.cur_k = self._calculate_k(
-                    cur_nready, env._last_k_nready,
-                    env.current_time, env._last_k_time,
-                )
-                env._last_k_time = env.current_time
-                env._last_k_nready = cur_nready
-                if env.cur_k < env.k_inc:
-                    task_name = env.pop_highest_efficiency()
-                    dispatch_type = "efficiency"
-                else:
-                    task_name = env.pop_highest_ability()
+
+        if self._should_evaluate_dispatch(trigger):
+            if cur_nready > self.peak:
+                self.peak = cur_nready
+            if cur_nready >= self.peak - self.dec_step:
+                self.cur_state = self.INC
+            else:
+                self.cur_state = self.DEC
+
+            if self.cur_state == self.INC:
+                if cur_nready - env.prev_nready > self.s_inc:
+                    self.cur_k = self._calculate_k(
+                        cur_nready, self._last_k_nready,
+                        env.current_time, self._last_k_time,
+                    )
+                    self._last_k_time = env.current_time
+                    self._last_k_nready = cur_nready
+                    if self.cur_k < self.k_inc:
+                        task_name = self.pop_highest_efficiency()
+                        dispatch_type = "efficiency"
+                    else:
+                        task_name = self.pop_highest_ability()
+                        dispatch_type = "ability"
+                    self.k_inc = self._update_adaptive_k(self.cur_k, self.k_inc)
+            elif self.cur_state == self.DEC:
+                if cur_nready > self.peak - self.s_dec * self.s_dec_count:
+                    task_name = self.pop_highest_ability()
                     dispatch_type = "ability"
-                env.k_inc = self._update_adaptive_k(env.cur_k, env.k_inc)
-        elif env.cur_state == InspiritEnvironment.DEC:
-            if cur_nready > env.peak - env.s_dec * env.s_dec_count:
-                task_name = env.pop_highest_ability()
-                dispatch_type = "ability"
-            elif cur_nready <= env.peak - env.s_dec * (env.s_dec_count + 1) + env.c:
-                task_name = env.pop_highest_efficiency()
-                dispatch_type = "efficiency"
-                if cur_nready <= env.peak - env.s_dec * (env.s_dec_count + 1):
-                    env.s_dec_count += 1
+                elif cur_nready <= self.peak - self.s_dec * (self.s_dec_count + 1) + self.c:
+                    task_name = self.pop_highest_efficiency()
+                    dispatch_type = "efficiency"
+                    if cur_nready <= self.peak - self.s_dec * (self.s_dec_count + 1):
+                        self.s_dec_count += 1
 
-        env.last_dispatched = task_name
-        env.last_dispatch_type = dispatch_type if task_name is not None else None
-        if task_name is not None:
-            partial = _build_partial_schedule(env)
-            self._insert_task(task_name, partial, env)
+        self.last_dispatched = task_name
+        self.last_dispatch_type = dispatch_type if task_name is not None else None
 
-            scheduler = self._alt_scheduler or env.scheduler
-            return scheduler.schedule(
-                env.network,
-                env.task_graph,
-                schedule=partial,
-                min_start_time=env.current_time,
-            )
-        return env.schedule  # No change
+        if self.fill_controller is not None:
+            # Frontier path: pin the priority task directly into env.schedule (removing
+            # it from the frontier so fill_controller won't re-pick it), then always
+            # let fill_controller fill the remaining available slots.
+            if task_name is not None:
+                env.frontier_set.discard(task_name)
+                env.frontier = [(p, n) for p, n in env.frontier if n != task_name]
+                heapq.heapify(env.frontier)
+                self._insert_task(task_name, env.schedule, env)
+            return self.fill_controller.control(env, trigger)
+
+        # Batch scheduler path (e.g. HEFT): if no dispatch, leave schedule unchanged.
+        if task_name is None:
+            return env.schedule
+
+        partial = _build_partial_schedule(env)
+        self._insert_task(task_name, partial, env)
+        return env.scheduler.schedule(
+            env.network,
+            env.task_graph,
+            schedule=partial,
+            min_start_time=env.current_time,
+        )
 
 
 class FrontierPopController(Controller):
-    """Controller that pops a task from the frontier whenever triggered, without checking a threshold."""
+    """Controller that pops tasks from the frontier to fill all currently available nodes."""
+
     def __init__(self, insertion_strategy: Optional[GreedyInsert] = None):
         super().__init__()
         self._insertion_strategy = (
@@ -202,7 +352,6 @@ class FrontierPopController(Controller):
         )
 
     def _insert_task(self, task_name: str, schedule: Schedule, env: "FrontierEnvironment") -> None:
-        """Insert task_name into schedule at its earliest feasible slot."""
         self._insertion_strategy.call(
             env.network,
             env.task_graph,
@@ -217,11 +366,7 @@ class FrontierPopController(Controller):
         env = environment
         if not env.frontier:
             return env.schedule
-        if env.ready_node_only:
-            #Schedule an amount of tasks equal to the amount of available network nodes
-            ready_node_count = len(env.available_nodes)
-        else:
-            ready_node_count = len(env.frontier)
+        ready_node_count = len(env.available_nodes) if env.ready_node_only else len(env.frontier)
         for _ in range(ready_node_count):
             if not env.frontier:
                 break

@@ -1,4 +1,6 @@
 from saga.schedulers.online.components import (
+    CompositeTrigger,
+    CompositeObserver,
     Controller,
     Observer,
     OnStepObserver,
@@ -12,12 +14,13 @@ from saga.schedulers.online.components import (
     TimeStep,
     Trigger,
 )
-from saga.schedulers.online.controllers import InspiritController, RescheduleController
+from saga.schedulers.online.controllers import InspiritController, RescheduleController, FrontierPopController
 from saga.schedulers.online.environment import Environment, StepRecord
-from saga.schedulers.online.environments import InspiritEnvironment
+from saga.schedulers.online.environments import FrontierEnvironment
 
 __all__ = [
     "Environment",
+    "FrontierEnvironment",
     # step strategies
     "StepStrategy",
     "TaskCompletionStep",
@@ -28,16 +31,17 @@ __all__ = [
     "Trigger",
     "OnStepTrigger",
     "ReadyChangeTrigger",
+    "CompositeTrigger",
     # observers
     "Observer",
     "OnStepObserver",
     "ReadyChangeObserver",
+    "CompositeObserver",
     # controllers
     "Controller",
     "InspiritController",
     "RescheduleController",
     "FrontierPopController",
-    # environments
-    "InspiritEnvironment",
+    # records
     "StepRecord",
 ]
