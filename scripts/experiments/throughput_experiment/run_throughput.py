@@ -53,7 +53,7 @@ schedulers: Dict[str, Scheduler] = {
     "Mt_Scheduler": MTScheduler(),
     "Multi_Obj": MultiObjScheduler(),
     "BILScheduler": s.BILScheduler(),
-    "DPSScheduler": s.DPSScheduler(),
+    #"DPSScheduler": s.DPSScheduler(),
     "DuplexScheduler": s.DuplexScheduler(),
     "ETFScheduler": s.ETFScheduler(),
     "FastestNodeScheduler": s.FastestNodeScheduler(),

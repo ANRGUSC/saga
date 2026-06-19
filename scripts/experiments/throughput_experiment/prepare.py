@@ -92,7 +92,7 @@ def wfcommons_dataset(
     dataset_name: Optional[str] = None,
     overwrite: bool = False,
 ) -> Dataset:
-    dataset_name = dataset_name or recipe_name
+    dataset_name = dataset_name or f"{recipe_name}_ccr_{ccr}"
     dataset = Dataset(name=dataset_name)
     existing = set(dataset.instances) if not overwrite else set()
     instance_names = {f"{dataset_name}_{i}" for i in range(num_instances)}
@@ -153,24 +153,23 @@ def _prepare_dataset_task(task: Tuple[str, dict]) -> Tuple[str, int]:
 
 def prepare_datasets(overwrite: bool = False, num_workers: int = num_processors) -> None:
     datadir.mkdir(exist_ok=True, parents=True)
-    tasks: List[Tuple[str, dict]] = [
-        ("in_trees",        {"overwrite": overwrite}),
-        ("out_trees",       {"overwrite": overwrite}),
-        ("chains",          {"overwrite": overwrite}),
-        ("riotbench_etl",   {"overwrite": overwrite}),
-        ("riotbench_predict", {"overwrite": overwrite}),
-        ("riotbench_stats", {"overwrite": overwrite}),
-        ("riotbench_train", {"overwrite": overwrite}),
-        ("wfcommons_epigenomics", {"overwrite": overwrite}),
-        ("wfcommons_montage",     {"overwrite": overwrite}),
-        ("wfcommons_cycles",      {"overwrite": overwrite}),
-        ("wfcommons_seismology",  {"overwrite": overwrite}),
-        ("wfcommons_soykb",       {"overwrite": overwrite}),
-        ("wfcommons_srasearch",   {"overwrite": overwrite}),
-        ("wfcommons_genome",      {"overwrite": overwrite}),
-        ("wfcommons_blast",       {"overwrite": overwrite}),
-        ("wfcommons_bwa",         {"overwrite": overwrite}),
+    ccr_values = [0.2, 0.5, 1.0, 2.0, 5.0]
+    wfcommons_recipes = [
+        "epigenomics", "montage",    "cycles",   "seismology",
+        "soykb",       "srasearch",  "genome",   "blast",      "bwa",
     ]
+    tasks: List[Tuple[str, dict]] = [
+        # ("in_trees",          {"overwrite": overwrite}),
+        # ("out_trees",         {"overwrite": overwrite}),
+        # ("chains",            {"overwrite": overwrite}),
+        # ("riotbench_etl",     {"overwrite": overwrite}),
+        # ("riotbench_predict", {"overwrite": overwrite}),
+        # ("riotbench_stats",   {"overwrite": overwrite}),
+        # ("riotbench_train",   {"overwrite": overwrite}),
+    ]
+    for recipe in wfcommons_recipes:
+        for ccr in ccr_values:
+            tasks.append((f"wfcommons_{recipe}", {"ccr": ccr, "overwrite": overwrite}))
     with Pool(processes=num_workers) as pool:
         results = pool.map(_prepare_dataset_task, tasks)
     print(f"\nPrepared {len(results)} datasets.")
