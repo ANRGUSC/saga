@@ -39,7 +39,7 @@ class FrontierHeftEnvironment(FrontierEnvironment):
         topological_sort = {
             node.name: i for i, node in enumerate(reversed(self.task_graph.topological_sort()))
         }
-        return {node: (urank[node], topological_sort[node]) for node in urank}
+        return {node: (-(urank[node]), (-topological_sort[node])) for node in urank}
 
 
 class FrontierHeftScheduler(Scheduler):

@@ -258,8 +258,6 @@ def main():
     datasets = [path.name for path in datadir.iterdir() if path.is_dir()]
     #removing already finished datasets
     for dataset in datasets:
-        if dataset in {"epigenomics", "genome"}:
-            continue
         evaluate_dataset(dataset)
 
 

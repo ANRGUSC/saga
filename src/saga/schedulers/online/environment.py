@@ -154,6 +154,8 @@ class Environment:
         trigger: Optional[Trigger] = self.observer.observe(self)
         if trigger is not None and self.controller is not None:
             self.schedule = self.controller.control(self, trigger)
+            self._update_task_state()
+            self._update_network_state()
 
         self.history.append(StepRecord(
             step=self._step,
