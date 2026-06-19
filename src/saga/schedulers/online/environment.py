@@ -215,7 +215,7 @@ class Environment:
             task
             for tasks in schedule.mapping.values()
             for task in tasks
-            if task.start < self.current_time < task.end
+            if task.start <= self.current_time < task.end
         }
 
     def get_finished_tasks(self, schedule: Optional[Schedule] = None) -> Set[ScheduledTask]:
