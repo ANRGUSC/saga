@@ -3,7 +3,7 @@ import pathlib
 import random
 import sys
 from multiprocessing import Pool
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
 import filelock
 import pandas as pd
@@ -21,7 +21,7 @@ from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
 
-logging.basicConfig(level=logging.ERROR)
+logging.basicConfig(level=logging.WARNING)
 
 thisdir = pathlib.Path(__file__).parent.resolve()
 resultsdir = thisdir / "results" / "throughput"
@@ -195,14 +195,18 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
         results.append(result)
         _save_result(result, savepath, lock_path)
     # --- Sweepable schedulers: expand over (threshold, delta_ready) ---
+    # threshold/delta_ready scale with num_processors (n), so variants are named by
+    # the multiplier of n rather than the raw value. Otherwise e.g. "_1_1" would only
+    # ever refer to single-processor instances and couldn't be compared across n.
     n = len(list(instance.network.nodes))
-    thresholds = sorted({max(1, n), n * 2, n * 3})
-    delta_readys = sorted({max(1, n), n * 2, n * 3})
+    multipliers = (1, 2, 3)
 
     for base_name, factory in _worker_sweepable_factories.items():
-        for threshold in thresholds:
-            for delta_ready in delta_readys:
-                scheduler_name = f"{base_name}_{threshold}_{delta_ready}"
+        for t_mult in multipliers:
+            threshold = n * t_mult
+            for d_mult in multipliers:
+                delta_ready = n * d_mult
+                scheduler_name = f"{base_name}_{t_mult}_{d_mult}"
                 if _already_done(dataset_name, instance_name, scheduler_name, savepath, lock_path):
                     continue
                 print(f"[{dataset_name}/{instance_name}] trying:   {scheduler_name}", flush=True)
@@ -232,12 +236,14 @@ def evaluate_dataset(
     dataset_name: str,
     num_workers: int = num_processors,
     seed: int = 42,
+    instance_names: Optional[Iterable[str]] = None,
 ) -> None:
     savepath = resultsdir / f"{dataset_name}.csv"
     savepath.parent.mkdir(exist_ok=True, parents=True)
 
     dataset = Dataset(name=dataset_name)
-    work_items = [(dataset_name, name) for name in dataset.instances]
+    names = instance_names if instance_names is not None else dataset.instances
+    work_items = [(dataset_name, name) for name in names]
     random.Random(seed).shuffle(work_items)
 
     with Pool(
@@ -256,7 +262,6 @@ def evaluate_dataset(
 
 def main():
     datasets = [path.name for path in datadir.iterdir() if path.is_dir()]
-    #removing already finished datasets
     for dataset in datasets:
         evaluate_dataset(dataset)
 
