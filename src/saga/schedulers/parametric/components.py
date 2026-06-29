@@ -145,7 +145,7 @@ class GreedyInsert(InsertTask):
                 task=task,
                 node=_node,
                 append_only=self.append_only,
-                current_moment=min_start_time,
+                
             )
             start_time = max(start_time, min_start_time)
 
