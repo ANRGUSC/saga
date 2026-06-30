@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 from saga import Schedule, Scheduler, TaskGraph, Network
 
 
@@ -13,7 +13,13 @@ class HybridScheduler(Scheduler):
         """
         self.schedulers = schedulers
 
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns the best schedule of the given schedule functions.
 
         Args:

@@ -1,8 +1,8 @@
 import logging
 from dataclasses import dataclass
-from typing import Callable, FrozenSet, List, Optional, Set
+from typing import Any, Callable, FrozenSet, List, Optional, Set
 
-from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask, TaskGraphNode
+from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask
 from saga.schedulers.online.components import Controller, Observer, StepStrategy, Trigger
 
 logger = logging.getLogger(__name__)
@@ -94,12 +94,18 @@ class Environment:
 
         # Mutable simulation state — initialized by reset()
         self.current_time: float = 0.0
-        self.schedule: Optional[Schedule] = None
+        # Produced by reset() before any step runs; typed non-optional since all
+        # public entry points (run/step) call reset() first.
+        self.schedule: Schedule = None  # type: ignore[assignment]
         self.finished_tasks: Set[ScheduledTask] = set()
         self.running_tasks: Set[ScheduledTask] = set()
         self.committed: Set[ScheduledTask] = set()
-        self.ready_tasks: Set[TaskGraphNode] = set()
-        self.unready_tasks: Set[TaskGraphNode] = set(self.task_graph.tasks)
+        # Holds task-like objects (ScheduledTask in batch environments, TaskGraphNode
+        # in FrontierEnvironment); consumers only rely on the `.name` attribute.
+        self.ready_tasks: Set[Any] = set()
+        # Seeded with TaskGraphNodes but discarded against ScheduledTasks in the base
+        # env (and TaskGraphNodes in FrontierEnvironment); only `.name` is relied on.
+        self.unready_tasks: Set[Any] = set(self.task_graph.tasks)
         self.available_nodes: Set[NetworkNode] = set()
         self.occupied_nodes: Set[NetworkNode] = set()
         self._step: int = 0
@@ -126,6 +132,8 @@ class Environment:
         self.observer.reset()
         if self.controller is not None:
             self.controller.reset()
+        if self.scheduler is None:
+            raise ValueError("Environment.reset() requires a scheduler to produce the initial schedule.")
         self.schedule = self.scheduler.schedule(self.network, self.task_graph)
         self._update_task_state()
         self._update_network_state()

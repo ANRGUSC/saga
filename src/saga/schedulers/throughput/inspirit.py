@@ -94,7 +94,7 @@ def compute_inspiring_ability(task_graph: TaskGraph) -> dict[str, float]:
         for child in get_children(task_graph, task.name):
             reachable[task].add(child)
             reachable[task].update(reachable[child])
-    ability_ranks = {task.name: (len(reachable[task])+1) for task in task_graph.tasks}
+    ability_ranks: Dict[str, float] = {task.name: (len(reachable[task])+1) for task in task_graph.tasks}
     return ability_ranks
 
 

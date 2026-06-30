@@ -1,6 +1,6 @@
 import heapq
 import logging
-from typing import Callable, Dict, List, Optional, Tuple, Union, Set
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Set, cast
 import numpy as np
 
 from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph, TaskGraphEdge, TaskGraphNode, NetworkEdge, NetworkNode
@@ -37,8 +37,8 @@ class StochasticEnvironment(Environment):
         seed: Optional[int] = None
     ) -> None:
         super().__init__(
-            network=network,
-            task_graph=task_graph,
+            network=cast(Network, network),
+            task_graph=cast(TaskGraph, task_graph),
             step_strategy=step_strategy,
             observer=observer,
             scheduler=scheduler,
@@ -126,7 +126,9 @@ class FrontierEnvironment(Environment):
             compare=GreedyInsertCompareFuncs.EST,
             critical_path=False,
         )
-        self.priority_condition: Callable[[TaskGraphNode], float] = lambda _: self.current_time
+        # Returns a sort key for the frontier heap; usually a float, but subclasses
+        # (e.g. FrontierHeftEnvironment) may return a tuple for lexicographic ordering.
+        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda _: self.current_time
 
     def reset(
         self,

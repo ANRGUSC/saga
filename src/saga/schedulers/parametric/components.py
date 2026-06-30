@@ -1,7 +1,5 @@
 from copy import deepcopy
-from hashlib import new
 import heapq
-from xxlimited import new
 import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -80,15 +78,19 @@ class GreedyInsertCompareFuncs(Enum):
         elif self == GreedyInsertCompareFuncs.Quickest:
             return (new.end - new.start) - (cur.end - cur.start)
         elif self == GreedyInsertCompareFuncs.Throughput:
+            if schedule is None:
+                raise ValueError("Throughput comparison requires the current schedule.")
             cur_schedule = deepcopy(schedule)
             cur_schedule.add_task(cur)
-            new_schedule = deepcopy(schedule) 
+            new_schedule = deepcopy(schedule)
             new_schedule.add_task(new)
             return (1/new_schedule.throughput) - (1/cur_schedule.throughput)
         elif self == GreedyInsertCompareFuncs.Makespan:
+            if schedule is None:
+                raise ValueError("Makespan comparison requires the current schedule.")
             cur_schedule = deepcopy(schedule)
             cur_schedule.add_task(cur)
-            new_schedule = deepcopy(schedule) 
+            new_schedule = deepcopy(schedule)
             new_schedule.add_task(new)
             return (new_schedule.makespan) - (cur_schedule.makespan)
             
@@ -321,7 +323,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
                     ],
                     dry_run=True,
                 )
-                sufferage = self.insert_task._compare(second_best_task, best_task)
+                sufferage = self.insert_task._compare(second_best_task, best_task, schedule)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
 

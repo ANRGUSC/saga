@@ -1,7 +1,7 @@
 import logging
 import pathlib
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, cast
 import numpy as np
 
 import networkx as nx
@@ -51,7 +51,16 @@ class OnlineHEFTEnvironment(StochasticEnvironment):
         )
 
 class OnlineHEFT(Scheduler):
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
-        env = OnlineHEFTEnvironment(network, task_graph)
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
+        env = OnlineHEFTEnvironment(
+            cast(StochasticNetwork, network),
+            cast(StochasticTaskGraph, task_graph),
+        )
         return env.run()
     

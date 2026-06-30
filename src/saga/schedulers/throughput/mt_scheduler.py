@@ -238,6 +238,8 @@ def _map_non_critical(non_cp_tasks: List[str],
             if cost < best_cost:
                 best_cost = cost
                 best_node = nd.name
+        if best_node is None:
+            raise ValueError(f"No candidate node found for task {t!r}; network has no nodes.")
         assignment[t] = best_node
 
     return assignment

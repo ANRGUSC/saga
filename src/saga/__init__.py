@@ -527,8 +527,8 @@ class ScheduledTask(BaseModel):
 
     def __str__(self) -> str:
         return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
-    
-    __hash__ = object.__hash__
+
+    __hash__ = object.__hash__  # type: ignore[assignment]  # identity hashing for a mutable pydantic model
 
 
 class Schedule(BaseModel):
@@ -582,7 +582,7 @@ class Schedule(BaseModel):
             return 0.0
             
         
-        network_comms = {(min(edge.source,edge.target),max(edge.source,edge.target)): 0 for edge in self.network.edges}
+        network_comms = {(min(edge.source,edge.target),max(edge.source,edge.target)): 0.0 for edge in self.network.edges}
         for name, scheduled_task in self._task_map.items():
             for task_edge in self.task_graph.in_edges(name):
                 if task_edge.source not in self._task_map:
@@ -766,12 +766,23 @@ class Scheduler(ABC):
     """An abstract class for a scheduler."""
 
     @abstractmethod
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional["Schedule"] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Schedule the tasks on the network.
 
         Args:
             network (Network): The network to schedule on.
             task_graph (TaskGraph): The task graph to schedule.
+            schedule (Optional[Schedule]): An existing partial schedule to
+                extend (e.g. when rescheduling around committed tasks). Schedulers
+                that do not support incremental scheduling may ignore this.
+            min_start_time (float): The earliest time at which newly placed tasks
+                may start. Defaults to 0.0.
 
         Returns:
             Schedule: The resulting schedule.
