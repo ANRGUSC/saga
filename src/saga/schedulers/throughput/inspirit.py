@@ -114,6 +114,20 @@ def get_children(task_graph: TaskGraph, task_name: str) -> List[TaskGraphNode]:
 
 
 class InspriritScheduler(Scheduler):
+    """Layers the Inspirit ready-pool policy on top of any base scheduler.
+
+    The base scheduler produces the initial schedule; the Inspirit policy then
+    monitors the ready-task count during execution and dispatches high-priority
+    tasks to keep compute nodes busy.
+
+    Args:
+        scheduler:      Base scheduler producing the initial schedule (must support
+                        scheduling around a partial schedule, e.g. ParametricScheduler).
+        threshold:      Inspirit dec_step / s_inc / s_dec parameter.
+        delta_ready:    Cumulative ready-count change that triggers a dispatch.
+        smoothing_rate: EMA smoothing factor for the rate estimate.
+    """
+
     def __init__(self, scheduler: Scheduler, threshold: int, delta_ready: int, smoothing_rate: float = 0.8):
         super().__init__()
         self.scheduler = scheduler
@@ -121,17 +135,23 @@ class InspriritScheduler(Scheduler):
         self.delta_ready = delta_ready
         self.smoothing_rate = smoothing_rate
 
-    def schedule(self, network, task_graph, schedule=None, min_start_time: float = 0.0):
-        from saga.schedulers.online import InspiritController, TaskCompletionStep, ReadyChangeObserver
-        from saga.schedulers.online.environment import Environment
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
+        # Imported here (not at module scope) to avoid a circular import: the
+        # online policies module imports the inspiring-rank helpers from here.
+        from saga.schedulers.online import Environment, InspiritPolicy
         env = Environment(
             network=network,
             task_graph=task_graph,
             scheduler=self.scheduler,
-            step_strategy=TaskCompletionStep(),
-            observer=ReadyChangeObserver(self.delta_ready),
-            controller=InspiritController(
+            policy=InspiritPolicy(
                 smoothing_rate=self.smoothing_rate,
+                delta_ready=self.delta_ready,
                 dec_step=self.threshold,
                 s_inc=self.threshold,
                 s_dec=self.threshold,

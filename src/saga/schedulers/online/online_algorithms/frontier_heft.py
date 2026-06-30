@@ -2,20 +2,19 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from saga import Network, Schedule, TaskGraph, Scheduler, TaskGraphNode
 from saga.schedulers.online.environments import FrontierEnvironment
-from saga.schedulers.online.controllers import FrontierPopController
-from saga.schedulers.online.components import TaskEventStep, OnStepObserver
+from saga.schedulers.online.policies import FrontierFillPolicy
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.cpop import upward_rank
 
 
 class FrontierHeftEnvironment(FrontierEnvironment):
-    def __init__(self, network: Network, task_graph: TaskGraph, **kwargs) -> None:
+    """Frontier environment that dispatches ready tasks in HEFT upward-rank order."""
+
+    def __init__(self, network: Network, task_graph: TaskGraph, **kwargs: Any) -> None:
         super().__init__(
             network=network,
             task_graph=task_graph,
-            step_strategy=TaskEventStep(),
-            observer=OnStepObserver(),
-            controller=FrontierPopController(
+            policy=FrontierFillPolicy(
                 insertion_strategy=GreedyInsert(
                     append_only=False,
                     compare=GreedyInsertCompareFuncs.EFT,

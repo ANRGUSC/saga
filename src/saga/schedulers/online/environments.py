@@ -4,10 +4,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, Set, cast
 import numpy as np
 
 from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph, TaskGraphEdge, TaskGraphNode, NetworkEdge, NetworkNode
-from saga.schedulers.online.components import Controller, Observer, StepStrategy, TaskEventStep, OnStepObserver
 from saga.schedulers.stochastic.estimate_stochastic_scheduler import EstimateStochasticScheduler
 from saga.stochastic import StochasticNetwork, StochasticScheduler, StochasticSchedule, StochasticScheduledTask, StochasticTaskGraph
-from saga.schedulers.online.environment import Environment
+from saga.schedulers.online.environment import Environment, OnlinePolicy, StepFunction, next_completion, next_event
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.utils.random_variable import RandomVariable
 
@@ -28,24 +27,22 @@ class StochasticEnvironment(Environment):
         self,
         network: StochasticNetwork,
         task_graph: StochasticTaskGraph,
-        step_strategy: StepStrategy,
-        observer: Observer,
         scheduler: Scheduler,
         estimate: Callable[[RandomVariable], float],
-        controller: Optional[Controller] = None,
+        policy: Optional[OnlinePolicy] = None,
+        step: StepFunction = next_completion,
         on_step: Optional[Callable[["Environment"], None]] = None,
         seed: Optional[int] = None
     ) -> None:
         super().__init__(
             network=cast(Network, network),
             task_graph=cast(TaskGraph, task_graph),
-            step_strategy=step_strategy,
-            observer=observer,
             scheduler=scheduler,
-            controller=controller,
+            policy=policy,
+            step=step,
             on_step=on_step
         )
-        self._stochatic_task_graph = task_graph
+        self._stochastic_task_graph = task_graph
         self._stochastic_network = network
         self.seed = seed
         self.actual_task_graph = task_graph.sample()
@@ -64,10 +61,10 @@ class StochasticEnvironment(Environment):
         super().reset()
         if self.seed is not None:
             np.random.seed(self.seed)
-        self.actual_task_graph = self._stochatic_task_graph.sample()
+        self.actual_task_graph = self._stochastic_task_graph.sample()
         self.actual_network = self._stochastic_network.sample()
         self.initial_estimate_schedule, self.network, self.task_graph = self.stochastic_scheduler.schedule(
-            network=self._stochastic_network, task_graph=self._stochatic_task_graph
+            network=self._stochastic_network, task_graph=self._stochastic_task_graph
         )
         self.estimate_schedule = self.initial_estimate_schedule
         self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
@@ -103,18 +100,16 @@ class FrontierEnvironment(Environment):
         network: Network,
         task_graph: TaskGraph,
         scheduler: Optional[Scheduler] = None,
-        step_strategy: Optional[StepStrategy] = None,
-        observer: Optional[Observer] = None,
-        controller: Optional[Controller] = None,
+        policy: Optional[OnlinePolicy] = None,
+        step: Optional[StepFunction] = None,
         on_step: Optional[Callable[["Environment"], None]] = None,
     ) -> None:
         super().__init__(
             network=network,
             task_graph=task_graph,
             scheduler=scheduler,
-            step_strategy=step_strategy if step_strategy is not None else TaskEventStep(),
-            observer=observer if observer is not None else OnStepObserver(),
-            controller=controller,
+            policy=policy,
+            step=step if step is not None else next_event,
             on_step=on_step,
         )
         self.ready_condition: str = "p_complete"
@@ -146,9 +141,8 @@ class FrontierEnvironment(Environment):
         self.occupied_nodes = set()
         self._step = 0
         self.history = []
-        self.observer.reset()
-        if self.controller is not None:
-            self.controller.reset()
+        if self.policy is not None:
+            self.policy.reset()
         self.frontier = []
         self.frontier_set = set()
         if schedule is not None:

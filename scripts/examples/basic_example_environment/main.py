@@ -9,9 +9,8 @@ import networkx as nx
 from saga import Network, Schedule, TaskGraph
 from saga.schedulers.online import (
     Environment,
-    InspiritController,
-    ReadyChangeObserver,
-    TaskCompletionStep,
+    InspiritPolicy,
+    next_completion,
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -168,8 +167,8 @@ def run_inspirit(
     log: List[InspiritStepRecord] = []
 
     def on_step(env: Environment) -> None:
-        ctrl = env.controller
-        assert isinstance(ctrl, InspiritController)
+        ctrl = env.policy
+        assert isinstance(ctrl, InspiritPolicy)
         log.append(InspiritStepRecord(
             step=env._step,
             time=env.current_time,
@@ -181,8 +180,9 @@ def run_inspirit(
             dispatch_type=ctrl.last_dispatch_type,
         ))
 
-    controller = InspiritController(
+    policy = InspiritPolicy(
         smoothing_rate=SMOOTHING_RATE,
+        delta_ready=delta_ready,
         dec_step=dec_step,
         s_inc=s_inc,
         s_dec=s_dec,
@@ -191,9 +191,8 @@ def run_inspirit(
         network=network,
         task_graph=task_graph,
         scheduler=make_heft_scheduler(),
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=controller,
+        step=next_completion,
+        policy=policy,
         on_step=on_step,
     )
     return env.run(), env, log
@@ -254,7 +253,7 @@ def main() -> None:
     print(f" Inspirit (online) throughput: {inspirit_schedule.throughput:.4f}")
     save_fig(draw_gantt(inspirit_schedule.mapping, use_latex=False), "inspirit_gantt")
 
-    ctrl = inspirit_env.controller
+    ctrl = inspirit_env.policy
     n_dispatched = sum(1 for r in inspirit_log if r.dispatched)
     print(
         f"\n  Inspirit: {n_dispatched} dispatch(es) over {len(inspirit_log)} step(s) | "

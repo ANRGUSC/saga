@@ -35,6 +35,7 @@ def _make_scheduler() -> ParametricScheduler:
 @pytest.fixture()
 def chain_instance():
     """3-task chain (t1→t2→t3) on 2 nodes with stochastic weights."""
+    np.random.seed(SEED)  # deterministic instance regardless of test order
     network = nx.Graph()
     network.add_node("v1", weight=UniformRandomVariable(1, 3))
     network.add_node("v2", weight=UniformRandomVariable(2, 4))
@@ -53,6 +54,7 @@ def chain_instance():
 @pytest.fixture()
 def diamond_instance():
     """Diamond DAG (t1→t2,t3→t4) on 2 nodes with stochastic weights."""
+    np.random.seed(SEED)  # deterministic instance regardless of test order
     network = nx.Graph()
     network.add_node("v1", weight=UniformRandomVariable(1, 4))
     network.add_node("v2", weight=UniformRandomVariable(2, 5))

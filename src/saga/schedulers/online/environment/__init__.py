@@ -1,11 +1,108 @@
 import logging
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, Callable, FrozenSet, List, Optional, Set
 
 from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask
-from saga.schedulers.online.components import Controller, Observer, StepStrategy, Trigger
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Step functions — decide when the simulation clock advances.
+#
+# A step function maps the environment to the next simulation time, or None
+# when the simulation is complete. This is a plain callable rather than a class
+# hierarchy: the common case (advance to the next task completion) is the
+# default, and the rare ones (event boundaries, fixed intervals) are just other
+# functions you can pass to Environment(step=...).
+# ---------------------------------------------------------------------------
+
+StepFunction = Callable[["Environment"], Optional[float]]
+
+
+def next_completion(environment: "Environment") -> Optional[float]:
+    """Advance to the next task completion, or None when all tasks have finished."""
+    finished = environment.get_next_task_finish()
+    return finished.end if finished is not None else None
+
+
+def next_start(environment: "Environment") -> Optional[float]:
+    """Advance to the next task start, or None when every task has started."""
+    started = environment.get_next_task_start()
+    return started.start if started is not None else None
+
+
+def next_event(environment: "Environment") -> Optional[float]:
+    """Advance to whichever comes first: a task start or a task completion.
+
+    Every task boundary (start or end) is a step. Returns None when no future
+    events remain.
+    """
+    next_finish = environment.get_next_task_finish()
+    next_start_task = environment.get_next_task_start()
+    candidates = [
+        t for t in (
+            next_finish.end if next_finish is not None else None,
+            next_start_task.start if next_start_task is not None else None,
+        )
+        if t is not None
+    ]
+    return min(candidates) if candidates else None
+
+
+def time_step(dt: float) -> StepFunction:
+    """Build a step function that advances the clock by a fixed interval ``dt``.
+
+    The simulation ends when no task has an end time strictly after the current
+    time (i.e. the schedule has been fully executed).
+    """
+    def step(environment: "Environment") -> Optional[float]:
+        has_future_events = any(
+            task.end > environment.current_time
+            for tasks in environment.schedule.mapping.values()
+            for task in tasks
+        )
+        if not has_future_events:
+            return None
+        return environment.current_time + dt
+    return step
+
+
+# ---------------------------------------------------------------------------
+# OnlinePolicy — the pluggable "observe a condition, revise the schedule" step.
+# ---------------------------------------------------------------------------
+
+class OnlinePolicy(ABC):
+    """The decision logic of an online algorithm: "if X is observed, do Y".
+
+    A policy is consulted once per simulation step. It inspects the environment
+    and either returns a revised :class:`Schedule` (the *Y*) or ``None`` to leave
+    the current schedule unchanged. The condition (*X*) and the action (*Y*) live
+    together in :meth:`update` because they are coupled in practice — an action
+    needs to know exactly what its condition observed.
+
+    Any per-run state (counters, EMA estimates, frontier heaps) is held as
+    instance attributes and cleared in :meth:`reset`. A policy may compose other
+    policies internally (e.g. Inspirit pins a priority task, then delegates the
+    remaining slots to a fill policy).
+    """
+
+    def reset(self) -> None:
+        """Clear per-run state. Called by :meth:`Environment.reset` before each run."""
+        pass
+
+    @abstractmethod
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        """Inspect the environment this step and optionally revise the schedule.
+
+        Args:
+            environment: The current environment state.
+
+        Returns:
+            A revised Schedule, or None to leave the current schedule unchanged.
+        """
+        raise NotImplementedError
 
 
 @dataclass
@@ -35,12 +132,14 @@ class StepRecord:
 class Environment:
     """Orchestrates the online scheduling simulation loop.
 
-    Holds the network, task graph, and current schedule state, and runs
-    a step -> observe -> control loop until the simulation is complete.
+    Holds the network, task graph, and current schedule state, and runs a
+    step -> update loop until the simulation is complete. Each step advances the
+    clock (via the step function), refreshes task/network state, and consults the
+    policy, which may revise the remaining schedule.
 
     Typical usage::
 
-        env = Environment(network, task_graph, scheduler, step_strategy, observer, controller)
+        env = Environment(network, task_graph, scheduler=heft, policy=ReschedulePolicy())
         final_schedule = env.run()
 
     Or step-by-step for inspection::
@@ -50,46 +149,43 @@ class Environment:
             print(env.current_time, env.schedule.makespan)
     """
 
-
     def __init__(
         self,
         network: Network,
         task_graph: TaskGraph,
-        step_strategy: StepStrategy,
-        observer: Observer,
         scheduler: Optional[Scheduler] = None,
-        controller: Optional[Controller] = None,
+        policy: Optional[OnlinePolicy] = None,
+        step: StepFunction = next_completion,
         on_step: Optional[Callable[["Environment"], None]] = None,
     ) -> None:
         """
         Args:
-            network:       The compute network tasks run on.
-            task_graph:    The DAG of tasks to schedule.
-            scheduler:     Produces the initial schedule and is the default for RescheduleController.
-            step_strategy: Determines when the clock advances (e.g. task completion, fixed interval).
-            observer:      Watches state each step and emits a Trigger when its condition is met.
-            controller:    Optional. Acts on a Trigger to modify the schedule. If None, the
-                           observer still runs every step but nothing changes the schedule.
-            on_step:       Optional callback invoked at the end of every step, after state has been
-                           updated and any controller action has been applied. Receives the
-                           Environment instance so it has full access to current_time, schedule,
-                           finished_tasks, ready_tasks, history, etc. Useful for logging, recording
-                           custom metrics, or any side effect that should happen every step without
-                           subclassing Environment. Examples::
+            network:    The compute network tasks run on.
+            task_graph: The DAG of tasks to schedule.
+            scheduler:  Produces the initial schedule and is used by policies that
+                        reschedule remaining tasks (e.g. ReschedulePolicy).
+            policy:     Optional. Consulted every step to revise the schedule. If
+                        None, the simulation just plays the initial schedule forward.
+            step:       Function deciding when the clock advances. Defaults to
+                        next_completion (advance to the next task completion).
+            on_step:    Optional callback invoked at the end of every step, after
+                        state has been updated and any policy action applied.
+                        Receives the Environment so it can read current_time,
+                        schedule, ready_tasks, history, etc. Useful for logging or
+                        recording custom metrics without subclassing. Examples::
 
-                               # Print progress each step
-                               Environment(..., on_step=lambda e: print(f"t={e.current_time:.2f}"))
+                            # Print progress each step
+                            Environment(..., on_step=lambda e: print(f"t={e.current_time:.2f}"))
 
-                               # Accumulate a custom metric alongside the built-in history
-                               energy_log = []
-                               Environment(..., on_step=lambda e: energy_log.append(measure(e)))
+                            # Accumulate a custom metric alongside the built-in history
+                            energy_log = []
+                            Environment(..., on_step=lambda e: energy_log.append(measure(e)))
         """
         self.network = network
         self.task_graph = task_graph
         self.scheduler = scheduler
-        self.step_strategy = step_strategy
-        self.observer = observer
-        self.controller = controller
+        self.policy = policy
+        self.step_fn = step
         self.on_step = on_step
 
         # Mutable simulation state — initialized by reset()
@@ -129,9 +225,8 @@ class Environment:
         self._step = 0
         self.history = []
         self.prev_nready = 0
-        self.observer.reset()
-        if self.controller is not None:
-            self.controller.reset()
+        if self.policy is not None:
+            self.policy.reset()
         if self.scheduler is None:
             raise ValueError("Environment.reset() requires a scheduler to produce the initial schedule.")
         self.schedule = self.scheduler.schedule(self.network, self.task_graph)
@@ -141,14 +236,14 @@ class Environment:
     def step(self) -> bool:
         """Advance the simulation by one step.
 
-        Asks the StepStrategy for the next time point, advances the clock,
-        refreshes task state, asks the Observer whether to act, and if so
-        calls the Controller to update the schedule.
+        Asks the step function for the next time point, advances the clock,
+        refreshes task state, and consults the policy. If the policy returns a
+        revised schedule, it replaces the current one.
 
         Returns:
             True if the simulation should continue, False if it is complete.
         """
-        next_time = self.step_strategy.next_step(self)
+        next_time = self.step_fn(self)
         if next_time is None:
             return False
 
@@ -156,14 +251,12 @@ class Environment:
         self._update_task_state()
         self._update_network_state()
 
-        if self.controller is not None:
-            self.controller.pre_step(self)
-
-        trigger: Optional[Trigger] = self.observer.observe(self)
-        if trigger is not None and self.controller is not None:
-            self.schedule = self.controller.control(self, trigger)
-            self._update_task_state()
-            self._update_network_state()
+        if self.policy is not None:
+            revised = self.policy.update(self)
+            if revised is not None:
+                self.schedule = revised
+                self._update_task_state()
+                self._update_network_state()
 
         self.history.append(StepRecord(
             step=self._step,
@@ -266,5 +359,3 @@ class Environment:
         occupied_node_names = {task.node for task in self.running_tasks}
         self.occupied_nodes = {node for node in self.network.nodes if node.name in occupied_node_names}
         self.available_nodes = {node for node in self.network.nodes if node.name not in occupied_node_names}
-
-

@@ -11,9 +11,7 @@ from saga.schedulers.online.environments import StochasticEnvironment
 from saga.stochastic import StochasticNetwork, StochasticScheduler, StochasticSchedule, StochasticScheduledTask, StochasticTaskGraph
 from saga.schedulers.online import (
     Environment,
-    OnStepObserver,
-    TaskCompletionStep,
-    RescheduleController
+    ReschedulePolicy,
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -34,8 +32,6 @@ class OnlineHEFTEnvironment(StochasticEnvironment):
         super().__init__(
             network=network,
             task_graph=task_graph,
-            step_strategy=TaskCompletionStep(),
-            observer=OnStepObserver(),
             scheduler=ParametricScheduler(
                 initial_priority=UpwardRanking(),
                 insert_task=GreedyInsert(
@@ -45,7 +41,7 @@ class OnlineHEFTEnvironment(StochasticEnvironment):
                 ),
             ),
             estimate=lambda rv: rv.mean(),
-            controller=RescheduleController(),
+            policy=ReschedulePolicy(),
             on_step=on_step,
             seed=seed,
         )

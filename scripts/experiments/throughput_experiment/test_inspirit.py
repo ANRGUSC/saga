@@ -11,7 +11,7 @@ os.environ["SAGA_DATA_DIR"] = str(thisdir / "data")
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import UpwardRanking, GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.data import Dataset
-from saga.schedulers.online import InspiritController, TaskCompletionStep, ReadyChangeObserver
+from saga.schedulers.online import InspiritPolicy, next_completion
 from saga.schedulers.online.environment import Environment
 
 
@@ -31,7 +31,7 @@ if __name__ == "__main__":
         step_t = time.time() - t0
         step_times.append(step_t)
         rec = env.history[-1]
-        heft_fired = env.controller.last_dispatched is not None
+        heft_fired = env.policy.last_dispatched is not None
         print(
             f"  step={rec.step:4d}  t={rec.time:8.2f}  "
             f"done={len(rec.finished_tasks):3d}  running={len(rec.running_tasks):2d}  "
@@ -51,9 +51,9 @@ if __name__ == "__main__":
                 critical_path=False,
             )
         ),
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=InspiritController(
+        step=next_completion,
+        policy=InspiritPolicy(
+            delta_ready=delta_ready,
             dec_step=threshold,
             s_inc=threshold,
             s_dec=threshold,

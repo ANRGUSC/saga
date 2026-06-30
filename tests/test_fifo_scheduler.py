@@ -1,11 +1,11 @@
-"""Tests for FIFOEnvironment and FrontierPopController.
+"""Tests for FIFOEnvironment and FrontierFillPolicy.
 
 Design: pure FIFO scheduler that builds the schedule incrementally.
   - Root tasks (no predecessors) are bootstrapped into the schedule during reset()
     so the simulation has events to advance to.
   - As each task finishes, its newly-ready successors are enqueued on the frontier
     (a min-heap keyed on arrival time).
-  - On every step the FrontierPopController pops the oldest-ready task and inserts
+  - On every step the FrontierFillPolicy pops the oldest-ready task and inserts
     it into the schedule via GreedyInsert(EST).
 """
 
@@ -13,7 +13,7 @@ import heapq
 import pytest
 
 from saga import Network, Schedule, ScheduledTask, TaskGraph
-from saga.schedulers.online.controllers import FrontierPopController
+from saga.schedulers.online.policies import FrontierFillPolicy
 from saga.schedulers.online.environments import FrontierEnvironment
 from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
@@ -68,13 +68,13 @@ def wide_task_graph():
 
 
 # ---------------------------------------------------------------------------
-# Unit — FrontierPopController
+# Unit — FrontierFillPolicy
 # ---------------------------------------------------------------------------
 
-class TestFrontierPopControllerInit:
+class TestFrontierFillPolicyInit:
     def test_default_construction_creates_insertion_strategy(self):
-        """Default FrontierPopController must have a non-None insertion strategy."""
-        ctrl = FrontierPopController()
+        """Default FrontierFillPolicy must have a non-None insertion strategy."""
+        ctrl = FrontierFillPolicy()
         assert ctrl._insertion_strategy is not None
 
     def test_custom_strategy_is_preserved(self):
@@ -84,12 +84,12 @@ class TestFrontierPopControllerInit:
             compare=GreedyInsertCompareFuncs.EFT,
             critical_path=False,
         )
-        ctrl = FrontierPopController(insertion_strategy=custom)
+        ctrl = FrontierFillPolicy(insertion_strategy=custom)
         assert ctrl._insertion_strategy is custom
 
     def test_default_strategy_uses_est(self):
         """Default insertion strategy should use Earliest Start Time (EST)."""
-        ctrl = FrontierPopController()
+        ctrl = FrontierFillPolicy()
         assert ctrl._insertion_strategy.compare == GreedyInsertCompareFuncs.EST
 
 

@@ -8,13 +8,10 @@ from saga import Network, Schedule, TaskGraph
 from saga.schedulers.online import (
     Environment,
     FrontierEnvironment,
-    InspiritController,
-    FrontierPopController,
-    CompositeObserver,
-    ReadyChangeObserver,
-    OnStepObserver,
-    TaskEventStep,
-    TaskCompletionStep,
+    InspiritPolicy,
+    FrontierFillPolicy,
+    next_event,
+    next_completion,
 )
 from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
 from saga.schedulers.parametric import ParametricScheduler
@@ -195,8 +192,8 @@ def print_fifo_log(log: List[FIFOStepRecord]) -> None:
 
 def _inspirit_on_step(log: List[InspiritStepRecord]):
     def on_step(env: Environment) -> None:
-        ctrl = env.controller
-        assert isinstance(ctrl, InspiritController)
+        ctrl = env.policy
+        assert isinstance(ctrl, InspiritPolicy)
         log.append(InspiritStepRecord(
             step=env._step,
             time=env.current_time,
@@ -240,14 +237,14 @@ def run_fifo_inspirit(
     env = FrontierEnvironment(
         network=network,
         task_graph=task_graph,
-        step_strategy=TaskEventStep(),
-        observer=CompositeObserver([OnStepObserver(), ReadyChangeObserver(delta_ready)]),
-        controller=InspiritController(
+        step=next_event,
+        policy=InspiritPolicy(
             smoothing_rate=SMOOTHING_RATE,
+            delta_ready=delta_ready,
             dec_step=threshold,
             s_inc=threshold,
             s_dec=threshold,
-            fill_controller=FrontierPopController(),
+            fill_policy=FrontierFillPolicy(),
         ),
         on_step=_inspirit_on_step(log),
     )
@@ -270,10 +267,10 @@ def run_heft_inspirit(
         network=network,
         task_graph=task_graph,
         scheduler=make_heft_scheduler(),
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=InspiritController(
+        step=next_completion,
+        policy=InspiritPolicy(
             smoothing_rate=SMOOTHING_RATE,
+            delta_ready=delta_ready,
             dec_step=threshold,
             s_inc=threshold,
             s_dec=threshold,

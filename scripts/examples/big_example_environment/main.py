@@ -19,9 +19,8 @@ from saga import Network, Schedule, TaskGraph
 from saga.schedulers.data.wfcommons import get_networks, get_workflows
 from saga.schedulers.online import (
     Environment,
-    InspiritController,
-    TaskCompletionStep,
-    ReadyChangeObserver,
+    InspiritPolicy,
+    next_completion,
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -128,8 +127,8 @@ def run_inspirit(
 
     def on_step(env: Environment) -> None:
         nonlocal finished_count
-        ctrl = env.controller
-        assert isinstance(ctrl, InspiritController)
+        ctrl = env.policy
+        assert isinstance(ctrl, InspiritPolicy)
         log.append(InspiritStepRecord(
             step=env._step,
             time=env.current_time,
@@ -144,8 +143,9 @@ def run_inspirit(
         pbar.update(new_finished - finished_count)
         finished_count = new_finished
 
-    controller = InspiritController(
+    policy = InspiritPolicy(
         smoothing_rate=SMOOTHING_RATE,
+        delta_ready=delta_ready,
         dec_step=dec_step,
         s_inc=s_inc,
         s_dec=s_dec,
@@ -154,9 +154,8 @@ def run_inspirit(
         network=network,
         task_graph=task_graph,
         scheduler=make_heft_scheduler(),
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=controller,
+        step=next_completion,
+        policy=policy,
         on_step=on_step,
     )
     result = env.run(), env, log

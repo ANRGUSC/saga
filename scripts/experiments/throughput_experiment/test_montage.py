@@ -34,7 +34,7 @@ from saga.schedulers.parametric.components import (
     UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs,
 )
 from saga.schedulers.online import (
-    InspiritController, TaskCompletionStep, ReadyChangeObserver,
+    InspiritPolicy, next_completion,
 )
 from saga.schedulers.online.environment import Environment
 from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
@@ -140,10 +140,10 @@ def _run_inspirit(label: str, network, task_graph, threshold: int, delta_ready: 
         network=network,
         task_graph=task_graph,
         scheduler=base_scheduler,
-        step_strategy=TaskCompletionStep(),
-        observer=ReadyChangeObserver(delta_ready),
-        controller=InspiritController(
+        step=next_completion,
+        policy=InspiritPolicy(
             smoothing_rate=smoothing_rate,
+            delta_ready=delta_ready,
             dec_step=threshold,
             s_inc=threshold,
             s_dec=threshold,
