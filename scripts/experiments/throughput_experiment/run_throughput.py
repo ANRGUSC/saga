@@ -19,7 +19,7 @@ from saga.schedulers.throughput.inspirit import InspriritScheduler
 from saga.schedulers import HeftScheduler, CpopScheduler
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs
-from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
+from saga.schedulers.online.algorithms.fifo import FIFOScheduler, InspiritFIFOScheduler
 
 logging.basicConfig(level=logging.WARNING)
 

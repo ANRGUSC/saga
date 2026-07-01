@@ -13,9 +13,9 @@ import heapq
 import pytest
 
 from saga import Network, Schedule, ScheduledTask, TaskGraph
-from saga.schedulers.online.policies import FrontierFillPolicy
-from saga.schedulers.online.environments import FrontierEnvironment
-from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
+from saga.schedulers.online.policy import FrontierFillPolicy
+from saga.schedulers.online.environment import FrontierEnvironment
+from saga.schedulers.online.algorithms.fifo import FIFOEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 
 

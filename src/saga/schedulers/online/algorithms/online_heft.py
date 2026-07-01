@@ -7,12 +7,9 @@ import numpy as np
 import networkx as nx
 
 from saga import Network, Schedule, TaskGraph, Scheduler
-from saga.schedulers.online.environments import StochasticEnvironment
+from saga.schedulers.online.environment import Environment, StochasticEnvironment
 from saga.stochastic import StochasticNetwork, StochasticScheduler, StochasticSchedule, StochasticScheduledTask, StochasticTaskGraph
-from saga.schedulers.online import (
-    Environment,
-    ReschedulePolicy,
-)
+from saga.schedulers.online.policy import ReschedulePolicy
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
     GreedyInsert,

@@ -5,7 +5,7 @@ import networkx as nx
 
 from saga.stochastic import StochasticNetwork, StochasticTaskGraph
 from saga.utils.random_variable import UniformRandomVariable
-from saga.schedulers.online.online_algorithms.online_heft import OnlineHEFTEnvironment
+from saga.schedulers.online.algorithms.online_heft import OnlineHEFTEnvironment
 from saga.schedulers.parametric.online import OnlineParametricScheduler
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs, UpwardRanking

@@ -37,7 +37,7 @@ from saga.schedulers.online import (
     InspiritPolicy, next_completion,
 )
 from saga.schedulers.online.environment import Environment
-from saga.schedulers.online.online_algorithms.FIFO import FIFOScheduler, InspiritFIFOScheduler
+from saga.schedulers.online.algorithms.fifo import FIFOScheduler, InspiritFIFOScheduler
 
 
 # ---------------------------------------------------------------------------

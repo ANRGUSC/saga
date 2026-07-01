@@ -13,7 +13,7 @@ from saga.schedulers.online import (
     next_event,
     next_completion,
 )
-from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
+from saga.schedulers.online.algorithms.fifo import FIFOEnvironment
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
     GreedyInsert,

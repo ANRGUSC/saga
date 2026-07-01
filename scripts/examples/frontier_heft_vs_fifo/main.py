@@ -13,8 +13,8 @@ thisdir = pathlib.Path(__file__).parent.resolve()
 sys.path.insert(0, str(thisdir.parent.parent.parent / "src"))
 
 from saga.schedulers.data.wfcommons import get_networks, get_workflows
-from saga.schedulers.online.online_algorithms.frontier_heft import FrontierHeftEnvironment
-from saga.schedulers.online.online_algorithms.FIFO import FIFOEnvironment
+from saga.schedulers.online.algorithms.frontier_heft import FrontierHeftEnvironment
+from saga.schedulers.online.algorithms.fifo import FIFOEnvironment
 
 
 # ---------------------------------------------------------------------------

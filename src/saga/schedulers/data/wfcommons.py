@@ -268,8 +268,9 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
     distribution_types = ["norm", "expon", "lognorm", "gamma", "beta", "uniform"]
     fit_results = {}
     for dist_type in distribution_types:
-        params = getattr(stats, dist_type).fit(data)
-        D, p_value = stats.kstest(data, dist_type, args=params)
+        dist = getattr(stats, dist_type)
+        params = dist.fit(data)
+        D, p_value = stats.kstest(data, dist(*params).cdf)
         fit_results[dist_type] = {"params": params, "D": D, "p_value": p_value}
 
     best_dist = min(fit_results, key=lambda k: fit_results[k]["D"])

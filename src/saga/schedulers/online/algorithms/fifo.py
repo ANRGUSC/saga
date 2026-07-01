@@ -1,8 +1,8 @@
 from typing import Any, Optional
 
 from saga import Network, Schedule, TaskGraph, Scheduler
-from saga.schedulers.online.environments import FrontierEnvironment
-from saga.schedulers.online.policies import FrontierFillPolicy, InspiritPolicy
+from saga.schedulers.online.environment import FrontierEnvironment
+from saga.schedulers.online.policy import FrontierFillPolicy, InspiritPolicy
 
 
 class FIFOEnvironment(FrontierEnvironment):

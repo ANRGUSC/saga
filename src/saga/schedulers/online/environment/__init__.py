@@ -1,9 +1,21 @@
+"""Online scheduling simulation core: the Environment loop, step functions, and StepRecord.
+
+Concrete environment variants live alongside this module and are re-exported here:
+:class:`FrontierEnvironment` (frontier.py) and :class:`StochasticEnvironment` (stochastic.py).
+The pluggable decision logic (:class:`OnlinePolicy` and its implementations) lives in the
+sibling ``policy`` package; this package never imports it at runtime, keeping the
+dependency one-directional (policy -> environment).
+"""
+from __future__ import annotations
+
 import logging
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Callable, FrozenSet, List, Optional, Set
+from typing import Any, Callable, FrozenSet, List, Optional, Set, TYPE_CHECKING
 
 from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask
+
+if TYPE_CHECKING:
+    from saga.schedulers.online.policy import OnlinePolicy
 
 logger = logging.getLogger(__name__)
 
@@ -69,42 +81,6 @@ def time_step(dt: float) -> StepFunction:
     return step
 
 
-# ---------------------------------------------------------------------------
-# OnlinePolicy — the pluggable "observe a condition, revise the schedule" step.
-# ---------------------------------------------------------------------------
-
-class OnlinePolicy(ABC):
-    """The decision logic of an online algorithm: "if X is observed, do Y".
-
-    A policy is consulted once per simulation step. It inspects the environment
-    and either returns a revised :class:`Schedule` (the *Y*) or ``None`` to leave
-    the current schedule unchanged. The condition (*X*) and the action (*Y*) live
-    together in :meth:`update` because they are coupled in practice — an action
-    needs to know exactly what its condition observed.
-
-    Any per-run state (counters, EMA estimates, frontier heaps) is held as
-    instance attributes and cleared in :meth:`reset`. A policy may compose other
-    policies internally (e.g. Inspirit pins a priority task, then delegates the
-    remaining slots to a fill policy).
-    """
-
-    def reset(self) -> None:
-        """Clear per-run state. Called by :meth:`Environment.reset` before each run."""
-        pass
-
-    @abstractmethod
-    def update(self, environment: "Environment") -> Optional[Schedule]:
-        """Inspect the environment this step and optionally revise the schedule.
-
-        Args:
-            environment: The current environment state.
-
-        Returns:
-            A revised Schedule, or None to leave the current schedule unchanged.
-        """
-        raise NotImplementedError
-
-
 @dataclass
 class StepRecord:
     """Snapshot of environment state captured at the end of one step.
@@ -154,7 +130,7 @@ class Environment:
         network: Network,
         task_graph: TaskGraph,
         scheduler: Optional[Scheduler] = None,
-        policy: Optional[OnlinePolicy] = None,
+        policy: Optional["OnlinePolicy"] = None,
         step: StepFunction = next_completion,
         on_step: Optional[Callable[["Environment"], None]] = None,
     ) -> None:
@@ -359,3 +335,21 @@ class Environment:
         occupied_node_names = {task.node for task in self.running_tasks}
         self.occupied_nodes = {node for node in self.network.nodes if node.name in occupied_node_names}
         self.available_nodes = {node for node in self.network.nodes if node.name not in occupied_node_names}
+
+
+# Concrete environment variants. Imported at the bottom (after Environment is
+# defined) so they can subclass it; re-exported for `from ...environment import X`.
+from saga.schedulers.online.environment.frontier import FrontierEnvironment  # noqa: E402
+from saga.schedulers.online.environment.stochastic import StochasticEnvironment  # noqa: E402
+
+__all__ = [
+    "Environment",
+    "FrontierEnvironment",
+    "StochasticEnvironment",
+    "StepRecord",
+    "StepFunction",
+    "next_completion",
+    "next_start",
+    "next_event",
+    "time_step",
+]

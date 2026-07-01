@@ -1,84 +1,23 @@
-import logging
-from copy import deepcopy
-from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
+"""InspiritPolicy: maintain a steady pool of ready tasks by dispatching priority tasks."""
+from __future__ import annotations
+
 import heapq
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+
 import numpy as np
 
-from saga import Schedule, ScheduledTask
-from saga.schedulers.parametric import ParametricScheduler
-from saga.schedulers.online.environment import OnlinePolicy
-from saga.schedulers.online.environments import StochasticEnvironment, FrontierEnvironment
+from saga import Schedule
+from saga.schedulers.online.policy import OnlinePolicy
+from saga.schedulers.online.policy._partial import build_partial_schedule
+from saga.schedulers.online.environment import FrontierEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.throughput.inspirit import (
     compute_inspiring_ability,
     compute_inspiring_effeciency,
 )
 
-logger = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
     from saga.schedulers.online.environment import Environment
-
-
-def _build_partial_schedule(environment: "Environment") -> Schedule:
-    """Return a Schedule containing only the committed (finished + running) tasks."""
-    partial = Schedule(environment.task_graph, environment.network)
-    if isinstance(environment, StochasticEnvironment):
-        environment.schedule_actual = environment.estimate_schedule.determinize(
-            environment.actual_network, environment.actual_task_graph
-        )
-        for task in environment.finished_tasks:
-            partial.add_task(task)
-
-        est_running_tasks: Set[ScheduledTask] = deepcopy(environment.running_tasks)
-        for task in est_running_tasks:
-            est_task_size = environment.task_graph.get_task(task.name).cost
-            est_network_speed = environment.network.get_node(task.node).speed
-            task.end = task.start + (est_task_size / est_network_speed)
-            partial.add_task(task)
-        return partial
-    else:
-        for task in environment.finished_tasks:
-            partial.add_task(task)
-        for task in environment.running_tasks:
-            partial.add_task(deepcopy(task))
-        return partial
-
-
-class ReschedulePolicy(OnlinePolicy):
-    """Reschedules all remaining tasks around committed (finished + running) tasks every step."""
-
-    def update(self, environment: "Environment") -> Optional[Schedule]:
-        if not isinstance(environment.scheduler, ParametricScheduler):
-            logger.warning(
-                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
-                "(%s). Rescheduling requires schedule and min_start_time support; "
-                "this may raise at runtime.",
-                type(environment.scheduler).__name__,
-            )
-        partial = _build_partial_schedule(environment)
-        if isinstance(environment, StochasticEnvironment):
-            new_estimate = environment.stochastic_scheduler.schedule(
-                environment._stochastic_network,
-                environment._stochastic_task_graph,
-                schedule=partial,
-                min_start_time=environment.current_time,
-            )[0]
-            environment.estimate_schedule = new_estimate
-            new_schedule = new_estimate.determinize(
-                environment.actual_network, environment.actual_task_graph
-            )
-            environment.schedule_actual = new_schedule
-        else:
-            if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
-            new_schedule = environment.scheduler.schedule(
-                environment.network,
-                environment.task_graph,
-                schedule=partial,
-                min_start_time=environment.current_time,
-            )
-        return new_schedule
 
 
 class InspiritPolicy(OnlinePolicy):
@@ -358,7 +297,7 @@ class InspiritPolicy(OnlinePolicy):
         if task_name is None:
             return None
 
-        partial = _build_partial_schedule(env)
+        partial = build_partial_schedule(env)
         self._insert_task(task_name, partial, env)
         if env.scheduler is None:
             raise ValueError("InspiritPolicy requires environment.scheduler to be set.")
@@ -368,38 +307,3 @@ class InspiritPolicy(OnlinePolicy):
             schedule=partial,
             min_start_time=env.current_time,
         )
-
-
-class FrontierFillPolicy(OnlinePolicy):
-    """Pops tasks from the frontier to fill all currently available nodes each step."""
-
-    def __init__(self, insertion_strategy: Optional[GreedyInsert] = None):
-        self._insertion_strategy = (
-            insertion_strategy
-            if insertion_strategy is not None
-            else GreedyInsert(append_only=False, compare=GreedyInsertCompareFuncs.EST, critical_path=False)
-        )
-
-    def _insert_task(self, task_name: str, schedule: Schedule, env: "FrontierEnvironment") -> None:
-        self._insertion_strategy.call(
-            env.network,
-            env.task_graph,
-            schedule,
-            task_name,
-            min_start_time=env.current_time,
-        )
-
-    def update(self, environment: "Environment") -> Optional[Schedule]:
-        if not isinstance(environment, FrontierEnvironment):
-            raise ValueError("FrontierFillPolicy requires a FrontierEnvironment.")
-        env = environment
-        if not env.frontier:
-            return None
-        ready_node_count = len(env.available_nodes) if env.ready_node_only else len(env.frontier)
-        for _ in range(ready_node_count):
-            if not env.frontier:
-                break
-            _, task_name = heapq.heappop(env.frontier)
-            env.frontier_set.discard(task_name)
-            self._insert_task(task_name, env.schedule, env)
-        return env.schedule

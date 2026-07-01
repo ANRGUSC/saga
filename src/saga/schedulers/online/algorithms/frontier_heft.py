@@ -1,8 +1,8 @@
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from saga import Network, Schedule, TaskGraph, Scheduler, TaskGraphNode
-from saga.schedulers.online.environments import FrontierEnvironment
-from saga.schedulers.online.policies import FrontierFillPolicy
+from saga.schedulers.online.environment import FrontierEnvironment
+from saga.schedulers.online.policy import FrontierFillPolicy
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.cpop import upward_rank
 
