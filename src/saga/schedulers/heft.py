@@ -55,7 +55,7 @@ class HeftScheduler(Scheduler):
             ValueError: If the instance is invalid.
         """
         schedule_order = heft_rank_sort(network, task_graph)
-        schedule = Schedule(task_graph, network)
+        schedule = schedule if schedule is not None else Schedule(task_graph, network)
 
         for task_name in schedule_order:
             if schedule.is_scheduled(task_name):
@@ -64,9 +64,8 @@ class HeftScheduler(Scheduler):
             best_node = next(iter(network.nodes))  # arbitrary initialization
             for node in network.nodes:
                 start_time = schedule.get_earliest_start_time(
-                    task=task_name, node=node, append_only=False
+                    task=task_name, node=node, append_only=False, current_moment=min_start_time
                 )
-                start_time = max(start_time, min_start_time)
                 runtime = (
                     task_graph.get_task(task_name).cost / network.get_node(node).speed
                 )
