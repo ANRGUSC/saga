@@ -80,20 +80,11 @@ class GreedyInsertCompareFuncs(Enum):
         elif self == GreedyInsertCompareFuncs.Throughput:
             if schedule is None:
                 raise ValueError("Throughput comparison requires the current schedule.")
-            cur_schedule = deepcopy(schedule)
-            cur_schedule.add_task(cur)
-            new_schedule = deepcopy(schedule)
-            new_schedule.add_task(new)
-            return (1/new_schedule.throughput) - (1/cur_schedule.throughput)
+            return schedule.bottleneck_if_added(new) - schedule.bottleneck_if_added(cur)
         elif self == GreedyInsertCompareFuncs.Makespan:
             if schedule is None:
                 raise ValueError("Makespan comparison requires the current schedule.")
-            cur_schedule = deepcopy(schedule)
-            cur_schedule.add_task(cur)
-            new_schedule = deepcopy(schedule)
-            new_schedule.add_task(new)
-            return (new_schedule.makespan) - (cur_schedule.makespan)
-            
+            return schedule.makespan_if_added(new) - schedule.makespan_if_added(cur)
         else:
             raise ValueError(f"Unknown comparison function: {self.value}")
         
@@ -147,9 +138,8 @@ class GreedyInsert(InsertTask):
                 task=task,
                 node=_node,
                 append_only=self.append_only,
-                
+                current_moment=min_start_time,
             )
-            start_time = max(start_time, min_start_time)
 
             new_task = ScheduledTask(
                 node=_node.name,
