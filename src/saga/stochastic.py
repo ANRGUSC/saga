@@ -544,15 +544,19 @@ class StochasticSchedule(BaseModel):
     
     def determinize(self, network: Network, task_graph: TaskGraph) -> Schedule:
         schedule = Schedule(task_graph=task_graph, network=network)
-        pq: PriorityQueue[tuple[float, StochasticScheduledTask]] = PriorityQueue()
+        # The middle int is a monotonic tiebreaker so equal ranks never fall through
+        # to comparing StochasticScheduledTask objects (which are not orderable).
+        pq: PriorityQueue[tuple[float, int, StochasticScheduledTask]] = PriorityQueue()
+        tiebreak = 0
         # add all source tasks to the priority queue
         for _, tasks in self.mapping.items():
             for task in tasks:
                 if task_graph.in_degree(task.name) == 0:
-                    pq.put((-task.rank, task))
+                    pq.put((-task.rank, tiebreak, task))
+                    tiebreak += 1
 
         while not pq.empty():
-            _, task = pq.get()
+            _, _, task = pq.get()
 
             det_task = task_graph.get_task(task.name)
             det_node = network.get_node(task.node)
@@ -583,8 +587,9 @@ class StochasticSchedule(BaseModel):
                     None,
                     )
                     if succ_task is None:
-                        raise ValueError(f"Could not find successor teas {out_edge.target!r}")
-                    pq.put((-succ_task.rank, succ_task))
+                        raise ValueError(f"Could not find successor task {out_edge.target!r}")
+                    pq.put((-succ_task.rank, tiebreak, succ_task))
+                    tiebreak += 1
         return schedule
 
     def __getitem__(

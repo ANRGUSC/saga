@@ -542,7 +542,9 @@ class Schedule(BaseModel):
         ..., description="The mapping of tasks to nodes."
     )
 
-    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict)
+    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict) # For quick lookup of scheduled tasks by name
+    _compute_load: Dict[str, float] = PrivateAttr(default_factory=dict) # For keeping track of compute load per node
+    _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(default_factory=dict) # For keeping track of communication load per link
 
     def __init__(
         self,
@@ -571,43 +573,85 @@ class Schedule(BaseModel):
             return 0.0
         return max(tasks[-1].end for tasks in self.mapping.values() if tasks)
 
+    def makespan_if_added(self, task: ScheduledTask) -> float:
+        """Return the makespan the schedule would have if `task` were added.
+
+        Does not mutate the schedule. A gap-inserted task ends no later than its node's
+        current last task, so adding a task can only push the makespan out to task.end,
+        making the result max(makespan, task.end).
+        """
+        return max(self.makespan, task.end)
+
+    def _link_cost(self, size: float, src_node: str, dst_node: str) -> Tuple[Tuple[str, str], float]:
+        """Return the (undirected link key, transfer time) for `size` bytes from src to dst."""
+        network_edge = self.network.get_edge(src_node, dst_node)
+        key = (min(network_edge.source, network_edge.target), max(network_edge.source, network_edge.target))
+        return key, size / network_edge.speed
+
+    def _apply_load(self, task: ScheduledTask, sign: float) -> None:
+        """Add (sign=+1) or subtract (sign=-1) `task`'s contribution to the load aggregates.
+
+        Call with sign=+1 after inserting a task into _task_map, or sign=-1 before removing
+        it. Comm cost is applied for each cross-node edge to an already-scheduled neighbor
+        (predecessors via in-edges, successors via out-edges), so each edge is counted once.
+        """
+        self._compute_load[task.node] = self._compute_load.get(task.node, 0.0) + sign * (task.end - task.start)
+        for task_edge in self.task_graph.in_edges(task.name):
+            if task_edge.source in self._task_map and task_edge.source != task.name:
+                src_node = self._task_map[task_edge.source].node
+                if src_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, src_node, task.node)
+                    self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
+        for task_edge in self.task_graph.out_edges(task.name):
+            if task_edge.target in self._task_map and task_edge.target != task.name:
+                dst_node = self._task_map[task_edge.target].node
+                if dst_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, task.node, dst_node)
+                    self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
+
     @property
     def throughput(self) -> float:
-        """Get the throughput of the schedule. 
+        """Get the throughput of the schedule: 1 / (most-loaded compute node or comm link).
 
         Returns:
             float: The throughput of the schedule.
         """
         if not any(self.mapping.values()):
             return 0.0
-            
-        
-        network_comms = {(min(edge.source,edge.target),max(edge.source,edge.target)): 0.0 for edge in self.network.edges}
-        for name, scheduled_task in self._task_map.items():
-            for task_edge in self.task_graph.in_edges(name):
-                if task_edge.source not in self._task_map:
-                    continue  # skip virtual nodes (__super_source__ etc.) or unscheduled predecessors
-                src_node = self.get_scheduled_task(task_edge.source).node
-                dst_node = scheduled_task.node
-                if src_node == dst_node:
-                    continue  # intra-node transfer has no network cost
-                network_edge = self.network.get_edge(src_node, dst_node)
-                key = (min(network_edge.source, network_edge.target), max(network_edge.source, network_edge.target))
-                if key in network_comms:
-                    network_comms[key] += task_edge.size / network_edge.speed
+        compute_bottleneck = max(self._compute_load.values(), default=0.0)
+        comm_bottleneck = max(self._comm_load.values(), default=0.0)
+        return 1 / max(comm_bottleneck, compute_bottleneck)
 
-        comm_bottleneck = max(network_comms.values()) if network_comms else 0.0
-        
-        
+    def bottleneck_if_added(self, task: ScheduledTask) -> float:
+        """Return 1/throughput (the bottleneck) the schedule would have if `task` were added.
 
+        Does not mutate the schedule. Runs in O(task degree) by reading the maintained
+        per-node compute loads and per-link comm loads and applying only this task's delta.
+        Cross-node transfers to already-scheduled neighbors (predecessors via in-edges,
+        successors via out-edges) are added, matching how throughput counts each edge once.
+        """
+        duration = task.end - task.start
         compute_bottleneck = max(
-            sum(scheduled_task.end - scheduled_task.start for scheduled_task in self.mapping[key]) for key in self.mapping)
-        # compute_bottleneck = max(task.end - task.start for tasks in self.mapping.values() for task in tasks)
-        #print(f"Comm bottleneck: {comm_bottleneck:.4f}, Compute bottleneck: {compute_bottleneck:.4f}")
-        
-        return 1/max(
-            comm_bottleneck, compute_bottleneck
+            max(self._compute_load.values(), default=0.0),
+            self._compute_load.get(task.node, 0.0) + duration,
         )
+        deltas: Dict[Tuple[str, str], float] = {}
+        for task_edge in self.task_graph.in_edges(task.name):
+            if task_edge.source in self._task_map:
+                src_node = self._task_map[task_edge.source].node
+                if src_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, src_node, task.node)
+                    deltas[key] = deltas.get(key, 0.0) + cost
+        for task_edge in self.task_graph.out_edges(task.name):
+            if task_edge.target in self._task_map:
+                dst_node = self._task_map[task_edge.target].node
+                if dst_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, task.node, dst_node)
+                    deltas[key] = deltas.get(key, 0.0) + cost
+        comm_bottleneck = max(self._comm_load.values(), default=0.0)
+        for key, delta in deltas.items():
+            comm_bottleneck = max(comm_bottleneck, self._comm_load.get(key, 0.0) + delta)
+        return max(compute_bottleneck, comm_bottleneck)
 
     def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
         """Get the tasks scheduled on a node.
@@ -717,6 +761,7 @@ class Schedule(BaseModel):
             )
 
         self._task_map[task.name] = task
+        self._apply_load(task, sign=1.0)  # keep the throughput aggregates in sync
 
     def remove_task(self, task_name: str | TaskGraphNode) -> None:
         """Remove a task from the schedule.
@@ -730,6 +775,7 @@ class Schedule(BaseModel):
         if task_name not in self._task_map:
             raise ValueError(f"Task {task_name} not in schedule.")
         scheduled_task = self._task_map[task_name]
+        self._apply_load(scheduled_task, sign=-1.0)  # keep the throughput aggregates in sync
         self.mapping[scheduled_task.node].remove(scheduled_task)
         del self._task_map[task_name]
 
