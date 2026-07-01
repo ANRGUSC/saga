@@ -546,6 +546,8 @@ class Schedule(BaseModel):
 
     _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
 
+    _mutual_exclusion_graph: Optional[nx.Graph] = PrivateAttr(default=None)
+
     def __init__(
         self,
         task_graph: "TaskGraph",
@@ -561,6 +563,35 @@ class Schedule(BaseModel):
                 else {node.name: [] for node in network.nodes}
             ),
         )
+        if hasattr(task_graph, "build_mutual_exclusion_graph"):
+            self._mutual_exclusion_graph = task_graph.build_mutual_exclusion_graph()
+        else:
+            self._mutual_exclusion_graph = None
+
+    def _tasks_can_overlap(self, task_name_a: str, task_name_b: str) -> bool:
+        """Two tasks can overlap iff they are mutually exclusive."""
+        if self._mutual_exclusion_graph is None:
+            return False
+        return self._mutual_exclusion_graph.has_edge(task_name_a, task_name_b)
+
+    def _tasks_overlap_in_time(self, left: ScheduledTask, right: ScheduledTask) -> bool:
+        return left.start < right.end - EPS and right.start < left.end - EPS
+
+    def _conflicts(self, candidate: ScheduledTask, existing: ScheduledTask) -> bool:
+        """A conflict is a real time overlap between non-mutually-exclusive tasks."""
+        return self._tasks_overlap_in_time(
+            candidate, existing
+        ) and not self._tasks_can_overlap(candidate.name, existing.name)
+
+    def _get_blockers_for_task(
+        self, task_name: str, node_name: str
+    ) -> List[ScheduledTask]:
+        blockers = [
+            scheduled_task
+            for scheduled_task in self.mapping[node_name]
+            if not self._tasks_can_overlap(task_name, scheduled_task.name)
+        ]
+        return sorted(blockers, key=lambda t: (t.start, t.end))
 
     @property
     def makespan(self) -> float:
@@ -631,31 +662,22 @@ class Schedule(BaseModel):
                 min_min_start_time = min(min_min_start_time, arrival_time)
             min_start_time = max(min_start_time, min_min_start_time)
 
+        blockers = self._get_blockers_for_task(task.name, node.name)
+
         if append_only:
-            min_start_time = (
-                max(min_start_time, self.mapping[node.name][-1].end)
-                if self.mapping[node.name]
-                else min_start_time
-            )
+            if blockers:
+                min_start_time = max(
+                    min_start_time, max(blocker.end for blocker in blockers)
+                )
             return min_start_time
-        else:
-            if (
-                not self.mapping[node.name]
-                or min_start_time + exec_time <= self.mapping[node.name][0].start
-            ):
-                return min_start_time
-            for left, right in zip(
-                self.mapping[node.name], self.mapping[node.name][1:]
-            ):
-                if (
-                    min_start_time >= left.end
-                    and min_start_time + exec_time <= right.start
-                ):
-                    return min_start_time
-                elif min_start_time < left.end and left.end + exec_time <= right.start:
-                    return left.end
-            min_start_time = max(min_start_time, self.mapping[node.name][-1].end)
-            return min_start_time
+
+        start_time = min_start_time
+        for blocker in blockers:
+            if start_time + exec_time <= blocker.start + EPS:
+                return start_time
+            if start_time < blocker.end - EPS:
+                start_time = blocker.end
+        return start_time
 
     def add_task(self, task: ScheduledTask) -> None:
         """Add a task to the schedule.
@@ -673,14 +695,15 @@ class Schedule(BaseModel):
             [(t.start, t.end) for t in self.mapping[task.node]], (task.start, task.end)
         )
         self.mapping[task.node].insert(idx, task)
-        # check that next task starts after this task ends (with tolerance for floating point errors)
-        if (
-            idx + 1 < len(self.mapping[task.node])
-            and self.mapping[task.node][idx + 1].start < task.end - EPS
-        ):
-            raise ValueError(
-                f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}."
-            )
+
+        # A time overlap is only an error between tasks that are not mutually
+        # exclusive; mutually exclusive tasks may share a node/time slot.
+        for existing in self.mapping[task.node]:
+            if existing is task:
+                continue
+            if self._conflicts(task, existing):
+                self.mapping[task.node].pop(idx)
+                raise ValueError(f"Task {task} overlaps with existing task {existing}.")
 
         self._task_map.setdefault(task.name, []).append(task)
 

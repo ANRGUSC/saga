@@ -1,5 +1,7 @@
 from .bil import BILScheduler
 from .brute_force import BruteForceScheduler
+from .ccpop import CCpopScheduler
+from .cheft import CheftScheduler
 from .cpop import CpopScheduler
 from .dps import DPSScheduler
 from .duplex import DuplexScheduler
@@ -25,6 +27,8 @@ from .wba import WBAScheduler
 __all__ = [
     "BILScheduler",
     "BruteForceScheduler",
+    "CCpopScheduler",
+    "CheftScheduler",
     "CpopScheduler",
     "DPSScheduler",
     "DuplexScheduler",
