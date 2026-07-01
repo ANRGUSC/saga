@@ -346,7 +346,7 @@ def schedule_trace_standalone(
     Returns:
         A fresh Schedule for just this trace's tasks.
     """
-    trace_subgraph = task_graph.graph.subgraph(trace_tasks).copy()
+    trace_subgraph = nx.DiGraph(task_graph.graph.subgraph(trace_tasks))
     standalone_tg = TaskGraph.from_nx(trace_subgraph)
     return scheduler.schedule(network=network, task_graph=standalone_tg)
 
