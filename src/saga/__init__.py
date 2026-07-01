@@ -522,7 +522,7 @@ class TaskGraph(BaseModel):
         The width is the maximum number of tasks that could be running in parallel
         given infinite processors, i.e. the size of the largest set of tasks with no
         dependency (direct or transitive) between any two of them (a maximum antichain).
-
+ 
         By Dilworth's theorem, the size of a maximum antichain equals the minimum
         number of chains needed to cover the graph, which is computed here as a
         minimum path cover via maximum bipartite matching over the transitive closure.
