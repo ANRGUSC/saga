@@ -21,12 +21,12 @@ from saga.stochastic import StochasticNetwork, StochasticScheduler, StochasticSc
 from saga import Network, TaskGraph, Schedule, TaskGraphNode
 
 import networkx as nx
-from typing import Dict, Iterable, List, Hashable, Literal
+from typing import Any, Dict, Iterable, List, Hashable, Literal
 
 from saga.utils.random_variable import RandomVariable
 
 
-def get_next_task(schedule: Schedule, current_moment: float) -> ScheduledTask:
+def get_next_task(schedule: Schedule, current_moment: float) -> Optional[ScheduledTask]:
     """Returns the task with the smallest end time > current_moment
     
     Args:
@@ -99,7 +99,7 @@ def create_partial_schedule(
     for task in finished_tasks:
         partial_schedule.add_task(task)
 
-    est_running_tasks:List[ScheduledTask] = deepcopy(running_tasks)
+    est_running_tasks: Set[ScheduledTask] = deepcopy(running_tasks)
 
     for task in est_running_tasks:
         est_task_size = det_task_graph.get_task(task.name).cost
@@ -128,7 +128,7 @@ class OnlineParametricScheduler(Scheduler):
        
     def schedule_iterative(self,
                            network: StochasticNetwork,
-                           task_graph: StochasticTaskGraph) -> Tuple[List[Schedule], List[Schedule], List[Schedule]]:
+                           task_graph: StochasticTaskGraph) -> Tuple[List[Schedule], List[StochasticSchedule], List[Schedule]]:
         """Online scheduling algorithm that produces a schedule, then waits for
         the next task to finish before producing the next schedule.
 
@@ -145,10 +145,10 @@ class OnlineParametricScheduler(Scheduler):
                 
         """
         #tracking
-        schedules_estimate: List[Schedule] = [] 
+        schedules_estimate: List[StochasticSchedule] = []
         schedules_actual: List[Schedule] = []
         schedules_partial: List[Schedule] = []
-        remaining_tasks: set[StochasticScheduledTask] = {task for task in task_graph}
+        remaining_tasks: Set[Any] = {task for task in task_graph}
 
         #generating our initial estimate schedule and our estimations for network and task graph values
         initial_estimate_schedule, det_network, det_task_graph = self.stochastic_scheduler.schedule(network=network,task_graph=task_graph)
@@ -214,11 +214,10 @@ class OnlineParametricScheduler(Scheduler):
                 len(running_tasks),
                 len(remaining_tasks),
             )
-        
-        
-        
 
-    def schedule(self,
+        return schedules_actual, schedules_estimate, schedules_partial
+
+    def schedule(self,  # type: ignore[override]  # requires stochastic inputs; not substitutable for a plain Scheduler
                  network: StochasticNetwork,
                  task_graph: StochasticTaskGraph) -> Schedule:
         """Online scheduling algorithm that produces a schedule, then waits for

@@ -340,17 +340,28 @@ def run_analysis(
     # Workflow throughput graphs: combine all CCRs, Inspirit filtered to best/worst
     workflow_dir = outputdir / "workflow"
     workflow_dir.mkdir(exist_ok=True)
-    for workflow, wf_group in data.groupby("workflow"):
+    for (workflow, ccr), wf_group in data.groupby(["workflow", "ccr"]):
         filtered = _filter_inspirit(wf_group, "throughput_ratio", higher_is_better=True)
-        wf_title = f"{title} — {workflow} (all CCR)" if title else f"{workflow} (all CCR)"
+        wf_title = f"{title} — {workflow} (CCR={ccr})" if title else f"{workflow} (CCR={ccr})"
         _make_boxplot(
             filtered,
             metric="throughput_ratio",
             xlabel="Throughput ratio vs best (1.0 = best)",
             title=wf_title,
             outdir=workflow_dir,
-            filename=workflow,
+            filename=f"{workflow}_ccr_{ccr}",
         )
+    # for workflow, wf_group in data.groupby("workflow"):
+    #     filtered = _filter_inspirit(wf_group, "throughput_ratio", higher_is_better=True)
+    #     wf_title = f"{title} — {workflow} (all CCR)" if title else f"{workflow} (all CCR)"
+    #     _make_boxplot(
+    #         filtered,
+    #         metric="throughput_ratio",
+    #         xlabel="Throughput ratio vs best (1.0 = best)",
+    #         title=wf_title,
+    #         outdir=workflow_dir,
+    #         filename=workflow,
+    #     )
 
     # CSV rankings: best/worst 5 per dataset for throughput and makespan
     csv_dir = outputdir / "csv"

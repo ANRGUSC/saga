@@ -1,6 +1,6 @@
 import logging
 from copy import deepcopy
-from typing import Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 import heapq
 import numpy as np
 
@@ -36,7 +36,7 @@ def _build_partial_schedule(environment: "Environment") -> Schedule:
         for task in environment.finished_tasks:
             partial.add_task(task)
 
-        est_running_tasks: List[ScheduledTask] = deepcopy(environment.running_tasks)
+        est_running_tasks: Set[ScheduledTask] = deepcopy(environment.running_tasks)
         for task in est_running_tasks:
             est_task_size = environment.task_graph.get_task(task.name).cost
             est_network_speed = environment.network.get_node(task.node).speed
@@ -76,6 +76,8 @@ class RescheduleController(Controller):
             )
             environment.schedule_actual = new_schedule
         else:
+            if environment.scheduler is None:
+                raise ValueError("RescheduleController requires environment.scheduler to be set.")
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,
@@ -178,7 +180,7 @@ class InspiritController(Controller):
         if self.fill_controller is not None:
             self.fill_controller.reset()
 
-    def pre_step(self, _environment: "Environment") -> None:
+    def pre_step(self, environment: "Environment") -> None:
         self.last_dispatched = None
         self.last_dispatch_type = None
 
@@ -205,6 +207,8 @@ class InspiritController(Controller):
 
     def _rebuild_frontiers(self, environment: "Environment") -> None:
         """Rebuild efficiency and ability heaps from the current ready_tasks."""
+        if self.efficiency_ranks is None or self.ability_ranks is None:
+            raise RuntimeError("Inspirit ranks must be initialized before rebuilding frontiers.")
         ready_names = {t.name for t in environment.ready_tasks}
         self.efficiency_frontier = [
             (-self.efficiency_ranks[name], name) for name in ready_names
@@ -319,6 +323,8 @@ class InspiritController(Controller):
             # Frontier path: pin the priority task directly into env.schedule (removing
             # it from the frontier so fill_controller won't re-pick it), then always
             # let fill_controller fill the remaining available slots.
+            if not isinstance(env, FrontierEnvironment):
+                raise TypeError("InspiritController with a fill_controller requires a FrontierEnvironment.")
             if task_name is not None:
                 env.frontier_set.discard(task_name)
                 env.frontier = [(p, n) for p, n in env.frontier if n != task_name]
@@ -332,6 +338,8 @@ class InspiritController(Controller):
 
         partial = _build_partial_schedule(env)
         self._insert_task(task_name, partial, env)
+        if env.scheduler is None:
+            raise ValueError("InspiritController requires environment.scheduler to be set.")
         return env.scheduler.schedule(
             env.network,
             env.task_graph,

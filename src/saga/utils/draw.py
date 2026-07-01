@@ -1,7 +1,7 @@
 from functools import lru_cache
 import logging
 import shutil
-from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, TypeVar
+from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, TypeVar, cast
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -88,8 +88,8 @@ def draw_task_graph(
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {"text.usetex": use_latex}
-    with rc_context(rc=rc_context_opts):
+    rc_context_opts: Dict[str, Any] = {"text.usetex": use_latex}
+    with rc_context(rc=cast(Any, rc_context_opts)):
         if axis is None:
             # make size slightly larger than default
             _, axis = plt.subplots(figsize=figsize)
@@ -256,8 +256,8 @@ def draw_network(
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {"text.usetex": use_latex}
-    with rc_context(rc=rc_context_opts):
+    rc_context_opts: Dict[str, Any] = {"text.usetex": use_latex}
+    with rc_context(rc=cast(Any, rc_context_opts)):
         if axis is None:
             _, axis = plt.subplots(figsize=figsize)
             if axis is None:
@@ -390,8 +390,8 @@ def draw_gantt(
         logger.warning("Latex is not installed. Using non-latex mode.")
         use_latex = False
 
-    rc_context_opts = {"text.usetex": use_latex}
-    with rc_context(rc=rc_context_opts):
+    rc_context_opts: Dict[str, Any] = {"text.usetex": use_latex}
+    with rc_context(rc=cast(Any, rc_context_opts)):
         # Remove dummy tasks with near 0 duration
         schedule = {
             node: [task for task in tasks if task.end - task.start > 1e-6]
@@ -461,8 +461,8 @@ def draw_gantt(
                 if draw_task_labels:
                     axis.text(
                         row["Start"] + row["delta"] / 2,
-                        row["Node"],
-                        row["Task"],
+                        row["Node"],  # type: ignore[arg-type]  # categorical y-position
+                        str(row["Task"]),
                         ha="center",
                         va="center",
                         color="black",
@@ -479,7 +479,7 @@ def draw_gantt(
         # Set labels and title
         axis.set_xlabel("Time", fontsize=font_size)
         axis.set_ylabel("Nodes", fontsize=font_size)
-        axis.set_xlim(0, data_frame["Finish"].max())
+        axis.set_xlim(0, cast(float, data_frame["Finish"].max()))
         # axis.set_title('Gantt Chart by Node (All Nodes with Task Labels)')
         axis.grid(True, which="both", linestyle="--", linewidth=0.5)
         axis.set_axisbelow(True)
@@ -549,8 +549,8 @@ def gradient_heatmap(
         logger.warning("LaTeX is not installed. Falling back to non-LaTeX rendering.")
         use_latex = False
 
-    rc_context_opts = {"text.usetex": use_latex, "font.size": font_size}
-    with rc_context(rc=rc_context_opts):
+    rc_context_opts: Dict[str, Any] = {"text.usetex": use_latex, "font.size": font_size}
+    with rc_context(rc=cast(Any, rc_context_opts)):
         data = data.copy()
         # combine xs and ys into a single column if necessary
         # make column categorical and sorted by x/y order
@@ -595,21 +595,21 @@ def gradient_heatmap(
             categories = sorted(data[y].drop_duplicates(), key=yorder)
             data[y] = pd.Categorical(data[y], categories=categories, ordered=True)
 
-        global_min = data[color].min()
-        global_max = min(data[color].max(), upper_threshold)
+        global_min = cast(float, data[color].min())
+        global_max = cast(float, min(data[color].max(), upper_threshold))
 
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
             if ax is None:
                 raise ValueError("Axis could not be created.")
 
-        _cmap = cm.get_cmap(cmap)
+        _cmap = plt.get_cmap(cmap)
         _cmap_arr = _cmap(np.linspace(cmap_lower, cmap_upper, _cmap.N))
         listed_cmap = matplotlib.colors.ListedColormap(_cmap_arr)
 
         # Get unique values for x and y in the correct order (by category)
-        xvals = data[x].drop_duplicates().sort_values()
-        yvals = data[y].drop_duplicates().sort_values(ascending=False)
+        xvals = data[x].drop_duplicates().sort_values()  # type: ignore[call-overload]
+        yvals = data[y].drop_duplicates().sort_values(ascending=False)  # type: ignore[call-overload]
 
         # Initialize im to None - it will be set when we have data to plot
         im = None

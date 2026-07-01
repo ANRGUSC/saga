@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from saga import Network, Schedule, TaskGraph, Scheduler, TaskGraphNode
 from saga.schedulers.online.environments import FrontierEnvironment
@@ -32,7 +32,8 @@ class FrontierHeftEnvironment(FrontierEnvironment):
             critical_path=False,
         )
         self.ranks: Dict[str, Tuple[float, int]] = self.compute_upward_ranks()
-        self.priority_condition: Callable[[TaskGraphNode], float] = lambda x: self.ranks[x.name]
+        # Returns a (-(urank), -topo) tuple for lexicographic ordering in the frontier heap.
+        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda x: self.ranks[x.name]
 
     def compute_upward_ranks(self):
         urank = upward_rank(self.network, self.task_graph)
@@ -43,6 +44,12 @@ class FrontierHeftEnvironment(FrontierEnvironment):
 
 
 class FrontierHeftScheduler(Scheduler):
-    def schedule(self, network, task_graph):
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         environment = FrontierHeftEnvironment(network, task_graph)
         return environment.run()
