@@ -13,7 +13,7 @@ from saga.schedulers.online.environment import FrontierEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.throughput.inspirit import (
     compute_inspiring_ability,
-    compute_inspiring_effeciency,
+    compute_inspiring_efficiency,
 )
 
 if TYPE_CHECKING:
@@ -140,7 +140,7 @@ class InspiritPolicy(OnlinePolicy):
             / np.mean([node.speed for node in environment.network.nodes])
         )
         self._time_window = time_window
-        self.efficiency_ranks = compute_inspiring_effeciency(
+        self.efficiency_ranks = compute_inspiring_efficiency(
             environment.task_graph, environment.network, time_window=time_window
         )
         self.ability_ranks = compute_inspiring_ability(environment.task_graph)

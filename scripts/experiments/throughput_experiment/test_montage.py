@@ -25,7 +25,7 @@ os.environ["SAGA_DATA_DIR"] = str(thisdir / "data")
 
 import saga.schedulers as s
 from saga.schedulers.data import Dataset
-from saga.schedulers.throughput.inspirit import InspriritScheduler
+from saga.schedulers.throughput.inspirit import InspiritScheduler
 from saga.schedulers.throughput.mt_scheduler import MTScheduler
 from saga.schedulers.throughput.multi_obj import MultiObjScheduler
 from saga.schedulers import HeftScheduler, CpopScheduler
@@ -88,7 +88,7 @@ REGULAR_SCHEDULERS = {
 }
 
 SWEEPABLE_FACTORIES = {
-    "Inspirit_HEFT": lambda t, d: InspriritScheduler(
+    "Inspirit_HEFT": lambda t, d: InspiritScheduler(
         ParametricScheduler(
             initial_priority=UpwardRanking(),
             insert_task=GreedyInsert(
@@ -99,7 +99,7 @@ SWEEPABLE_FACTORIES = {
         ),
         t, d,
     ),
-    "Inspirit_CPoP": lambda t, d: InspriritScheduler(
+    "Inspirit_CPoP": lambda t, d: InspiritScheduler(
         ParametricScheduler(
             initial_priority=CPoPRanking(),
             insert_task=GreedyInsert(

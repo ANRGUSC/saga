@@ -15,7 +15,7 @@ from saga import Scheduler
 from saga.schedulers.data import Dataset
 from saga.schedulers.throughput.mt_scheduler import MTScheduler
 from saga.schedulers.throughput.multi_obj import MultiObjScheduler
-from saga.schedulers.throughput.inspirit import InspriritScheduler
+from saga.schedulers.throughput.inspirit import InspiritScheduler
 from saga.schedulers import HeftScheduler, CpopScheduler
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs
@@ -81,7 +81,7 @@ schedulers: Dict[str, Scheduler] = {
 # ---------------------------------------------------------------------------
 
 def _make_inspirit_heft(threshold: int, delta_ready: int) -> Scheduler:
-    return InspriritScheduler(
+    return InspiritScheduler(
         ParametricScheduler(
             initial_priority=UpwardRanking(),
             insert_task=GreedyInsert(
@@ -95,7 +95,7 @@ def _make_inspirit_heft(threshold: int, delta_ready: int) -> Scheduler:
 
 
 def _make_inspirit_cpop(threshold: int, delta_ready: int) -> Scheduler:
-    return InspriritScheduler(
+    return InspiritScheduler(
         ParametricScheduler(
             initial_priority=CPoPRanking(),
             insert_task=GreedyInsert(

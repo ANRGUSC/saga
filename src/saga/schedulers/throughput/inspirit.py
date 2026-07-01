@@ -12,7 +12,7 @@ import heapq
 
 
 
-def compute_inspiring_effeciency(task_graph: TaskGraph, network: Network, time_window: float) -> Dict[str, float]:
+def compute_inspiring_efficiency(task_graph: TaskGraph, network: Network, time_window: float) -> Dict[str, float]:
     """Compute the inspiring efficiency of tasks in a task graph.
     A task's inspiring efficiency is the number of tasks expected to finish in a given time window.
 
@@ -22,12 +22,12 @@ def compute_inspiring_effeciency(task_graph: TaskGraph, network: Network, time_w
         time_window (float): The time window to compute the inspiring efficiency for.
 
     Returns: 
-       effeciency_ranks: A dict of task_name to inspiring efficiency, where a task's inspiring efficiency is the number of tasks expected to finish in the given time window.
+       efficiency_ranks: A dict of task_name to inspiring efficiency, where a task's inspiring efficiency is the number of tasks expected to finish in the given time window.
     """
     average_network_speed = np.mean([node.speed for node in network.nodes])
     
     #the paper suggests using the average execution time of tasks of a certain type, but
-    #because we don't have task types, we will just manually calculate excecution costs of 
+    #because we don't have task types, we will just manually calculate execution costs of 
     #of children tasks. This will be more computationally expensive, but can be easily optimized by task types.
     def compute_task_inspiring_ability(task) -> float:
         """Compute the inspiring ability of a task in a task graph.
@@ -64,13 +64,13 @@ def compute_inspiring_effeciency(task_graph: TaskGraph, network: Network, time_w
                 current_gen = next_gen
                 next_gen = set()
         return count
-    effeciency_ranking = []
+    efficiency_ranking = []
     # for task in task_graph.tasks:
     #     ability = compute_task_inspiring_ability(task)
     #     # counter += 1
-    #     # heapq.heappush(effeciency_ranking, (-ability, counter, task.name))
-    effeciency_ranks = {task.name: compute_task_inspiring_ability(task) for task in task_graph.tasks}
-    return effeciency_ranks
+    #     # heapq.heappush(efficiency_ranking, (-ability, counter, task.name))
+    efficiency_ranks = {task.name: compute_task_inspiring_ability(task) for task in task_graph.tasks}
+    return efficiency_ranks
 
         
 
@@ -113,7 +113,7 @@ def get_children(task_graph: TaskGraph, task_name: str) -> List[TaskGraphNode]:
 
 
 
-class InspriritScheduler(Scheduler):
+class InspiritScheduler(Scheduler):
     """Layers the Inspirit ready-pool policy on top of any base scheduler.
 
     The base scheduler produces the initial schedule; the Inspirit policy then
