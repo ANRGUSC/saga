@@ -88,7 +88,7 @@ def main():
     heft_sched = heft_schedule()
     cpop_sched = cpop_schedule()  # for now, just use multi_obj as a placeholder for CPOP
 
-    max_makespan = max(multi_obj_sched.makespan, heft_sched.makespan)
+    max_makespan = max(multi_obj_sched.makespan, heft_sched.makespan, cpop_sched.makespan)
     max_throughput = max(multi_obj_sched.throughput, heft_sched.throughput)
     print(f"MultiObj makespan: {multi_obj_sched.makespan}")
     print(f"MultiObj throughput: {multi_obj_sched.throughput}")
