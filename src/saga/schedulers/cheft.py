@@ -108,6 +108,11 @@ class CheftScheduler(Scheduler):
                         best_finish_time = finish_time
                         best_node = node
 
+                if best_node is None:
+                    raise ValueError(
+                        f"No node available to schedule task {task_name}."
+                    )
+
                 new_task = ScheduledTask(
                     node=best_node.name,
                     name=task_name,

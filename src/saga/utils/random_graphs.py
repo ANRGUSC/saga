@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar, cast
 import networkx as nx
 import numpy as np
 from saga import Network, TaskGraph, TaskGraphNode
@@ -207,7 +207,12 @@ def _from_nx_conditional(dag: nx.DiGraph) -> ConditionalTaskGraph:
         )
         for u, v in dag.edges
     ]
-    return ConditionalTaskGraph.create(tasks=tasks, dependencies=dependencies)
+    # ``create`` is a classmethod that builds ``cls``; its declared return type
+    # is the base ``TaskGraph``, so narrow it back to the concrete subclass.
+    return cast(
+        ConditionalTaskGraph,
+        ConditionalTaskGraph.create(tasks=tasks, dependencies=dependencies),
+    )
 
 
 def add_conditional_probabilities(

@@ -740,7 +740,7 @@ def draw_mutual_exclusion_graph(
     linewidths: int = 2,
     font_size: int = 20,
     figsize: Optional[Tuple[int, int]] = None,
-    pos: Optional[Dict[str, Tuple[float, float]]] = None,
+    pos: Optional[Dict[str, Any]] = None,
 ) -> Axes:
     """Draw a mutual exclusion graph.
 

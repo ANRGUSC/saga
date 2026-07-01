@@ -563,10 +563,8 @@ class Schedule(BaseModel):
                 else {node.name: [] for node in network.nodes}
             ),
         )
-        if hasattr(task_graph, "build_mutual_exclusion_graph"):
-            self._mutual_exclusion_graph = task_graph.build_mutual_exclusion_graph()
-        else:
-            self._mutual_exclusion_graph = None
+        build_meg = getattr(task_graph, "build_mutual_exclusion_graph", None)
+        self._mutual_exclusion_graph = build_meg() if build_meg is not None else None
 
     def _tasks_can_overlap(self, task_name_a: str, task_name_b: str) -> bool:
         """Two tasks can overlap iff they are mutually exclusive."""

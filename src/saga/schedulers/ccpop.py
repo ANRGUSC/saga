@@ -97,6 +97,11 @@ class CCpopScheduler(Scheduler):
                         min_finish_time = end_time
                         best_node = node
 
+                if best_node is None:
+                    raise ValueError(
+                        f"No node available to schedule task {task.name}."
+                    )
+
                 new_task = ScheduledTask(
                     node=best_node.name,
                     name=task.name,

@@ -220,7 +220,12 @@ def extract_trace_schedules(
         "Trace: C-F": {"n0": [A, F], "n1": [C]},
         }
     """
-    task_graph: ConditionalTaskGraph = schedule.task_graph
+    task_graph = schedule.task_graph
+    if not isinstance(task_graph, ConditionalTaskGraph):
+        raise TypeError(
+            "extract_trace_schedules requires a schedule over a "
+            "ConditionalTaskGraph."
+        )
     traces = task_graph.identify_traces()
 
     trace_schedules: Dict[str, Dict[str, List[ScheduledTask]]] = {}
