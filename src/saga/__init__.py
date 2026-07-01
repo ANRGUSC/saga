@@ -516,6 +516,35 @@ class TaskGraph(BaseModel):
             raise ValueError(f"Dependency from {source} to {target} does not exist.")
         return TaskGraphEdge(source=source, target=target, size=edge["weight"])
 
+    def width(self) -> int:
+        """Get the width of the task graph.
+
+        The width is the maximum number of tasks that could be running in parallel
+        given infinite processors, i.e. the size of the largest set of tasks with no
+        dependency (direct or transitive) between any two of them (a maximum antichain).
+
+        By Dilworth's theorem, the size of a maximum antichain equals the minimum
+        number of chains needed to cover the graph, which is computed here as a
+        minimum path cover via maximum bipartite matching over the transitive closure.
+
+        Returns:
+            int: The width of the task graph.
+        """
+        closure = nx.transitive_closure(self.graph)
+        num_tasks = closure.number_of_nodes()
+        if num_tasks == 0:
+            return 0
+
+        bipartite_graph = nx.Graph()
+        left_nodes = [("L", name) for name in closure.nodes]
+        bipartite_graph.add_nodes_from(left_nodes, bipartite=0)
+        bipartite_graph.add_nodes_from((("R", name) for name in closure.nodes), bipartite=1)
+        bipartite_graph.add_edges_from(
+            (("L", source), ("R", target)) for source, target in closure.edges
+        )
+        matching = nx.bipartite.maximum_matching(bipartite_graph, top_nodes=left_nodes)
+        return num_tasks - len(matching) // 2
+
 
 class ScheduledTask(BaseModel):
     """A scheduled task."""
