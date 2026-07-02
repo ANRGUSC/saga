@@ -76,7 +76,7 @@ class AgentState:
     logger: ExperimentLogger
     comparison_agent: Any  # The comparison agent instance
     target_scheduler: SchedulerName = "HEFT"
-    baseline_scheduler: SchedulerName = "CPoP"
+    baseline_scheduler: SchedulerName = "FastestNode"
 
     iteration: int = 0
     max_iterations: int = 10
@@ -311,7 +311,7 @@ def handle_submit_code_hypothesis(
 
 def run_agentic_loop(
     target_scheduler: SchedulerName = "HEFT",
-    baseline_scheduler: SchedulerName = "CPoP",
+    baseline_scheduler: SchedulerName = "FastestNode",
     max_iterations: int = 10,
     min_confidence_threshold: float = 0.6,
 ) -> Tuple[Optional[CodeHypothesis], Optional[HypothesisValidationResult]]:
@@ -356,6 +356,11 @@ def run_agentic_loop(
     print(f"Logs will be saved to: {logger.log_dir}")
     print("=" * 60)
 
+    # Force source code reading for both schedulers before the loop
+    print("\n--- PRE-LOOP: Reading source code ---")
+    handle_read_source_code(state, target_scheduler)
+    handle_read_source_code(state, baseline_scheduler)
+
     previous_reflection: Optional[ActionReflection] = None
 
     while state.iteration < max_iterations:
@@ -390,7 +395,7 @@ Based on where we are, create a strategic plan for what we should do next.
 
         plan_result = planning_agent.run_sync(planning_prompt)
         plan = plan_result.output
-        logger.log_token_usage("planning", plan_result.usage(), MODEL_PLANNING.split(":")[-1])
+        logger.log_token_usage("planning", plan_result.usage, MODEL_PLANNING.split(":")[-1])
 
         print(f"\n STRATEGIC PLAN:")
         print(f"   Understanding: {plan.current_understanding[:150]}...")
@@ -453,7 +458,7 @@ When you have a validated hypothesis with >{min_confidence_threshold:.0%} confir
 
         result = decision_agent.run_sync(decision_prompt)
         action = result.output
-        logger.log_token_usage("decision", result.usage(), MODEL_DECISION.split(":")[-1])
+        logger.log_token_usage("decision", result.usage, MODEL_DECISION.split(":")[-1])
 
         print(f"\n ACTION: {action.action}")
         print(f"   Reasoning: {action.reasoning}")
@@ -527,7 +532,7 @@ What did we learn? How does this change our hypothesis? What should we investiga
 
         reflection_result = reflection_agent.run_sync(reflection_prompt)
         reflection = reflection_result.output
-        logger.log_token_usage("reflection", reflection_result.usage(), MODEL_REFLECTION.split(":")[-1])
+        logger.log_token_usage("reflection", reflection_result.usage, MODEL_REFLECTION.split(":")[-1])
         previous_reflection = reflection
 
         print(f"\n REFLECTION:")
@@ -619,7 +624,7 @@ def main():
     """Run the agentic hypothesis generation system."""
     hypothesis, validation = run_agentic_loop(
         target_scheduler="HEFT",
-        baseline_scheduler="CPoP",
+        baseline_scheduler="FastestNode",
         max_iterations=10,
         min_confidence_threshold=0.6,
     )

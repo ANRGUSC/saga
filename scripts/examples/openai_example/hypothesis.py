@@ -64,6 +64,15 @@ def execute_code_hypothesis(
 
         return network, task_graph, None
 
+    except KeyError as e:
+        if str(e) == "'weight'":
+            return None, None, (
+                "Error executing code: KeyError: 'weight'. "
+                "A node or edge was added to the DAG or network graph without a weight= kwarg. "
+                "Check EVERY dag.add_node(...), dag.add_edge(...), net.add_node(...), and "
+                "net.add_edge(...) call in your code and make sure each one passes weight=."
+            )
+        return None, None, f"Error executing code: KeyError: {e}"
     except Exception as e:
         return None, None, f"Error executing code: {type(e).__name__}: {str(e)}"
 

@@ -53,6 +53,14 @@ Your job is to extract maximum insight from what was just learned. Consider:
 
 Be concrete and analytical. Focus on actionable insights that move us toward a validated hypothesis.
 Connect findings back to the algorithm mechanics - WHY would this pattern cause problems?
+
+Here's some context for you:
+
+Heft: {target_maxspan}
+FastestNode: {baseline_maxspan}
+Makespan Ratio = Heft Makespan / FastestNode Makespan
+
+A Makespan Ratio less than 1.0 indicates the Heft scheduler performs better than the FastestNode scheduler.
 """
 
 DECISION_SYSTEM_PROMPT = """You are an expert in scheduling algorithms for heterogeneous distributed systems.
@@ -142,6 +150,10 @@ IMPORTANT GUIDELINES:
 
 ## Code Hypothesis Tips
 
+- CRITICAL: EVERY SINGLE `dag.add_node(...)`, `dag.add_edge(...)`, `net.add_node(...)`, and
+  `net.add_edge(...)` call MUST include a `weight=` kwarg. A node or edge added without `weight=`
+  is the #1 cause of failures (`KeyError: 'weight'`) and wastes the iteration. Before submitting
+  code, mentally check every add_node/add_edge call for a `weight=` argument.
 - The code must define a `get_instance()` function returning `(Network, TaskGraph)`
 - USE RANDOMIZATION: random.uniform(), random.randint() to create diverse instances
 - Use `TaskGraph.from_nx(dag)` where dag is a `nx.DiGraph` with 'weight' on nodes/edges

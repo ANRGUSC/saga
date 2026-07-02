@@ -321,7 +321,7 @@ and predict task graph patterns where {scheduler1} might underperform compared t
     comparison = result.output
 
     if logger:
-        logger.log_token_usage("comparison", result.usage(), model_name)
+        logger.log_token_usage("comparison", result.usage, model_name)
 
     return f"""
 === ALGORITHM COMPARISON: {scheduler1} vs {scheduler2} ===

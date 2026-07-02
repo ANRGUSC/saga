@@ -86,6 +86,10 @@ Example: "PISA found 6 tasks: 2 chains (E→A, F→C) and 2 isolated tasks (B, D
 The function signature must be:
     def get_instance() -> Tuple[Network, TaskGraph]:
 
+CRITICAL: every dag.add_node(...), dag.add_edge(...), net.add_node(...), and net.add_edge(...)
+call MUST include a weight= kwarg. A missing weight= is the #1 cause of execution failures
+(KeyError: 'weight'). Double-check every add_node/add_edge call before returning the code.
+
 IMPORTANT: Use randomization! The function will be called MANY times to generate a FAMILY
 of problem instances. Each call should return a DIFFERENT instance with the same
 pathological structure but varied weights/sizes.
