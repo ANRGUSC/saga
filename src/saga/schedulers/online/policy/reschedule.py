@@ -34,6 +34,7 @@ class ReschedulePolicy(OnlinePolicy):
                 environment._stochastic_task_graph,
                 schedule=partial,
                 min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
             )[0]
             environment.estimate_schedule = new_estimate
             new_schedule = new_estimate.determinize(

@@ -123,9 +123,7 @@ class GreedyInsert(InsertTask):
             node if isinstance(node, NetworkNode) else network.get_node(node)
             for node in nodes
         ]
-        # network.nodes is a frozenset, so its iteration order is PYTHONHASHSEED-dependent.
-        # Sort candidates by name so the greedy choice (and its tie-breaking) is
-        # deterministic across runs.
+        # Sort so tie-breaking is PYTHONHASHSEED-independent (network.nodes is a frozenset).
         considered_nodes.sort(key=lambda node: node.name)
 
         best_task = None

@@ -9,7 +9,7 @@ import numpy as np
 from saga import Schedule
 from saga.schedulers.online.policy import OnlinePolicy
 from saga.schedulers.online.policy._partial import build_partial_schedule
-from saga.schedulers.online.environment import FrontierEnvironment
+from saga.schedulers.online.environment import FrontierEnvironment, StochasticEnvironment
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.throughput.inspirit import (
     compute_inspiring_ability,
@@ -299,6 +299,21 @@ class InspiritPolicy(OnlinePolicy):
 
         partial = build_partial_schedule(env)
         self._insert_task(task_name, partial, env)
+        if isinstance(env, StochasticEnvironment):
+            # Reschedule the estimate plan around the committed + pinned tasks via the
+            # stochastic scheduler, then re-determinize against the realized costs
+            # (mirrors ReschedulePolicy's stochastic branch).
+            new_estimate = env.stochastic_scheduler.schedule(
+                env._stochastic_network,
+                env._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=env.current_time,
+                node_constraints=env.node_constraints,
+            )[0]
+            env.estimate_schedule = new_estimate
+            realized = new_estimate.determinize(env.actual_network, env.actual_task_graph)
+            env.schedule_actual = realized
+            return realized
         if env.scheduler is None:
             raise ValueError("InspiritPolicy requires environment.scheduler to be set.")
         return env.scheduler.schedule(

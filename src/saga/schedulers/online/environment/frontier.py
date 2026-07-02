@@ -72,7 +72,11 @@ class FrontierEnvironment(Environment):
         if schedule is not None:
             self.schedule = schedule
         else:
-            self.schedule = Schedule(task_graph=self.task_graph, network=self.network)
+            self.schedule = Schedule(
+                task_graph=self.task_graph,
+                network=self.network,
+                node_constraints=self.node_constraints,
+            )
             for task in self.task_graph.tasks:
                 if self.task_graph.in_degree(task) == 0:
                     self._bootstrap_insert.call(

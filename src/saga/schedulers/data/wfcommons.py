@@ -496,7 +496,10 @@ def get_workflow_task_info(recipe_name: str) -> Dict:
 
 
 def get_workflows(
-    num: int, recipe_name: str, max_size_multiplier: Optional[int] = None
+    num: int,
+    recipe_name: str,
+    max_size_multiplier: Optional[int] = None,
+    size_cap: Optional[int] = None,
 ) -> List[TaskGraph]:
     """Generate a list of task graphs for the given recipe.
 
@@ -504,6 +507,8 @@ def get_workflows(
         num (int): The number of task graphs to generate.
         recipe_name (str): The name of the recipe.
         max_size_multiplier (int, optional): Maximum size multiplier for tasks. Defaults to None.
+        size_cap (int, optional): Absolute cap on the number of tasks per workflow. When
+            set, sizes are drawn from [min_tasks, min(max_tasks, size_cap)]. Defaults to None.
 
     Returns:
         List[TaskGraph]: The list of task graphs.
@@ -519,6 +524,9 @@ def get_workflows(
         min_tasks, max_tasks = get_num_task_range(recipe_name)
         if max_size_multiplier is not None:
             max_tasks = max_size_multiplier * min_tasks
+        if size_cap is not None:
+            max_tasks = min(max_tasks, size_cap)
+        min_tasks = min(min_tasks, max_tasks)
         num_tasks = random.randint(min_tasks, max_tasks)
         recipe = recipes[recipe_name](num_tasks=num_tasks)  # type: ignore
         generator = WorkflowGenerator(recipe)

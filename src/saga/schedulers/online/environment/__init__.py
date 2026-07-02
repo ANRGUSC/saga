@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Callable, FrozenSet, List, Optional, Set, TYPE_CHECKING
+from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, TYPE_CHECKING
 
 from saga import Network, NetworkNode, TaskGraph, Schedule, Scheduler, ScheduledTask
 
@@ -133,6 +133,7 @@ class Environment:
         policy: Optional["OnlinePolicy"] = None,
         step: StepFunction = next_completion,
         on_step: Optional[Callable[["Environment"], None]] = None,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         """
         Args:
@@ -163,6 +164,9 @@ class Environment:
         self.policy = policy
         self.step_fn = step
         self.on_step = on_step
+        # Per-instance placement constraints, threaded into every schedule built during
+        # the run (the initial schedule and every policy re-plan via build_partial_schedule).
+        self.node_constraints = node_constraints
 
         # Mutable simulation state — initialized by reset()
         self.current_time: float = 0.0
@@ -205,7 +209,12 @@ class Environment:
             self.policy.reset()
         if self.scheduler is None:
             raise ValueError("Environment.reset() requires a scheduler to produce the initial schedule.")
-        self.schedule = self.scheduler.schedule(self.network, self.task_graph)
+        # Only forward node_constraints when set, so plain schedulers (whose schedule()
+        # does not take the argument) still work in the unconstrained case.
+        kwargs: Dict[str, Any] = (
+            {"node_constraints": self.node_constraints} if self.node_constraints else {}
+        )
+        self.schedule = self.scheduler.schedule(self.network, self.task_graph, **kwargs)
         self._update_task_state()
         self._update_network_state()
 

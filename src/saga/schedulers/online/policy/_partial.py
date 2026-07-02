@@ -13,7 +13,11 @@ if TYPE_CHECKING:
 
 def build_partial_schedule(environment: "Environment") -> Schedule:
     """Return a Schedule containing only the committed (finished + running) tasks."""
-    partial = Schedule(environment.task_graph, environment.network)
+    partial = Schedule(
+        environment.task_graph,
+        environment.network,
+        node_constraints=environment.node_constraints,
+    )
     if isinstance(environment, StochasticEnvironment):
         environment.schedule_actual = environment.estimate_schedule.determinize(
             environment.actual_network, environment.actual_task_graph

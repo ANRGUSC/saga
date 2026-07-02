@@ -1,7 +1,7 @@
 """Stochastic online environment: tracks an "actual" schedule under realized variance."""
 from __future__ import annotations
 
-from typing import Callable, Optional, TYPE_CHECKING, cast
+from typing import Callable, Dict, Optional, Set, TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -35,6 +35,7 @@ class StochasticEnvironment(Environment):
         step: StepFunction = next_completion,
         on_step: Optional[Callable[["Environment"], None]] = None,
         seed: Optional[int] = None,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         super().__init__(
             network=cast(Network, network),
@@ -43,6 +44,7 @@ class StochasticEnvironment(Environment):
             policy=policy,
             step=step,
             on_step=on_step,
+            node_constraints=node_constraints,
         )
         self._stochastic_task_graph = task_graph
         self._stochastic_network = network
@@ -56,7 +58,7 @@ class StochasticEnvironment(Environment):
         )
 
         self.initial_estimate_schedule, self.network, self.task_graph = self.stochastic_scheduler.schedule(
-            network=network, task_graph=task_graph
+            network=network, task_graph=task_graph, node_constraints=node_constraints
         )
         self.estimate_schedule: StochasticSchedule = self.initial_estimate_schedule
         self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
@@ -68,7 +70,9 @@ class StochasticEnvironment(Environment):
         self.actual_task_graph = self._stochastic_task_graph.sample()
         self.actual_network = self._stochastic_network.sample()
         self.initial_estimate_schedule, self.network, self.task_graph = self.stochastic_scheduler.schedule(
-            network=self._stochastic_network, task_graph=self._stochastic_task_graph
+            network=self._stochastic_network,
+            task_graph=self._stochastic_task_graph,
+            node_constraints=self.node_constraints,
         )
         self.estimate_schedule = self.initial_estimate_schedule
         self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)

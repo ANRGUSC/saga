@@ -166,6 +166,22 @@ class Network(BaseModel):
             G.add_edge(edge.source, edge.target, weight=edge.speed)
         return G
 
+    @cached_property
+    def _node_by_name(self) -> Dict[str, "NetworkNode"]:
+        return {node.name: node for node in self.nodes}
+
+    @cached_property
+    def _edge_by_pair(self) -> Dict[Tuple[str, str], "NetworkEdge"]:
+        pairs: Dict[Tuple[str, str], NetworkEdge] = {}
+        for edge in self.edges:
+            pairs[(edge.source, edge.target)] = edge
+            if edge.source != edge.target:
+                # Undirected: also expose the reverse orientation with matching source/target.
+                pairs[(edge.target, edge.source)] = NetworkEdge(
+                    source=edge.target, target=edge.source, speed=edge.speed
+                )
+        return pairs
+
     @classmethod
     def from_nx(
         cls,
@@ -205,10 +221,10 @@ class Network(BaseModel):
             ValueError: If the node does not exist.
         """
         name = node.name if isinstance(node, NetworkNode) else node
-        for _node in self.nodes:
-            if _node.name == name:
-                return _node
-        raise ValueError(f"Node {name} does not exist in the network.")
+        result = self._node_by_name.get(name)
+        if result is None:
+            raise ValueError(f"Node {name} does not exist in the network.")
+        return result
 
     def get_edge(
         self, source: str | NetworkNode, target: str | NetworkNode
@@ -227,10 +243,10 @@ class Network(BaseModel):
         """
         source = source.name if isinstance(source, NetworkNode) else source
         target = target.name if isinstance(target, NetworkNode) else target
-        edge = self.graph.get_edge_data(source, target)
+        edge = self._edge_by_pair.get((source, target))
         if edge is None:
             raise ValueError(f"Edge from {source} to {target} does not exist.")
-        return NetworkEdge(source=source, target=target, speed=edge["weight"])
+        return edge
 
 
 class TaskGraphNode(BaseModel):
@@ -377,6 +393,29 @@ class TaskGraph(BaseModel):
             G.add_edge(dependency.source, dependency.target, weight=dependency.size)
         return G
 
+    @cached_property
+    def _task_by_name(self) -> Dict[str, "TaskGraphNode"]:
+        return {task.name: task for task in self.tasks}
+
+    @cached_property
+    def _in_edges_by_task(self) -> Dict[str, List["TaskGraphEdge"]]:
+        result: Dict[str, List[TaskGraphEdge]] = {task.name: [] for task in self.tasks}
+        # Sorted so edge order (and any tie-breaking on it) is PYTHONHASHSEED-independent.
+        for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
+            result.setdefault(dep.target, []).append(dep)
+        return result
+
+    @cached_property
+    def _out_edges_by_task(self) -> Dict[str, List["TaskGraphEdge"]]:
+        result: Dict[str, List[TaskGraphEdge]] = {task.name: [] for task in self.tasks}
+        for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
+            result.setdefault(dep.source, []).append(dep)
+        return result
+
+    @cached_property
+    def _dependency_by_pair(self) -> Dict[Tuple[str, str], "TaskGraphEdge"]:
+        return {(dep.source, dep.target): dep for dep in self.dependencies}
+
     @classmethod
     def from_nx(
         cls,
@@ -445,13 +484,7 @@ class TaskGraph(BaseModel):
             List[TaskGraphEdge]: A list of incoming edges to the task.
         """
         task = task.name if isinstance(task, TaskGraphNode) else task
-        edges = []
-        for src, tgt in self.graph.in_edges(task):
-            edge_data = self.graph.get_edge_data(src, tgt)
-            edges.append(
-                TaskGraphEdge(source=src, target=tgt, size=edge_data["weight"])
-            )
-        return edges
+        return self._in_edges_by_task.get(task, [])
 
     def out_degree(self, task: str | TaskGraphNode) -> int:
         """Get the out-degree of a task.
@@ -474,13 +507,7 @@ class TaskGraph(BaseModel):
             List[TaskGraphEdge]: A list of outgoing edges from the task.
         """
         task = task.name if isinstance(task, TaskGraphNode) else task
-        edges = []
-        for src, tgt in self.graph.out_edges(task):
-            edge_data = self.graph.get_edge_data(src, tgt)
-            edges.append(
-                TaskGraphEdge(source=src, target=tgt, size=edge_data["weight"])
-            )
-        return edges
+        return self._out_edges_by_task.get(task, [])
 
     def get_task(self, name: str | TaskGraphNode) -> TaskGraphNode:
         """Get a task by name.
@@ -494,10 +521,10 @@ class TaskGraph(BaseModel):
             ValueError: If the task does not exist.
         """
         name = name.name if isinstance(name, TaskGraphNode) else name
-        for task in self.tasks:
-            if task.name == name:
-                return task
-        raise ValueError(f"Task {name} does not exist in the task graph.")
+        task = self._task_by_name.get(name)
+        if task is None:
+            raise ValueError(f"Task {name} does not exist in the task graph.")
+        return task
 
     def get_dependency(
         self, source: str | TaskGraphNode, target: str | TaskGraphNode
@@ -515,10 +542,10 @@ class TaskGraph(BaseModel):
         """
         source = source.name if isinstance(source, TaskGraphNode) else source
         target = target.name if isinstance(target, TaskGraphNode) else target
-        edge = self.graph.get_edge_data(source, target)
+        edge = self._dependency_by_pair.get((source, target))
         if edge is None:
             raise ValueError(f"Dependency from {source} to {target} does not exist.")
-        return TaskGraphEdge(source=source, target=target, size=edge["weight"])
+        return edge
 
 
 class ScheduledTask(BaseModel):
@@ -821,10 +848,7 @@ class Schedule(BaseModel):
         Returns:
             bool: True if the task is scheduled, False otherwise.
         """
-        for tasks in self.mapping.values():
-            if any(task.name == task_name for task in tasks):
-                return True
-        return False
+        return task_name in self._task_map
 
     def get_scheduled_task(self, task_name: str) -> ScheduledTask:
         """Get the scheduled task by name.

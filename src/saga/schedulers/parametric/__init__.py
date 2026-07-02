@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Iterable, List, TypeVar
+from typing import Any, Dict, Generic, Iterable, List, Optional, Set, TypeVar
 
 #? = Question
 #! = Observation
@@ -79,12 +79,13 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
             initial_priority=initial_priority, insert_task=insert_task, **kwargs
         )
 
-    def schedule( 
+    def schedule(
         self,
         network: Network,
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -93,13 +94,17 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
             task_graph (TaskGraph): The task graph.
             schedule (Schedule): The current schedule.
             min_start_time (float): The current moment in time.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints for this instance, mapping a task name to the node names it
+                may run on. Used only when a new schedule is constructed; when an existing
+                schedule is passed, its own constraints apply.
 
         Returns:
             Schedule: The resulting schedule.
         """
         #! at first glance this looks mostly the same as my implimentation
         if schedule is None:
-            schedule = Schedule(task_graph, network)
+            schedule = Schedule(task_graph, network, node_constraints=node_constraints)
         queue = self.initial_priority.call(network, task_graph)
         while queue:
             task_name = queue.pop(0)

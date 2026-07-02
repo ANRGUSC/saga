@@ -3,7 +3,7 @@ import pathlib
 import random
 import tempfile
 from itertools import product
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 import networkx as nx
 import numpy as np
@@ -216,12 +216,16 @@ def trace_to_digraph(
     return _trace_to_digraph_v14(trace, task_type_info)
 
 
-def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
+def get_workflows(
+    num: int, recipe_name: str, size_cap: Optional[int] = None
+) -> List[nx.DiGraph]:
     """Generate a list of network, task graph pairs for the given recipe.
 
     Args:
         num (int): The number of task graphs to generate.
         recipe_name (str): The name of the recipe.
+        size_cap (int, optional): Absolute cap on the number of tasks per workflow. When
+            set, sizes are drawn from [min_tasks, min(max_tasks, size_cap)]. Defaults to None.
 
     Returns:
         List[nx.DiGraph]: The list of task graphs.
@@ -235,7 +239,11 @@ def get_workflows(num: int, recipe_name: str) -> List[nx.DiGraph]:
     task_type_info = get_workflow_task_info(recipe_name)
     task_graphs: List[nx.DiGraph] = []
     for _ in range(num):
-        num_tasks = random.randint(*get_num_task_range(recipe_name))
+        min_tasks, max_tasks = get_num_task_range(recipe_name)
+        if size_cap is not None:
+            max_tasks = min(max_tasks, size_cap)
+        min_tasks = min(min_tasks, max_tasks)
+        num_tasks = random.randint(min_tasks, max_tasks)
         recipe = recipes[recipe_name](num_tasks=num_tasks)  # type: ignore
         generator = WorkflowGenerator(recipe)  # type: ignore[misc]  # None only if wfcommons is not installed
         workflow = generator.build_workflow()
