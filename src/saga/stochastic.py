@@ -259,7 +259,9 @@ class StochasticNetwork(BaseModel):
 
         scalable = [edge for edge in self.edges if is_scalable(edge)]
         if not scalable:
-            raise ValueError("Network has no finite inter-node links to scale.")
+            # No finite inter-node links (e.g. a single-node network): there is no
+            # communication to scale, so CCR is undefined. Return the network unchanged.
+            return self
         avg_link_speed = sum(edge.speed.mean() for edge in scalable) / len(scalable)
         alpha = target_link_speed / avg_link_speed
 
