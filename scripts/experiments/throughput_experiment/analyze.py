@@ -36,7 +36,14 @@ def scheduler_order(name: str):
 
 
 def load(branch: str, regime: str) -> pd.DataFrame:
-    df = pd.read_csv(resultsdir / f"{branch}_{regime}.csv")
+    path = resultsdir / f"{branch}_{regime}.csv"
+    if not path.exists():
+        available = sorted(p.stem for p in resultsdir.glob("*.csv"))
+        raise SystemExit(
+            f"No results at {path.name}. Available: {available or '(none)'}. "
+            f"Usage: python analyze.py <branch> <regime>  (regime = deterministic|stochastic)"
+        )
+    df = pd.read_csv(path)
     best = df.groupby(INSTANCE_KEYS)["Throughput"].transform("max")
     df["Ratio"] = df["Throughput"] / best
     return df
