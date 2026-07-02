@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Any, Dict, Generic, Iterable, List, Optional, Set, TypeVar
 
 #? = Question
@@ -19,7 +19,7 @@ from saga import (
 )
 
 
-class IntialPriority(BaseModel, ABC): 
+class IntialPriority(BaseModel):
     @abstractmethod
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]: 
         """Return the initial priority of the tasks.
@@ -34,7 +34,7 @@ class IntialPriority(BaseModel, ABC):
         pass
 
 
-class InsertTask(BaseModel, ABC):
+class InsertTask(BaseModel):
     @abstractmethod
     def call(
         self,

@@ -573,7 +573,7 @@ class Schedule(BaseModel):
         ..., description="The mapping of tasks to nodes."
     )
     node_constraints: Optional[Dict[str, Set[str]]] = Field(
-        None,
+        default=None,
         description=(
             "Optional per-task placement constraints for this instance, mapping a task "
             "name to the set of node names it may run on. Tasks absent from the map may "

@@ -93,14 +93,14 @@ class GreedyInsertCompareFuncs(Enum):
 # Insert Task functions
 class GreedyInsert(InsertTask):
     append_only: bool = Field(
-        False, description="Whether to only append the task to the schedule."
+        default=False, description="Whether to only append the task to the schedule."
     )
     compare: GreedyInsertCompareFuncs = Field(
-        GreedyInsertCompareFuncs.EFT,
+        default=GreedyInsertCompareFuncs.EFT,
         description="The comparison function to use for greedy insertion.",
     )
     critical_path: bool = Field(
-        False, description="Whether to only schedule tasks on the critical path."
+        default=False, description="Whether to only schedule tasks on the critical path."
     )
 
     def _compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Schedule) -> float:
@@ -266,7 +266,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
         ..., description="The base parametric scheduler."
     )
     top_n: int = Field(
-        2, description="The number of top tasks to consider for sufferage calculation."
+        default=2, description="The number of top tasks to consider for sufferage calculation."
     )
 
     def __init__(self, scheduler: ParametricScheduler, top_n: int = 2) -> None:
