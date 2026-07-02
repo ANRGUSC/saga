@@ -12,6 +12,10 @@ from itertools import product
 EPS = 1e-9
 
 
+class ConstraintViolation(Exception):
+    """Raised when a task is placed on a node its constraints forbid."""
+
+
 class NetworkNode(BaseModel):
     """A node in the network."""
 
@@ -541,6 +545,14 @@ class Schedule(BaseModel):
     mapping: Dict[str, List[ScheduledTask]] = Field(
         ..., description="The mapping of tasks to nodes."
     )
+    node_constraints: Optional[Dict[str, Set[str]]] = Field(
+        None,
+        description=(
+            "Optional per-task placement constraints for this instance, mapping a task "
+            "name to the set of node names it may run on. Tasks absent from the map may "
+            "run on any node. None (the default) means no constraints."
+        ),
+    )
 
     _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict) # For quick lookup of scheduled tasks by name
     _compute_load: Dict[str, float] = PrivateAttr(default_factory=dict) # For keeping track of compute load per node
@@ -551,6 +563,7 @@ class Schedule(BaseModel):
         task_graph: "TaskGraph",
         network: "Network",
         mapping: Optional[Dict[str, List[ScheduledTask]]] = None,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         super().__init__(
             task_graph=task_graph,
@@ -560,7 +573,14 @@ class Schedule(BaseModel):
                 if mapping is not None
                 else {node.name: [] for node in network.nodes}
             ),
+            node_constraints=node_constraints,
         )
+
+    def allowed_nodes(self, task_name: str) -> Optional[Set[str]]:
+        """Return the node names `task_name` may run on, or None if it is unconstrained."""
+        if self.node_constraints is None:
+            return None
+        return self.node_constraints.get(task_name)
 
     @property
     def makespan(self) -> float:
@@ -697,6 +717,13 @@ class Schedule(BaseModel):
         node = self.network.get_node(node)
         task = self.task_graph.get_task(task)
 
+        allowed = self.allowed_nodes(task.name)
+        if allowed is not None and node.name not in allowed:
+            raise ConstraintViolation(
+                f"Task {task.name} cannot run on node {node.name}; its constraint only "
+                f"allows {sorted(allowed)}."
+            )
+
         exec_time = task.cost / node.speed
         min_start_time = current_moment
         for dependency in self.task_graph.in_edges(task):
@@ -744,6 +771,13 @@ class Schedule(BaseModel):
         if task.node not in self.mapping:
             raise ValueError(
                 f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}."
+            )
+
+        allowed = self.allowed_nodes(task.name)
+        if allowed is not None and task.node not in allowed:
+            raise ConstraintViolation(
+                f"Task {task.name} placed on node {task.node}, but its constraint only "
+                f"allows {sorted(allowed)}."
             )
 
         # Use (start, end) tuple for comparison so tasks with same start time are ordered by end time

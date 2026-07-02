@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, PrivateAttr
 
 from saga.utils.random_variable import RandomVariable, DEFAULT_NUM_SAMPLES
 from saga import (
+    ConstraintViolation,
     Schedule,
     ScheduledTask,
     TaskGraph,
@@ -193,6 +194,62 @@ class StochasticNetwork(BaseModel):
             for u, v in G.edges
         ]
         return StochasticNetwork.create(nodes=nodes, edges=edges)
+
+    def scale_to_ccr(
+        self,
+        task_graph: "StochasticTaskGraph",
+        target_ccr: float,
+        free_speed_threshold: float = 1e9,
+    ) -> "StochasticNetwork":
+        """Scale link speeds to hit a target communication-to-computation ratio (CCR).
+
+        The CCR is evaluated on means (what the scheduler plans on). Unlike the
+        deterministic Network.scale_to_ccr, which sets every link to one uniform speed,
+        this multiplies all finite inter-node links by a common factor so the tiered
+        edge/fog/cloud bandwidth ratios are preserved. Self-loops and effectively
+        infinite links (mean speed at or above free_speed_threshold, the shared-file-system
+        cloud links) are left untouched.
+
+        Args:
+            task_graph (StochasticTaskGraph): The task graph to compute CCR against.
+            target_ccr (float): The target CCR.
+            free_speed_threshold (float): Links at or above this mean speed are treated as
+                free and not scaled.
+
+        Returns:
+            StochasticNetwork: A new network with scaled links.
+        """
+        if target_ccr <= 0:
+            raise ValueError("Target CCR must be positive.")
+
+        def is_scalable(edge: StochasticNetworkEdge) -> bool:
+            return edge.source != edge.target and edge.speed.mean() < free_speed_threshold
+
+        avg_node_speed = sum(node.speed.mean() for node in self.nodes) / len(self.nodes)
+        avg_task_cost = sum(task.cost.mean() for task in task_graph.tasks) / len(
+            task_graph.tasks
+        )
+        avg_data_size = sum(dep.size.mean() for dep in task_graph.dependencies) / len(
+            task_graph.dependencies
+        )
+        avg_comp_time = avg_task_cost / avg_node_speed
+        target_link_speed = avg_data_size / (target_ccr * avg_comp_time)
+
+        scalable = [edge for edge in self.edges if is_scalable(edge)]
+        if not scalable:
+            raise ValueError("Network has no finite inter-node links to scale.")
+        avg_link_speed = sum(edge.speed.mean() for edge in scalable) / len(scalable)
+        alpha = target_link_speed / avg_link_speed
+
+        scaled_edges = [
+            StochasticNetworkEdge(
+                source=edge.source, target=edge.target, speed=edge.speed * alpha
+            )
+            if is_scalable(edge)
+            else edge
+            for edge in self.edges
+        ]
+        return StochasticNetwork.create(nodes=self.nodes, edges=scaled_edges)
 
     def get_node(self, node: str | StochasticNetworkNode) -> StochasticNetworkNode:
         """Get a node by name."""
@@ -509,6 +566,14 @@ class StochasticSchedule(BaseModel):
     mapping: Dict[str, List[StochasticScheduledTask]] = Field(
         ..., description="The mapping of tasks to nodes."
     )
+    node_constraints: Optional[Dict[str, Set[str]]] = Field(
+        None,
+        description=(
+            "Optional per-task placement constraints for this instance, mapping a task "
+            "name to the set of node names it may run on. Tasks absent from the map may "
+            "run on any node. None (the default) means no constraints."
+        ),
+    )
 
     _task_map: Dict[str, StochasticScheduledTask] = PrivateAttr(default_factory=dict)
 
@@ -517,6 +582,7 @@ class StochasticSchedule(BaseModel):
         task_graph: StochasticTaskGraph,
         network: StochasticNetwork,
         mapping: Optional[Dict[str, List[StochasticScheduledTask]]] = None,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         super().__init__(
             task_graph=task_graph,
@@ -526,7 +592,14 @@ class StochasticSchedule(BaseModel):
                 if mapping is not None
                 else {node.name: [] for node in network.nodes}
             ),
+            node_constraints=node_constraints,
         )
+
+    def allowed_nodes(self, task_name: str) -> Optional[Set[str]]:
+        """Return the node names `task_name` may run on, or None if it is unconstrained."""
+        if self.node_constraints is None:
+            return None
+        return self.node_constraints.get(task_name)
 
     @property
     def makespan(self) -> RandomVariable:
@@ -543,7 +616,9 @@ class StochasticSchedule(BaseModel):
         )
     
     def determinize(self, network: Network, task_graph: TaskGraph) -> Schedule:
-        schedule = Schedule(task_graph=task_graph, network=network)
+        schedule = Schedule(
+            task_graph=task_graph, network=network, node_constraints=self.node_constraints
+        )
         # The middle int is a monotonic tiebreaker so equal ranks never fall through
         # to comparing StochasticScheduledTask objects (which are not orderable).
         pq: PriorityQueue[tuple[float, int, StochasticScheduledTask]] = PriorityQueue()
@@ -612,6 +687,12 @@ class StochasticSchedule(BaseModel):
         if task.node not in self.mapping:
             raise ValueError(
                 f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}."
+            )
+        allowed = self.allowed_nodes(task.name)
+        if allowed is not None and task.node not in allowed:
+            raise ConstraintViolation(
+                f"Task {task.name} placed on node {task.node}, but its constraint only "
+                f"allows {sorted(allowed)}."
             )
         idx = bisect.bisect_left([t.rank for t in self.mapping[task.node]], task.rank)
         self.mapping[task.node].insert(idx, task)

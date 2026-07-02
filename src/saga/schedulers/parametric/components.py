@@ -4,14 +4,14 @@ import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from saga import NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
+from saga import ConstraintViolation, NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
-from typing import Dict, Iterable, List, Hashable, Literal, Optional
+from typing import Dict, Iterable, List, Hashable, Literal, Optional, Set
 
 
 class UpwardRanking(IntialPriority):
@@ -123,12 +123,28 @@ class GreedyInsert(InsertTask):
             node if isinstance(node, NetworkNode) else network.get_node(node)
             for node in nodes
         ]
+        # network.nodes is a frozenset, so its iteration order is PYTHONHASHSEED-dependent.
+        # Sort candidates by name so the greedy choice (and its tie-breaking) is
+        # deterministic across runs.
+        considered_nodes.sort(key=lambda node: node.name)
 
         best_task = None
+        # Apply the schedule's per-task placement constraints first, so they override both
+        # the caller's `nodes` and the critical-path pin below. An empty set is infeasible.
+        allowed = schedule.allowed_nodes(task.name)
+        if allowed is not None:
+            considered_nodes = [n for n in considered_nodes if n.name in allowed]
+            if not considered_nodes:
+                raise ConstraintViolation(
+                    f"Task {task.name} has no allowed node among the candidates "
+                    f"(constraint: {sorted(allowed)})."
+                )
+
         if self.critical_path:
             ranks = cpop_ranks(network, task_graph)
             critical_rank = max(ranks.values())
-            fastest_node = max(network.nodes, key=lambda node: node.speed)
+            # Pin the critical task to the fastest node it is still allowed to use.
+            fastest_node = max(considered_nodes, key=lambda node: node.speed)
             if np.isclose(ranks[task.name], critical_rank):
                 considered_nodes = [fastest_node]
 
@@ -171,6 +187,7 @@ class ParametricKDepthScheduler(Scheduler, BaseModel):
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -178,13 +195,17 @@ class ParametricKDepthScheduler(Scheduler, BaseModel):
             network (Network): The network graph.
             task_graph (TaskGraph): The task graph.
             schedule (Optional[Schedule]): The current schedule.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints, applied only when a new schedule is constructed.
 
         Returns:
             Schedule: The resulting schedule.
         """
         queue = self.scheduler.initial_priority.call(network, task_graph)
         schedule = (
-            Schedule(task_graph, network) if schedule is None else deepcopy(schedule)
+            Schedule(task_graph, network, node_constraints=node_constraints)
+            if schedule is None
+            else deepcopy(schedule)
         )
         scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         while queue:
@@ -264,6 +285,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -272,13 +294,15 @@ class ParametricSufferageScheduler(ParametricScheduler):
             task_graph (TaskGraph): The task graph.
             schedule (Optional[Schedule]): The current schedule.
             min_start_time (float): The current moment in time.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints, applied only when a new schedule is constructed.
 
         Returns:
             Schedule: The resulting schedule.
         """
         queue = self.initial_priority.call(network, task_graph)
         if schedule is None:
-            schedule = Schedule(task_graph, network)
+            schedule = Schedule(task_graph, network, node_constraints=node_constraints)
         while queue:
             for task_name in queue:
                 if schedule.is_scheduled(task_name):
