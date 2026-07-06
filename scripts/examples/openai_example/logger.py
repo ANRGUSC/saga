@@ -112,11 +112,7 @@ class ExperimentLogger:
             self.run_metadata["best_hypothesis"] = {
                 "hypothesis_id": best_hypothesis.hypothesis_id,
                 "name": best_hypothesis.name,
-                "reasoning": (
-                    best_hypothesis.reasoning[:200] + "..."
-                    if len(best_hypothesis.reasoning) > 200
-                    else best_hypothesis.reasoning
-                ),
+                "reasoning": best_hypothesis.reasoning,
                 "confirmation_rate": best_validation.confirmation_rate,
                 "avg_makespan_ratio": best_validation.avg_makespan_ratio,
                 "is_validated": best_validation.is_validated,
@@ -157,7 +153,7 @@ class ExperimentLogger:
         self._log_event(
             "strategic_plan",
             {
-                "current_understanding": plan.current_understanding[:200],
+                "current_understanding": plan.current_understanding,
                 "key_unknowns": plan.key_unknowns,
                 "working_hypothesis": plan.working_hypothesis,
                 "next_steps": plan.next_steps,
@@ -186,7 +182,7 @@ class ExperimentLogger:
         self.current_iteration["duration_seconds"] = time.time() - float(start_time)
         self._log_event(
             "action_result",
-            {"result_preview": result[:500] if result else None, "result_data": result_data},
+            {"result_preview": result if result else None, "result_data": result_data},
         )
 
     def log_reflection(self, reflection: ActionReflection):
@@ -358,12 +354,12 @@ class ExperimentLogger:
 
             plan = it.get("strategic_plan", {})
             if plan:
-                lines.append(f"  Plan: {plan.get('immediate_action', 'N/A')[:80]}...")
+                lines.append(f"  Plan: {plan.get('immediate_action', 'N/A')}")
                 if plan.get("working_hypothesis"):
-                    lines.append(f"     Working hypothesis: {plan['working_hypothesis'][:80]}...")
+                    lines.append(f"     Working hypothesis: {plan['working_hypothesis']}")
 
             if it.get("reasoning"):
-                lines.append(f"  Reasoning: {it['reasoning'][:100]}...")
+                lines.append(f"  Reasoning: {it['reasoning']}")
 
             if it["action"] in ("test_code_hypothesis", "submit_code_hypothesis"):
                 result_data = it.get("result_data", {})
@@ -375,10 +371,10 @@ class ExperimentLogger:
 
             reflection = it.get("reflection", {})
             if reflection:
-                findings = reflection.get("key_findings", [])[:2]
-                lines.append(f"  Key findings: {'; '.join(findings)[:80]}...")
+                findings = reflection.get("key_findings", [])
+                lines.append(f"  Key findings: {'; '.join(findings)}")
                 lines.append(
-                    f"     Hypothesis update: {reflection.get('hypothesis_update', 'N/A')[:80]}..."
+                    f"     Hypothesis update: {reflection.get('hypothesis_update', 'N/A')}"
                 )
 
         if self.run_metadata.get("best_hypothesis"):
@@ -390,7 +386,7 @@ class ExperimentLogger:
                     "BEST HYPOTHESIS FOUND",
                     "-" * 70,
                     f"  Name: {bh.get('name')}",
-                    f"  Reasoning: {bh.get('reasoning', 'N/A')[:100]}...",
+                    f"  Reasoning: {bh.get('reasoning', 'N/A')}",
                     f"  Confirmation rate: {bh.get('confirmation_rate', 0):.1%}",
                     f"  Avg makespan ratio: {bh.get('avg_makespan_ratio', 0):.4f}",
                     f"  Validated: {bh.get('is_validated')}",
@@ -441,9 +437,7 @@ class ExperimentLogger:
                     "action": it["action"],
                     "reasoning": it["reasoning"],
                     "duration": it.get("duration_seconds", 0),
-                    "result_preview": (
-                        it.get("result", "")[:200] if it.get("result") else None
-                    ),
+                    "result_preview": it.get("result") or None,
                     "token_usage": it.get("token_usage", []),
                 }
                 for it in self.iteration_logs
@@ -634,7 +628,7 @@ class ExperimentLogger:
         reflection = iteration.get("reflection", {})
         action_params = iteration.get("action_params", {})
 
-        result_preview = result[:1000] + ("..." if len(result) > 1000 else "")
+        result_preview = result
 
         plan_html = ""
         if plan:
@@ -642,10 +636,10 @@ class ExperimentLogger:
             <div class="phase-section plan-section">
                 <div class="phase-header">Strategic Plan</div>
                 <div class="phase-content">
-                    <p><strong>Understanding:</strong> {plan.get('current_understanding', 'N/A')[:300]}...</p>
-                    <p><strong>Key Unknowns:</strong> {', '.join(plan.get('key_unknowns', [])[:3])}</p>
+                    <p><strong>Understanding:</strong> {plan.get('current_understanding', 'N/A')}</p>
+                    <p><strong>Key Unknowns:</strong> {', '.join(plan.get('key_unknowns', []))}</p>
                     <p><strong>Working Hypothesis:</strong> {plan.get('working_hypothesis', 'None yet')}</p>
-                    <p><strong>Next Steps:</strong> {'; '.join(plan.get('next_steps', [])[:2])}</p>
+                    <p><strong>Next Steps:</strong> {'; '.join(plan.get('next_steps', []))}</p>
                 </div>
             </div>"""
 
@@ -661,9 +655,9 @@ class ExperimentLogger:
             <div class="phase-section reflection-section">
                 <div class="phase-header">Reflection</div>
                 <div class="phase-content">
-                    <p><strong>Key Findings:</strong> {'; '.join(reflection.get('key_findings', [])[:3])}</p>
+                    <p><strong>Key Findings:</strong> {'; '.join(reflection.get('key_findings', []))}</p>
                     {surprises_html}
-                    <p><strong>Hypothesis Update:</strong> {reflection.get('hypothesis_update', 'N/A')[:200]}...</p>
+                    <p><strong>Hypothesis Update:</strong> {reflection.get('hypothesis_update', 'N/A')}</p>
                     <p><strong>Next Question:</strong> {reflection.get('next_question', 'N/A')}</p>
                 </div>
             </div>"""

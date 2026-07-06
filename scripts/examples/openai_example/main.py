@@ -103,7 +103,7 @@ class AgentState:
 
         if self.algorithm_comparison:
             summary_parts.append("Algorithm comparison: COMPLETED")
-            summary_parts.append(f"  {self.algorithm_comparison[:500]}...")
+            summary_parts.append(f"  {self.algorithm_comparison}")
 
         if self.source_code_read:
             summary_parts.append(f"\nSource code read: {', '.join(self.source_code_read)}")
@@ -115,12 +115,12 @@ class AgentState:
                     "  WARNING: You have run PISA multiple times. "
                     "STOP running PISA and START writing code hypotheses based on the patterns found!"
                 )
-            for i, result in enumerate(self.pisa_results[-2:], 1):  # Show last 2
-                summary_parts.append(f"  Recent PISA {i}: {result[:300]}...")
+            for i, result in enumerate(self.pisa_results, 1):
+                summary_parts.append(f"  Recent PISA {i}: {result}")
 
         if self.code_hypotheses_tested:
             summary_parts.append(f"\nCode hypotheses tested: {len(self.code_hypotheses_tested)}")
-            for hyp, val in self.code_hypotheses_tested[-3:]:
+            for hyp, val in self.code_hypotheses_tested:
                 summary_parts.append(
                     f"  - {hyp.name}: "
                     f"confirmation={val.confirmation_rate:.1%}, avg_ratio={val.avg_makespan_ratio:.3f}"
@@ -129,7 +129,7 @@ class AgentState:
         if self.best_hypothesis:
             summary_parts.append("\nBest hypothesis so far:")
             summary_parts.append(f"  Name: {self.best_hypothesis.name}")
-            summary_parts.append(f"  Reasoning: {self.best_hypothesis.reasoning[:150]}...")
+            summary_parts.append(f"  Reasoning: {self.best_hypothesis.reasoning}")
             if self.best_validation:
                 summary_parts.append(
                     f"  Confirmation rate: {self.best_validation.confirmation_rate:.1%}"
@@ -205,8 +205,8 @@ def handle_test_code_hypothesis(
         return "No code_hypothesis provided for test_code_hypothesis action", {"error": "missing"}
 
     print(f"\nTesting code-based hypothesis: {hypothesis.name}")
-    print(f"Reasoning: {hypothesis.reasoning[:150]}...")
-    print(f"Code preview: {hypothesis.code[:200]}...")
+    print(f"Reasoning: {hypothesis.reasoning}")
+    print(f"Code preview: {hypothesis.code}")
 
     network, task_graph, error = execute_code_hypothesis(hypothesis)
     if error:
@@ -398,12 +398,12 @@ Based on where we are, create a strategic plan for what we should do next.
         logger.log_token_usage("planning", plan_result.usage, MODEL_PLANNING.split(":")[-1])
 
         print(f"\n STRATEGIC PLAN:")
-        print(f"   Understanding: {plan.current_understanding[:150]}...")
-        print(f"   Key unknowns: {', '.join(plan.key_unknowns[:3])}")
+        print(f"   Understanding: {plan.current_understanding}")
+        print(f"   Key unknowns: {', '.join(plan.key_unknowns)}")
         if plan.working_hypothesis:
-            print(f"   Working hypothesis: {plan.working_hypothesis[:150]}...")
-        print(f"   Next steps: {'; '.join(plan.next_steps[:2])}")
-        print(f"   Immediate action: {plan.immediate_action[:100]}...")
+            print(f"   Working hypothesis: {plan.working_hypothesis}")
+        print(f"   Next steps: {'; '.join(plan.next_steps)}")
+        print(f"   Immediate action: {plan.immediate_action}")
 
         logger.log_strategic_plan(plan)
 
@@ -517,7 +517,7 @@ ACTION TAKEN: {action.action}
 REASONING: {action.reasoning}
 
 RESULT:
-{action_result[:2000]}
+{action_result}
 
 {f'''RESULT DATA:
 {json.dumps(result_data, indent=2, default=str)}
@@ -536,12 +536,12 @@ What did we learn? How does this change our hypothesis? What should we investiga
         previous_reflection = reflection
 
         print(f"\n REFLECTION:")
-        print(f"   Key findings: {'; '.join(reflection.key_findings[:3])}")
+        print(f"   Key findings: {'; '.join(reflection.key_findings)}")
         if reflection.surprises:
-            print(f"   Surprises: {'; '.join(reflection.surprises[:2])}")
-        print(f"   Hypothesis update: {reflection.hypothesis_update[:150]}...")
+            print(f"   Surprises: {'; '.join(reflection.surprises)}")
+        print(f"   Hypothesis update: {reflection.hypothesis_update}")
         print(f"   Next question: {reflection.next_question}")
-        print(f"   Confidence: {reflection.confidence_assessment[:100]}...")
+        print(f"   Confidence: {reflection.confidence_assessment}")
 
         logger.log_reflection(reflection)
         logger.finalize_iteration()
