@@ -21,6 +21,7 @@ import os
 import sys
 from multiprocessing import Pool
 
+import filelock
 import pandas as pd
 from tqdm import tqdm
 
@@ -124,24 +125,48 @@ def _eval_instance(job):
 
 def run(branch: str, regime: str, n_instances: int, n_seeds: int, workers: int) -> None:
     resultsdir.mkdir(parents=True, exist_ok=True)
+    out = resultsdir / f"{branch}_{regime}.csv"
+    lock_path = out.with_suffix(".csv.lock")
+
+    # Resume: skip any (Workflow, CCR, Instance) that already has its full row
+    # count in the CSV so analyze.py can be run mid-run and a crash doesn't wipe
+    # progress. One completed job contributes n_seeds x len(config_names) rows.
+    expected_per_instance = n_seeds * len(config_names(regime))
+    finished_keys: set = set()
+    if out.exists():
+        prev = pd.read_csv(out)
+        counts = prev.groupby(["Workflow", "CCR", "Instance"]).size()
+        finished_keys = {k for k, n in counts.items() if n >= expected_per_instance}
+        logging.warning("resuming: %d instances already complete in %s", len(finished_keys), out.name)
+
     jobs = []
     for workflow in workflows_for(branch):
         base = base_instances(branch, workflow, n_instances, regime, seed=SEED)
         for ccr in CCRS:
             for instance in (scaled(b, ccr) for b in base):
+                if (workflow, ccr, instance.name) in finished_keys:
+                    continue
                 jobs.append((regime, workflow, ccr, instance, n_seeds))
 
-    rows = []
+    if not jobs:
+        print(f"nothing to do; {out} already complete")
+        return
+
+    total_written = 0
     with Pool(workers) as pool:
         for result in tqdm(pool.imap_unordered(_eval_instance, jobs),
                            total=len(jobs), desc=f"{branch}/{regime}", file=sys.stderr):
-            rows.extend(result)
-
-    for row in rows:
-        row["Branch"] = branch
-    out = resultsdir / f"{branch}_{regime}.csv"
-    pd.DataFrame(rows).to_csv(out, index=False)
-    print(f"wrote {len(rows)} rows -> {out}")
+            for row in result:
+                row["Branch"] = branch
+            # Append this instance's rows to the CSV under a filelock so partial
+            # results are always readable by analyze.py, and a crash preserves
+            # everything completed so far.
+            with filelock.FileLock(lock_path):
+                df = pd.DataFrame(result)
+                header = not out.exists()
+                df.to_csv(out, mode="a", header=header, index=False)
+            total_written += len(result)
+    print(f"wrote {total_written} rows -> {out}")
 
 
 def main() -> None:
