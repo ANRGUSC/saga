@@ -1,9 +1,11 @@
 from functools import lru_cache
 import heapq
-from typing import Dict, Optional
+from queue import PriorityQueue
+from typing import Any, Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
+from saga.utils.duplication import should_duplicate
 
 
 @lru_cache(maxsize=None)
@@ -105,6 +107,8 @@ class CpopScheduler(Scheduler):
     Source: https://dx.doi.org/10.1109/71.993206
     """
 
+    duplication_factor: int = 1
+
     def schedule(
         self,
         network: Network,
@@ -128,12 +132,13 @@ class CpopScheduler(Scheduler):
         """
         # initialise comp_schedule and task_map but if schedule is not None, use it
         comp_schedule = Schedule(task_graph, network)
-        task_map: Dict[str, ScheduledTask] = {}
+        task_map: Dict[str, list[ScheduledTask]] = {}
         if schedule is not None:
             comp_schedule = schedule.model_copy()
-            task_map = {
-                task.name: task for _, tasks in schedule.items() for task in tasks
-            }
+            task_map = {}
+            for node_name, tasks in schedule.items():
+                for scheduled_task in tasks:
+                    task_map.setdefault(scheduled_task.name, []).append(scheduled_task)
 
         ranks = cpop_ranks(network, task_graph)
         entry_tasks = [
@@ -169,31 +174,38 @@ class CpopScheduler(Scheduler):
         while pq:
             task_rank, task = heapq.heappop(pq)
 
-            min_finish_time = np.inf
-            best_node = cp_node  # arbitrary initialization
+            is_critical = np.isclose(-task_rank, cp_rank)
+            nodes = frozenset([cp_node]) if is_critical else network.nodes
 
-            nodes = network.nodes
-            if np.isclose(-task_rank, cp_rank):
-                nodes = frozenset([cp_node])
-
+            best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in nodes:
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task, node=node, append_only=False
                 )
                 end_time = start_time + (task.cost / node.speed)
-                if end_time < min_finish_time:
-                    min_finish_time = end_time
-                    best_node = node
+                best_nodes.put((end_time, node))
 
-            new_exec_time = task.cost / best_node.speed
-            new_task = ScheduledTask(
-                node=best_node.name,
-                name=task.name,
-                start=min_finish_time - new_exec_time,
-                end=min_finish_time,
-            )
-            comp_schedule.add_task(new_task)
-            task_map[task.name] = new_task
+            duplicate_factor = 1
+            if not is_critical and should_duplicate(task.name, task_graph, network):
+                duplicate_factor = max(
+                    self.duplication_factor, len(task_graph.out_edges(task.name))
+                )
+
+            for _ in range(duplicate_factor):
+                if best_nodes.empty():
+                    break
+                min_finish_time, best_node = best_nodes.get()
+                new_exec_time = task.cost / best_node.speed
+                new_task = ScheduledTask(
+                    node=best_node.name,
+                    name=task.name,
+                    start=min_finish_time - new_exec_time,
+                    end=min_finish_time,
+                )
+                comp_schedule.add_task(new_task)
+                if task.name not in task_map:
+                    task_map[task.name] = []
+                task_map[task.name].append(new_task)
 
             ready_tasks = [
                 task_graph.get_task(dep.target)

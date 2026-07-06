@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anrg-saga"
-version = "2.0.2"
+version = "2.0.4"
 description = "Scheduling Algorithms Gathered - collection of task graph scheduling algorithms"
 readme = "README.md"
 authors = [{name = "ANRG USC", email = "anrg@usc.edu"}]
 license = {text = "MIT"}
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
     "networkx",
     "numpy",
@@ -18,16 +18,25 @@ dependencies = [
     "matplotlib",
     "pydantic>=2.0",
     "gitpython",
-    "pytest>=7.0.0",
-    "pytest-timeout>=2.1.0",
-    "mypy>=0.991",
     "tqdm",
     "filelock",
     "pysmt",
     "z3-solver",
-    "pygraphviz",
-    "wfcommons; sys_platform != 'win32'",
+    "wfcommons",
+    "plotly",
+    "kaleido",
 ]
+
+[dependency-groups]
+dev = [
+    "ruff",
+    "mypy>=0.991",
+    "pytest>=7.0.0",
+    "pytest-timeout>=2.1.0",
+]
+
+[tool.uv.sources]
+wfcommons = { git = "https://github.com/jaredraycoleman/WfCommons.git", branch = "windows-support" }
 
 [project.urls]
 Repository = "https://github.com/ANRGUSC/saga"

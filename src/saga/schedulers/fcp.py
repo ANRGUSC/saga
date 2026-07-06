@@ -1,6 +1,8 @@
 from queue import PriorityQueue
 from typing import Dict, List, Optional, Set
 
+from pydantic import Field
+
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 
 
@@ -70,9 +72,7 @@ class FCPScheduler(Scheduler):
     will still perform poorly for heterogeneous networks, but it will at least produce valid schedules).
     """
 
-    def __init__(self, priority_queue_size: Optional[int] = None):
-        super().__init__()
-        self.priority_queue_size = priority_queue_size
+    priority_queue_size: Optional[int] = Field(default=None)
 
     def schedule(
         self,
@@ -158,9 +158,11 @@ class FCPScheduler(Scheduler):
             # processor that becomes idle first
             p_start = min(
                 network.nodes,
-                key=lambda node: comp_schedule[node.name][-1].end
-                if comp_schedule[node.name]
-                else min_start_time,
+                key=lambda node: (
+                    comp_schedule[node.name][-1].end
+                    if comp_schedule[node.name]
+                    else min_start_time
+                ),
             ).name
             # processor with predecessor that last finishes
             in_edges = task_graph.in_edges(task_name)

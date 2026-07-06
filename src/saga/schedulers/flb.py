@@ -49,8 +49,9 @@ class FLBScheduler(Scheduler):
             in_edges = task_graph.in_edges(task_name)
             enabling_edge = max(
                 in_edges,
-                key=lambda in_edge: scheduled_tasks[in_edge.source].end
-                + in_edge.size / avg_comm_speed,
+                key=lambda in_edge: (
+                    scheduled_tasks[in_edge.source].end + in_edge.size / avg_comm_speed
+                ),
             )
             return scheduled_tasks[enabling_edge.source].node
 

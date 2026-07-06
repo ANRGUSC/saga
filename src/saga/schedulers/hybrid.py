@@ -1,17 +1,12 @@
-from typing import Iterable
+from typing import List
+from pydantic import Field
 from saga import Schedule, Scheduler, TaskGraph, Network
 
 
 class HybridScheduler(Scheduler):
     """A hybrid scheduler."""
 
-    def __init__(self, schedulers: Iterable[Scheduler]) -> None:
-        """Initializes the hybrid scheduler.
-
-        Args:
-            schedulers (Iterable[Scheduler]): An iterable of schedulers.
-        """
-        self.schedulers = schedulers
+    schedulers: List[Scheduler] = Field(...)
 
     def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
         """Returns the best schedule of the given schedule functions.
