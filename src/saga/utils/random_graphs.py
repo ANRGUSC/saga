@@ -37,7 +37,6 @@ def add_random_weights(
     edge_dist = edge_weight_distribution or weight_distribution
 
     for node in graph.nodes:
-<<<<<<< HEAD
         graph.nodes[node]["weight"] = node_dist.sample(num_samples=1)[0]
     for edge in graph.edges:
         if not graph.is_directed() and edge[0] == edge[1]:
@@ -46,16 +45,6 @@ def add_random_weights(
             )  # very large communication speed
         else:
             graph.edges[edge]["weight"] = edge_dist.sample(num_samples=1)[0]
-=======
-        graph.nodes[node]["weight"] = float(node_dist.sample()[0])
-    for edge in graph.edges:
-        if not graph.is_directed() and edge[0] == edge[1]:
-            graph.edges[edge]["weight"] = 1e9 * float(
-                edge_dist.sample()[0]
-            )  # very large communication speed
-        else:
-            graph.edges[edge]["weight"] = float(edge_dist.sample()[0])
->>>>>>> main
     return graph
 
 
