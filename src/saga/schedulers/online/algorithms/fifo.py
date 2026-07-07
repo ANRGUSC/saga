@@ -1,5 +1,7 @@
 from typing import Any, Optional
 
+from pydantic import Field
+
 from saga import Network, Schedule, TaskGraph, Scheduler
 from saga.schedulers.online.environment import FrontierEnvironment
 from saga.schedulers.online.policy import FrontierFillPolicy, InspiritPolicy
@@ -43,10 +45,8 @@ SMOOTHING_RATE = 0.8
 class InspiritFIFOScheduler(Scheduler):
     """FIFO scheduler with an Inspirit policy layered on to maintain a ready-task pool."""
 
-    def __init__(self, threshold: int, delta_ready: int) -> None:
-        super().__init__()
-        self.threshold = threshold
-        self.delta_ready = delta_ready
+    threshold: int = Field(...)
+    delta_ready: int = Field(...)
 
     def schedule(
         self,

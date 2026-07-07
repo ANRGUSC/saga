@@ -1,7 +1,7 @@
 from copy import deepcopy
 import heapq
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from enum import Enum
 from typing import Callable, Tuple, Set, Optional
 import logging
@@ -113,16 +113,18 @@ def create_partial_schedule(
 
 
 class OnlineParametricScheduler(Scheduler):
-    def __init__(self, 
-                 scheduler: ParametricScheduler, 
-                 estimate: Callable[[RandomVariable], float], 
-                 seed: Optional[int]= None
-                 )->None:
-        super().__init__()
-        self.seed = seed
-        self.stochastic_scheduler = EstimateStochasticScheduler(
-            scheduler=scheduler,
-            estimate=estimate
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    scheduler: ParametricScheduler = Field(...)
+    estimate: Callable[[RandomVariable], float] = Field(...)
+    seed: Optional[int] = Field(default=None)
+
+    _stochastic_scheduler: EstimateStochasticScheduler = PrivateAttr()
+
+    def model_post_init(self, __context: Any) -> None:
+        self._stochastic_scheduler = EstimateStochasticScheduler(
+            scheduler=self.scheduler,
+            estimate=self.estimate,
         )
 
        
@@ -151,7 +153,7 @@ class OnlineParametricScheduler(Scheduler):
         remaining_tasks: Set[Any] = {task for task in task_graph}
 
         #generating our initial estimate schedule and our estimations for network and task graph values
-        initial_estimate_schedule, det_network, det_task_graph = self.stochastic_scheduler.schedule(network=network,task_graph=task_graph)
+        initial_estimate_schedule, det_network, det_task_graph = self._stochastic_scheduler.schedule(network=network,task_graph=task_graph)
         
         
         estimate_schedule: StochasticSchedule = initial_estimate_schedule
@@ -192,7 +194,7 @@ class OnlineParametricScheduler(Scheduler):
             schedules_partial.append(partial_schedule)
 
             #------step 4------
-            estimate_schedule:StochasticSchedule = self.stochastic_scheduler.schedule(
+            estimate_schedule:StochasticSchedule = self._stochastic_scheduler.schedule(
                 network=network,
                 task_graph=task_graph,
                 schedule=partial_schedule,

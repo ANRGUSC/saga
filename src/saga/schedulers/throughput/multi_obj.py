@@ -41,10 +41,8 @@ class MultiObjScheduler(Scheduler):
             ValueError: If the instance is invalid.
         """
         
-        self.network = network
-        self.task_graph = task_graph
-        rank_order = heft_rank_sort(network=self.network, task_graph=self.task_graph)
-        self._rankings = {name: i for i, name in enumerate(rank_order)}
+        rank_order = heft_rank_sort(network=network, task_graph=task_graph)
+        rankings = {name: i for i, name in enumerate(rank_order)}
         schedule = Schedule(task_graph, network)
         remaining_tasks = set(task_graph.tasks)
         network_nodes = sorted(network.nodes, key=lambda n: n.speed, reverse=True)
@@ -60,10 +58,10 @@ class MultiObjScheduler(Scheduler):
                 to_remove = []
                 is_dominated = False
                 for ndom_task in non_dominated_tasks:
-                    if self.dominates(ndom_task, dom_task):
+                    if self.dominates(ndom_task, dom_task, rankings):
                         is_dominated = True
                         break
-                    elif self.dominates(dom_task, ndom_task):
+                    elif self.dominates(dom_task, ndom_task, rankings):
                         # non_dominated_tasks.append(dom_task)
                         to_remove.append(ndom_task)
                 if not is_dominated:
@@ -113,20 +111,26 @@ class MultiObjScheduler(Scheduler):
             
 
 
-    def dominates(self, task1: TaskGraphNode, task2: TaskGraphNode) -> bool:
+    def dominates(
+        self,
+        task1: TaskGraphNode,
+        task2: TaskGraphNode,
+        rankings: dict,
+    ) -> bool:
         """Check if task1 dominates task2.
 
         Args:
             task1 (TaskGraphNode): The first task.
-            task2 (TaskGraphNode): The second task. 
+            task2 (TaskGraphNode): The second task.
+            rankings (dict): Map from task name to its HEFT rank order.
         Returns:
-            bool: True if task1 dominates task2, False otherwise.   
+            bool: True if task1 dominates task2, False otherwise.
         """
 
         return (
-            (task1.cost < task2.cost and self._rankings[task1.name] < self._rankings[task2.name])
-            or (task1.cost <= task2.cost and self._rankings[task1.name] < self._rankings[task2.name]) 
-            or (task1.cost < task2.cost and self._rankings[task1.name] <= self._rankings[task2.name])
+            (task1.cost < task2.cost and rankings[task1.name] < rankings[task2.name])
+            or (task1.cost <= task2.cost and rankings[task1.name] < rankings[task2.name])
+            or (task1.cost < task2.cost and rankings[task1.name] <= rankings[task2.name])
         )
 
             

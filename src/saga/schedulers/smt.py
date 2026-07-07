@@ -1,6 +1,7 @@
 from itertools import combinations, product
 from typing import Dict, Optional, Any
 
+from pydantic import Field
 from pysmt.shortcuts import (
     GE,
     LE,
@@ -22,18 +23,8 @@ from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
 class SMTScheduler(Scheduler):
     """SMT-based scheduler"""
 
-    def __init__(
-        self, epsilon: float = 1e-3, solver_name: Optional[str] = None
-    ) -> None:
-        """Initializes the scheduler
-
-        Args:
-            epsilon (float, optional): The epsilon value. Defaults to 1e-3.
-            solver_name (Optional[str], optional): The name of the solver. Defaults to None.
-        """
-        super(SMTScheduler, self).__init__()
-        self.epsilon = epsilon
-        self.solver_name = solver_name
+    epsilon: float = Field(default=1e-3)
+    solver_name: Optional[str] = Field(default=None)
 
     @classmethod
     def get_assignment_symbols(

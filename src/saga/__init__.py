@@ -866,7 +866,7 @@ class Schedule(BaseModel):
         return self._task_map[task_name]
 
 
-class Scheduler(ABC):
+class Scheduler(ABC, BaseModel):
     """An abstract class for a scheduler."""
 
     @abstractmethod

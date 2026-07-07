@@ -128,12 +128,10 @@ class InspiritScheduler(Scheduler):
         smoothing_rate: EMA smoothing factor for the rate estimate.
     """
 
-    def __init__(self, scheduler: Scheduler, threshold: int, delta_ready: int, smoothing_rate: float = 0.8):
-        super().__init__()
-        self.scheduler = scheduler
-        self.threshold = threshold
-        self.delta_ready = delta_ready
-        self.smoothing_rate = smoothing_rate
+    scheduler: Scheduler = Field(...)
+    threshold: int = Field(...)
+    delta_ready: int = Field(...)
+    smoothing_rate: float = Field(default=0.8)
 
     def schedule(
         self,
