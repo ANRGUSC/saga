@@ -8,6 +8,8 @@ import networkx as nx
 import bisect
 from itertools import product
 
+from saga.overlap import NoOverlapPolicy, OverlapPolicy
+
 # Tolerance for floating point comparisons
 EPS = 1e-9
 
@@ -299,6 +301,15 @@ class TaskGraph(BaseModel):
     def __hash__(self) -> int:
         return self.computed_hash
 
+    def overlap_policy(self) -> OverlapPolicy:
+        """The overlap policy a Schedule should use for this task graph.
+
+        The base task graph forbids all overlap; subclasses (e.g. conditional
+        task graphs) override this to permit mutually exclusive tasks to share
+        a node/time slot.
+        """
+        return NoOverlapPolicy()
+
     @classmethod
     def create(
         cls,
@@ -585,7 +596,7 @@ class Schedule(BaseModel):
     _compute_load: Dict[str, float] = PrivateAttr(default_factory=dict) # For keeping track of compute load per node
     _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(default_factory=dict) # For keeping track of communication load per link
 
-    _mutual_exclusion_graph: Optional[nx.Graph] = PrivateAttr(default=None)
+    _overlap_policy: OverlapPolicy = PrivateAttr(default_factory=NoOverlapPolicy)
 
     def __init__(
         self,
@@ -593,6 +604,7 @@ class Schedule(BaseModel):
         network: "Network",
         mapping: Optional[Dict[str, List[ScheduledTask]]] = None,
         node_constraints: Optional[Dict[str, Set[str]]] = None,
+        overlap_policy: Optional[OverlapPolicy] = None,
     ) -> None:
         super().__init__(
             task_graph=task_graph,
@@ -604,14 +616,15 @@ class Schedule(BaseModel):
             ),
             node_constraints=node_constraints,
         )
-        build_meg = getattr(task_graph, "build_mutual_exclusion_graph", None)
-        self._mutual_exclusion_graph = build_meg() if build_meg is not None else None
+        # The task graph decides which of its tasks may overlap; a caller may
+        # override with an explicit policy.
+        self._overlap_policy = (
+            overlap_policy if overlap_policy is not None else task_graph.overlap_policy()
+        )
 
     def _tasks_can_overlap(self, task_name_a: str, task_name_b: str) -> bool:
-        """Two tasks can overlap iff they are mutually exclusive."""
-        if self._mutual_exclusion_graph is None:
-            return False
-        return self._mutual_exclusion_graph.has_edge(task_name_a, task_name_b)
+        """Whether two tasks are permitted to share a node/time slot."""
+        return self._overlap_policy.can_overlap(task_name_a, task_name_b)
 
     def _tasks_overlap_in_time(self, left: ScheduledTask, right: ScheduledTask) -> bool:
         return left.start < right.end - EPS and right.start < left.end - EPS

@@ -20,6 +20,7 @@ from saga import (
     TaskGraph,
     TaskGraphEdge,
 )
+from saga.overlap import AllowOverlapPolicy
 
 
 class ConditionalTaskGraphEdge(TaskGraphEdge):
@@ -201,6 +202,15 @@ class ConditionalTaskGraph(TaskGraph):
                 meg.add_edge(a, b)
 
         return meg
+
+    def overlap_policy(self) -> AllowOverlapPolicy:
+        """Allow mutually exclusive tasks to overlap on the same node/time slot.
+
+        The mutual-exclusion graph's edges are exactly the task pairs that never
+        co-occur in any trace, i.e. the pairs that may safely overlap.
+        """
+        meg = self.build_mutual_exclusion_graph()
+        return AllowOverlapPolicy.from_pairs(meg.edges)
 
 
 def extract_trace_schedules(

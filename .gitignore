@@ -213,3 +213,8 @@ cython_debug/
 dist/
 build/
 *.whl
+# Generated experiment outputs / results — do not track (see conditional CLAUDE.md)
+scripts/**/output/
+scripts/**/outputs/
+scripts/**/results/
+scripts/**/runs/

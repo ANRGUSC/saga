@@ -367,6 +367,40 @@ def draw_network(
         return axis
 
 
+def _gantt_lanes(
+    tasks: List["ScheduledTask"],
+) -> Tuple[List[Tuple["ScheduledTask", int]], int]:
+    """Pack a node's tasks into non-overlapping horizontal lanes.
+
+    Tasks that overlap in time (only possible for mutually exclusive tasks in a
+    conditional schedule) are spread across separate lanes so they can be
+    stacked within one node's row instead of drawn on top of each other. A
+    node with no overlaps collapses to a single lane.
+
+    Args:
+        tasks: The tasks scheduled on one node.
+
+    Returns:
+        A ``(assignments, lane_count)`` pair, where ``assignments`` lists
+        ``(task, lane_index)`` and ``lane_count`` is the number of lanes used
+        (at least 1).
+    """
+    lane_end_times: List[float] = []
+    assignments: List[Tuple["ScheduledTask", int]] = []
+    for task in sorted(tasks, key=lambda t: (t.start, t.end)):
+        lane = next(
+            (i for i, end in enumerate(lane_end_times) if task.start >= end - 1e-9),
+            None,
+        )
+        if lane is None:
+            lane = len(lane_end_times)
+            lane_end_times.append(task.end)
+        else:
+            lane_end_times[lane] = task.end
+        assignments.append((task, lane))
+    return assignments, max(1, len(lane_end_times))
+
+
 def draw_gantt(
     schedule: Dict[str, List["ScheduledTask"]],
     use_latex: bool = False,
@@ -428,22 +462,9 @@ def draw_gantt(
                     ScheduledTask(name=r"", start=0, end=0, node=node)
                 )
 
-        data_frame = pd.DataFrame(
-            [
-                {
-                    "Task": task.name,
-                    "Start": task.start,
-                    "Finish": task.end,
-                    "Node": task.node,
-                }
-                for _, tasks in schedule.items()
-                for task in tasks
-            ]
-        )
-        data_frame["delta"] = data_frame["Finish"] - data_frame["Start"]
-
-        # Get the unique set of nodes from the entire DataFrame (including dummy rows)
-        unique_nodes = sorted(data_frame["Node"].unique())
+        nodes = sorted(schedule.keys())
+        node_index = {node: i for i, node in enumerate(nodes)}
+        band_height = 0.8  # vertical space allotted to each node's row
 
         # Create a figure and axis
         if axis is None:
@@ -451,32 +472,42 @@ def draw_gantt(
             if axis is None:
                 raise ValueError("Axis could not be created.")
 
-        # Plot each task as a horizontal bar with labels
-        for index, row in data_frame.iterrows():
-            if row["Task"] != "$dummy$":
-                # Plot the bar with white color and black border
+        # Plot each task as a horizontal bar. Overlapping tasks on a node are
+        # stacked into sub-lanes so mutually exclusive conditional tasks are
+        # drawn side by side (at reduced height) rather than on top of each other.
+        for node in nodes:
+            tasks = [t for t in schedule[node] if t.end - t.start > 1e-6]
+            lanes, lane_count = _gantt_lanes(tasks)
+            lane_height = band_height / lane_count
+            label_font = font_size if lane_count == 1 else max(8.0, font_size / lane_count)
+            for task, lane in lanes:
+                # lanes stack from the bottom to the top of the node's band
+                y_center = (
+                    node_index[node] - band_height / 2 + (lane + 0.5) * lane_height
+                )
                 axis.barh(
-                    row["Node"],
-                    row["delta"],
-                    left=row["Start"],
+                    y_center,
+                    task.end - task.start,
+                    left=task.start,
+                    height=lane_height * (0.9 if lane_count > 1 else 1.0),
                     color="white",
                     edgecolor="black",
                 )
-                # Add the task label in the center of the bar
-                if draw_task_labels:
+                if draw_task_labels and task.name:
                     axis.text(
-                        row["Start"] + row["delta"] / 2,
-                        row["Node"],  # type: ignore[arg-type]  # categorical y-position
-                        str(row["Task"]),
+                        task.start + (task.end - task.start) / 2,
+                        y_center,
+                        str(task.name),
                         ha="center",
                         va="center",
                         color="black",
-                        fontsize=font_size,
+                        fontsize=label_font,
                     )
 
-        # Set the y-ticks to be the unique set of nodes
-        axis.set_yticks(unique_nodes)
-        axis.set_yticklabels(unique_nodes)
+        # Set the y-ticks to be the (numeric) node positions
+        axis.set_yticks(list(range(len(nodes))))
+        axis.set_yticklabels(nodes)
+        axis.set_ylim(-0.5, len(nodes) - 0.5)
 
         # set tick font size
         axis.tick_params(axis="both", which="major", labelsize=tick_font_size)
@@ -484,8 +515,6 @@ def draw_gantt(
         # Set labels and title
         axis.set_xlabel("Time", fontsize=font_size)
         axis.set_ylabel("Nodes", fontsize=font_size)
-        axis.set_xlim(0, cast(float, data_frame["Finish"].max()))
-        # axis.set_title('Gantt Chart by Node (All Nodes with Task Labels)')
         axis.grid(True, which="both", linestyle="--", linewidth=0.5)
         axis.set_axisbelow(True)
 
