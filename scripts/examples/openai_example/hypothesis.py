@@ -73,6 +73,14 @@ def execute_code_hypothesis(
                 "net.add_edge(...) call in your code and make sure each one passes weight=."
             )
         return None, None, f"Error executing code: KeyError: {e}"
+    except SyntaxError as e:
+        return None, None, (
+            f"Error executing code: SyntaxError: {e}. "
+            "Your ENTIRE code must be a SINGLE get_instance() function that itself returns "
+            "(network, task_graph). Do not define any other top-level function, and do not "
+            "place any statement - including the final return - outside get_instance()'s body. "
+            "If you need a helper, nest it inside get_instance() or inline the logic."
+        )
     except Exception as e:
         return None, None, f"Error executing code: {type(e).__name__}: {str(e)}"
 

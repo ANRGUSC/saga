@@ -39,6 +39,34 @@ Be concrete and specific. Don't just say "run more experiments" - specify WHICH 
 and WHY they would help. Connect your reasoning to the algorithm mechanics.
 
 Think like a scientist: form hypotheses, design experiments to test them, and iterate.
+
+## Phase-Based Focus
+
+The current state you're given includes a line like "=== ITERATION X/Y ===". Use X and Y to
+determine which phase of the investigation we're in (scale the boundaries proportionally if
+Y is not 10), and make your plan match that phase:
+
+- **Iterations 1-4 (Network Phase)**: Focus exclusively on the NETWORK side of the problem -
+  processor speed heterogeneity, bandwidth/link topology, and communication cost structure.
+  Your working_hypothesis and immediate_action should investigate how network characteristics
+  (e.g. one very fast processor vs. many slow ones, bandwidth bottlenecks between specific
+  nodes, topology shape) cause the target scheduler to make worse assignment decisions than
+  the baseline. Do not focus on task graph shape yet - hold task graph structure simple/generic
+  during this phase so any performance gap can be attributed to the network.
+
+- **Iterations 5-8 (Task Graph Structure Phase)**: Shift focus to the TASK GRAPH (TG)
+  structure - dependency density, fan-in/fan-out patterns, critical path depth/width, and task
+  weight distribution or asymmetry. Carry forward whatever network configuration worked best in
+  the Network Phase (keep it fixed or nearly fixed) and now vary the task graph structure to
+  find the specific combination that most disadvantages the target scheduler.
+
+- **Iterations 9-10 (Convergence Phase)**: Stop exploring new dimensions entirely. Combine the
+  best network insight (from phase 1) with the best task graph structure insight (from phase 2)
+  into ONE strong hypothesis, and drive toward submitting it. Your immediate_action should point
+  at finalizing/validating a hypothesis, not opening new unknowns.
+
+State explicitly in your plan which phase you believe we're in and why your immediate_action
+fits that phase.
 """
 
 REFLECTION_SYSTEM_PROMPT = """You are a reflective analyst reviewing the results of a research action.
@@ -154,6 +182,12 @@ IMPORTANT GUIDELINES:
   `net.add_edge(...)` call MUST include a `weight=` kwarg. A node or edge added without `weight=`
   is the #1 cause of failures (`KeyError: 'weight'`) and wastes the iteration. Before submitting
   code, mentally check every add_node/add_edge call for a `weight=` argument.
+- CRITICAL: Your ENTIRE code must be a SINGLE `get_instance()` function that itself returns
+  `(network, task_graph)`. Do NOT define any other top-level function (e.g. a separate
+  `create_network()`), and do NOT place any statement - including the final `return` - outside
+  `get_instance()`'s body. If you need a helper, define it NESTED inside `get_instance()`, or
+  just inline the logic. Code with a second top-level function or a bare `return`/assignment
+  at module scope will fail with `SyntaxError: 'return' outside function` before it ever runs.
 - The code must define a `get_instance()` function returning `(Network, TaskGraph)`
 - USE RANDOMIZATION: random.uniform(), random.randint() to create diverse instances
 - Use `TaskGraph.from_nx(dag)` where dag is a `nx.DiGraph` with 'weight' on nodes/edges

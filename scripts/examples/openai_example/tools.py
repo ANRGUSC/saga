@@ -270,10 +270,10 @@ def test_single_instance(
         lines.append("")
         lines.append("  TASK ASSIGNMENT DIFFERENCES:")
         for task in task_graph.tasks:
-            target_st = target_schedule.get_scheduled_task(task.name)
-            baseline_st = baseline_schedule.get_scheduled_task(task.name)
-            if target_st.node != baseline_st.node:
-                lines.append(f"    {task.name}: {target_scheduler}={target_st.node}, {baseline_scheduler}={baseline_st.node}")
+            target_nodes = sorted({st.node for st in target_schedule.get_scheduled_task(task.name)})
+            baseline_nodes = sorted({st.node for st in baseline_schedule.get_scheduled_task(task.name)})
+            if target_nodes != baseline_nodes:
+                lines.append(f"    {task.name}: {target_scheduler}={target_nodes}, {baseline_scheduler}={baseline_nodes}")
     elif ratio < 1.0:
         lines.append(f"  {target_scheduler} was {(1 - ratio) * 100:.1f}% FASTER than {baseline_scheduler} (not adversarial)")
     else:

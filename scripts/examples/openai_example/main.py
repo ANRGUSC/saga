@@ -35,7 +35,12 @@ from models import (
     CodeHypothesis,
     HypothesisValidationResult,
 )
-from tools import compare_algorithms_with_llm, get_scheduler_source_code, run_pisa_experiment
+from tools import (
+    compare_algorithms_with_llm,
+    get_scheduler_source_code,
+    run_pisa_experiment,
+    test_single_instance,
+)
 
 # Suppress the task graph warnings
 logging.getLogger().setLevel(logging.ERROR)
@@ -83,7 +88,7 @@ class AgentState:
 
     # Track what the agent has learned
     algorithm_comparison: Optional[str] = None
-    source_code_read: List[SchedulerName] = field(default_factory=list)
+    source_code: Dict[SchedulerName, str] = field(default_factory=dict)
     pisa_results: List[str] = field(default_factory=list)
     code_hypotheses_tested: List[Tuple[CodeHypothesis, HypothesisValidationResult]] = field(
         default_factory=list
@@ -105,8 +110,11 @@ class AgentState:
             summary_parts.append("Algorithm comparison: COMPLETED")
             summary_parts.append(f"  {self.algorithm_comparison}")
 
-        if self.source_code_read:
-            summary_parts.append(f"\nSource code read: {', '.join(self.source_code_read)}")
+        if self.source_code:
+            summary_parts.append(f"\nSource code read: {', '.join(self.source_code.keys())}")
+            for scheduler, source in self.source_code.items():
+                summary_parts.append(f"\n--- {scheduler} SOURCE CODE ---")
+                summary_parts.append(source)
 
         if self.pisa_results:
             summary_parts.append(f"\nPISA experiments run: {len(self.pisa_results)}")
@@ -171,16 +179,16 @@ def handle_read_source_code(
 ) -> Tuple[str, Dict[str, Any]]:
     """Handle the read_source_code action."""
     scheduler = scheduler_to_read or state.target_scheduler
-    if scheduler in state.source_code_read:
+    if scheduler in state.source_code:
         result = f"Already read source code for {scheduler}"
         print(result)
         return result, {}
 
     print(f"\nReading source code for {scheduler}...")
     source = get_scheduler_source_code(scheduler)
-    state.source_code_read.append(scheduler)
-    result = f"Read {len(source)} characters of source code for {scheduler}"
-    print(result)
+    state.source_code[scheduler] = source
+    result = f"Source code for {scheduler}:\n\n{source}"
+    print(f"Read {len(source)} characters of source code for {scheduler}")
     return result, {"scheduler": scheduler, "source_length": len(source)}
 
 
@@ -219,10 +227,16 @@ def handle_test_code_hypothesis(
         }
 
     validation = validate_code_hypothesis(hypothesis, num_instances=50)
+
+    single_instance_detail = test_single_instance(
+        hypothesis, state.target_scheduler, state.baseline_scheduler
+    )
+
     result = (
         f"Code hypothesis '{hypothesis.name}': "
         f"confirmation_rate={validation.confirmation_rate:.1%}, "
-        f"avg_ratio={validation.avg_makespan_ratio:.4f}"
+        f"avg_ratio={validation.avg_makespan_ratio:.4f}\n\n"
+        f"{single_instance_detail}"
     )
 
     print(f"\nValidation Results:")
@@ -231,6 +245,7 @@ def handle_test_code_hypothesis(
     print(f"  Max makespan ratio: {validation.max_makespan_ratio:.4f}")
     print(f"  Min makespan ratio: {validation.min_makespan_ratio:.4f}")
     print(f"  Validated: {validation.is_validated}")
+    print(f"\n{single_instance_detail}")
 
     state.code_hypotheses_tested.append((hypothesis, validation))
 

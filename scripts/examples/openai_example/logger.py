@@ -28,6 +28,8 @@ DEFAULT_PRICING = {
     "gpt-5": {"input": 1.75, "cached_input": 0.175, "output": 14.00},
     "gpt-5.2-pro": {"input": 21.00, "cached_input": 0.0, "output": 168.00},
     "gpt-5-mini": {"input": 0.25, "cached_input": 0.025, "output": 2.00},
+    # o-series reasoning models
+    "o3-mini": {"input": 1.10, "cached_input": 0.55, "output": 4.40},
     # Default fallback
     "default": {"input": 2.50, "cached_input": 1.25, "output": 10.00},
 }
