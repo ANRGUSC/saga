@@ -1,10 +1,8 @@
-"""Analyze throughput results: per-workflow gradient heatmaps and the TP policy ladder.
+"""Analyze throughput results: per-workflow gradient heatmaps.
 
 Reads results/<branch>_<regime>.csv (from run.py), normalizes throughput per instance
 against the best config on that instance, then writes:
   - output/<branch>_<regime>/<workflow>.png : median throughput ratio, schedulers x CCR.
-  - a printed TP ladder (static / inspirit / reschedule within the throughput bases),
-    median ratio and win-rate against static.
 
 Usage:
     python analyze.py riotbench deterministic
@@ -70,36 +68,11 @@ def heatmaps(df: pd.DataFrame, branch: str, regime: str) -> None:
     print(f"heatmaps -> {outdir}")
 
 
-def ladder(df: pd.DataFrame) -> None:
-    """Median ratio and win-rate against static, within the throughput bases."""
-    tp = df[df["Scheduler"].str.contains("-Tp_")].copy()
-    if tp.empty:
-        return
-    tp[["Base", "Policy"]] = tp["Scheduler"].str.split("_", n=1, expand=True)
-    static = (
-        tp[tp["Policy"] == "static"]
-        .set_index(INSTANCE_KEYS + ["Base"])["Throughput"]
-        .rename("StaticThroughput")
-    )
-    merged = tp.join(static, on=INSTANCE_KEYS + ["Base"])
-    merged["beats_static"] = merged["Throughput"] > merged["StaticThroughput"] + 1e-12
-
-    summary = merged.groupby("Policy").agg(
-        median_ratio=("Ratio", "median"),
-        win_rate_vs_static=("beats_static", "mean"),
-    )
-    order = ["static", "inspirit", "reschedule"]
-    summary = summary.reindex([p for p in order if p in summary.index])
-    print("\nTP policy ladder (throughput bases: HEFT-Tp, CPoP-Tp)\n")
-    print(summary.round(3).to_string())
-
-
 def main() -> None:
     branch = sys.argv[1] if len(sys.argv) > 1 else "riotbench"
     regime = sys.argv[2] if len(sys.argv) > 2 else "deterministic"
     df = load(branch, regime)
     heatmaps(df, branch, regime)
-    ladder(df)
 
 
 if __name__ == "__main__":
