@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from pydantic import Field
 from saga import Schedule, Scheduler, TaskGraph, Network
 
@@ -8,7 +8,13 @@ class HybridScheduler(Scheduler):
 
     schedulers: List[Scheduler] = Field(...)
 
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns the best schedule of the given schedule functions.
 
         Args:

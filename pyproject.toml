@@ -44,3 +44,6 @@ Issues = "https://github.com/ANRGUSC/saga/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

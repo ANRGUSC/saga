@@ -16,7 +16,6 @@ import numpy as np
 from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph
 from saga.schedulers.cheft import build_weighted_graph
 from saga.schedulers.cpop import upward_rank, downward_rank
-from saga.utils.duplication import should_duplicate
 
 
 def ccpop_ranks(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
@@ -29,8 +28,6 @@ def ccpop_ranks(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
 
 class CCpopScheduler(Scheduler):
     """CPOP with probability-weighted ranking for conditional task graphs."""
-
-    duplication_factor: int = 1
 
     def schedule(
         self,
@@ -81,35 +78,28 @@ class CCpopScheduler(Scheduler):
             is_critical = np.isclose(-task_rank, cp_rank)
             nodes = frozenset([cp_node]) if is_critical else network.nodes
 
-            duplicate_factor = 1
-            if not is_critical and should_duplicate(task.name, task_graph, network):
-                duplicate_factor = self.duplication_factor
-
-            for dup_idx in range(duplicate_factor):
-                best_node = None
-                min_finish_time = np.inf
-                for node in nodes:
-                    start_time = comp_schedule.get_earliest_start_time(
-                        task=task, node=node, append_only=False
-                    )
-                    end_time = start_time + (task.cost / node.speed)
-                    if end_time < min_finish_time:
-                        min_finish_time = end_time
-                        best_node = node
-
-                if best_node is None:
-                    raise ValueError(
-                        f"No node available to schedule task {task.name}."
-                    )
-
-                new_task = ScheduledTask(
-                    node=best_node.name,
-                    name=task.name,
-                    start=min_finish_time - (task.cost / best_node.speed),
-                    end=min_finish_time,
+            best_node = None
+            min_finish_time = np.inf
+            for node in nodes:
+                start_time = comp_schedule.get_earliest_start_time(
+                    task=task, node=node, append_only=False
                 )
-                comp_schedule.add_task(new_task)
-                task_map[task.name] = new_task
+                end_time = start_time + (task.cost / node.speed)
+                if end_time < min_finish_time:
+                    min_finish_time = end_time
+                    best_node = node
+
+            if best_node is None:
+                raise ValueError(f"No node available to schedule task {task.name}.")
+
+            new_task = ScheduledTask(
+                node=best_node.name,
+                name=task.name,
+                start=min_finish_time - (task.cost / best_node.speed),
+                end=min_finish_time,
+            )
+            comp_schedule.add_task(new_task)
+            task_map[task.name] = new_task
 
             ready_tasks = [
                 task_graph.get_task(dep.target)

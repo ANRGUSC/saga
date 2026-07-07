@@ -4,14 +4,14 @@ import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from saga import NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
+from saga import ConstraintViolation, NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
-from typing import Dict, Iterable, List, Hashable, Literal
+from typing import Dict, Iterable, List, Hashable, Literal, Optional, Set
 
 
 class UpwardRanking(IntialPriority):
@@ -22,10 +22,10 @@ class UpwardRanking(IntialPriority):
 
 
 class CPoPRanking(IntialPriority):
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: #? what is the reason we are moving away from __call__
         ranks = cpop_ranks(network, task_graph)
         start_task = max(
-            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0],
+            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0], 
             key=lambda t: ranks[t],
         )
         pq = [(-ranks[start_task], start_task)]
@@ -57,33 +57,54 @@ class GreedyInsertCompareFuncs(Enum):
     EFT = "EFT"
     EST = "EST"
     Quickest = "Quickest"
+    Throughput = "Throughput"
+    Makespan = "Makespan"
 
-    def compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
+    def compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Optional[Schedule]) -> float:
+        """Compare the placement of a task on two nodes.
+
+        Args:
+            new (ScheduledTask): Potential placement of the task.
+            cur (ScheduledTask): Current placement of the task.
+            schedule (Optional[Schedule]): The current schedule.
+
+        Returns:
+            Float. Positive value means select current, negative means select new.
+        """
         if self == GreedyInsertCompareFuncs.EFT:
             return new.end - cur.end
         elif self == GreedyInsertCompareFuncs.EST:
             return new.start - cur.start
         elif self == GreedyInsertCompareFuncs.Quickest:
             return (new.end - new.start) - (cur.end - cur.start)
+        elif self == GreedyInsertCompareFuncs.Throughput:
+            if schedule is None:
+                raise ValueError("Throughput comparison requires the current schedule.")
+            return schedule.bottleneck_if_added(new) - schedule.bottleneck_if_added(cur)
+        elif self == GreedyInsertCompareFuncs.Makespan:
+            if schedule is None:
+                raise ValueError("Makespan comparison requires the current schedule.")
+            return schedule.makespan_if_added(new) - schedule.makespan_if_added(cur)
         else:
             raise ValueError(f"Unknown comparison function: {self.value}")
+        
 
 
 # Insert Task functions
 class GreedyInsert(InsertTask):
     append_only: bool = Field(
-        False, description="Whether to only append the task to the schedule."
+        default=False, description="Whether to only append the task to the schedule."
     )
     compare: GreedyInsertCompareFuncs = Field(
-        GreedyInsertCompareFuncs.EFT,
+        default=GreedyInsertCompareFuncs.EFT,
         description="The comparison function to use for greedy insertion.",
     )
     critical_path: bool = Field(
-        False, description="Whether to only schedule tasks on the critical path."
+        default=False, description="Whether to only schedule tasks on the critical path."
     )
 
-    def _compare(self, new: ScheduledTask, cur: ScheduledTask) -> float:
-        return self.compare.compare(new, cur)
+    def _compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Schedule) -> float:
+        return self.compare.compare(new, cur, schedule)
 
     def call(
         self,
@@ -102,12 +123,26 @@ class GreedyInsert(InsertTask):
             node if isinstance(node, NetworkNode) else network.get_node(node)
             for node in nodes
         ]
+        # Sort so tie-breaking is PYTHONHASHSEED-independent (network.nodes is a frozenset).
+        considered_nodes.sort(key=lambda node: node.name)
 
         best_task = None
+        # Apply the schedule's per-task placement constraints first, so they override both
+        # the caller's `nodes` and the critical-path pin below. An empty set is infeasible.
+        allowed = schedule.allowed_nodes(task.name)
+        if allowed is not None:
+            considered_nodes = [n for n in considered_nodes if n.name in allowed]
+            if not considered_nodes:
+                raise ConstraintViolation(
+                    f"Task {task.name} has no allowed node among the candidates "
+                    f"(constraint: {sorted(allowed)})."
+                )
+
         if self.critical_path:
             ranks = cpop_ranks(network, task_graph)
             critical_rank = max(ranks.values())
-            fastest_node = max(network.nodes, key=lambda node: node.speed)
+            # Pin the critical task to the fastest node it is still allowed to use.
+            fastest_node = max(considered_nodes, key=lambda node: node.speed)
             if np.isclose(ranks[task.name], critical_rank):
                 considered_nodes = [fastest_node]
 
@@ -117,8 +152,8 @@ class GreedyInsert(InsertTask):
                 task=task,
                 node=_node,
                 append_only=self.append_only,
+                current_moment=min_start_time,
             )
-            start_time = max(start_time, min_start_time)
 
             new_task = ScheduledTask(
                 node=_node.name,
@@ -126,7 +161,7 @@ class GreedyInsert(InsertTask):
                 start=start_time,
                 end=start_time + exec_time,
             )
-            if best_task is None or self._compare(new_task, best_task) < 0:
+            if best_task is None or self._compare(new_task, best_task, schedule) < 0:
                 best_task = new_task
 
         if best_task is None:
@@ -150,6 +185,7 @@ class ParametricKDepthScheduler(Scheduler, BaseModel):
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -157,13 +193,17 @@ class ParametricKDepthScheduler(Scheduler, BaseModel):
             network (Network): The network graph.
             task_graph (TaskGraph): The task graph.
             schedule (Optional[Schedule]): The current schedule.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints, applied only when a new schedule is constructed.
 
         Returns:
             Schedule: The resulting schedule.
         """
         queue = self.scheduler.initial_priority.call(network, task_graph)
         schedule = (
-            Schedule(task_graph, network) if schedule is None else deepcopy(schedule)
+            Schedule(task_graph, network, node_constraints=node_constraints)
+            if schedule is None
+            else deepcopy(schedule)
         )
         scheduled_tasks: Dict[Hashable, ScheduledTask] = {}
         while queue:
@@ -226,17 +266,15 @@ class ParametricSufferageScheduler(ParametricScheduler):
         ..., description="The base parametric scheduler."
     )
     top_n: int = Field(
-        2, description="The number of top tasks to consider for sufferage calculation."
+        default=2, description="The number of top tasks to consider for sufferage calculation."
     )
 
-    def __init__(
-        self, scheduler: ParametricScheduler, top_n: int = 2, **kwargs
-    ) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, scheduler: ParametricScheduler, top_n: int = 2) -> None:
         super().__init__(
             initial_priority=scheduler.initial_priority,
             insert_task=scheduler.insert_task,
-            scheduler=scheduler,  # type: ignore[call-arg]
-            top_n=top_n,  # type: ignore[call-arg]
+            scheduler=scheduler,
+            top_n=top_n,
         )
 
     def schedule(
@@ -245,6 +283,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -253,13 +292,15 @@ class ParametricSufferageScheduler(ParametricScheduler):
             task_graph (TaskGraph): The task graph.
             schedule (Optional[Schedule]): The current schedule.
             min_start_time (float): The current moment in time.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints, applied only when a new schedule is constructed.
 
         Returns:
             Schedule: The resulting schedule.
         """
         queue = self.initial_priority.call(network, task_graph)
         if schedule is None:
-            schedule = Schedule(task_graph, network)
+            schedule = Schedule(task_graph, network, node_constraints=node_constraints)
         while queue:
             for task_name in queue:
                 if schedule.is_scheduled(task_name):
@@ -294,7 +335,7 @@ class ParametricSufferageScheduler(ParametricScheduler):
                     ],
                     dry_run=True,
                 )
-                sufferage = self.insert_task._compare(second_best_task, best_task)
+                sufferage = self.insert_task._compare(second_best_task, best_task, schedule)
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
 

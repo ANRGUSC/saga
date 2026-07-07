@@ -347,25 +347,33 @@ class RandomVariable(BaseModel):
             return RandomVariable(samples=(self.samples_arr >= other).tolist())
         return RandomVariable(samples=(self.samples_arr >= other.samples_arr).tolist())
 
+    @cached_property
+    def _expectation(self) -> float:
+        return float(np.mean(self.samples_arr))
+
+    @cached_property
+    def _variance(self) -> float:
+        return float(np.var(self.samples_arr))
+
     def expectation(self) -> float:
         """The expectation of the random variable."""
-        return float(np.mean(self.samples_arr))
+        return self._expectation
 
     def mean(self) -> float:
         """The mean of the random variable."""
-        return self.expectation()
+        return self._expectation
 
     def variance(self) -> float:
         """The variance of the random variable."""
-        return float(np.var(self.samples_arr))
+        return self._variance
 
     def var(self) -> float:
         """The variance of the random variable."""
-        return self.variance()
+        return self._variance
 
     def std(self) -> float:
         """The standard deviation of the random variable."""
-        return np.sqrt(self.variance())
+        return float(np.sqrt(self._variance))
 
 
 class UniformRandomVariable(RandomVariable):

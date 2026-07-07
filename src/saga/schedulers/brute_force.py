@@ -1,4 +1,5 @@
 import itertools
+from typing import Optional
 
 from saga import Scheduler, ScheduledTask, TaskGraph, Network, Schedule
 
@@ -6,7 +7,13 @@ from saga import Scheduler, ScheduledTask, TaskGraph, Network, Schedule
 class BruteForceScheduler(Scheduler):
     """Brute force scheduler"""
 
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional[Schedule] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Returns the best schedule (minimizing makespan) for a problem
            instance using brute force
 
@@ -31,10 +38,10 @@ class BruteForceScheduler(Scheduler):
         best_makespan = float("inf")
         for mapping in mappings:
             for top_sort in topological_sorts:
-                schedule: Schedule = Schedule(task_graph, network)
+                candidate_schedule = Schedule(task_graph, network)
                 for task in top_sort:
                     node = mapping[task]
-                    ready_time = schedule.get_earliest_start_time(
+                    ready_time = candidate_schedule.get_earliest_start_time(
                         task.name, node.name, append_only=True
                     )
                     new_task = ScheduledTask(
@@ -43,11 +50,11 @@ class BruteForceScheduler(Scheduler):
                         start=ready_time,
                         end=ready_time + task.cost / node.speed,
                     )
-                    schedule.add_task(new_task)
+                    candidate_schedule.add_task(new_task)
 
-                if schedule.makespan < best_makespan:
-                    best_makespan = schedule.makespan
-                    best_schedule = schedule
+                if candidate_schedule.makespan < best_makespan:
+                    best_makespan = candidate_schedule.makespan
+                    best_schedule = candidate_schedule
 
         if best_schedule is None:
             raise RuntimeError("Brute force scheduler failed to find a schedule")

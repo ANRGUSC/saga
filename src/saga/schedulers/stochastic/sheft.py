@@ -1,9 +1,9 @@
-from saga.schedulers.stochastic.determinizer import Determinizer
+from saga.schedulers.stochastic.estimate_stochastic_scheduler import EstimateStochasticScheduler
 from saga.schedulers.heft import HeftScheduler
 
 
-class SheftScheduler(Determinizer):
+class SheftScheduler(EstimateStochasticScheduler):
     def __init__(self) -> None:
         super().__init__(
-            scheduler=HeftScheduler(), determinize=lambda rv: rv.mean() + rv.std()
+            scheduler=HeftScheduler(), estimate=lambda rv: rv.mean() + rv.std()
         )

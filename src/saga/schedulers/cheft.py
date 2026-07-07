@@ -14,7 +14,6 @@ import numpy as np
 
 from saga import Network, Schedule, ScheduledTask, Scheduler, TaskGraph, TaskGraphNode, TaskGraphEdge
 from saga.schedulers.cpop import upward_rank
-from saga.utils.duplication import should_duplicate
 
 
 def compound_probabilities(task_graph: TaskGraph) -> Dict[str, float]:
@@ -71,8 +70,6 @@ def cheft_rank_sort(network: Network, task_graph: TaskGraph) -> List[str]:
 class CheftScheduler(Scheduler):
     """HEFT with probability-weighted upward rank for conditional task graphs."""
 
-    duplication_factor: int = 1
-
     def schedule(
         self,
         network: Network,
@@ -87,39 +84,32 @@ class CheftScheduler(Scheduler):
             if schedule.is_scheduled(task_name):
                 continue
 
-            duplicate_factor = 1
-            if should_duplicate(task_name, task_graph, network):
-                duplicate_factor = self.duplication_factor
+            best_node = None
+            best_finish_time = np.inf
 
-            for dup_idx in range(duplicate_factor):
-                best_node = None
-                best_finish_time = np.inf
-
-                for node in network.nodes:
-                    start_time = schedule.get_earliest_start_time(
-                        task=task_name, node=node, append_only=False
-                    )
-                    start_time = max(start_time, min_start_time)
-                    runtime = (
-                        task_graph.get_task(task_name).cost / network.get_node(node).speed
-                    )
-                    finish_time = start_time + runtime
-                    if finish_time < best_finish_time:
-                        best_finish_time = finish_time
-                        best_node = node
-
-                if best_node is None:
-                    raise ValueError(
-                        f"No node available to schedule task {task_name}."
-                    )
-
-                new_task = ScheduledTask(
-                    node=best_node.name,
-                    name=task_name,
-                    start=best_finish_time
-                    - (task_graph.get_task(task_name).cost / best_node.speed),
-                    end=best_finish_time,
+            for node in network.nodes:
+                start_time = schedule.get_earliest_start_time(
+                    task=task_name, node=node, append_only=False
                 )
-                schedule.add_task(new_task)
+                start_time = max(start_time, min_start_time)
+                runtime = (
+                    task_graph.get_task(task_name).cost / network.get_node(node).speed
+                )
+                finish_time = start_time + runtime
+                if finish_time < best_finish_time:
+                    best_finish_time = finish_time
+                    best_node = node
+
+            if best_node is None:
+                raise ValueError(f"No node available to schedule task {task_name}.")
+
+            new_task = ScheduledTask(
+                node=best_node.name,
+                name=task_name,
+                start=best_finish_time
+                - (task_graph.get_task(task_name).cost / best_node.speed),
+                end=best_finish_time,
+            )
+            schedule.add_task(new_task)
 
         return schedule
