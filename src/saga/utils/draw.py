@@ -19,6 +19,7 @@ from saga import ScheduledTask
 # create logger with SAGA:saga.utils.draw: prefix
 logger = logging.getLogger("SAGA:saga.utils.draw")
 
+
 TGraphType = TypeVar("TGraphType", bound=Union[nx.DiGraph, nx.Graph])
 
 
@@ -99,7 +100,11 @@ def draw_task_graph(
         task_graph = format_graph(task_graph.copy())
 
         if pos is None:
-            pos = nx.nx_agraph.graphviz_layout(task_graph, prog="dot")
+            pos = {}
+            for i, generation in enumerate(nx.topological_generations(task_graph)):
+                gen = sorted(generation)
+                for j, node in enumerate(gen):
+                    pos[node] = (j - (len(gen) - 1) / 2, -i)
 
         colors: Dict[str, Tuple[float, float, float, float]] = {}
         tasks: Dict[str, ScheduledTask] = {}

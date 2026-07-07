@@ -88,6 +88,9 @@ def parametric_schedule():
 
 
 def main():
+    network, task_graph = get_instance()
+    draw_instance(network, task_graph)
+
     heft_sched = heft_schedule()
     draw_schedule(heft_sched, "heft_gantt")
     parametric_sched = parametric_schedule()

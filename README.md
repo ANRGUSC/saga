@@ -20,76 +20,16 @@ The algorithms are all implemented in Python using a common interface.  Scripts 
 
 ### Python Version
 
-All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[Conda](https://docs.conda.io/en/latest/)**.
+All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[uv](https://docs.astral.sh/uv/)**, a fast Python package and project manager.
 
-To create a new Conda environment with Python 3.11:
-
-```bash
-conda create -n saga-env python=3.11
-conda activate saga-env
-```
-
-For more information on managing Python versions with Conda, refer to the [Conda documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html). ([Managing Python — conda 25.3.0 documentation](https://docs.conda.io/projects/conda/en/stable/user-guide/tasks/manage-python.html?utm_source=chatgpt.com))
-
-### Graphviz Installation
-
-To enable task graph visualization, ensure that **Graphviz** is installed on your system. Graphviz provides the `dot` command-line tool used for rendering graphs.
-
-#### Installation via Conda (Recommended)
-
-You can install Graphviz and its Python interface using Conda: ([anaconda - graphviz - can't import after installation - Stack Overflow](https://stackoverflow.com/questions/33433274/anaconda-graphviz-cant-import-after-installation?utm_source=chatgpt.com))
-
+To create a new virtual environment with Python 3.11 (uv will download Python 3.11 for you if it isn't already installed):
 
 ```bash
-conda install -c conda-forge graphviz python-graphviz
+uv venv --python 3.11
+source .venv/bin/activate
 ```
 
-This command installs both the Graphviz binaries and the `python-graphviz` package, facilitating seamless integration with Python scripts. ([anaconda - graphviz - can't import after installation - Stack Overflow](https://stackoverflow.com/questions/33433274/anaconda-graphviz-cant-import-after-installation?utm_source=chatgpt.com))
-
-#### Manual Installation
-
-If you prefer manual installation:
-
-- **macOS**:
-
-  - Using [Homebrew](https://brew.sh/):
-
-    ```bash
-    brew install graphviz
-    ```
-
-  - Using [MacPorts](https://www.macports.org/):
-
-    ```bash
-    sudo port install graphviz
-    ```
-
-- **Windows**:
-
-  - Download the installer from the [Graphviz Download Page](https://graphviz.org/download/).
-
-  - Run the installer and ensure the option **"Add Graphviz to the system PATH for current user"** is selected during installation.
-
-- **Linux (Debian/Ubuntu-based)**:
-
-  - Install via APT: ([Linux Install Graphviz Dot - friendlylasopa](https://friendlylasopa340.weebly.com/linux-install-graphviz-dot.html?utm_source=chatgpt.com))
-
-    ```bash
-    sudo apt-get update
-    sudo apt-get install graphviz
-    ```
-
-#### Verifying the Installation
-
-After installation, confirm that the `dot` command is accessible:
-
-
-```bash
-dot -V
-```
-
-This should output the version of Graphviz installed, indicating that `dot` is ready for use.
-
+For more information on managing Python versions with uv, refer to the [uv documentation](https://docs.astral.sh/uv/guides/install-python/).
 
 ## Usage
 
@@ -102,7 +42,7 @@ Clone the repository and install the requirements:
 ```bash
 git clone https://github.com/ANRGUSC/saga.git
 cd saga
-pip install -e .
+uv pip install -e .
 ```
 
 ### Running the Tests
@@ -135,6 +75,28 @@ To run a specific test or scheduler-task combination, use the `-k` option. For e
 pytest ./tests -k "HeftScheduler and diamond"
 ```
 
+### Linting and Type Checking
+
+The CI pipeline also runs a linter and type checker. You can run these locally:
+
+```bash
+# Lint with ruff
+ruff check src/saga
+
+# Check formatting with ruff
+ruff format --check src/saga
+
+# Type check with mypy
+mypy src/saga --ignore-missing-imports
+```
+
+To auto-fix lint issues or reformat code:
+
+```bash
+ruff check src/saga --fix
+ruff format src/saga
+```
+
 ### Running the Algorithms
 
 The algorithms are implemented as Python modules. The following example shows how to run the HEFT algorithm on a workflow:
@@ -163,8 +125,12 @@ The table of contents in `scripts/examples/Readme.md` lists examples ranging fro
 ### Experiments
 To reproduce the experiments from papers using SAGA, see the [experiments](./scripts/experiments) directory.
 
+### Reference
+A research paper that goes with this repo and that contains useful details is available online at [ArXiV](https://arxiv.org/pdf/2403.07120).
+
 
 ### Acknowledgements
 
 This work was supported in part by Army Research Laboratory under Cooperative Agreement [W911NF-17-2-0196](https://www.usaspending.gov/award/ASST_NON_W911NF1720196_097).
+
 This material is based upon work supported by the National Science Foundation under Award No. [2451267](https://www.nsf.gov/awardsearch/show-award?AWD_ID=2451267).
