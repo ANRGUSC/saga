@@ -181,8 +181,15 @@ def test_single_instance(
         return f"ERROR: Unknown scheduler(s): {target_scheduler}, {baseline_scheduler}"
 
     # Run both schedulers
-    target_schedule = target_sched.schedule(network, task_graph)
-    baseline_schedule = baseline_sched.schedule(network, task_graph)
+    try:
+        target_schedule = target_sched.schedule(network, task_graph)
+        baseline_schedule = baseline_sched.schedule(network, task_graph)
+    except Exception as e:
+        return (
+            f"ERROR scheduling instance: {type(e).__name__}: {e}. "
+            "The generated task graph is likely invalid (e.g. contains a cycle - "
+            "get_instance() must build a genuine DAG with no circular dependencies)."
+        )
 
     target_makespan = target_schedule.makespan
     baseline_makespan = baseline_schedule.makespan

@@ -116,6 +116,8 @@ class ExperimentLogger:
                 "name": best_hypothesis.name,
                 "reasoning": best_hypothesis.reasoning,
                 "confirmation_rate": best_validation.confirmation_rate,
+                "confirmation_rate_ci_low": best_validation.confirmation_rate_ci_low,
+                "confirmation_rate_ci_high": best_validation.confirmation_rate_ci_high,
                 "avg_makespan_ratio": best_validation.avg_makespan_ratio,
                 "is_validated": best_validation.is_validated,
             }
@@ -366,8 +368,15 @@ class ExperimentLogger:
             if it["action"] in ("test_code_hypothesis", "submit_code_hypothesis"):
                 result_data = it.get("result_data", {})
                 if result_data:
+                    ci_low = result_data.get("confirmation_rate_ci_low")
+                    ci_high = result_data.get("confirmation_rate_ci_high")
+                    ci_str = (
+                        f" (95% CI: {ci_low:.1%}-{ci_high:.1%})"
+                        if ci_low is not None and ci_high is not None
+                        else ""
+                    )
                     lines.append(
-                        f"     Result: confirmation_rate={result_data.get('confirmation_rate', 'N/A')}, "
+                        f"     Result: confirmation_rate={result_data.get('confirmation_rate', 'N/A')}{ci_str}, "
                         f"avg_ratio={result_data.get('avg_makespan_ratio', 'N/A')}"
                     )
 
@@ -389,7 +398,9 @@ class ExperimentLogger:
                     "-" * 70,
                     f"  Name: {bh.get('name')}",
                     f"  Reasoning: {bh.get('reasoning', 'N/A')}",
-                    f"  Confirmation rate: {bh.get('confirmation_rate', 0):.1%}",
+                    f"  Confirmation rate: {bh.get('confirmation_rate', 0):.1%} "
+                    f"(95% CI: {bh.get('confirmation_rate_ci_low', 0):.1%}-"
+                    f"{bh.get('confirmation_rate_ci_high', 1):.1%})",
                     f"  Avg makespan ratio: {bh.get('avg_makespan_ratio', 0):.4f}",
                     f"  Validated: {bh.get('is_validated')}",
                 ]
@@ -486,7 +497,7 @@ class ExperimentLogger:
                 <div class="hypothesis-stats">
                     <div class="stat">
                         <div class="metric-value">{bh.get('confirmation_rate', 0):.1%}</div>
-                        <div class="metric-label">Confirmation Rate</div>
+                        <div class="metric-label">Confirmation Rate (95% CI: {bh.get('confirmation_rate_ci_low', 0):.1%}-{bh.get('confirmation_rate_ci_high', 1):.1%})</div>
                     </div>
                     <div class="stat">
                         <div class="metric-value">{bh.get('avg_makespan_ratio', 0):.4f}</div>

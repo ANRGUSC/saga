@@ -131,7 +131,9 @@ class AgentState:
             for hyp, val in self.code_hypotheses_tested:
                 summary_parts.append(
                     f"  - {hyp.name}: "
-                    f"confirmation={val.confirmation_rate:.1%}, avg_ratio={val.avg_makespan_ratio:.3f}"
+                    f"confirmation={val.confirmation_rate:.1%} "
+                    f"(95% CI: {val.confirmation_rate_ci_low:.1%}-{val.confirmation_rate_ci_high:.1%}), "
+                    f"avg_ratio={val.avg_makespan_ratio:.3f}"
                 )
 
         if self.best_hypothesis:
@@ -140,7 +142,9 @@ class AgentState:
             summary_parts.append(f"  Reasoning: {self.best_hypothesis.reasoning}")
             if self.best_validation:
                 summary_parts.append(
-                    f"  Confirmation rate: {self.best_validation.confirmation_rate:.1%}"
+                    f"  Confirmation rate: {self.best_validation.confirmation_rate:.1%} "
+                    f"(95% CI: {self.best_validation.confirmation_rate_ci_low:.1%}-"
+                    f"{self.best_validation.confirmation_rate_ci_high:.1%})"
                 )
                 summary_parts.append(
                     f"  Avg makespan ratio: {self.best_validation.avg_makespan_ratio:.4f}"
@@ -206,7 +210,7 @@ def handle_run_pisa(state: AgentState) -> Tuple[str, Dict[str, Any]]:
 
 
 def handle_test_code_hypothesis(
-    state: AgentState, hypothesis: Optional[CodeHypothesis]
+    state: AgentState, hypothesis: Optional[CodeHypothesis], min_confidence_threshold: float
 ) -> Tuple[str, Dict[str, Any]]:
     """Handle the test_code_hypothesis action."""
     if not hypothesis:
@@ -226,7 +230,9 @@ def handle_test_code_hypothesis(
             "success": False,
         }
 
-    validation = validate_code_hypothesis(hypothesis, num_instances=50)
+    validation = validate_code_hypothesis(
+        hypothesis, num_instances=50, min_confidence_threshold=min_confidence_threshold
+    )
 
     single_instance_detail = test_single_instance(
         hypothesis, state.target_scheduler, state.baseline_scheduler
@@ -234,13 +240,17 @@ def handle_test_code_hypothesis(
 
     result = (
         f"Code hypothesis '{hypothesis.name}': "
-        f"confirmation_rate={validation.confirmation_rate:.1%}, "
+        f"confirmation_rate={validation.confirmation_rate:.1%} "
+        f"(95% CI: {validation.confirmation_rate_ci_low:.1%}-{validation.confirmation_rate_ci_high:.1%}), "
         f"avg_ratio={validation.avg_makespan_ratio:.4f}\n\n"
         f"{single_instance_detail}"
     )
 
     print(f"\nValidation Results:")
-    print(f"  Confirmation rate: {validation.confirmation_rate:.1%}")
+    print(
+        f"  Confirmation rate: {validation.confirmation_rate:.1%} "
+        f"(95% CI: {validation.confirmation_rate_ci_low:.1%}-{validation.confirmation_rate_ci_high:.1%})"
+    )
     print(f"  Avg makespan ratio: {validation.avg_makespan_ratio:.4f}")
     print(f"  Max makespan ratio: {validation.max_makespan_ratio:.4f}")
     print(f"  Min makespan ratio: {validation.min_makespan_ratio:.4f}")
@@ -262,6 +272,8 @@ def handle_test_code_hypothesis(
         "hypothesis_id": hypothesis.hypothesis_id,
         "name": hypothesis.name,
         "confirmation_rate": validation.confirmation_rate,
+        "confirmation_rate_ci_low": validation.confirmation_rate_ci_low,
+        "confirmation_rate_ci_high": validation.confirmation_rate_ci_high,
         "avg_makespan_ratio": validation.avg_makespan_ratio,
         "max_makespan_ratio": validation.max_makespan_ratio,
         "min_makespan_ratio": validation.min_makespan_ratio,
@@ -278,34 +290,64 @@ def handle_submit_code_hypothesis(
         return "No code_hypothesis provided for submit_code_hypothesis action", {"error": "missing"}, False
 
     print(f"\nSubmitting code-based hypothesis: {hypothesis.name}")
-    validation = validate_code_hypothesis(hypothesis, num_instances=100)
+
+    # Run two independent validation batches (fresh random instances each) so a single lucky
+    # draw can't pass acceptance on its own - both batches must clear the threshold.
+    validation_a = validate_code_hypothesis(
+        hypothesis, num_instances=100, min_confidence_threshold=min_confidence_threshold
+    )
+    validation_b = validate_code_hypothesis(
+        hypothesis, num_instances=100, min_confidence_threshold=min_confidence_threshold
+    )
+    # Report the more conservative (lower-confirmation) of the two trials.
+    validation = min(validation_a, validation_b, key=lambda v: v.confirmation_rate)
+    both_passed = (
+        validation_a.confirmation_rate >= min_confidence_threshold
+        and validation_b.confirmation_rate >= min_confidence_threshold
+    )
 
     result = (
         f"Submitted code hypothesis '{hypothesis.name}': "
-        f"confirmation_rate={validation.confirmation_rate:.1%}"
+        f"trial_1_confirmation={validation_a.confirmation_rate:.1%} "
+        f"(95% CI: {validation_a.confirmation_rate_ci_low:.1%}-{validation_a.confirmation_rate_ci_high:.1%}), "
+        f"trial_2_confirmation={validation_b.confirmation_rate:.1%} "
+        f"(95% CI: {validation_b.confirmation_rate_ci_low:.1%}-{validation_b.confirmation_rate_ci_high:.1%})"
     )
     result_data = {
         "hypothesis_id": hypothesis.hypothesis_id,
         "name": hypothesis.name,
+        "trial_1_confirmation_rate": validation_a.confirmation_rate,
+        "trial_2_confirmation_rate": validation_b.confirmation_rate,
         "confirmation_rate": validation.confirmation_rate,
+        "confirmation_rate_ci_low": validation.confirmation_rate_ci_low,
+        "confirmation_rate_ci_high": validation.confirmation_rate_ci_high,
         "avg_makespan_ratio": validation.avg_makespan_ratio,
         "is_validated": validation.is_validated,
-        "accepted": validation.confirmation_rate >= min_confidence_threshold,
+        "accepted": both_passed,
     }
 
-    print(f"\nFinal Validation:")
-    print(f"  Confirmation rate: {validation.confirmation_rate:.1%}")
-    print(f"  Avg makespan ratio: {validation.avg_makespan_ratio:.4f}")
+    print(f"\nFinal Validation (two independent 100-instance trials):")
+    print(
+        f"  Trial 1: confirmation_rate={validation_a.confirmation_rate:.1%} "
+        f"(95% CI: {validation_a.confirmation_rate_ci_low:.1%}-{validation_a.confirmation_rate_ci_high:.1%}), "
+        f"avg_ratio={validation_a.avg_makespan_ratio:.4f}"
+    )
+    print(
+        f"  Trial 2: confirmation_rate={validation_b.confirmation_rate:.1%} "
+        f"(95% CI: {validation_b.confirmation_rate_ci_low:.1%}-{validation_b.confirmation_rate_ci_high:.1%}), "
+        f"avg_ratio={validation_b.avg_makespan_ratio:.4f}"
+    )
 
-    if validation.confirmation_rate >= min_confidence_threshold:
-        print(f"\n Code hypothesis ACCEPTED with {validation.confirmation_rate:.1%} confirmation!")
+    if both_passed:
+        print(f"\n Code hypothesis ACCEPTED - both trials cleared {min_confidence_threshold:.0%} confirmation!")
         state.best_hypothesis = hypothesis
         state.best_validation = validation
         return result, result_data, True
 
     print(
         f"\n Hypothesis not confident enough "
-        f"({validation.confirmation_rate:.1%} < {min_confidence_threshold:.0%})"
+        f"(trial 1={validation_a.confirmation_rate:.1%}, trial 2={validation_b.confirmation_rate:.1%}, "
+        f"need BOTH >= {min_confidence_threshold:.0%})"
     )
     state.code_hypotheses_tested.append((hypothesis, validation))
     is_new_best = (
@@ -429,7 +471,18 @@ Based on where we are, create a strategic plan for what we should do next.
 
         # Build action guidance based on state
         action_guidance = ""
-        if len(state.pisa_results) >= 2:
+        if (
+            state.best_validation is not None
+            and state.best_validation.confirmation_rate >= min_confidence_threshold
+        ):
+            action_guidance = f"""
+IMPORTANT: Your best hypothesis so far ('{state.best_hypothesis.name}') already has
+{state.best_validation.confirmation_rate:.0%} confirmation, which clears the required
+{min_confidence_threshold:.0%} threshold. You MUST call submit_code_hypothesis now with
+this hypothesis unless you have a specific, concrete reason to believe further exploration
+will find something meaningfully better. Do not keep testing new hypotheses just because
+iterations remain - a validated result in hand is better than continued unstructured search."""
+        elif len(state.pisa_results) >= 2:
             action_guidance = """
 IMPORTANT: You have already run PISA multiple times. DO NOT run PISA again.
 You MUST now use test_code_hypothesis to write code that creates task graph families
@@ -509,7 +562,9 @@ When you have a validated hypothesis with >{min_confidence_threshold:.0%} confir
             action_result, result_data = handle_run_pisa(state)
 
         elif action.action == "test_code_hypothesis":
-            action_result, result_data = handle_test_code_hypothesis(state, action.code_hypothesis)
+            action_result, result_data = handle_test_code_hypothesis(
+                state, action.code_hypothesis, min_confidence_threshold
+            )
 
         elif action.action == "submit_code_hypothesis":
             action_result, result_data, should_break = handle_submit_code_hypothesis(
@@ -609,7 +664,11 @@ if __name__ == "__main__":
 
         if state.best_validation:
             print(f"\nValidation:")
-            print(f"  Confirmation rate: {state.best_validation.confirmation_rate:.1%}")
+            print(
+                f"  Confirmation rate: {state.best_validation.confirmation_rate:.1%} "
+                f"(95% CI: {state.best_validation.confirmation_rate_ci_low:.1%}-"
+                f"{state.best_validation.confirmation_rate_ci_high:.1%})"
+            )
             print(f"  Avg ratio: {state.best_validation.avg_makespan_ratio:.4f}")
             print(f"  Validated: {state.best_validation.is_validated}")
     else:

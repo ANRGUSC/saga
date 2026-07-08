@@ -36,7 +36,15 @@ class HypothesisValidationResult(BaseModel):
     confirmation_rate: float = Field(
         description="Percentage of instances that confirmed the hypothesis"
     )
-    is_validated: bool = Field(description="True if confirmation_rate > 0.5")
+    confirmation_rate_ci_low: float = Field(
+        description="Lower bound of the 95% Wilson score confidence interval on confirmation_rate"
+    )
+    confirmation_rate_ci_high: float = Field(
+        description="Upper bound of the 95% Wilson score confidence interval on confirmation_rate"
+    )
+    is_validated: bool = Field(
+        description="True if confirmation_rate >= the run's min_confidence_threshold"
+    )
 
 
 # =============================================================================

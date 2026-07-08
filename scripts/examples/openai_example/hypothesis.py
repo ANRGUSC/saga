@@ -19,6 +19,23 @@ from saga.pisa.simulated_annealing import SCHEDULERS
 from models import CodeHypothesis, HypothesisValidationResult
 
 
+def wilson_confidence_interval(successes: int, n: int, z: float = 1.96) -> Tuple[float, float]:
+    """
+    Wilson score interval for a binomial proportion (default 95% confidence).
+
+    Unlike the naive normal approximation (p +/- z*sqrt(p(1-p)/n)), this stays within
+    [0, 1] and remains well-behaved when p is near 0 or 1 or n is small - all of which
+    happen routinely here (confirmation_rate is frequently 0%, 100%, or based on <100 samples).
+    """
+    if n == 0:
+        return 0.0, 1.0
+    p = successes / n
+    denom = 1 + z**2 / n
+    center = (p + z**2 / (2 * n)) / denom
+    margin = (z * ((p * (1 - p) / n + z**2 / (4 * n**2)) ** 0.5)) / denom
+    return max(0.0, center - margin), min(1.0, center + margin)
+
+
 def execute_code_hypothesis(
     hypothesis: CodeHypothesis,
 ) -> Tuple[Optional[Network], Optional[TaskGraph], Optional[str]]:
@@ -86,7 +103,7 @@ def execute_code_hypothesis(
 
 
 def validate_code_hypothesis(
-    hypothesis: CodeHypothesis, num_instances: int = 50
+    hypothesis: CodeHypothesis, num_instances: int = 50, min_confidence_threshold: float = 0.6
 ) -> HypothesisValidationResult:
     """
     Validate a code hypothesis by generating and testing instances.
@@ -94,6 +111,9 @@ def validate_code_hypothesis(
     Args:
         hypothesis: The code hypothesis to validate
         num_instances: Number of instances to generate and test
+        min_confidence_threshold: Confirmation rate required for is_validated to be True.
+            Must match the threshold the caller uses to accept/reject hypotheses, or
+            is_validated will disagree with the actual accept/reject decision.
 
     Returns:
         HypothesisValidationResult with statistics about the validation
@@ -139,8 +159,12 @@ def validate_code_hypothesis(
             max_makespan_ratio=1.0,
             min_makespan_ratio=1.0,
             confirmation_rate=0.0,
+            confirmation_rate_ci_low=0.0,
+            confirmation_rate_ci_high=1.0,
             is_validated=False,
         )
+
+    ci_low, ci_high = wilson_confidence_interval(confirmations, len(ratios))
 
     return HypothesisValidationResult(
         hypothesis_id=hypothesis.hypothesis_id,
@@ -150,5 +174,7 @@ def validate_code_hypothesis(
         max_makespan_ratio=float(max(ratios)),
         min_makespan_ratio=float(min(ratios)),
         confirmation_rate=float(confirmations / len(ratios)),
-        is_validated=confirmations / len(ratios) > 0.5,
+        confirmation_rate_ci_low=ci_low,
+        confirmation_rate_ci_high=ci_high,
+        is_validated=confirmations / len(ratios) >= min_confidence_threshold,
     )
