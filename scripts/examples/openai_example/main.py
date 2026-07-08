@@ -518,6 +518,8 @@ STRATEGIC PLAN:
 {f'''PREVIOUS REFLECTION:
 Key findings: {previous_reflection.key_findings}
 Hypothesis update: {previous_reflection.hypothesis_update}
+Next question: {previous_reflection.next_question}
+Confidence: {previous_reflection.confidence_assessment}
 ''' if previous_reflection else ''}{action_guidance}
 
 Choose the action that best aligns with the strategic plan.
