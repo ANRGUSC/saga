@@ -658,9 +658,14 @@ class Schedule(BaseModel):
         Returns:
             float: The makespan of the schedule.
         """
-        if not any(self.mapping.values()):
-            return 0.0
-        return max(tasks[-1].end for tasks in self.mapping.values() if tasks)
+        # Use the latest end across all tasks rather than the last task per node:
+        # with an overlap policy, a task may start earlier but finish later than a
+        # later-starting task on the same node, so the last-by-start task is not
+        # necessarily the last to finish. Equivalent for non-overlapping schedules.
+        return max(
+            (task.end for tasks in self.mapping.values() for task in tasks),
+            default=0.0,
+        )
 
     def makespan_if_added(self, task: ScheduledTask) -> float:
         """Return the makespan the schedule would have if `task` were added.

@@ -19,6 +19,7 @@ from saga import (
     ScheduledTask,
     TaskGraph,
     TaskGraphEdge,
+    TaskGraphNode,
 )
 from saga.overlap import AllowOverlapPolicy
 
@@ -211,6 +212,55 @@ class ConditionalTaskGraph(TaskGraph):
         """
         meg = self.build_mutual_exclusion_graph()
         return AllowOverlapPolicy.from_pairs(meg.edges)
+
+
+def compound_probabilities(task_graph: TaskGraph) -> Dict[str, float]:
+    """Probability that each task executes (sum of trace probabilities it appears in).
+
+    Returns 1.0 for every task when the graph is not conditional.
+
+    Args:
+        task_graph: The task graph (conditional or plain).
+
+    Returns:
+        A mapping from task name to its probability of executing.
+    """
+    tasks = [t.name for t in task_graph.tasks]
+
+    if not isinstance(task_graph, ConditionalTaskGraph):
+        return {t: 1.0 for t in tasks}
+
+    probs: Dict[str, float] = {t: 0.0 for t in tasks}
+    for trace in task_graph.identify_traces_detailed():
+        for task_name in trace["tasks"]:
+            probs[task_name] += trace["probability"]
+    return probs
+
+
+def build_weighted_graph(task_graph: TaskGraph) -> TaskGraph:
+    """Return a plain TaskGraph with costs and edge sizes scaled by execute-probability.
+
+    - ``task.cost *= compound_prob(task)``
+    - ``edge.size *= compound_prob(edge.target)``
+
+    On a non-conditional graph all probabilities are 1.0, so the result is an
+    unweighted copy. Used to bias priority rankings toward likely branches.
+
+    Args:
+        task_graph: The task graph to reweight.
+
+    Returns:
+        A plain :class:`TaskGraph` with probability-scaled weights.
+    """
+    probs = compound_probabilities(task_graph)
+    weighted_tasks = frozenset(
+        TaskGraphNode(name=t.name, cost=t.cost * probs[t.name]) for t in task_graph.tasks
+    )
+    weighted_edges = frozenset(
+        TaskGraphEdge(source=e.source, target=e.target, size=e.size * probs[e.target])
+        for e in task_graph.dependencies
+    )
+    return TaskGraph(tasks=weighted_tasks, dependencies=weighted_edges)
 
 
 def extract_trace_schedules(

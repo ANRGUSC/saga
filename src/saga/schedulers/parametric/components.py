@@ -8,6 +8,7 @@ from saga import ConstraintViolation, NetworkNode, Scheduler, ScheduledTask, Tas
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
+from saga.conditional import build_weighted_graph
 from saga import Network, TaskGraph, Schedule
 
 import networkx as nx
@@ -51,6 +52,24 @@ class CPoPRanking(IntialPriority):
 class ArbitraryTopological(IntialPriority):
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         return [task.name for task in task_graph.topological_sort()]
+
+
+class ProbabilityWeighted(IntialPriority):
+    """Rank on the probability-weighted graph, then defer to an inner priority.
+
+    For a conditional task graph, task costs and edge sizes are scaled by each
+    task's probability of executing (:func:`saga.conditional.build_weighted_graph`)
+    before the wrapped priority ranks them, so tasks on likely branches are
+    prioritized. On a non-conditional graph the weighting is a no-op, so this
+    reduces to the wrapped priority.
+    """
+
+    base: IntialPriority = Field(
+        ..., description="The priority strategy applied to the weighted graph."
+    )
+
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+        return self.base.call(network, build_weighted_graph(task_graph))
 
 
 class GreedyInsertCompareFuncs(Enum):
