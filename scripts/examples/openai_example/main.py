@@ -81,7 +81,7 @@ class AgentState:
     logger: ExperimentLogger
     comparison_agent: Any  # The comparison agent instance
     target_scheduler: SchedulerName = "HEFT"
-    baseline_scheduler: SchedulerName = "FastestNode"
+    baseline_scheduler: SchedulerName = "CPoP"
 
     iteration: int = 0
     max_iterations: int = 10
@@ -140,6 +140,7 @@ class AgentState:
             summary_parts.append("\nBest hypothesis so far:")
             summary_parts.append(f"  Name: {self.best_hypothesis.name}")
             summary_parts.append(f"  Reasoning: {self.best_hypothesis.reasoning}")
+            summary_parts.append(f"  Code:\n{self.best_hypothesis.code}")
             if self.best_validation:
                 summary_parts.append(
                     f"  Confirmation rate: {self.best_validation.confirmation_rate:.1%} "
@@ -230,9 +231,17 @@ def handle_test_code_hypothesis(
             "success": False,
         }
 
-    validation = validate_code_hypothesis(
+    # Run two independent validation batches (fresh random instances each) so a single lucky
+    # draw can't get frozen into state.best_validation and drive the forced-submit guidance off
+    # stale, unrepresentative data - the same lesson already applied to submit_code_hypothesis.
+    validation_a = validate_code_hypothesis(
         hypothesis, num_instances=50, min_confidence_threshold=min_confidence_threshold
     )
+    validation_b = validate_code_hypothesis(
+        hypothesis, num_instances=50, min_confidence_threshold=min_confidence_threshold
+    )
+    # Report the more conservative (lower-confirmation) of the two trials.
+    validation = min(validation_a, validation_b, key=lambda v: v.confirmation_rate)
 
     single_instance_detail = test_single_instance(
         hypothesis, state.target_scheduler, state.baseline_scheduler
@@ -240,20 +249,21 @@ def handle_test_code_hypothesis(
 
     result = (
         f"Code hypothesis '{hypothesis.name}': "
-        f"confirmation_rate={validation.confirmation_rate:.1%} "
-        f"(95% CI: {validation.confirmation_rate_ci_low:.1%}-{validation.confirmation_rate_ci_high:.1%}), "
-        f"avg_ratio={validation.avg_makespan_ratio:.4f}\n\n"
-        f"{single_instance_detail}"
+        f"trial_1_confirmation={validation_a.confirmation_rate:.1%}, "
+        f"trial_2_confirmation={validation_b.confirmation_rate:.1%}, "
+        f"avg_ratio={validation.avg_makespan_ratio:.4f}"
+        f"\n\n{single_instance_detail}"
     )
 
-    print(f"\nValidation Results:")
+    print(f"\nValidation Results (two independent 50-instance trials):")
     print(
-        f"  Confirmation rate: {validation.confirmation_rate:.1%} "
-        f"(95% CI: {validation.confirmation_rate_ci_low:.1%}-{validation.confirmation_rate_ci_high:.1%})"
+        f"  Trial 1: confirmation_rate={validation_a.confirmation_rate:.1%} "
+        f"(95% CI: {validation_a.confirmation_rate_ci_low:.1%}-{validation_a.confirmation_rate_ci_high:.1%})"
     )
-    print(f"  Avg makespan ratio: {validation.avg_makespan_ratio:.4f}")
-    print(f"  Max makespan ratio: {validation.max_makespan_ratio:.4f}")
-    print(f"  Min makespan ratio: {validation.min_makespan_ratio:.4f}")
+    print(
+        f"  Trial 2: confirmation_rate={validation_b.confirmation_rate:.1%} "
+        f"(95% CI: {validation_b.confirmation_rate_ci_low:.1%}-{validation_b.confirmation_rate_ci_high:.1%})"
+    )
     print(f"  Validated: {validation.is_validated}")
     print(f"\n{single_instance_detail}")
 
@@ -271,6 +281,8 @@ def handle_test_code_hypothesis(
     return result, {
         "hypothesis_id": hypothesis.hypothesis_id,
         "name": hypothesis.name,
+        "trial_1_confirmation_rate": validation_a.confirmation_rate,
+        "trial_2_confirmation_rate": validation_b.confirmation_rate,
         "confirmation_rate": validation.confirmation_rate,
         "confirmation_rate_ci_low": validation.confirmation_rate_ci_low,
         "confirmation_rate_ci_high": validation.confirmation_rate_ci_high,
@@ -282,12 +294,115 @@ def handle_test_code_hypothesis(
     }
 
 
-def handle_submit_code_hypothesis(
+def handle_refine_code_hypothesis(
     state: AgentState, hypothesis: Optional[CodeHypothesis], min_confidence_threshold: float
-) -> Tuple[str, Dict[str, Any], bool]:
-    """Handle the submit_code_hypothesis action. Returns (result, data, should_break)."""
+) -> Tuple[str, Dict[str, Any]]:
+    """
+    Handle the refine_code_hypothesis action: test a targeted variation of the CURRENT best
+    hypothesis and report explicitly whether it actually improved things. Unlike
+    test_code_hypothesis (which is meant for exploring a genuinely new idea), this is meant for
+    taking the existing best_hypothesis's code and making one small, explained, diagnosed change.
+    """
     if not hypothesis:
-        return "No code_hypothesis provided for submit_code_hypothesis action", {"error": "missing"}, False
+        return "No code_hypothesis provided for refine_code_hypothesis action", {"error": "missing"}
+
+    if state.best_hypothesis is None or state.best_validation is None:
+        return (
+            "No best_hypothesis exists yet to refine - use test_code_hypothesis first to "
+            "establish an initial hypothesis before refining it",
+            {"error": "no_best_hypothesis"},
+        )
+
+    prior_name = state.best_hypothesis.name
+    prior_confirmation = state.best_validation.confirmation_rate
+
+    print(f"\nRefining '{prior_name}' -> '{hypothesis.name}'")
+    print(f"Refinement reasoning: {hypothesis.reasoning}")
+
+    network, task_graph, error = execute_code_hypothesis(hypothesis)
+    if error:
+        print(f"\n Code execution error: {error}")
+        return f"Refined hypothesis FAILED to execute: {error}", {
+            "hypothesis_id": hypothesis.hypothesis_id,
+            "name": hypothesis.name,
+            "error": error,
+            "success": False,
+        }
+
+    validation_a = validate_code_hypothesis(
+        hypothesis, num_instances=50, min_confidence_threshold=min_confidence_threshold
+    )
+    validation_b = validate_code_hypothesis(
+        hypothesis, num_instances=50, min_confidence_threshold=min_confidence_threshold
+    )
+    validation = min(validation_a, validation_b, key=lambda v: v.confirmation_rate)
+
+    delta = validation.confirmation_rate - prior_confirmation
+    verdict = "IMPROVEMENT" if delta > 0.001 else "REGRESSION" if delta < -0.001 else "NO CHANGE"
+
+    single_instance_detail = test_single_instance(
+        hypothesis, state.target_scheduler, state.baseline_scheduler
+    )
+
+    result = (
+        f"Refined '{prior_name}' -> '{hypothesis.name}': "
+        f"confirmation {prior_confirmation:.1%} -> {validation.confirmation_rate:.1%} "
+        f"({delta:+.1%}, {verdict})\n\n{single_instance_detail}"
+    )
+
+    print(
+        f"  {prior_confirmation:.1%} -> {validation.confirmation_rate:.1%} "
+        f"({delta:+.1%}, {verdict})"
+    )
+    print(f"\n{single_instance_detail}")
+
+    state.code_hypotheses_tested.append((hypothesis, validation))
+
+    if validation.confirmation_rate > prior_confirmation:
+        state.best_hypothesis = hypothesis
+        state.best_validation = validation
+        print("  -> Refinement kept as new best hypothesis!")
+    else:
+        print("  -> Refinement did not improve on the prior best - keeping it unchanged.")
+
+    return result, {
+        "hypothesis_id": hypothesis.hypothesis_id,
+        "name": hypothesis.name,
+        "prior_hypothesis_name": prior_name,
+        "prior_confirmation_rate": prior_confirmation,
+        "trial_1_confirmation_rate": validation_a.confirmation_rate,
+        "trial_2_confirmation_rate": validation_b.confirmation_rate,
+        "confirmation_rate": validation.confirmation_rate,
+        "confirmation_rate_ci_low": validation.confirmation_rate_ci_low,
+        "confirmation_rate_ci_high": validation.confirmation_rate_ci_high,
+        "delta": delta,
+        "verdict": verdict,
+        "avg_makespan_ratio": validation.avg_makespan_ratio,
+        "is_validated": validation.is_validated,
+        "success": True,
+    }
+
+
+def handle_submit_code_hypothesis(
+    state: AgentState, min_confidence_threshold: float
+) -> Tuple[str, Dict[str, Any], bool]:
+    """
+    Handle the submit_code_hypothesis action. Returns (result, data, should_break).
+
+    Always re-validates state.best_hypothesis directly - it deliberately IGNORES any
+    code_hypothesis the decision agent may have generated for this action. Submitting is
+    supposed to mean "confirm the hypothesis that already earned best-so-far status," but the
+    decision agent has been observed silently writing a brand-new, unrelated hypothesis and
+    reusing the same name each time it "submits" - so trusting the model's own code_hypothesis
+    field here would validate the wrong thing.
+    """
+    hypothesis = state.best_hypothesis
+    if not hypothesis:
+        return (
+            "No best_hypothesis exists yet - use test_code_hypothesis first before submitting",
+            {"error": "no_best_hypothesis"},
+            False,
+        )
 
     print(f"\nSubmitting code-based hypothesis: {hypothesis.name}")
 
@@ -350,13 +465,11 @@ def handle_submit_code_hypothesis(
         f"need BOTH >= {min_confidence_threshold:.0%})"
     )
     state.code_hypotheses_tested.append((hypothesis, validation))
-    is_new_best = (
-        state.best_validation is None
-        or validation.confirmation_rate > state.best_validation.confirmation_rate
-    )
-    if is_new_best:
-        state.best_hypothesis = hypothesis
-        state.best_validation = validation
+    # This is a larger, more rigorous re-validation of the SAME hypothesis that was already
+    # best_validation - always replace the old (smaller-sample) estimate with this one,
+    # even though it's lower. Otherwise a stale, lucky small-sample number stays frozen in
+    # state and keeps incorrectly triggering the forced-submit guidance every iteration.
+    state.best_validation = validation
 
     return result, result_data, False
 
@@ -368,7 +481,7 @@ def handle_submit_code_hypothesis(
 
 def run_agentic_loop(
     target_scheduler: SchedulerName = "HEFT",
-    baseline_scheduler: SchedulerName = "FastestNode",
+    baseline_scheduler: SchedulerName = "CPoP",
     max_iterations: int = 10,
     min_confidence_threshold: float = 0.6,
 ) -> Tuple[Optional[CodeHypothesis], Optional[HypothesisValidationResult]]:
@@ -530,6 +643,41 @@ When you have a validated hypothesis with >{min_confidence_threshold:.0%} confir
         action = result.output
         logger.log_token_usage("decision", result.usage, MODEL_DECISION.split(":")[-1])
 
+        # Pre-flight dry run: actually execute a fresh code_hypothesis once (cheap - no
+        # scheduler calls, no LLM calls) before committing to the action. execute_code_hypothesis
+        # already catches both compile errors (SyntaxError) and runtime errors (KeyError on a
+        # missing weight=, NetworkXUnfeasible on a cyclic graph, IndexError, etc.) and returns a
+        # helpful, specific message for each. If it fails, give the decision agent one immediate,
+        # targeted chance to fix it - rather than waiting a full external iteration to find out.
+        if action.action in ("test_code_hypothesis", "refine_code_hypothesis") and action.code_hypothesis:
+            _, _, preflight_error = execute_code_hypothesis(action.code_hypothesis)
+            if preflight_error:
+                print(f"\n Pre-flight check failed: {preflight_error}\nRequesting one immediate fix...")
+                fix_prompt = f"""Your previously generated code_hypothesis fails when executed:
+
+{preflight_error}
+
+BROKEN CODE:
+```python
+{action.code_hypothesis.code}
+```
+
+Your response MUST set action='{action.action}' and MUST include a code_hypothesis field - do
+not omit it. Reuse the SAME code_hypothesis name, reasoning, and schedulers, but with the `code`
+field corrected so it runs successfully.
+"""
+                fix_result = decision_agent.run_sync(fix_prompt)
+                logger.log_token_usage("decision", fix_result.usage, MODEL_DECISION.split(":")[-1])
+                fixed_hypothesis = fix_result.output.code_hypothesis
+                retry_error = "no code_hypothesis returned"
+                if fixed_hypothesis:
+                    _, _, retry_error = execute_code_hypothesis(fixed_hypothesis)
+                if not retry_error:
+                    action = fix_result.output
+                    print(" Fix succeeded - code now runs cleanly.")
+                else:
+                    print(f" Fix attempt still fails ({retry_error}) - proceeding, will be reported as a failure.")
+
         print(f"\n ACTION: {action.action}")
         print(f"   Reasoning: {action.reasoning}")
 
@@ -568,14 +716,20 @@ When you have a validated hypothesis with >{min_confidence_threshold:.0%} confir
                 state, action.code_hypothesis, min_confidence_threshold
             )
 
+        elif action.action == "refine_code_hypothesis":
+            action_result, result_data = handle_refine_code_hypothesis(
+                state, action.code_hypothesis, min_confidence_threshold
+            )
+
         elif action.action == "submit_code_hypothesis":
             action_result, result_data, should_break = handle_submit_code_hypothesis(
-                state, action.code_hypothesis, min_confidence_threshold
+                state, min_confidence_threshold
             )
 
         logger.log_action_result(action_result, result_data)
 
         if should_break:
+            logger.finalize_iteration()
             break
 
         # PHASE 3: REFLECTION
@@ -700,7 +854,7 @@ def main():
     """Run the agentic hypothesis generation system."""
     hypothesis, validation = run_agentic_loop(
         target_scheduler="HEFT",
-        baseline_scheduler="FastestNode",
+        baseline_scheduler="CPoP",
         max_iterations=10,
         min_confidence_threshold=0.6,
     )

@@ -380,6 +380,13 @@ class ExperimentLogger:
                         f"avg_ratio={result_data.get('avg_makespan_ratio', 'N/A')}"
                     )
 
+                    t1 = result_data.get("trial_1_confirmation_rate")
+                    t2 = result_data.get("trial_2_confirmation_rate")
+                    if t1 is not None and t2 is not None:
+                        lines.append(
+                            f"     Two-trial check: trial_1={t1:.1%}, trial_2={t2:.1%}"
+                        )
+
             reflection = it.get("reflection", {})
             if reflection:
                 findings = reflection.get("key_findings", [])

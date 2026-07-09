@@ -166,6 +166,7 @@ class AgentAction(BaseModel):
         "read_source_code",
         "run_pisa",
         "test_code_hypothesis",
+        "refine_code_hypothesis",
         "submit_code_hypothesis",
     ] = Field(..., description="The action to take")
     reasoning: str = Field(..., description="Why this action was chosen")

@@ -212,9 +212,10 @@ and a critical path of tasks that begin with a task that has a significantly hig
 - **Next Steps**: Test our revised hypothesis. Establishing examples where MinMin performs worse than MaxMin will help us to
   answer our key unkowns about the specific task graph structures and network characteristics that cause
   the hypothesised performance gap.
-- **Immediate Action**: Write a revised test_code_hypothesis with more extreme task-weight asymmetry — the
-  critical-path head task should be 5–10x heavier than the independent task, so MinMin's ECT comparison
-  reliably picks the wrong task first. Keep the network configuration from the PISA example.
+- **Immediate Action**: Use refine_code_hypothesis to take the current best hypothesis's existing code
+  and increase the task-weight asymmetry — the critical-path head task should be 5–10x heavier than the
+  independent task, so MinMin's ECT comparison reliably picks the wrong task first. Keep everything else
+  (network configuration, topology) exactly as in the current best hypothesis; change only this one ratio.
 - **Success Criteria**: Confirmation rate ≥ 70% with low variance (std < 0.2), demonstrating the structural
   pattern is reliably adversarial rather than sensitive to instance randomness.
 
@@ -453,19 +454,49 @@ CRITICAL: You are looking for cases where the makespan ratio > 1.0, meaning targ
        return network, task_graph
    ```
 
-5. **submit_code_hypothesis**: Submit your best code hypothesis when confirmed >60%
+5. **refine_code_hypothesis**: Take the CURRENT best hypothesis (its full code is shown to you
+   above, under "Best hypothesis so far") and make ONE targeted, explained change to it - do NOT
+   rewrite it from scratch. Use this instead of test_code_hypothesis whenever your reflection on
+   the last result identified a SPECIFIC, diagnosable thing to try differently (e.g., "task X
+   kept landing on the same node in both schedulers - try increasing its communication cost," or
+   "confirmation dropped when the network had 4 processors - try fixing it at 3"). Set
+   code_hypothesis exactly like test_code_hypothesis, but start from the best hypothesis's actual
+   code shown above and change only the specific thing your reasoning calls out - keep everything
+   else (task names, overall topology, unrelated weight ranges) the same. The result will report
+   your change's exact before/after confirmation rate delta, so you can see whether it actually
+   helped.
+
+   Prefer this over test_code_hypothesis once you have any working hypothesis (even a weak one)
+   and a specific hypothesis about WHY it isn't better yet - writing something unrelated from
+   scratch throws away everything you already learned about this specific hypothesis.
+
+6. **submit_code_hypothesis**: Confirms and finalizes your current best-so-far hypothesis (the
+   one that already earned the highest confirmation rate from a previous test_code_hypothesis or
+   refine_code_hypothesis call) with a larger, more rigorous validation. You do NOT need to (and
+   should not) provide a code_hypothesis for this action - it is ignored. This action always
+   re-validates the actual stored best hypothesis's code, not anything you write here. If you
+   want to submit a DIFFERENT/improved hypothesis, you must first get it tested and confirmed as
+   the new best via test_code_hypothesis or refine_code_hypothesis - only then will
+   submit_code_hypothesis operate on it.
 
 ## Recommended Strategy
 
 Iteration 1: compare_algorithms (understand the algorithms)
 Iteration 2: run_pisa (find adversarial patterns automatically)
-Iteration 3+: test_code_hypothesis (write code based on PISA insights)
+Iteration 3: test_code_hypothesis (write an initial hypothesis based on PISA insights)
+Iteration 4+: refine_code_hypothesis (make ONE targeted change to the best hypothesis at a time,
+  based on the SPECIFIC thing the last reflection identified) - only fall back to a fresh
+  test_code_hypothesis if the current best hypothesis's whole approach seems like a dead end.
 Final: submit_code_hypothesis when >60% confirmation rate
 
 IMPORTANT GUIDELINES:
-- After iteration 2, you should PRIMARILY use test_code_hypothesis
+- After you have one working hypothesis, PREFER refine_code_hypothesis over test_code_hypothesis -
+  a series of small, explained, targeted changes to one hypothesis teaches you far more than a
+  series of unrelated fresh rewrites, and lets you actually attribute cause and effect.
 - Do NOT keep running run_pisa repeatedly - 1-2 PISA runs is enough to get patterns
-- If a code hypothesis fails (confirmation_rate < 50%), write a NEW code hypothesis with DIFFERENT structure
+- If a code hypothesis fails (confirmation_rate < 50%) and you don't have a specific diagnosis for
+  why, write a NEW code hypothesis with DIFFERENT structure via test_code_hypothesis. If you DO
+  have a specific diagnosis, use refine_code_hypothesis instead of starting over.
 - Look at PISA results for specific task/network patterns and REPLICATE them in code
 - If confirmation_rate is 0% or ratio is exactly 1.0, your code may have a bug - check the structure
 
