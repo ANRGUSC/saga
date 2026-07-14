@@ -22,6 +22,14 @@ def test_std_of_infinite_sample_is_not_nan():
 
 def test_std_of_normal_samples_unchanged():
     assert RandomVariable(samples=[1.0, 2.0]).std() == 0.5
+    # All-equal finite samples are genuinely zero-variance too.
+    assert RandomVariable(samples=[5.0, 5.0, 5.0]).variance() == 0.0
+
+
+def test_mixed_finite_and_infinite_samples_are_not_masked():
+    # Only the all-equal degenerate case is treated as zero variance; a real
+    # mix of finite and infinite samples must not be silently reported as 0.
+    assert RandomVariable(samples=[1.0, math.inf]).variance() != 0.0
 
 
 def test_sheft_schedules_with_auto_added_infinite_self_loops():

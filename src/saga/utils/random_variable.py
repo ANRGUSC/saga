@@ -358,14 +358,19 @@ class RandomVariable(BaseModel):
     def variance(self) -> float:
         """The variance of the random variable.
 
-        Degenerate sample sets (a single sample, or samples containing
-        infinities) make ``np.var`` return ``NaN`` (e.g. ``inf - inf``). Treat
-        those as zero variance so downstream statistics such as mean + std
-        determinization do not propagate ``NaN``.
+        Samples that are all identical have zero variance. When they are also
+        infinite (e.g. the infinite self-loop speeds SAGA auto-adds), ``np.var``
+        returns ``NaN`` from ``inf - inf`` instead of 0; return 0 for that
+        all-equal case so degenerate random variables do not propagate ``NaN``
+        into downstream statistics such as mean + std determinization. Genuinely
+        mixed samples (finite values with infinities, or ``NaN`` samples) are
+        left untouched so invalid inputs are not silently masked.
         """
+        arr = self.samples_arr
+        if len(arr) > 0 and bool(np.all(arr == arr[0])):
+            return 0.0
         with np.errstate(invalid="ignore"):
-            result = float(np.var(self.samples_arr))
-        return 0.0 if np.isnan(result) else result
+            return float(np.var(arr))
 
     def var(self) -> float:
         """The variance of the random variable."""
