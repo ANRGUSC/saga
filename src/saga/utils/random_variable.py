@@ -356,8 +356,16 @@ class RandomVariable(BaseModel):
         return self.expectation()
 
     def variance(self) -> float:
-        """The variance of the random variable."""
-        return float(np.var(self.samples_arr))
+        """The variance of the random variable.
+
+        Degenerate sample sets (a single sample, or samples containing
+        infinities) make ``np.var`` return ``NaN`` (e.g. ``inf - inf``). Treat
+        those as zero variance so downstream statistics such as mean + std
+        determinization do not propagate ``NaN``. See issue #59.
+        """
+        with np.errstate(invalid="ignore"):
+            result = float(np.var(self.samples_arr))
+        return 0.0 if np.isnan(result) else result
 
     def var(self) -> float:
         """The variance of the random variable."""
@@ -365,7 +373,7 @@ class RandomVariable(BaseModel):
 
     def std(self) -> float:
         """The standard deviation of the random variable."""
-        return np.sqrt(self.variance())
+        return float(np.sqrt(self.variance()))
 
 
 class UniformRandomVariable(RandomVariable):
