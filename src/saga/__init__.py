@@ -139,12 +139,37 @@ class Network(BaseModel):
             task_graph.dependencies
         )
         avg_comp_time = avg_task_cost / avg_node_speed
-        link_speed = avg_data_size / (target_ccr * avg_comp_time)
+        # Target mean inter-node link speed so the network hits target_ccr,
+        # where CCR = (avg_data_size / mean_link_speed) / avg_comp_time.
+        target_link_speed = avg_data_size / (target_ccr * avg_comp_time)
+
+        # Scale each inter-node link by a common factor so their mean speed
+        # equals target_link_speed. This preserves the relative heterogeneity
+        # of the links instead of flattening every edge to a single value.
+        # Self-loops (source == target, representing local memory) are left
+        # untouched.
+        inter_node_edges = [edge for edge in self.edges if edge.source != edge.target]
+        current_mean_speed = (
+            sum(edge.speed for edge in inter_node_edges) / len(inter_node_edges)
+            if inter_node_edges
+            else 0.0
+        )
+        scale = (
+            target_link_speed / current_mean_speed if current_mean_speed > 0 else 1.0
+        )
+
         scaled_edges: Set[NetworkEdge] = set()
         for edge in self.edges:
-            scaled_edges.add(
-                NetworkEdge(source=edge.source, target=edge.target, speed=link_speed)
-            )
+            if edge.source == edge.target:
+                scaled_edges.add(edge)
+            else:
+                scaled_edges.add(
+                    NetworkEdge(
+                        source=edge.source,
+                        target=edge.target,
+                        speed=edge.speed * scale,
+                    )
+                )
         network = Network.create(nodes=self.nodes, edges=frozenset(scaled_edges))
         return network
 
