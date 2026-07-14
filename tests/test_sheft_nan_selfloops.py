@@ -4,7 +4,7 @@ StochasticNetwork.create fills missing self-loops with infinite speed wrapped
 in a single-sample RandomVariable. ``std([inf])`` used to be ``NaN``, so SHEFT's
 mean + std determinization turned self-loop speeds into ``NaN``, poisoned
 upward_rank, and surfaced as a baffling "Parent task not scheduled yet" deep
-inside HEFT. See issue #59.
+inside HEFT.
 """
 
 import math

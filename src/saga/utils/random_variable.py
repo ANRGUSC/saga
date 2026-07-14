@@ -361,7 +361,7 @@ class RandomVariable(BaseModel):
         Degenerate sample sets (a single sample, or samples containing
         infinities) make ``np.var`` return ``NaN`` (e.g. ``inf - inf``). Treat
         those as zero variance so downstream statistics such as mean + std
-        determinization do not propagate ``NaN``. See issue #59.
+        determinization do not propagate ``NaN``.
         """
         with np.errstate(invalid="ignore"):
             result = float(np.var(self.samples_arr))
