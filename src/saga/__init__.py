@@ -154,9 +154,12 @@ class Network(BaseModel):
             if inter_node_edges
             else 0.0
         )
-        scale = (
-            target_link_speed / current_mean_speed if current_mean_speed > 0 else 1.0
-        )
+        if current_mean_speed <= 0:
+            raise ValueError(
+                "Cannot scale to target CCR: network has no inter-node links "
+                "with positive speed."
+            )
+        scale = target_link_speed / current_mean_speed
 
         scaled_edges: Set[NetworkEdge] = set()
         for edge in self.edges:

@@ -76,3 +76,12 @@ def test_scale_to_ccr_rejects_nonpositive_target():
     network, task_graph = _make_instance()
     with pytest.raises(ValueError):
         network.scale_to_ccr(task_graph, target_ccr=0.0)
+
+
+def test_scale_to_ccr_rejects_network_without_inter_node_links():
+    # A single-node network has only a self-loop, so the target CCR is
+    # unachievable and scaling should fail fast rather than no-op.
+    _, task_graph = _make_instance()
+    network = Network.create(nodes=[("A", 1.0)], edges=[])
+    with pytest.raises(ValueError):
+        network.scale_to_ccr(task_graph, target_ccr=1.0)
