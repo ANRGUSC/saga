@@ -1,0 +1,180 @@
+"""
+Hypothesis execution and validation.
+
+This module provides functions for:
+- Safely executing code-based hypotheses
+- Validating hypotheses across multiple instances
+"""
+
+import random
+from itertools import product
+from typing import Any, Dict, List, Optional, Tuple
+
+import networkx as nx
+import numpy as np
+
+from saga import Network, TaskGraph
+from saga.pisa.simulated_annealing import SCHEDULERS
+
+from models import CodeHypothesis, HypothesisValidationResult
+
+
+def wilson_confidence_interval(successes: int, n: int, z: float = 1.96) -> Tuple[float, float]:
+    """
+    Wilson score interval for a binomial proportion (default 95% confidence).
+
+    Unlike the naive normal approximation (p +/- z*sqrt(p(1-p)/n)), this stays within
+    [0, 1] and remains well-behaved when p is near 0 or 1 or n is small - all of which
+    happen routinely here (confirmation_rate is frequently 0%, 100%, or based on <100 samples).
+    """
+    if n == 0:
+        return 0.0, 1.0
+    p = successes / n
+    denom = 1 + z**2 / n
+    center = (p + z**2 / (2 * n)) / denom
+    margin = (z * ((p * (1 - p) / n + z**2 / (4 * n**2)) ** 0.5)) / denom
+    return max(0.0, center - margin), min(1.0, center + margin)
+
+
+def execute_code_hypothesis(
+    hypothesis: CodeHypothesis,
+) -> Tuple[Optional[Network], Optional[TaskGraph], Optional[str]]:
+    """
+    Safely execute a code hypothesis to generate an instance.
+
+    Returns:
+        (network, task_graph, error_message)
+        If successful, error_message is None.
+        If failed, network and task_graph are None and error_message contains the error.
+    """
+    exec_globals = {
+        "nx": nx,
+        "np": np,
+        "random": random,
+        "product": product,
+        "Network": Network,
+        "TaskGraph": TaskGraph,
+        "Tuple": Tuple,
+        "List": List,
+        "Dict": Dict,
+    }
+    exec_locals: Dict[str, Any] = {}
+
+    try:
+        exec(hypothesis.code, exec_globals, exec_locals)
+
+        if "get_instance" not in exec_locals:
+            return None, None, "Code must define a 'get_instance()' function"
+
+        get_instance = exec_locals["get_instance"]
+        result = get_instance()
+
+        if not isinstance(result, tuple) or len(result) != 2:
+            return None, None, "get_instance() must return a tuple of (Network, TaskGraph)"
+
+        network, task_graph = result
+
+        if not isinstance(network, Network):
+            return None, None, f"First element must be Network, got {type(network)}"
+        if not isinstance(task_graph, TaskGraph):
+            return None, None, f"Second element must be TaskGraph, got {type(task_graph)}"
+
+        return network, task_graph, None
+
+    except KeyError as e:
+        if str(e) == "'weight'":
+            return None, None, (
+                "Error executing code: KeyError: 'weight'. "
+                "A node or edge was added to the DAG or network graph without a weight= kwarg. "
+                "Check EVERY dag.add_node(...), dag.add_edge(...), net.add_node(...), and "
+                "net.add_edge(...) call in your code and make sure each one passes weight=."
+            )
+        return None, None, f"Error executing code: KeyError: {e}"
+    except SyntaxError as e:
+        return None, None, (
+            f"Error executing code: SyntaxError: {e}. "
+            "Your ENTIRE code must be a SINGLE get_instance() function that itself returns "
+            "(network, task_graph). Do not define any other top-level function, and do not "
+            "place any statement - including the final return - outside get_instance()'s body. "
+            "If you need a helper, nest it inside get_instance() or inline the logic."
+        )
+    except Exception as e:
+        return None, None, f"Error executing code: {type(e).__name__}: {str(e)}"
+
+
+def validate_code_hypothesis(
+    hypothesis: CodeHypothesis, num_instances: int = 50, min_confidence_threshold: float = 0.6
+) -> HypothesisValidationResult:
+    """
+    Validate a code hypothesis by generating and testing instances.
+
+    Args:
+        hypothesis: The code hypothesis to validate
+        num_instances: Number of instances to generate and test
+        min_confidence_threshold: Confirmation rate required for is_validated to be True.
+            Must match the threshold the caller uses to accept/reject hypotheses, or
+            is_validated will disagree with the actual accept/reject decision.
+
+    Returns:
+        HypothesisValidationResult with statistics about the validation
+    """
+    worse_scheduler = SCHEDULERS[hypothesis.worse_scheduler]
+    better_scheduler = SCHEDULERS[hypothesis.better_scheduler]
+
+    ratios = []
+    confirmations = 0
+    errors = 0
+
+    for _ in range(num_instances):
+        network, task_graph, error = execute_code_hypothesis(hypothesis)
+
+        if error:
+            errors += 1
+            if errors > 5:
+                break
+            continue
+
+        try:
+            if network is None or task_graph is None:
+                raise ValueError("Generated instance is None")
+
+            worse_schedule = worse_scheduler.schedule(network, task_graph)
+            better_schedule = better_scheduler.schedule(network, task_graph)
+
+            ratio = worse_schedule.makespan / better_schedule.makespan
+            ratios.append(ratio)
+
+            if ratio > 1.0:
+                confirmations += 1
+        except Exception:
+            errors += 1
+            continue
+
+    if not ratios:
+        return HypothesisValidationResult(
+            hypothesis_id=hypothesis.hypothesis_id,
+            num_instances_tested=0,
+            num_instances_confirmed=0,
+            avg_makespan_ratio=1.0,
+            max_makespan_ratio=1.0,
+            min_makespan_ratio=1.0,
+            confirmation_rate=0.0,
+            confirmation_rate_ci_low=0.0,
+            confirmation_rate_ci_high=1.0,
+            is_validated=False,
+        )
+
+    ci_low, ci_high = wilson_confidence_interval(confirmations, len(ratios))
+
+    return HypothesisValidationResult(
+        hypothesis_id=hypothesis.hypothesis_id,
+        num_instances_tested=len(ratios),
+        num_instances_confirmed=confirmations,
+        avg_makespan_ratio=float(np.mean(ratios)),
+        max_makespan_ratio=float(max(ratios)),
+        min_makespan_ratio=float(min(ratios)),
+        confirmation_rate=float(confirmations / len(ratios)),
+        confirmation_rate_ci_low=ci_low,
+        confirmation_rate_ci_high=ci_high,
+        is_validated=confirmations / len(ratios) >= min_confidence_threshold,
+    )

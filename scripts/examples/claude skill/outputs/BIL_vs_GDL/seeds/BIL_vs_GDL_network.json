@@ -1,0 +1,72 @@
+{
+  "nodes": [
+    {
+      "name": "1",
+      "speed": 0.6981157046416699
+    },
+    {
+      "name": "0",
+      "speed": 0.4431131817225517
+    },
+    {
+      "name": "2",
+      "speed": 0.4870510411770449
+    },
+    {
+      "name": "3",
+      "speed": 0.9599097903038555
+    }
+  ],
+  "edges": [
+    {
+      "source": "0",
+      "target": "2",
+      "speed": 1.0
+    },
+    {
+      "source": "2",
+      "target": "2",
+      "speed": 1000000000.0
+    },
+    {
+      "source": "2",
+      "target": "3",
+      "speed": 1.0
+    },
+    {
+      "source": "1",
+      "target": "2",
+      "speed": 1.0
+    },
+    {
+      "source": "0",
+      "target": "1",
+      "speed": 1.0
+    },
+    {
+      "source": "1",
+      "target": "3",
+      "speed": 1.0
+    },
+    {
+      "source": "3",
+      "target": "3",
+      "speed": 1000000000.0
+    },
+    {
+      "source": "0",
+      "target": "0",
+      "speed": 1000000000.0
+    },
+    {
+      "source": "0",
+      "target": "3",
+      "speed": 1.0
+    },
+    {
+      "source": "1",
+      "target": "1",
+      "speed": 1000000000.0
+    }
+  ]
+}
