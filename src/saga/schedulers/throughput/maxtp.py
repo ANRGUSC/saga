@@ -1,6 +1,13 @@
-from typing import Dict, List, Optional
+from typing import Dict, Optional, Set
 
-from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph
+from saga import (
+    ConstraintViolation,
+    Network,
+    Schedule,
+    Scheduler,
+    ScheduledTask,
+    TaskGraph,
+)
 
 
 class MaxTPScheduler(Scheduler):
@@ -18,6 +25,7 @@ class MaxTPScheduler(Scheduler):
         task_graph: TaskGraph,
         schedule: Optional[Schedule] = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedules the task graph on the network.
 
@@ -26,11 +34,13 @@ class MaxTPScheduler(Scheduler):
             task_graph (TaskGraph): The task graph.
             schedule (Optional[Schedule]): Optional initial schedule. Defaults to None.
             min_start_time (float): Minimum start time for tasks. Defaults to 0.0.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints, applied only when a new schedule is constructed; a passed
+                schedule uses its own constraints.
 
         Returns:
             Schedule: The schedule.
         """
-        comp_schedule = Schedule(task_graph, network)
         scheduled: Dict[str, ScheduledTask] = {}
 
         if schedule is not None:
@@ -38,9 +48,9 @@ class MaxTPScheduler(Scheduler):
             scheduled = {
                 task.name: task for _, tasks in schedule.items() for task in tasks
             }
+        else:
+            comp_schedule = Schedule(task_graph, network, node_constraints=node_constraints)
 
-        # Sort so tie-breaking is PYTHONHASHSEED-independent (network.nodes is a frozenset).
-        node_names = sorted(node.name for node in network.nodes)
         num_tasks = len(list(task_graph.tasks))
 
         while len(scheduled) < num_tasks:
@@ -58,6 +68,18 @@ class MaxTPScheduler(Scheduler):
             )
 
             largest_task = max(available_tasks, key=lambda task: task.cost)
+
+            allowed = comp_schedule.allowed_nodes(largest_task.name)
+            # Sort so tie-breaking is PYTHONHASHSEED-independent (network.nodes is a frozenset).
+            node_names = sorted(
+                node.name for node in network.nodes
+                if allowed is None or node.name in allowed
+            )
+            if not node_names:
+                raise ConstraintViolation(
+                    f"Task {largest_task.name} has no allowed node in the network "
+                    f"(constraint: {sorted(allowed) if allowed else allowed})."
+                )
 
             best_task: Optional[ScheduledTask] = None
             for node_name in node_names:

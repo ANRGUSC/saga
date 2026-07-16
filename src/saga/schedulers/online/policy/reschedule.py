@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, TYPE_CHECKING
-import random
+
+import numpy as np
 
 from saga import Schedule, ScheduledTask
 from saga.schedulers.parametric import ParametricScheduler
@@ -122,12 +123,10 @@ class ConditionalReschedulePolicy(OnlinePolicy):
 
 
 class RandomReschedulePolicy10(OnlinePolicy):
+    """Reschedules with fixed 1-in-10 probability on each step, independent of state."""
 
-    def evaluate_reschedule(self):
-        if random.randint(1,10) == 1:
-            return True
-        return False
-
+    def evaluate_reschedule(self) -> bool:
+        return np.random.randint(1, 11) == 1
 
     def update(self, environment: "Environment") -> Optional[Schedule]:
         if not isinstance(environment.scheduler, ParametricScheduler):
@@ -137,8 +136,7 @@ class RandomReschedulePolicy10(OnlinePolicy):
                 "this may raise at runtime.",
                 type(environment.scheduler).__name__,
             )
-        last_finished = max(environment.finished_tasks, key=lambda t: t.end)
-        if not self.evaluate_reschedule(scheduled_task=last_finished, environment=environment):
+        if not self.evaluate_reschedule():
             return environment.schedule
 
         partial = build_partial_schedule(environment)
@@ -165,4 +163,89 @@ class RandomReschedulePolicy10(OnlinePolicy):
                 min_start_time=environment.current_time,
             )
         return new_schedule
-    
+
+
+class RandomReschedulePolicy25(OnlinePolicy):
+    """Reschedules with fixed 1-in-4 (25%) probability on each step, independent of state."""
+
+    def evaluate_reschedule(self) -> bool:
+        return np.random.randint(1, 5) == 1
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule():
+            return environment.schedule
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )[0]
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule
+
+
+class RandomReschedulePolicy50(OnlinePolicy):
+    """Reschedules with fixed 1-in-2 (50%) probability on each step, independent of state."""
+
+    def evaluate_reschedule(self) -> bool:
+        return np.random.randint(1, 3) == 1
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule():
+            return environment.schedule
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )[0]
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule

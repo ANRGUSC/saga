@@ -50,13 +50,23 @@ class OnlinePolicy(ABC):
 
 # Concrete policies. Imported after OnlinePolicy is defined (they subclass it);
 # re-exported for `from ...policy import X`.
-from saga.schedulers.online.policy.reschedule import ReschedulePolicy  # noqa: E402
+from saga.schedulers.online.policy.reschedule import (  # noqa: E402
+    ReschedulePolicy,
+    ConditionalReschedulePolicy,
+    RandomReschedulePolicy10,
+    RandomReschedulePolicy25,
+    RandomReschedulePolicy50,
+)
 from saga.schedulers.online.policy.inspirit import InspiritPolicy  # noqa: E402
 from saga.schedulers.online.policy.frontier_fill import FrontierFillPolicy  # noqa: E402
 
 __all__ = [
     "OnlinePolicy",
     "ReschedulePolicy",
+    "ConditionalReschedulePolicy",
+    "RandomReschedulePolicy10",
+    "RandomReschedulePolicy25",
+    "RandomReschedulePolicy50",
     "InspiritPolicy",
     "FrontierFillPolicy",
 ]

@@ -19,14 +19,23 @@ from saga.utils.draw import gradient_heatmap
 # per-realization identity: the best config is chosen within one of these groups
 INSTANCE_KEYS = ["Workflow", "CCR", "Instance", "Seed"]
 
-_POLICY_RANK = {"reschedule": 0, "inspirit": 1, "static": 2}
+_POLICY_RANK = {
+    "reschedule": 0,
+    "conditional": 1,
+    "random50": 2,
+    "random25": 3,
+    "random10": 4,
+    "static": 5,
+}
+_STANDALONE_RANK = {"FastestNode": 0, "MaxTP": 1}
 
 
 def scheduler_order(name: str):
     """Sort key placing throughput bases above EFT, HEFT above CPoP, reschedule above
-    inspirit above static, with FastestNode last. Smaller sorts toward the top row."""
-    if name == "FastestNode":
-        return (2, 0, 0)
+    conditional above the random policies above static, with FastestNode/MaxTP last.
+    Smaller sorts toward the top row."""
+    if name in _STANDALONE_RANK:
+        return (2, 0, _STANDALONE_RANK[name])
     base, policy = name.split("_", 1)
     comparator = 0 if base.endswith("-Tp") else 1
     algo = 0 if base.startswith("HEFT") else 1

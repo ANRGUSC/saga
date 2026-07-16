@@ -4,9 +4,11 @@ Runs one branch x regime over the scheduler grid and writes a tidy CSV of realiz
 throughput, one row per (workflow, ccr, instance, seed, scheduler).
 
 Schedulers: the four bases (HEFT, CPoP, HEFT-Tp, CPoP-Tp) under each policy, plus
-FastestNode. HEFT/CPoP are the classic EFT configs; the -Tp variants swap the placement
-comparator for the throughput bottleneck. Policies are static and inspirit in both
-regimes, plus reschedule in the stochastic regime (offline it equals static).
+FastestNode and MaxTP. HEFT/CPoP are the classic EFT configs; the -Tp variants swap the
+placement comparator for the throughput bottleneck. Policies are static in both regimes,
+plus reschedule/conditional/random10/random25/random50 in the stochastic regime (offline
+it equals static). FastestNode and MaxTP are standalone heuristics run with no policy
+layered on top.
 
 Evaluation is parallelized across instances with a small process pool (capped at 4).
 
@@ -29,8 +31,15 @@ from common import resultsdir
 from instances import base_instances, scaled, workflows_for
 
 from saga.schedulers import FastestNodeScheduler
+from saga.schedulers.throughput import MaxTPScheduler
 from saga.schedulers.online.environment import Environment, StochasticEnvironment
-from saga.schedulers.online.policy import ReschedulePolicy, InspiritPolicy
+from saga.schedulers.online.policy import (
+    ReschedulePolicy,
+    ConditionalReschedulePolicy,
+    RandomReschedulePolicy10,
+    RandomReschedulePolicy25,
+    RandomReschedulePolicy50,
+)
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
     UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs,
@@ -64,19 +73,28 @@ BASES = {
     "HEFT-Tp": lambda: _base(UpwardRanking, False, TP),
     "CPoP-Tp": lambda: _base(CPoPRanking, True, TP),
 }
-_POLICIES = {"static": lambda: None, "inspirit": InspiritPolicy, "reschedule": ReschedulePolicy}
+_POLICIES = {
+    "static": lambda: None,
+    "reschedule": ReschedulePolicy,
+    "conditional": ConditionalReschedulePolicy,
+    "random10": RandomReschedulePolicy10,
+    "random25": RandomReschedulePolicy25,
+    "random50": RandomReschedulePolicy50,
+}
+_STOCHASTIC_POLICIES = ["reschedule", "conditional", "random10", "random25", "random50"]
+_STANDALONE_SCHEDULERS = {"FastestNode": FastestNodeScheduler, "MaxTP": MaxTPScheduler}
 
 
 def config_names(regime: str):
-    """Config names in the scheduler grid for a regime (reschedule only when stochastic)."""
-    policies = ["static", "inspirit"] + (["reschedule"] if regime == "stochastic" else [])
-    return [f"{b}_{p}" for b in BASES for p in policies] + ["FastestNode"]
+    """Config names in the scheduler grid for a regime (reschedule family only when stochastic)."""
+    policies = ["static"] + (_STOCHASTIC_POLICIES if regime == "stochastic" else [])
+    return [f"{b}_{p}" for b in BASES for p in policies] + list(_STANDALONE_SCHEDULERS)
 
 
 def build_config(name: str):
     """Reconstruct (scheduler, policy) from a config name (picklable across processes)."""
-    if name == "FastestNode":
-        return FastestNodeScheduler(), None
+    if name in _STANDALONE_SCHEDULERS:
+        return _STANDALONE_SCHEDULERS[name](), None
     base, policy = name.split("_", 1)
     return BASES[base](), _POLICIES[policy]()
 
