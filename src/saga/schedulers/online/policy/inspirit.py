@@ -312,7 +312,7 @@ class InspiritPolicy(OnlinePolicy):
             )[0]
             env.estimate_schedule = new_estimate
             realized = new_estimate.determinize(env.actual_network, env.actual_task_graph)
-            env.schedule_actual = realized
+            env.schedule = realized
             return realized
         if env.scheduler is None:
             raise ValueError("InspiritPolicy requires environment.scheduler to be set.")

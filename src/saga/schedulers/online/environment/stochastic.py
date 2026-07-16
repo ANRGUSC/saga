@@ -61,7 +61,7 @@ class StochasticEnvironment(Environment):
             network=network, task_graph=task_graph, node_constraints=node_constraints
         )
         self.estimate_schedule: StochasticSchedule = self.initial_estimate_schedule
-        self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
+        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
 
     def reset(self) -> None:
         super().reset()
@@ -75,21 +75,19 @@ class StochasticEnvironment(Environment):
             node_constraints=self.node_constraints,
         )
         self.estimate_schedule = self.initial_estimate_schedule
-        self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
-        self.schedule = self.schedule_actual
+        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
 
     def _update_task_state(self) -> None:
         """Recompute all four task-state sets from the current schedule and task graph."""
-        self.schedule_actual = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
-        self.schedule = self.schedule_actual
-        self.finished_tasks = super().get_finished_tasks(self.schedule_actual)
-        self.running_tasks = super().get_running_tasks(self.schedule_actual)
+        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
+        self.finished_tasks = super().get_finished_tasks(self.schedule)
+        self.running_tasks = super().get_running_tasks(self.schedule)
 
         finished_names = {t.name for t in self.finished_tasks}
         committed_names = finished_names | {t.name for t in self.running_tasks}
 
         self.ready_tasks = set()
-        for tasks in self.schedule_actual.mapping.values():
+        for tasks in self.schedule.mapping.values():
             for task in tasks:
                 if task.name in committed_names:
                     continue

@@ -19,7 +19,7 @@ def build_partial_schedule(environment: "Environment") -> Schedule:
         node_constraints=environment.node_constraints,
     )
     if isinstance(environment, StochasticEnvironment):
-        environment.schedule_actual = environment.estimate_schedule.determinize(
+        environment.schedule = environment.estimate_schedule.determinize(
             environment.actual_network, environment.actual_task_graph
         )
         for task in environment.finished_tasks:

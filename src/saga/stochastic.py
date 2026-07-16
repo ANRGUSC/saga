@@ -666,7 +666,7 @@ class StochasticSchedule(BaseModel):
         for _, tasks in self.mapping.items():
             for task in tasks:
                 if task_graph.in_degree(task.name) == 0:
-                    pq.put((-task.rank, tiebreak, task))
+                    pq.put((task.rank, tiebreak, task))
                     tiebreak += 1
 
         while not pq.empty():
@@ -696,7 +696,7 @@ class StochasticSchedule(BaseModel):
                     succ_task = task_by_name.get(out_edge.target)
                     if succ_task is None:
                         raise ValueError(f"Could not find successor task {out_edge.target!r}")
-                    pq.put((-succ_task.rank, tiebreak, succ_task))
+                    pq.put((succ_task.rank, tiebreak, succ_task))
                     tiebreak += 1
         return schedule
 
