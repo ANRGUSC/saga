@@ -85,6 +85,11 @@ class ConditionalReschedulePolicy(OnlinePolicy):
 
 
     def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment, StochasticEnvironment):
+            raise ValueError("ConditionalReschedulePolicy requires a StochasticEnvironment.")
+        if not environment.finished_tasks:
+            return environment.schedule
+
         if not isinstance(environment.scheduler, ParametricScheduler):
             logger.warning(
                 "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
