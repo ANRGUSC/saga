@@ -43,7 +43,7 @@ class MultiObjScheduler(Scheduler):
         
         rank_order = heft_rank_sort(network=network, task_graph=task_graph)
         rankings = {name: i for i, name in enumerate(rank_order)}
-        schedule = Schedule(task_graph, network)
+        schedule = schedule if schedule is not None else Schedule(task_graph, network)
         remaining_tasks = set(task_graph.tasks)
         network_nodes = sorted(network.nodes, key=lambda n: n.speed, reverse=True)
         current_node = 0
