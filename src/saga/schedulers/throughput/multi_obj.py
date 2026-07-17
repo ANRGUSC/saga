@@ -83,7 +83,11 @@ class MultiObjScheduler(Scheduler):
 
             task = sorted_tasks[0]
             selected_node = network_nodes[current_node]
-            earliest_start_time = schedule.get_earliest_start_time(task, selected_node.name)
+            earliest_start_time = schedule.get_earliest_start_time(
+                task,
+                selected_node.name,
+                current_moment=min_start_time,
+            )
             if current_node < len(network_nodes)-1:
                 current_node += 1
             else:   
