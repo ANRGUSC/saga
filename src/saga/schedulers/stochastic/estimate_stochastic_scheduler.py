@@ -40,7 +40,7 @@ class EstimateStochasticScheduler(StochasticScheduler):
 
     @property
     def name(self) -> str:
-        return f"Determinizer({self.scheduler.name})"
+        return f"EstimateStochasticScheduler({self.scheduler.name})"
 
     def determinize(self, rv: Union[RandomVariable, int, float]) -> float:
         if isinstance(rv, RandomVariable):
