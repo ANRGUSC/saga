@@ -19,7 +19,7 @@ from saga import (
 )
 
 
-class IntialPriority(BaseModel):
+class InitialPriority(BaseModel):
     @abstractmethod
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         """Return the initial priority of the tasks.
@@ -69,13 +69,13 @@ TInsert = TypeVar("TInsert", bound=InsertTask)
 
 
 class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
-    initial_priority: IntialPriority = Field(
+    initial_priority: InitialPriority = Field(
         ..., description="The initial priority strategy."
     )
     insert_task: TInsert = Field(..., description="The task insertion strategy.")
 
     def __init__(
-        self, initial_priority: IntialPriority, insert_task: TInsert, **kwargs: Any
+        self, initial_priority: InitialPriority, insert_task: TInsert, **kwargs: Any
     ) -> None:
         # mypy resolves this to Scheduler.__init__, which does not declare these fields.
         super().__init__(  # type: ignore[call-arg]

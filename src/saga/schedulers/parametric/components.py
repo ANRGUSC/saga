@@ -11,7 +11,7 @@ from saga import (
     ScheduledTask,
     TaskGraphNode,
 )
-from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
+from saga.schedulers.parametric import InitialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
 from saga import Network, TaskGraph, Schedule
@@ -20,14 +20,14 @@ import networkx as nx
 from typing import Dict, Iterable, List, Hashable, Literal, Optional, Set
 
 
-class UpwardRanking(IntialPriority):
+class UpwardRanking(InitialPriority):
     name: Literal["UpwardRanking"] = "UpwardRanking"
 
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         return heft_rank_sort(network, task_graph)
 
 
-class CPoPRanking(IntialPriority):
+class CPoPRanking(InitialPriority):
     def call(
         self, network: Network, task_graph: TaskGraph
     ) -> List[str]:  # ? what is the reason we are moving away from __call__
@@ -56,7 +56,7 @@ class CPoPRanking(IntialPriority):
         return queue
 
 
-class ArbitraryTopological(IntialPriority):
+class ArbitraryTopological(InitialPriority):
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         return [task.name for task in task_graph.topological_sort()]
 
