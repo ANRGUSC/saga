@@ -1,9 +1,9 @@
-from typing import Callable, Optional, cast
+from typing import Callable, Optional
 
 
-from saga import Network, Schedule, TaskGraph, Scheduler
+from saga import Schedule
 from saga.schedulers.online.environment import Environment, StochasticEnvironment
-from saga.stochastic import StochasticNetwork, StochasticTaskGraph
+from saga.stochastic import OnlineScheduler, StochasticNetwork, StochasticTaskGraph
 from saga.schedulers.online.policy import ReschedulePolicy
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -39,16 +39,11 @@ class OnlineHEFTEnvironment(StochasticEnvironment):
         )
 
 
-class OnlineHEFT(Scheduler):
+class OnlineHEFT(OnlineScheduler):
     def schedule(
         self,
-        network: Network,
-        task_graph: TaskGraph,
-        schedule: Optional[Schedule] = None,
-        min_start_time: float = 0.0,
+        network: StochasticNetwork,
+        task_graph: StochasticTaskGraph,
     ) -> Schedule:
-        env = OnlineHEFTEnvironment(
-            cast(StochasticNetwork, network),
-            cast(StochasticTaskGraph, task_graph),
-        )
+        env = OnlineHEFTEnvironment(network, task_graph)
         return env.run()

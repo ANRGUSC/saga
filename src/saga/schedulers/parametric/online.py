@@ -1,14 +1,19 @@
 from copy import deepcopy
-from pydantic import ConfigDict, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from typing import Callable, Tuple, Set, Optional
 import logging
 
 
-from saga import Scheduler, ScheduledTask
+from saga import ScheduledTask
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import insert_funcs, initial_priority_funcs
 from saga.schedulers.stochastic import EstimateStochasticScheduler
-from saga.stochastic import StochasticNetwork, StochasticSchedule, StochasticTaskGraph
+from saga.stochastic import (
+    OnlineScheduler,
+    StochasticNetwork,
+    StochasticSchedule,
+    StochasticTaskGraph,
+)
 
 
 from saga import Network, TaskGraph, Schedule
@@ -110,7 +115,7 @@ def create_partial_schedule(
     return partial_schedule
 
 
-class OnlineParametricScheduler(Scheduler):
+class OnlineParametricScheduler(OnlineScheduler, BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     scheduler: ParametricScheduler = Field(...)
@@ -229,7 +234,7 @@ class OnlineParametricScheduler(Scheduler):
 
         return schedules_actual, schedules_estimate, schedules_partial
 
-    def schedule(  # type: ignore[override]  # requires stochastic inputs; not substitutable for a plain Scheduler
+    def schedule(
         self,
         network: StochasticNetwork,
         task_graph: StochasticTaskGraph,

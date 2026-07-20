@@ -7,6 +7,7 @@ Layout:
 - ``algorithms``: ready-made schedulers (FIFO, FrontierHEFT, OnlineHEFT, ...).
 """
 
+from saga.stochastic import OnlineScheduler
 from saga.schedulers.online.environment import (
     Environment,
     FrontierEnvironment,
@@ -35,6 +36,8 @@ from saga.schedulers.online.algorithms import (
 )
 
 __all__ = [
+    # scheduler interface
+    "OnlineScheduler",
     # environment core
     "Environment",
     "FrontierEnvironment",

@@ -776,3 +776,24 @@ class StochasticScheduler(ABC):
     def name(self) -> str:
         """Get the name of the scheduler."""
         return self.__class__.__name__
+
+
+class OnlineScheduler(ABC):
+    """An abstract class for an online scheduler.
+
+    Online schedulers simulate a stochastic instance, revealing actual task costs
+    and node speeds as the run progresses, and return the schedule that actually
+    happened rather than a distribution over schedules.
+    """
+
+    @abstractmethod
+    def schedule(
+        self, network: StochasticNetwork, task_graph: StochasticTaskGraph
+    ) -> Schedule:
+        """Simulate the tasks running on the network and return the realized schedule."""
+        raise NotImplementedError
+
+    @property
+    def name(self) -> str:
+        """Get the name of the scheduler."""
+        return self.__class__.__name__
