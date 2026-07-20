@@ -44,7 +44,7 @@ class EstimateStochasticScheduler(StochasticScheduler):
             return self._estimate(rv)
         return float(rv)
 
-    def _determinized_graphs(
+    def determinized_graphs(
         self, network: StochasticNetwork, task_graph: StochasticTaskGraph
     ) -> Tuple[Network, TaskGraph]:
         """Determinize (network, task_graph) to their estimates, memoized per input."""
@@ -84,14 +84,14 @@ class EstimateStochasticScheduler(StochasticScheduler):
         self._det_cache[key] = (det_network, det_task_graph)
         return det_network, det_task_graph
 
-    def schedule(  # type: ignore[override]  # intentionally returns (schedule, det_network, det_task_graph)
+    def schedule(
         self,
         network: StochasticNetwork,
         task_graph: StochasticTaskGraph,
         schedule: Optional[Schedule] = None,
         min_start_time: float = 0.0,
         node_constraints: Optional[Dict[str, Set[str]]] = None,
-    ) -> Tuple[StochasticSchedule, Network, TaskGraph]:
+    ) -> StochasticSchedule:
         """Schedule the tasks on the network.
 
         Args:
@@ -99,11 +99,10 @@ class EstimateStochasticScheduler(StochasticScheduler):
             task_graph (StochasticTaskGraph): The task graph to be scheduled.
 
         Returns:
-            Tuple[StochasticSchedule, Network, TaskGraph]: the resulting stochastic
-            schedule along with the determinized network and task graph used to
-            produce it.
+            StochasticSchedule: The resulting schedule. Call determinized_graphs()
+            for the determinized network and task graph used to produce it.
         """
-        det_network, det_task_graph = self._determinized_graphs(network, task_graph)
+        det_network, det_task_graph = self.determinized_graphs(network, task_graph)
 
         # Only forward the extended parametric arguments when they are actually set, so a
         # plain Scheduler (whose schedule() only takes network/task_graph) still works when
@@ -128,4 +127,4 @@ class EstimateStochasticScheduler(StochasticScheduler):
                 )
                 stochastic_schedule.add_task(new_task)
 
-        return stochastic_schedule, det_network, det_task_graph
+        return stochastic_schedule

@@ -339,7 +339,7 @@ class InspiritPolicy(OnlinePolicy):
                 schedule=partial,
                 min_start_time=env.current_time,
                 node_constraints=env.node_constraints,
-            )[0]
+            )
             env.estimate_schedule = new_estimate
             realized = new_estimate.determinize(
                 env.actual_network, env.actual_task_graph

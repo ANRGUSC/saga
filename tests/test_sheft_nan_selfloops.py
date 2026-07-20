@@ -42,8 +42,7 @@ def test_sheft_schedules_with_auto_added_infinite_self_loops():
         dependencies=[("t1", "t2", rv()), ("t2", "t3", rv())],
     )
 
-    # EstimateStochasticScheduler returns (schedule, det_network, det_task_graph).
-    schedule, _, _ = SheftScheduler().schedule(network, task_graph)
+    schedule = SheftScheduler().schedule(network, task_graph)
 
     placed = {t.name for tasks in schedule.mapping.values() for t in tasks}
     assert placed == {"t1", "t2", "t3"}

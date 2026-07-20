@@ -64,12 +64,13 @@ class StochasticEnvironment(Environment):
             estimate=estimate,
         )
 
-        self.initial_estimate_schedule, self.network, self.task_graph = (
-            self.stochastic_scheduler.schedule(
-                network=network,
-                task_graph=task_graph,
-                node_constraints=node_constraints,
-            )
+        self.initial_estimate_schedule = self.stochastic_scheduler.schedule(
+            network=network,
+            task_graph=task_graph,
+            node_constraints=node_constraints,
+        )
+        self.network, self.task_graph = self.stochastic_scheduler.determinized_graphs(
+            network, task_graph
         )
         self.estimate_schedule: StochasticSchedule = self.initial_estimate_schedule
         self.schedule = self.estimate_schedule.determinize(
@@ -82,12 +83,13 @@ class StochasticEnvironment(Environment):
             np.random.seed(self.seed)
         self.actual_task_graph = self._stochastic_task_graph.sample()
         self.actual_network = self._stochastic_network.sample()
-        self.initial_estimate_schedule, self.network, self.task_graph = (
-            self.stochastic_scheduler.schedule(
-                network=self._stochastic_network,
-                task_graph=self._stochastic_task_graph,
-                node_constraints=self.node_constraints,
-            )
+        self.initial_estimate_schedule = self.stochastic_scheduler.schedule(
+            network=self._stochastic_network,
+            task_graph=self._stochastic_task_graph,
+            node_constraints=self.node_constraints,
+        )
+        self.network, self.task_graph = self.stochastic_scheduler.determinized_graphs(
+            self._stochastic_network, self._stochastic_task_graph
         )
         self.estimate_schedule = self.initial_estimate_schedule
         self.schedule = self.estimate_schedule.determinize(

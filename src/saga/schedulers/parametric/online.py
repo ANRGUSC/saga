@@ -150,8 +150,11 @@ class OnlineParametricScheduler(Scheduler):
         remaining_tasks: Set[Any] = {task for task in task_graph}
 
         # generating our initial estimate schedule and our estimations for network and task graph values
-        initial_estimate_schedule, det_network, det_task_graph = (
-            self._stochastic_scheduler.schedule(network=network, task_graph=task_graph)
+        initial_estimate_schedule = self._stochastic_scheduler.schedule(
+            network=network, task_graph=task_graph
+        )
+        det_network, det_task_graph = self._stochastic_scheduler.determinized_graphs(
+            network, task_graph
         )
 
         estimate_schedule: StochasticSchedule = initial_estimate_schedule
@@ -204,7 +207,7 @@ class OnlineParametricScheduler(Scheduler):
                 task_graph=task_graph,
                 schedule=partial_schedule,
                 min_start_time=current_moment,
-            )[0]
+            )
 
             schedules_estimate.append(estimate_schedule)
             # ------step 5------
