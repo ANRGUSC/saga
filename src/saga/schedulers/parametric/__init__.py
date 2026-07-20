@@ -75,7 +75,10 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
     def __init__(
         self, initial_priority: IntialPriority, insert_task: TInsert, **kwargs: Any
     ) -> None:
-        super().__init__(
+        # mypy resolves super().__init__ to Scheduler (ABC, BaseModel), which does
+        # not declare these fields; pydantic accepts them for the declared fields
+        # at runtime.
+        super().__init__(  # type: ignore[call-arg]
             initial_priority=initial_priority, insert_task=insert_task, **kwargs
         )
 

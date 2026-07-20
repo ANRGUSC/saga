@@ -139,9 +139,12 @@ class InspiritPolicy(OnlinePolicy):
     def _init_ranks(self, environment: "Environment") -> None:
         """Compute static efficiency/ability ranks and worker-count defaults."""
         workers = len(environment.network.nodes)
-        time_window = workers * (
-            np.mean([task.cost for task in environment.task_graph.tasks])
-            / np.mean([node.speed for node in environment.network.nodes])
+        time_window = float(
+            workers
+            * (
+                np.mean([task.cost for task in environment.task_graph.tasks])
+                / np.mean([node.speed for node in environment.network.nodes])
+            )
         )
         self._time_window = time_window
         self.efficiency_ranks = compute_inspiring_efficiency(

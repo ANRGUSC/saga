@@ -19,7 +19,7 @@ def compute_inspiring_efficiency(
     Returns:
        efficiency_ranks: A dict of task_name to inspiring efficiency, where a task's inspiring efficiency is the number of tasks expected to finish in the given time window.
     """
-    average_network_speed = np.mean([node.speed for node in network.nodes])
+    average_network_speed = float(np.mean([node.speed for node in network.nodes]))
 
     # the paper suggests using the average execution time of tasks of a certain type, but
     # because we don't have task types, we will just manually calculate execution costs of
@@ -35,7 +35,7 @@ def compute_inspiring_efficiency(
         """
         count = 0
         # counter = 0
-        time = 0
+        time = 0.0
         current_gen = {task.name}
         next_gen = set()
         visited = set()

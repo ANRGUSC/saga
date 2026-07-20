@@ -1,4 +1,4 @@
-from typing import Callable, Dict, Set, Tuple, Union, Optional
+from typing import Any, Callable, Dict, Set, Tuple, Union, Optional
 
 from saga.utils.random_variable import RandomVariable
 from saga import (
@@ -108,7 +108,7 @@ class EstimateStochasticScheduler(StochasticScheduler):
         # Only forward the extended parametric arguments when they are actually set, so a
         # plain Scheduler (whose schedule() only takes network/task_graph) still works when
         # no constraints, prior schedule, or start offset are in play.
-        kwargs: Dict[str, object] = {}
+        kwargs: Dict[str, Any] = {}
         if schedule is not None or min_start_time != 0.0:
             kwargs["schedule"] = schedule
             kwargs["min_start_time"] = min_start_time

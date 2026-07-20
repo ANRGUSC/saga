@@ -174,7 +174,7 @@ class OnlineParametricScheduler(Scheduler):
             6. Advance current moment to the time of the next task to finish
             """
             # ------step 1------
-            schedule_actual: Schedule = estimate_schedule.determinize(
+            schedule_actual = estimate_schedule.determinize(
                 actual_network, actual_task_graph
             )
             schedules_actual.append(schedule_actual)
@@ -199,7 +199,7 @@ class OnlineParametricScheduler(Scheduler):
             schedules_partial.append(partial_schedule)
 
             # ------step 4------
-            estimate_schedule: StochasticSchedule = self._stochastic_scheduler.schedule(
+            estimate_schedule = self._stochastic_scheduler.schedule(
                 network=network,
                 task_graph=task_graph,
                 schedule=partial_schedule,
@@ -226,8 +226,8 @@ class OnlineParametricScheduler(Scheduler):
 
         return schedules_actual, schedules_estimate, schedules_partial
 
-    def schedule(
-        self,  # type: ignore[override]  # requires stochastic inputs; not substitutable for a plain Scheduler
+    def schedule(  # type: ignore[override]  # requires stochastic inputs; not substitutable for a plain Scheduler
+        self,
         network: StochasticNetwork,
         task_graph: StochasticTaskGraph,
     ) -> Schedule:

@@ -8,7 +8,6 @@ from saga import (
     TaskGraph,
     Network,
     TaskGraphNode,
-    NetworkNode,
 )
 from saga.schedulers.heft import heft_rank_sort
 
@@ -77,9 +76,7 @@ class MultiObjScheduler(Scheduler):
                     non_dominated_tasks.append(dom_task)
 
             # scheduling tasks
-            network_nodes: List[NetworkNode] = sorted(
-                network.nodes, key=lambda n: n.speed, reverse=True
-            )
+            network_nodes = sorted(network.nodes, key=lambda n: n.speed, reverse=True)
             # sorting tasks
             sorted_tasks = sorted(
                 non_dominated_tasks, key=lambda t: t.cost, reverse=True

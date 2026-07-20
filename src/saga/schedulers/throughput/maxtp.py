@@ -103,6 +103,12 @@ class MaxTPScheduler(Scheduler):
                 ) < comp_schedule.bottleneck_if_added(best_task):
                     best_task = candidate
 
+            if best_task is None:
+                # No candidate node was eligible (e.g. node constraints exclude
+                # every node), so there is nowhere valid to place this task.
+                raise ValueError(
+                    f"No eligible node to schedule task {largest_task.name}."
+                )
             comp_schedule.add_task(best_task)
             scheduled[best_task.name] = best_task
 
