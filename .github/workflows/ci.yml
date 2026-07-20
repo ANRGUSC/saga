@@ -44,7 +44,7 @@ jobs:
         run: uv sync
 
       - name: Run mypy
-        run: uv run mypy src/saga --ignore-missing-imports --no-error-summary || true
+        run: uv run mypy src/saga --ignore-missing-imports
 
   lint:
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
         run: uv sync
 
       - name: Run ruff linter
-        run: uv run ruff check src/saga --output-format=github || true
+        run: uv run ruff check src/saga --output-format=github
 
       - name: Run ruff formatter check
-        run: uv run ruff format --check src/saga || true
+        run: uv run ruff format --check src/saga

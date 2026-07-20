@@ -15,7 +15,7 @@ def _default_task_weight(task: Hashable) -> float:
     Returns:
         float: The task weight.
     """
-    return max(min(1e-9, random.gauss(1, 1 / 3)), 2)
+    return min(max(random.gauss(1, 1 / 3), 1e-9), 2)
 
 
 def _default_dependency_weight(src: Hashable, dst: Hashable) -> float:
@@ -28,7 +28,7 @@ def _default_dependency_weight(src: Hashable, dst: Hashable) -> float:
     Returns:
         float: The dependency weight.
     """
-    return max(min(1e-9, random.gauss(1, 1 / 3)), 2)
+    return min(max(random.gauss(1, 1 / 3), 1e-9), 2)
 
 
 def gen_out_trees(

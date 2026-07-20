@@ -353,7 +353,21 @@ class RandomVariable(BaseModel):
 
     @cached_property
     def _variance(self) -> float:
-        return float(np.var(self.samples_arr))
+        """The variance of the samples.
+
+        Samples that are all identical have zero variance. When they are also
+        infinite (e.g. the infinite self-loop speeds SAGA auto-adds), ``np.var``
+        returns ``NaN`` from ``inf - inf`` instead of 0; return 0 for that
+        all-equal case so degenerate random variables do not propagate ``NaN``
+        into downstream statistics such as mean + std determinization. Genuinely
+        mixed samples (finite values with infinities, or ``NaN`` samples) are
+        left untouched so invalid inputs are not silently masked.
+        """
+        arr = self.samples_arr
+        if len(arr) > 0 and bool(np.all(arr == arr[0])):
+            return 0.0
+        with np.errstate(invalid="ignore"):
+            return float(np.var(arr))
 
     def expectation(self) -> float:
         """The expectation of the random variable."""
