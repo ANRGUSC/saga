@@ -712,12 +712,23 @@ class Schedule(BaseModel):
 
         Returns:
             float: The throughput of the schedule.
+
+        Raises:
+            ValueError: If the bottleneck is not positive, meaning every scheduled
+                task takes zero time.
         """
         if not any(self.mapping.values()):
             return 0.0
         compute_bottleneck = max(self._compute_load.values(), default=0.0)
         comm_bottleneck = max(self._comm_load.values(), default=0.0)
-        return 1 / max(comm_bottleneck, compute_bottleneck)
+        bottleneck = max(comm_bottleneck, compute_bottleneck)
+        if bottleneck <= 0:
+            raise ValueError(
+                "Schedule has no positive bottleneck, so throughput is undefined: "
+                "every scheduled task takes zero time, which means zero-cost tasks "
+                "or infinite node speeds."
+            )
+        return 1 / bottleneck
 
     def bottleneck_if_added(self, task: ScheduledTask) -> float:
         """Return 1/throughput (the bottleneck) the schedule would have if `task` were added.
