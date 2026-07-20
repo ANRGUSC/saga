@@ -31,7 +31,9 @@ class IntialPriority(BaseModel):
         Returns:
             List[str]: The initial priority of the tasks.
         """
-        pass
+        # Not enforced by ABCMeta: this is a pydantic BaseModel, so @abstractmethod
+        # does not prevent instantiation. Fail loudly instead of returning None.
+        raise NotImplementedError
 
 
 class InsertTask(BaseModel):
@@ -60,7 +62,9 @@ class InsertTask(BaseModel):
         Returns:
             Task: The inserted task
         """
-        pass
+        # Not enforced by ABCMeta: this is a pydantic BaseModel, so @abstractmethod
+        # does not prevent instantiation. Fail loudly instead of returning None.
+        raise NotImplementedError
 
 
 TInsert = TypeVar("TInsert", bound=InsertTask)

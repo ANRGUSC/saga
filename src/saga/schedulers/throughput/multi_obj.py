@@ -49,11 +49,25 @@ class MultiObjScheduler(Scheduler):
         rank_order = heft_rank_sort(network=network, task_graph=task_graph)
         rankings = {name: i for i, name in enumerate(rank_order)}
         schedule = schedule if schedule is not None else Schedule(task_graph, network)
-        remaining_tasks = set(task_graph.tasks)
+        # Respect any tasks already committed in a partial schedule: they are neither
+        # remaining nor ready, and re-scheduling them would double-place the task.
+        remaining_tasks = {
+            t for t in task_graph.tasks if not schedule.is_scheduled(t.name)
+        }
         network_nodes = sorted(network.nodes, key=lambda n: n.speed, reverse=True)
         current_node = 0
-        ready_tasks = [t for t in task_graph.tasks if not task_graph.in_edges(t)]
+        # A task is ready once it is unscheduled and all of its parents are scheduled.
+        ready_tasks = [
+            t
+            for t in remaining_tasks
+            if all(schedule.is_scheduled(e.source) for e in task_graph.in_edges(t))
+        ]
         while remaining_tasks:
+            if not ready_tasks:
+                raise ValueError(
+                    "No ready tasks remain while tasks are still unscheduled; the task "
+                    "graph may contain a cycle or the partial schedule is inconsistent."
+                )
             non_dominated_tasks: List[TaskGraphNode] = []
             dominated_tasks: List[TaskGraphNode] = [Task for Task in ready_tasks]
             non_dominated_tasks.append(dominated_tasks.pop(0))

@@ -640,6 +640,14 @@ class Schedule(BaseModel):
             ),
             node_constraints=node_constraints,
         )
+        # Rebuild the derived state from a pre-populated mapping. Without this,
+        # _task_map and the load aggregates start empty, so is_scheduled() would
+        # report False for tasks already in the mapping and the throughput and
+        # bottleneck figures would be computed from nothing.
+        for tasks in self.mapping.values():
+            for task in tasks:
+                self._task_map[task.name] = task
+                self._apply_load(task, sign=1.0)
 
     def allowed_nodes(self, task_name: str) -> Optional[Set[str]]:
         """Return the node names `task_name` may run on, or None if it is unconstrained."""
@@ -845,6 +853,15 @@ class Schedule(BaseModel):
         if task.node not in self.mapping:
             raise ValueError(
                 f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}."
+            )
+
+        if task.name in self._task_map:
+            # A second entry would leave both tasks in the mapping and double-count
+            # them in the load aggregates, while _task_map (and so remove_task)
+            # could only ever refer to one of them.
+            raise ValueError(
+                f"Task {task.name} is already scheduled on node "
+                f"{self._task_map[task.name].node}."
             )
 
         allowed = self.allowed_nodes(task.name)
