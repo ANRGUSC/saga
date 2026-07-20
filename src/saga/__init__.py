@@ -12,6 +12,10 @@ from itertools import product
 EPS = 1e-9
 
 
+class ConstraintViolation(Exception):
+    """Raised when a task is placed on a node its constraints forbid."""
+
+
 class NetworkNode(BaseModel):
     """A node in the network."""
 
@@ -190,6 +194,22 @@ class Network(BaseModel):
             G.add_edge(edge.source, edge.target, weight=edge.speed)
         return G
 
+    @cached_property
+    def _node_by_name(self) -> Dict[str, "NetworkNode"]:
+        return {node.name: node for node in self.nodes}
+
+    @cached_property
+    def _edge_by_pair(self) -> Dict[Tuple[str, str], "NetworkEdge"]:
+        pairs: Dict[Tuple[str, str], NetworkEdge] = {}
+        for edge in self.edges:
+            pairs[(edge.source, edge.target)] = edge
+            if edge.source != edge.target:
+                # Undirected: also expose the reverse orientation with matching source/target.
+                pairs[(edge.target, edge.source)] = NetworkEdge(
+                    source=edge.target, target=edge.source, speed=edge.speed
+                )
+        return pairs
+
     @classmethod
     def from_nx(
         cls,
@@ -229,10 +249,10 @@ class Network(BaseModel):
             ValueError: If the node does not exist.
         """
         name = node.name if isinstance(node, NetworkNode) else node
-        for _node in self.nodes:
-            if _node.name == name:
-                return _node
-        raise ValueError(f"Node {name} does not exist in the network.")
+        result = self._node_by_name.get(name)
+        if result is None:
+            raise ValueError(f"Node {name} does not exist in the network.")
+        return result
 
     def get_edge(
         self, source: str | NetworkNode, target: str | NetworkNode
@@ -251,10 +271,10 @@ class Network(BaseModel):
         """
         source = source.name if isinstance(source, NetworkNode) else source
         target = target.name if isinstance(target, NetworkNode) else target
-        edge = self.graph.get_edge_data(source, target)
+        edge = self._edge_by_pair.get((source, target))
         if edge is None:
             raise ValueError(f"Edge from {source} to {target} does not exist.")
-        return NetworkEdge(source=source, target=target, speed=edge["weight"])
+        return edge
 
 
 class TaskGraphNode(BaseModel):
@@ -405,6 +425,29 @@ class TaskGraph(BaseModel):
             G.add_edge(dependency.source, dependency.target, weight=dependency.size)
         return G
 
+    @cached_property
+    def _task_by_name(self) -> Dict[str, "TaskGraphNode"]:
+        return {task.name: task for task in self.tasks}
+
+    @cached_property
+    def _in_edges_by_task(self) -> Dict[str, List["TaskGraphEdge"]]:
+        result: Dict[str, List[TaskGraphEdge]] = {task.name: [] for task in self.tasks}
+        # Sorted so edge order (and any tie-breaking on it) is PYTHONHASHSEED-independent.
+        for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
+            result.setdefault(dep.target, []).append(dep)
+        return result
+
+    @cached_property
+    def _out_edges_by_task(self) -> Dict[str, List["TaskGraphEdge"]]:
+        result: Dict[str, List[TaskGraphEdge]] = {task.name: [] for task in self.tasks}
+        for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
+            result.setdefault(dep.source, []).append(dep)
+        return result
+
+    @cached_property
+    def _dependency_by_pair(self) -> Dict[Tuple[str, str], "TaskGraphEdge"]:
+        return {(dep.source, dep.target): dep for dep in self.dependencies}
+
     @classmethod
     def from_nx(
         cls,
@@ -473,13 +516,7 @@ class TaskGraph(BaseModel):
             List[TaskGraphEdge]: A list of incoming edges to the task.
         """
         task = task.name if isinstance(task, TaskGraphNode) else task
-        edges = []
-        for src, tgt in self.graph.in_edges(task):
-            edge_data = self.graph.get_edge_data(src, tgt)
-            edges.append(
-                TaskGraphEdge(source=src, target=tgt, size=edge_data["weight"])
-            )
-        return edges
+        return self._in_edges_by_task.get(task, [])
 
     def out_degree(self, task: str | TaskGraphNode) -> int:
         """Get the out-degree of a task.
@@ -502,13 +539,7 @@ class TaskGraph(BaseModel):
             List[TaskGraphEdge]: A list of outgoing edges from the task.
         """
         task = task.name if isinstance(task, TaskGraphNode) else task
-        edges = []
-        for src, tgt in self.graph.out_edges(task):
-            edge_data = self.graph.get_edge_data(src, tgt)
-            edges.append(
-                TaskGraphEdge(source=src, target=tgt, size=edge_data["weight"])
-            )
-        return edges
+        return self._out_edges_by_task.get(task, [])
 
     def get_task(self, name: str | TaskGraphNode) -> TaskGraphNode:
         """Get a task by name.
@@ -522,10 +553,10 @@ class TaskGraph(BaseModel):
             ValueError: If the task does not exist.
         """
         name = name.name if isinstance(name, TaskGraphNode) else name
-        for task in self.tasks:
-            if task.name == name:
-                return task
-        raise ValueError(f"Task {name} does not exist in the task graph.")
+        task = self._task_by_name.get(name)
+        if task is None:
+            raise ValueError(f"Task {name} does not exist in the task graph.")
+        return task
 
     def get_dependency(
         self, source: str | TaskGraphNode, target: str | TaskGraphNode
@@ -543,10 +574,10 @@ class TaskGraph(BaseModel):
         """
         source = source.name if isinstance(source, TaskGraphNode) else source
         target = target.name if isinstance(target, TaskGraphNode) else target
-        edge = self.graph.get_edge_data(source, target)
+        edge = self._dependency_by_pair.get((source, target))
         if edge is None:
             raise ValueError(f"Dependency from {source} to {target} does not exist.")
-        return TaskGraphEdge(source=source, target=target, size=edge["weight"])
+        return edge
 
 
 class ScheduledTask(BaseModel):
@@ -560,6 +591,8 @@ class ScheduledTask(BaseModel):
     def __str__(self) -> str:
         return f"Task(node={self.node}, name={self.name}, start={self.start:0.2f}, end={self.end:0.2f})"
 
+    __hash__ = object.__hash__  # type: ignore[assignment]  # identity hashing for a mutable pydantic model
+
 
 class Schedule(BaseModel):
     """A schedule of tasks on nodes."""
@@ -571,14 +604,31 @@ class Schedule(BaseModel):
     mapping: Dict[str, List[ScheduledTask]] = Field(
         ..., description="The mapping of tasks to nodes."
     )
+    node_constraints: Optional[Dict[str, Set[str]]] = Field(
+        default=None,
+        description=(
+            "Optional per-task placement constraints for this instance, mapping a task "
+            "name to the set of node names it may run on. Tasks absent from the map may "
+            "run on any node. None (the default) means no constraints."
+        ),
+    )
 
-    _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
+    _task_map: Dict[str, ScheduledTask] = PrivateAttr(
+        default_factory=dict
+    )  # For quick lookup of scheduled tasks by name
+    _compute_load: Dict[str, float] = PrivateAttr(
+        default_factory=dict
+    )  # For keeping track of compute load per node
+    _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(
+        default_factory=dict
+    )  # For keeping track of communication load per link
 
     def __init__(
         self,
         task_graph: "TaskGraph",
         network: "Network",
         mapping: Optional[Dict[str, List[ScheduledTask]]] = None,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> None:
         super().__init__(
             task_graph=task_graph,
@@ -588,7 +638,19 @@ class Schedule(BaseModel):
                 if mapping is not None
                 else {node.name: [] for node in network.nodes}
             ),
+            node_constraints=node_constraints,
         )
+        # Keep the task lookup and load aggregates consistent with the mapping.
+        for tasks in self.mapping.values():
+            for task in tasks:
+                self._task_map[task.name] = task
+                self._apply_load(task, sign=1.0)
+
+    def allowed_nodes(self, task_name: str) -> Optional[Set[str]]:
+        """Return the node names `task_name` may run on, or None if it is unconstrained."""
+        if self.node_constraints is None:
+            return None
+        return self.node_constraints.get(task_name)
 
     @property
     def makespan(self) -> float:
@@ -600,6 +662,106 @@ class Schedule(BaseModel):
         if not any(self.mapping.values()):
             return 0.0
         return max(tasks[-1].end for tasks in self.mapping.values() if tasks)
+
+    def makespan_if_added(self, task: ScheduledTask) -> float:
+        """Return the makespan the schedule would have if `task` were added.
+
+        Does not mutate the schedule. A gap-inserted task ends no later than its node's
+        current last task, so adding a task can only push the makespan out to task.end,
+        making the result max(makespan, task.end).
+        """
+        return max(self.makespan, task.end)
+
+    def _link_cost(
+        self, size: float, src_node: str, dst_node: str
+    ) -> Tuple[Tuple[str, str], float]:
+        """Return the (undirected link key, transfer time) for `size` bytes from src to dst."""
+        network_edge = self.network.get_edge(src_node, dst_node)
+        key = (
+            min(network_edge.source, network_edge.target),
+            max(network_edge.source, network_edge.target),
+        )
+        return key, size / network_edge.speed
+
+    def _apply_load(self, task: ScheduledTask, sign: float) -> None:
+        """Add (sign=+1) or subtract (sign=-1) `task`'s contribution to the load aggregates.
+
+        Call with sign=+1 after inserting a task into _task_map, or sign=-1 before removing
+        it. Comm cost is applied for each cross-node edge to an already-scheduled neighbor
+        (predecessors via in-edges, successors via out-edges), so each edge is counted once.
+        """
+        self._compute_load[task.node] = self._compute_load.get(
+            task.node, 0.0
+        ) + sign * (task.end - task.start)
+        for task_edge in self.task_graph.in_edges(task.name):
+            if task_edge.source in self._task_map and task_edge.source != task.name:
+                src_node = self._task_map[task_edge.source].node
+                if src_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, src_node, task.node)
+                    self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
+        for task_edge in self.task_graph.out_edges(task.name):
+            if task_edge.target in self._task_map and task_edge.target != task.name:
+                dst_node = self._task_map[task_edge.target].node
+                if dst_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, task.node, dst_node)
+                    self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
+
+    @property
+    def throughput(self) -> float:
+        """Get the throughput of the schedule: 1 / (most-loaded compute node or comm link).
+
+        Returns:
+            float: The throughput of the schedule.
+
+        Raises:
+            ValueError: If the schedule is empty, or if the bottleneck is not
+                positive because every scheduled task takes zero time.
+        """
+        if not any(self.mapping.values()):
+            raise ValueError("Schedule is empty, so throughput is undefined.")
+        compute_bottleneck = max(self._compute_load.values(), default=0.0)
+        comm_bottleneck = max(self._comm_load.values(), default=0.0)
+        bottleneck = max(comm_bottleneck, compute_bottleneck)
+        if bottleneck <= 0:
+            raise ValueError(
+                "Schedule has no positive bottleneck, so throughput is undefined: "
+                "every scheduled task takes zero time, which means zero-cost tasks "
+                "or infinite node speeds."
+            )
+        return 1 / bottleneck
+
+    def bottleneck_if_added(self, task: ScheduledTask) -> float:
+        """Return 1/throughput (the bottleneck) the schedule would have if `task` were added.
+
+        Does not mutate the schedule. Runs in O(task degree) by reading the maintained
+        per-node compute loads and per-link comm loads and applying only this task's delta.
+        Cross-node transfers to already-scheduled neighbors (predecessors via in-edges,
+        successors via out-edges) are added, matching how throughput counts each edge once.
+        """
+        duration = task.end - task.start
+        compute_bottleneck = max(
+            max(self._compute_load.values(), default=0.0),
+            self._compute_load.get(task.node, 0.0) + duration,
+        )
+        deltas: Dict[Tuple[str, str], float] = {}
+        for task_edge in self.task_graph.in_edges(task.name):
+            if task_edge.source in self._task_map:
+                src_node = self._task_map[task_edge.source].node
+                if src_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, src_node, task.node)
+                    deltas[key] = deltas.get(key, 0.0) + cost
+        for task_edge in self.task_graph.out_edges(task.name):
+            if task_edge.target in self._task_map:
+                dst_node = self._task_map[task_edge.target].node
+                if dst_node != task.node:
+                    key, cost = self._link_cost(task_edge.size, task.node, dst_node)
+                    deltas[key] = deltas.get(key, 0.0) + cost
+        comm_bottleneck = max(self._comm_load.values(), default=0.0)
+        for key, delta in deltas.items():
+            comm_bottleneck = max(
+                comm_bottleneck, self._comm_load.get(key, 0.0) + delta
+            )
+        return max(compute_bottleneck, comm_bottleneck)
 
     def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
         """Get the tasks scheduled on a node.
@@ -630,6 +792,7 @@ class Schedule(BaseModel):
         task: str | TaskGraphNode,
         node: str | NetworkNode,
         append_only: bool = False,
+        current_moment: float = 0.0,
     ) -> float:
         """Get the earliest start time for a task on a node given the minimum start time and execution time.
 
@@ -644,20 +807,24 @@ class Schedule(BaseModel):
         node = self.network.get_node(node)
         task = self.task_graph.get_task(task)
 
+        allowed = self.allowed_nodes(task.name)
+        if allowed is not None and node.name not in allowed:
+            raise ConstraintViolation(
+                f"Task {task.name} cannot run on node {node.name}; its constraint only "
+                f"allows {sorted(allowed)}."
+            )
+
         exec_time = task.cost / node.speed
-        min_start_time = 0.0
+        min_start_time = current_moment
         for dependency in self.task_graph.in_edges(task):
             if not self.is_scheduled(dependency.source):
                 raise ValueError(
                     f"Parent task {dependency.source} is not scheduled yet."
                 )
-            parent_tasks = self._task_map[dependency.source]
-            min_min_start_time = math.inf
-            for parent_task in parent_tasks:
-                network_edge = self.network.get_edge(parent_task.node, node.name)
-                arrival_time = parent_task.end + (dependency.size / network_edge.speed)
-                min_min_start_time = min(min_min_start_time, arrival_time)
-            min_start_time = max(min_start_time, min_min_start_time)
+            parent_task = self._task_map[dependency.source]
+            network_edge = self.network.get_edge(parent_task.node, node.name)
+            arrival_time = parent_task.end + (dependency.size / network_edge.speed)
+            min_start_time = max(min_start_time, arrival_time)
 
         if append_only:
             min_start_time = (
@@ -696,6 +863,19 @@ class Schedule(BaseModel):
                 f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}."
             )
 
+        if task.name in self._task_map:
+            raise ValueError(
+                f"Task {task.name} is already scheduled on node "
+                f"{self._task_map[task.name].node}."
+            )
+
+        allowed = self.allowed_nodes(task.name)
+        if allowed is not None and task.node not in allowed:
+            raise ConstraintViolation(
+                f"Task {task.name} placed on node {task.node}, but its constraint only "
+                f"allows {sorted(allowed)}."
+            )
+
         # Use (start, end) tuple for comparison so tasks with same start time are ordered by end time
         idx = bisect.bisect_left(
             [(t.start, t.end) for t in self.mapping[task.node]], (task.start, task.end)
@@ -710,29 +890,26 @@ class Schedule(BaseModel):
                 f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}."
             )
 
-        self._task_map.setdefault(task.name, []).append(task)
+        self._task_map[task.name] = task
+        self._apply_load(task, sign=1.0)  # keep the throughput aggregates in sync
 
-    def remove_task(self, task_name: str) -> None:
+    def remove_task(self, task_name: str | TaskGraphNode) -> None:
         """Remove a task from the schedule.
 
         Args:
-            task_name (str): The name of the task to remove.
-
-        Raises:
-            ValueError: If the task is not in the schedule.
+            task_name (str | TaskGraphNode): The task or the name of the task to remove.
         """
-        for node, tasks in self.mapping.items():
-            for i, task in enumerate(tasks):
-                if task.name == task_name:
-                    tasks.pop(i)
-                    if task_name in self._task_map:
-                        self._task_map[task_name] = [
-                            t for t in self._task_map[task_name] if t is not task
-                        ]
-                        if not self._task_map[task_name]:
-                            del self._task_map[task_name]
-                    return
-        raise ValueError(f"Task {task_name} not in schedule.")
+        task_name = (
+            task_name.name if isinstance(task_name, TaskGraphNode) else task_name
+        )
+        if task_name not in self._task_map:
+            raise ValueError(f"Task {task_name} not in schedule.")
+        scheduled_task = self._task_map[task_name]
+        self._apply_load(
+            scheduled_task, sign=-1.0
+        )  # keep the throughput aggregates in sync
+        self.mapping[scheduled_task.node].remove(scheduled_task)
+        del self._task_map[task_name]
 
     def is_scheduled(self, task_name: str) -> bool:
         """Check if a task is scheduled.
@@ -742,18 +919,15 @@ class Schedule(BaseModel):
         Returns:
             bool: True if the task is scheduled, False otherwise.
         """
-        for tasks in self.mapping.values():
-            if any(task.name == task_name for task in tasks):
-                return True
-        return False
+        return task_name in self._task_map
 
-    def get_scheduled_task(self, task_name: str) -> List[ScheduledTask]:
+    def get_scheduled_task(self, task_name: str) -> ScheduledTask:
         """Get the scheduled task by name.
 
         Args:
             task_name (str): The name of the task.
         Returns:
-            List[ScheduledTask]: The scheduled tasks.
+            ScheduledTask: The scheduled task.
 
         Raises:
             ValueError: If the task is not scheduled.
@@ -767,12 +941,23 @@ class Scheduler(ABC, BaseModel):
     """An abstract class for a scheduler."""
 
     @abstractmethod
-    def schedule(self, network: Network, task_graph: TaskGraph) -> Schedule:
+    def schedule(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Optional["Schedule"] = None,
+        min_start_time: float = 0.0,
+    ) -> Schedule:
         """Schedule the tasks on the network.
 
         Args:
             network (Network): The network to schedule on.
             task_graph (TaskGraph): The task graph to schedule.
+            schedule (Optional[Schedule]): An existing partial schedule to
+                extend (e.g. when rescheduling around committed tasks). Schedulers
+                that do not support incremental scheduling may ignore this.
+            min_start_time (float): The earliest time at which newly placed tasks
+                may start. Defaults to 0.0.
 
         Returns:
             Schedule: The resulting schedule.

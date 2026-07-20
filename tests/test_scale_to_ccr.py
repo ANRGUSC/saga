@@ -1,8 +1,7 @@
-"""Regression tests for Network.scale_to_ccr.
+"""Tests for Network.scale_to_ccr.
 
-Guards against a bug where scale_to_ccr overwrote every edge with a single
-average speed, destroying link heterogeneity (all edges ended up equal) and
-clobbering self-loops. See issue #50.
+Covers target-CCR accuracy, preservation of link heterogeneity, self-loop
+handling, and input validation.
 """
 
 import math
@@ -79,8 +78,7 @@ def test_scale_to_ccr_rejects_nonpositive_target():
 
 
 def test_scale_to_ccr_rejects_network_without_inter_node_links():
-    # A single-node network has only a self-loop, so the target CCR is
-    # unachievable and scaling should fail fast rather than no-op.
+    # A single-node network has only a self-loop, so no target CCR is achievable.
     _, task_graph = _make_instance()
     network = Network.create(nodes=[("A", 1.0)], edges=[])
     with pytest.raises(ValueError):

@@ -1,8 +1,7 @@
-"""Regression tests for the random task-graph/network generators.
+"""Tests for the random task-graph and network generators.
 
-These guard against a clamp bug in the default weight functions where an
-inverted ``min``/``max`` made every generated weight collapse to ``2.0``,
-producing fully degenerate (tie-everywhere) instances. See issue #58.
+The default weight functions should produce clamped, varied weights, so
+generated instances are not degenerate with every weight identical.
 """
 
 import random
@@ -35,7 +34,6 @@ def test_default_weight_is_clamped_and_not_constant(weight_fn):
     samples = [weight_fn() for _ in range(1000)]
 
     assert all(EPS <= w <= 2 for w in samples), "weights escaped the [EPS, 2] clamp"
-    # The bug pinned every draw to exactly 2.0; a healthy generator spreads out.
     assert len(set(samples)) > 1, "weights are constant (degenerate instance)"
     assert any(abs(w - 2.0) > EPS for w in samples), "every weight collapsed to 2.0"
 

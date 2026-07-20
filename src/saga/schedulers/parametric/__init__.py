@@ -1,5 +1,9 @@
-from abc import ABC, abstractmethod
-from typing import Generic, Iterable, List, TypeVar
+from abc import abstractmethod
+from typing import Any, Dict, Generic, Iterable, List, Optional, Set, TypeVar
+
+# ? = Question
+#! = Observation
+# * = Change, commented code will be what was there previoudsly to confirm changes reflect stricter structure
 
 from pydantic import BaseModel, Field
 
@@ -15,7 +19,7 @@ from saga import (
 )
 
 
-class IntialPriority(BaseModel, ABC):
+class InitialPriority(BaseModel):
     @abstractmethod
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         """Return the initial priority of the tasks.
@@ -27,10 +31,11 @@ class IntialPriority(BaseModel, ABC):
         Returns:
             List[str]: The initial priority of the tasks.
         """
-        pass
+        # BaseModel is not an ABC, so @abstractmethod alone does not block instantiation.
+        raise NotImplementedError
 
 
-class InsertTask(BaseModel, ABC):
+class InsertTask(BaseModel):
     @abstractmethod
     def call(
         self,
@@ -56,17 +61,26 @@ class InsertTask(BaseModel, ABC):
         Returns:
             Task: The inserted task
         """
-        pass
+        # BaseModel is not an ABC, so @abstractmethod alone does not block instantiation.
+        raise NotImplementedError
 
 
 TInsert = TypeVar("TInsert", bound=InsertTask)
 
 
 class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
-    initial_priority: IntialPriority = Field(
+    initial_priority: InitialPriority = Field(
         ..., description="The initial priority strategy."
     )
     insert_task: TInsert = Field(..., description="The task insertion strategy.")
+
+    def __init__(
+        self, initial_priority: InitialPriority, insert_task: TInsert, **kwargs: Any
+    ) -> None:
+        # mypy resolves this to Scheduler.__init__, which does not declare these fields.
+        super().__init__(  # type: ignore[call-arg]
+            initial_priority=initial_priority, insert_task=insert_task, **kwargs
+        )
 
     def schedule(
         self,
@@ -74,6 +88,7 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
         task_graph: TaskGraph,
         schedule: Schedule | None = None,
         min_start_time: float = 0.0,
+        node_constraints: Optional[Dict[str, Set[str]]] = None,
     ) -> Schedule:
         """Schedule the tasks on the network.
 
@@ -82,12 +97,17 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
             task_graph (TaskGraph): The task graph.
             schedule (Schedule): The current schedule.
             min_start_time (float): The current moment in time.
+            node_constraints (Optional[Dict[str, Set[str]]]): Per-task placement
+                constraints for this instance, mapping a task name to the node names it
+                may run on. Used only when a new schedule is constructed; when an existing
+                schedule is passed, its own constraints apply.
 
         Returns:
             Schedule: The resulting schedule.
         """
+        #! at first glance this looks mostly the same as my implimentation
         if schedule is None:
-            schedule = Schedule(task_graph, network)
+            schedule = Schedule(task_graph, network, node_constraints=node_constraints)
         queue = self.initial_priority.call(network, task_graph)
         while queue:
             task_name = queue.pop(0)
