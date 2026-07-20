@@ -68,6 +68,7 @@ class FrontierEnvironment(Environment):
         self.occupied_nodes = set()
         self._step = 0
         self.history = []
+        self.reschedule_count = 0
         if self.policy is not None:
             self.policy.reset()
         self.frontier = []

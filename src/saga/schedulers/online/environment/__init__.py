@@ -190,6 +190,7 @@ class Environment:
         self._step: int = 0
         self.history: List[StepRecord] = []
         self.prev_nready: int = 0
+        self.reschedule_count: int = 0
 
     # ------------------------------------------------------------------
     # Public interface
@@ -208,6 +209,7 @@ class Environment:
         self._step = 0
         self.history = []
         self.prev_nready = 0
+        self.reschedule_count = 0
         if self.policy is not None:
             self.policy.reset()
         if self.scheduler is None:

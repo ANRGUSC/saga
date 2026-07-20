@@ -30,6 +30,7 @@ class ReschedulePolicy(OnlinePolicy):
                 "this may raise at runtime.",
                 type(environment.scheduler).__name__,
             )
+        environment.reschedule_count += 1
         partial = build_partial_schedule(environment)
         if isinstance(environment, StochasticEnvironment):
             new_estimate = environment.stochastic_scheduler.schedule(
@@ -112,6 +113,7 @@ class ConditionalReschedulePolicy(OnlinePolicy):
             scheduled_task=last_finished, environment=environment
         ):
             return environment.schedule
+        environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
         if isinstance(environment, StochasticEnvironment):
@@ -157,6 +159,7 @@ class RandomReschedulePolicy10(OnlinePolicy):
             )
         if not self.evaluate_reschedule():
             return environment.schedule
+        environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
         if isinstance(environment, StochasticEnvironment):
@@ -202,6 +205,7 @@ class RandomReschedulePolicy25(OnlinePolicy):
             )
         if not self.evaluate_reschedule():
             return environment.schedule
+        environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
         if isinstance(environment, StochasticEnvironment):
@@ -247,6 +251,7 @@ class RandomReschedulePolicy50(OnlinePolicy):
             )
         if not self.evaluate_reschedule():
             return environment.schedule
+        environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
         if isinstance(environment, StochasticEnvironment):

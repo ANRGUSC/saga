@@ -1,8 +1,14 @@
 """Analyze throughput results: per-workflow gradient heatmaps.
 
-Reads results/<branch>_<regime>.csv (from run.py), normalizes throughput per instance
-against the best config on that instance, then writes:
-  - output/<branch>_<regime>/<workflow>.png : median throughput ratio, schedulers x CCR.
+Reads results/<branch>_<regime>.csv (from run.py), normalizes throughput and makespan
+per instance against the best config on that instance, then writes:
+  - output/<branch>_<regime>/<workflow>_throughput.png : median throughput ratio, schedulers x CCR.
+  - output/<branch>_<regime>/<workflow>_makespan.png   : median makespan ratio, schedulers x CCR.
+
+In both cases 1.0 is the best config on that instance, but the direction flips: throughput
+is better when higher, so ThroughputRatio = Throughput / max(Throughput) <= 1 (lower is
+worse); makespan is better when lower, so MakespanRatio = Makespan / min(Makespan) >= 1
+(higher is worse).
 
 Usage:
     python analyze.py riotbench deterministic
@@ -51,8 +57,10 @@ def load(branch: str, regime: str) -> pd.DataFrame:
             f"Usage: python analyze.py <branch> <regime>  (regime = deterministic|stochastic)"
         )
     df = pd.read_csv(path)
-    best = df.groupby(INSTANCE_KEYS)["Throughput"].transform("max")
-    df["Ratio"] = df["Throughput"] / best
+    best_throughput = df.groupby(INSTANCE_KEYS)["Throughput"].transform("max")
+    df["ThroughputRatio"] = df["Throughput"] / best_throughput
+    best_makespan = df.groupby(INSTANCE_KEYS)["Makespan"].transform("min")
+    df["MakespanRatio"] = df["Makespan"] / best_makespan
     return df
 
 
@@ -63,17 +71,21 @@ def heatmaps(df: pd.DataFrame, branch: str, regime: str) -> None:
         # Pass the raw per-instance/seed rows so each cell renders a gradient over its
         # distribution (aggregating to one value per cell would flatten it); the cell
         # label is the mean.
-        cell = group[["Scheduler", "CCR", "Ratio"]]
-        ax = gradient_heatmap(
-            cell, x="CCR", y="Scheduler", color="Ratio",
-            title=f"{branch} / {regime}: {workflow}",
-            x_label="CCR", y_label="scheduler", color_label="throughput ratio (median)",
-            yorder=scheduler_order,
-            cmap="coolwarm_r",  # reverse so high throughput (good) is cool, low is warm/red
-            cell_font_size=14, font_size=14, figsize=(9, 7),
-        )
-        ax.get_figure().savefig(outdir / f"{workflow}.png", bbox_inches="tight", dpi=120)
-        plt.close(ax.get_figure())
+        for metric, ratio_col, cmap in (
+            ("throughput", "ThroughputRatio", "coolwarm_r"),  # high (good) is cool, low is warm/red
+            ("makespan", "MakespanRatio", "coolwarm"),  # low (good) is cool, high is warm/red
+        ):
+            cell = group[["Scheduler", "CCR", ratio_col]]
+            ax = gradient_heatmap(
+                cell, x="CCR", y="Scheduler", color=ratio_col,
+                title=f"{branch} / {regime}: {workflow} ({metric})",
+                x_label="CCR", y_label="scheduler", color_label=f"{metric} ratio (median)",
+                yorder=scheduler_order,
+                cmap=cmap,
+                cell_font_size=14, font_size=14, figsize=(9, 7),
+            )
+            ax.get_figure().savefig(outdir / f"{workflow}_{metric}.png", bbox_inches="tight", dpi=120)
+            plt.close(ax.get_figure())
     print(f"heatmaps -> {outdir}")
 
 

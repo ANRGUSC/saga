@@ -99,24 +99,33 @@ def build_config(name: str):
     return BASES[base](), _POLICIES[policy]()
 
 
-def evaluate(regime, scheduler, policy, instance, seed) -> float:
-    """Return the realized throughput of one config on one instance/seed."""
+def evaluate(regime, scheduler, policy, instance, seed) -> dict:
+    """Return the realized throughput, makespan, and reschedule count of one config on one instance/seed."""
     cons = instance.node_constraints
+    reschedule_count = 0
     if regime == "deterministic":
         if policy is None:
             schedule = scheduler.schedule(instance.network, instance.task_graph, node_constraints=cons)
         else:
-            schedule = Environment(
+            env = Environment(
                 instance.network, instance.task_graph,
                 scheduler=scheduler, policy=policy, node_constraints=cons,
-            ).run()
+            )
+            schedule = env.run()
+            reschedule_count = env.reschedule_count
     else:
-        schedule = StochasticEnvironment(
+        env = StochasticEnvironment(
             instance.network, instance.task_graph,
             scheduler=scheduler, estimate=_mean, policy=policy,
             seed=seed, node_constraints=cons,
-        ).run()
-    return schedule.throughput
+        )
+        schedule = env.run()
+        reschedule_count = env.reschedule_count
+    return {
+        "Throughput": schedule.throughput,
+        "Makespan": schedule.makespan,
+        "RescheduleCount": reschedule_count,
+    }
 
 
 def _eval_instance(job):
@@ -128,7 +137,7 @@ def _eval_instance(job):
         for name in config_names(regime):
             scheduler, policy = build_config(name)
             try:
-                throughput = evaluate(regime, scheduler, policy, instance, seed)
+                result = evaluate(regime, scheduler, policy, instance, seed)
             except Exception as e:  # noqa: BLE001
                 logging.warning("failed %s/%s ccr=%s %s seed=%d: %s",
                                 workflow, name, ccr, instance.name, seed, e)
@@ -136,7 +145,8 @@ def _eval_instance(job):
             rows.append({
                 "Branch": None, "Regime": regime, "Workflow": workflow,
                 "CCR": ccr, "Instance": instance.name, "Seed": seed,
-                "Scheduler": name, "Throughput": throughput,
+                "Scheduler": name, "Throughput": result["Throughput"],
+                "Makespan": result["Makespan"], "RescheduleCount": result["RescheduleCount"],
             })
     return rows
 
