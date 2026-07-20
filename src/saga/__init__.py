@@ -640,10 +640,7 @@ class Schedule(BaseModel):
             ),
             node_constraints=node_constraints,
         )
-        # Rebuild the derived state from a pre-populated mapping. Without this,
-        # _task_map and the load aggregates start empty, so is_scheduled() would
-        # report False for tasks already in the mapping and the throughput and
-        # bottleneck figures would be computed from nothing.
+        # Keep the task lookup and load aggregates consistent with the mapping.
         for tasks in self.mapping.values():
             for task in tasks:
                 self._task_map[task.name] = task
@@ -856,9 +853,6 @@ class Schedule(BaseModel):
             )
 
         if task.name in self._task_map:
-            # A second entry would leave both tasks in the mapping and double-count
-            # them in the load aggregates, while _task_map (and so remove_task)
-            # could only ever refer to one of them.
             raise ValueError(
                 f"Task {task.name} is already scheduled on node "
                 f"{self._task_map[task.name].node}."

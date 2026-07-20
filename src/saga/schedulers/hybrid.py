@@ -25,9 +25,7 @@ class HybridScheduler(Scheduler):
         Returns:
             Dict[str, List[Task]]: The best schedule.
         #"""
-        # Each child gets its own copy of the partial schedule: Schedule is mutable,
-        # so sharing one instance would let each scheduler see the previous one's
-        # placements.
+        # Schedule is mutable, so each child needs its own copy.
         return min(
             (
                 scheduler.schedule(

@@ -104,8 +104,6 @@ class MaxTPScheduler(Scheduler):
                     best_task = candidate
 
             if best_task is None:
-                # No candidate node was eligible (e.g. node constraints exclude
-                # every node), so there is nowhere valid to place this task.
                 raise ValueError(
                     f"No eligible node to schedule task {largest_task.name}."
                 )

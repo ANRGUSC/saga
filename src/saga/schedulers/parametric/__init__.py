@@ -31,8 +31,7 @@ class IntialPriority(BaseModel):
         Returns:
             List[str]: The initial priority of the tasks.
         """
-        # Not enforced by ABCMeta: this is a pydantic BaseModel, so @abstractmethod
-        # does not prevent instantiation. Fail loudly instead of returning None.
+        # BaseModel is not an ABC, so @abstractmethod alone does not block instantiation.
         raise NotImplementedError
 
 
@@ -62,8 +61,7 @@ class InsertTask(BaseModel):
         Returns:
             Task: The inserted task
         """
-        # Not enforced by ABCMeta: this is a pydantic BaseModel, so @abstractmethod
-        # does not prevent instantiation. Fail loudly instead of returning None.
+        # BaseModel is not an ABC, so @abstractmethod alone does not block instantiation.
         raise NotImplementedError
 
 
@@ -79,9 +77,7 @@ class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
     def __init__(
         self, initial_priority: IntialPriority, insert_task: TInsert, **kwargs: Any
     ) -> None:
-        # mypy resolves super().__init__ to Scheduler (ABC, BaseModel), which does
-        # not declare these fields; pydantic accepts them for the declared fields
-        # at runtime.
+        # mypy resolves this to Scheduler.__init__, which does not declare these fields.
         super().__init__(  # type: ignore[call-arg]
             initial_priority=initial_priority, insert_task=insert_task, **kwargs
         )

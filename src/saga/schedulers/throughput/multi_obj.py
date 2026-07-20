@@ -49,8 +49,6 @@ class MultiObjScheduler(Scheduler):
         rank_order = heft_rank_sort(network=network, task_graph=task_graph)
         rankings = {name: i for i, name in enumerate(rank_order)}
         schedule = schedule if schedule is not None else Schedule(task_graph, network)
-        # Respect any tasks already committed in a partial schedule: they are neither
-        # remaining nor ready, and re-scheduling them would double-place the task.
         remaining_tasks = {
             t for t in task_graph.tasks if not schedule.is_scheduled(t.name)
         }
