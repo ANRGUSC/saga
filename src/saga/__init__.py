@@ -714,11 +714,11 @@ class Schedule(BaseModel):
             float: The throughput of the schedule.
 
         Raises:
-            ValueError: If the bottleneck is not positive, meaning every scheduled
-                task takes zero time.
+            ValueError: If the schedule is empty, or if the bottleneck is not
+                positive because every scheduled task takes zero time.
         """
         if not any(self.mapping.values()):
-            return 0.0
+            raise ValueError("Schedule is empty, so throughput is undefined.")
         compute_bottleneck = max(self._compute_load.values(), default=0.0)
         comm_bottleneck = max(self._comm_load.values(), default=0.0)
         bottleneck = max(comm_bottleneck, compute_bottleneck)

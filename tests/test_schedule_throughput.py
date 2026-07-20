@@ -17,8 +17,9 @@ def test_throughput_is_inverse_of_bottleneck():
     assert schedule.throughput == pytest.approx(0.5)
 
 
-def test_throughput_of_empty_schedule_is_zero():
-    assert _schedule(task_cost=1.0, node_speed=1.0).throughput == 0.0
+def test_throughput_rejects_empty_schedule():
+    with pytest.raises(ValueError):
+        _schedule(task_cost=1.0, node_speed=1.0).throughput
 
 
 def test_throughput_rejects_zero_bottleneck():
