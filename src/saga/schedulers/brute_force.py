@@ -1,4 +1,5 @@
 import itertools
+from copy import deepcopy
 from typing import Optional
 
 from saga import Scheduler, ScheduledTask, TaskGraph, Network, Schedule
@@ -20,9 +21,11 @@ class BruteForceScheduler(Scheduler):
         Args:
             network: Network
             task_graph: Task graph
+            schedule: An existing partial schedule to extend. Defaults to None.
+            min_start_time: The earliest time newly placed tasks may start.
 
         Returns:
-            A dictionary of the schedule
+            Schedule: The resulting schedule.
         """
         # get all topological sorts of the task graph
         topological_sorts = list(task_graph.all_topological_sorts())
@@ -38,11 +41,20 @@ class BruteForceScheduler(Scheduler):
         best_makespan = float("inf")
         for mapping in mappings:
             for top_sort in topological_sorts:
-                candidate_schedule = Schedule(task_graph, network)
+                candidate_schedule = (
+                    deepcopy(schedule)
+                    if schedule is not None
+                    else Schedule(task_graph, network)
+                )
                 for task in top_sort:
+                    if candidate_schedule.is_scheduled(task.name):
+                        continue
                     node = mapping[task]
                     ready_time = candidate_schedule.get_earliest_start_time(
-                        task.name, node.name, append_only=True
+                        task.name,
+                        node.name,
+                        append_only=True,
+                        current_moment=min_start_time,
                     )
                     new_task = ScheduledTask(
                         node=node.name,

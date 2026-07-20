@@ -67,7 +67,7 @@ class MultiObjScheduler(Scheduler):
                     "graph may contain a cycle or the partial schedule is inconsistent."
                 )
             non_dominated_tasks: List[TaskGraphNode] = []
-            dominated_tasks: List[TaskGraphNode] = [Task for Task in ready_tasks]
+            dominated_tasks: List[TaskGraphNode] = list(ready_tasks)
             non_dominated_tasks.append(dominated_tasks.pop(0))
 
             for dom_task in list(dominated_tasks):

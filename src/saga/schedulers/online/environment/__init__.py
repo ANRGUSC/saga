@@ -184,9 +184,7 @@ class Environment:
         # Holds task-like objects (ScheduledTask in batch environments, TaskGraphNode
         # in FrontierEnvironment); consumers only rely on the `.name` attribute.
         self.ready_tasks: Set[Any] = set()
-        # Seeded with TaskGraphNodes but discarded against ScheduledTasks in the base
-        # env (and TaskGraphNodes in FrontierEnvironment); only `.name` is relied on.
-        self.unready_tasks: Set[Any] = set(self.task_graph.tasks)
+        self.unready_tasks: Set[str] = {task.name for task in self.task_graph.tasks}
         self.available_nodes: Set[NetworkNode] = set()
         self.occupied_nodes: Set[NetworkNode] = set()
         self._step: int = 0
@@ -204,7 +202,7 @@ class Environment:
         self.running_tasks = set()
         self.ready_tasks = set()
         self.committed = set()
-        self.unready_tasks = set(self.task_graph.tasks)
+        self.unready_tasks = {task.name for task in self.task_graph.tasks}
         self.available_nodes = set()
         self.occupied_nodes = set()
         self._step = 0
@@ -257,7 +255,7 @@ class Environment:
                 finished_tasks=frozenset(t.name for t in self.finished_tasks),
                 running_tasks=frozenset(t.name for t in self.running_tasks),
                 ready_tasks=frozenset(t.name for t in self.ready_tasks),
-                unready_tasks=frozenset(t.name for t in self.unready_tasks),
+                unready_tasks=frozenset(self.unready_tasks),
                 makespan=self.schedule.makespan,
             )
         )
@@ -356,7 +354,13 @@ class Environment:
                 }
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
-                    self.unready_tasks.discard(task)
+
+        ready_names = {task.name for task in self.ready_tasks}
+        self.unready_tasks = {
+            task.name
+            for task in self.task_graph.tasks
+            if task.name not in committed_names and task.name not in ready_names
+        }
 
     def _update_network_state(self) -> None:
         """Recompute available and occupied node sets from the current running tasks."""

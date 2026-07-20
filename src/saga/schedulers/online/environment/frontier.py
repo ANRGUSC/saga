@@ -63,7 +63,7 @@ class FrontierEnvironment(Environment):
         self.finished_tasks = set()
         self.running_tasks = set()
         self.ready_tasks = set()
-        self.unready_tasks = set()
+        self.unready_tasks = {task.name for task in self.task_graph.tasks}
         self.available_nodes = set()
         self.occupied_nodes = set()
         self._step = 0
@@ -116,18 +116,20 @@ class FrontierEnvironment(Environment):
             if self.ready_condition == "p_complete":
                 if predecessors.issubset(finished_names):
                     self.frontier_set.add(name)
-                    self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
             elif self.ready_condition == "p_committed":
                 if predecessors.issubset(finished_or_running):
                     self.frontier_set.add(name)
-                    self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
             elif self.ready_condition == "p_scheduled":
                 if predecessors.issubset(committed_names):
                     self.frontier_set.add(name)
-                    self.unready_tasks.discard(task)
                     heapq.heappush(self.frontier, (self.priority_condition(task), name))
 
         task_by_name = {task.name: task for task in self.task_graph.tasks}
         self.ready_tasks = {task_by_name[name] for name in self.frontier_set}
+        self.unready_tasks = {
+            task.name
+            for task in self.task_graph.tasks
+            if task.name not in committed_names and task.name not in self.frontier_set
+        }

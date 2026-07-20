@@ -45,11 +45,12 @@ class HeftScheduler(Scheduler):
         Args:
             network (nx.Graph): The network graph.
             task_graph (nx.DiGraph): The task graph.
-            schedule (Optional[Dict[Hashable, List[Task]]], optional): The schedule. Defaults to None.
+            schedule (Optional[Schedule], optional): An existing partial schedule to
+                extend. Defaults to None.
             min_start_time (float, optional): The minimum start time. Defaults to 0.0.
 
         Returns:
-            Dict[str, List[Task]]: The schedule.
+            Schedule: The resulting schedule.
 
         Raises:
             ValueError: If the instance is invalid.

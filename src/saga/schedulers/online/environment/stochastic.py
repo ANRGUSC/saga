@@ -117,4 +117,10 @@ class StochasticEnvironment(Environment):
                 }
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
-                    self.unready_tasks.discard(task)
+
+        ready_names = {task.name for task in self.ready_tasks}
+        self.unready_tasks = {
+            task.name
+            for task in self.task_graph.tasks
+            if task.name not in committed_names and task.name not in ready_names
+        }

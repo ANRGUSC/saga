@@ -228,14 +228,20 @@ def _map_non_critical(
         )
         return c + x
 
-    # Process in topological order so predecessors are already placed when
-    # we make our decision; within that constraint, prefer heavier tasks.
+    # Process in topological order so predecessors are already placed when we make
+    # our decision; within that constraint, prefer heavier tasks. Sorting by layer
+    # rather than by position in one topological order is what leaves room for the
+    # weight ordering: a task's layer is strictly greater than every predecessor's,
+    # so layer order is still topologically valid, and tasks sharing a layer are
+    # independent and free to be reordered by weight.
     topo = [n.name for n in task_graph.topological_sort()]
+    layer: Dict[str, int] = {}
+    for name in topo:
+        layer[name] = 1 + max(
+            (layer[edge.source] for edge in task_graph.in_edges(name)), default=-1
+        )
     pending = [t for t in topo if t in non_cp_tasks]
-    pending.sort(key=task_weight, reverse=True)
-    # Re-sort so topological order is still respected (stable sort by topo idx).
-    topo_idx = {t: i for i, t in enumerate(topo)}
-    pending.sort(key=lambda t: topo_idx[t])
+    pending.sort(key=lambda t: (layer[t], -task_weight(t)))
 
     for t in pending:
         best_node = None
