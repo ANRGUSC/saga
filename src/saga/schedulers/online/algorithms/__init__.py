@@ -1,4 +1,5 @@
 """Concrete online scheduling algorithms built on the Environment framework."""
+
 from saga.schedulers.online.algorithms.fifo import (
     FIFOEnvironment,
     FIFOScheduler,

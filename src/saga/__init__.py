@@ -331,7 +331,9 @@ class TaskGraph(BaseModel):
     def create(
         cls,
         tasks: Iterable[TaskGraphNode | Tuple[str, float]],
-        dependencies: Iterable[TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]],
+        dependencies: Iterable[
+            TaskGraphEdge | Tuple[str, str, float] | Tuple[str, str]
+        ],
     ) -> "TaskGraph":
         task_set = set()
         for t in tasks:
@@ -355,12 +357,14 @@ class TaskGraph(BaseModel):
         # ensure there is one source and one sink
         # First, find sources/sinks excluding super nodes
         sources = [
-            t for t in task_set
+            t
+            for t in task_set
             if all(d.target != t.name for d in dependency_set)
             and t.name not in ("__super_source__", "__super_sink__")
         ]
         sinks = [
-            t for t in task_set
+            t
+            for t in task_set
             if all(d.source != t.name for d in dependency_set)
             and t.name not in ("__super_source__", "__super_sink__")
         ]
@@ -609,9 +613,15 @@ class Schedule(BaseModel):
         ),
     )
 
-    _task_map: Dict[str, ScheduledTask] = PrivateAttr(default_factory=dict) # For quick lookup of scheduled tasks by name
-    _compute_load: Dict[str, float] = PrivateAttr(default_factory=dict) # For keeping track of compute load per node
-    _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(default_factory=dict) # For keeping track of communication load per link
+    _task_map: Dict[str, ScheduledTask] = PrivateAttr(
+        default_factory=dict
+    )  # For quick lookup of scheduled tasks by name
+    _compute_load: Dict[str, float] = PrivateAttr(
+        default_factory=dict
+    )  # For keeping track of compute load per node
+    _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(
+        default_factory=dict
+    )  # For keeping track of communication load per link
 
     def __init__(
         self,
@@ -657,10 +667,15 @@ class Schedule(BaseModel):
         """
         return max(self.makespan, task.end)
 
-    def _link_cost(self, size: float, src_node: str, dst_node: str) -> Tuple[Tuple[str, str], float]:
+    def _link_cost(
+        self, size: float, src_node: str, dst_node: str
+    ) -> Tuple[Tuple[str, str], float]:
         """Return the (undirected link key, transfer time) for `size` bytes from src to dst."""
         network_edge = self.network.get_edge(src_node, dst_node)
-        key = (min(network_edge.source, network_edge.target), max(network_edge.source, network_edge.target))
+        key = (
+            min(network_edge.source, network_edge.target),
+            max(network_edge.source, network_edge.target),
+        )
         return key, size / network_edge.speed
 
     def _apply_load(self, task: ScheduledTask, sign: float) -> None:
@@ -670,7 +685,9 @@ class Schedule(BaseModel):
         it. Comm cost is applied for each cross-node edge to an already-scheduled neighbor
         (predecessors via in-edges, successors via out-edges), so each edge is counted once.
         """
-        self._compute_load[task.node] = self._compute_load.get(task.node, 0.0) + sign * (task.end - task.start)
+        self._compute_load[task.node] = self._compute_load.get(
+            task.node, 0.0
+        ) + sign * (task.end - task.start)
         for task_edge in self.task_graph.in_edges(task.name):
             if task_edge.source in self._task_map and task_edge.source != task.name:
                 src_node = self._task_map[task_edge.source].node
@@ -725,7 +742,9 @@ class Schedule(BaseModel):
                     deltas[key] = deltas.get(key, 0.0) + cost
         comm_bottleneck = max(self._comm_load.values(), default=0.0)
         for key, delta in deltas.items():
-            comm_bottleneck = max(comm_bottleneck, self._comm_load.get(key, 0.0) + delta)
+            comm_bottleneck = max(
+                comm_bottleneck, self._comm_load.get(key, 0.0) + delta
+            )
         return max(compute_bottleneck, comm_bottleneck)
 
     def __getitem__(self, node: str | NetworkNode) -> List[ScheduledTask]:
@@ -757,7 +776,7 @@ class Schedule(BaseModel):
         task: str | TaskGraphNode,
         node: str | NetworkNode,
         append_only: bool = False,
-        current_moment: float = 0.0
+        current_moment: float = 0.0,
     ) -> float:
         """Get the earliest start time for a task on a node given the minimum start time and execution time.
 
@@ -864,7 +883,9 @@ class Schedule(BaseModel):
         if task_name not in self._task_map:
             raise ValueError(f"Task {task_name} not in schedule.")
         scheduled_task = self._task_map[task_name]
-        self._apply_load(scheduled_task, sign=-1.0)  # keep the throughput aggregates in sync
+        self._apply_load(
+            scheduled_task, sign=-1.0
+        )  # keep the throughput aggregates in sync
         self.mapping[scheduled_task.node].remove(scheduled_task)
         del self._task_map[task_name]
 

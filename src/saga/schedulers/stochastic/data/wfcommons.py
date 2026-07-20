@@ -90,7 +90,9 @@ def _sample_rv(dist_info: Dict) -> Union[RandomVariable, None]:
     dist = dist_info.get("distribution") if dist_info else None
     if not dist:
         return None
-    samples = getattr(stats, dist["name"]).rvs(*dist["params"], size=DEFAULT_NUM_SAMPLES)
+    samples = getattr(stats, dist["name"]).rvs(
+        *dist["params"], size=DEFAULT_NUM_SAMPLES
+    )
     samples = np.clip(samples, dist_info["min"], dist_info["max"])
     return RandomVariable(samples=samples.tolist())
 
@@ -106,7 +108,9 @@ def _trace_to_digraph_v15(trace: Dict, task_type_info: Dict) -> nx.DiGraph:
     """
     spec = trace["workflow"]["specification"]
     spec_tasks = spec["tasks"]
-    real_size = {f["id"]: float(f.get("sizeInBytes", 0.0)) for f in spec.get("files", [])}
+    real_size = {
+        f["id"]: float(f.get("sizeInBytes", 0.0)) for f in spec.get("files", [])
+    }
     task_ids: Set[str] = {t["id"] for t in spec_tasks}
 
     task_graph = nx.DiGraph()
@@ -134,10 +138,15 @@ def _trace_to_digraph_v15(trace: Dict, task_type_info: Dict) -> nx.DiGraph:
             if parent_id not in task_ids:
                 continue
             matched = [
-                rv for file_id, rv in out_files.get(parent_id, {}).items()
+                rv
+                for file_id, rv in out_files.get(parent_id, {}).items()
                 if file_id in in_files[child_id]
             ]
-            weight = sum(matched[1:], matched[0]) if matched else RandomVariable(samples=[1e-9])
+            weight = (
+                sum(matched[1:], matched[0])
+                if matched
+                else RandomVariable(samples=[1e-9])
+            )
             task_graph.add_edge(parent_id, child_id, weight=weight)
 
     return task_graph
@@ -148,7 +157,9 @@ def _trace_to_digraph_v14(trace: Dict, task_type_info: Dict) -> nx.DiGraph:
     for task in trace["workflow"]["tasks"]:
         task_type = task["command"]["program"]
         task_info = task_type_info[task_type]
-        task["runtime"] = _sample_rv(task_info.get("runtime", {})) or RandomVariable(samples=[1e-9])
+        task["runtime"] = _sample_rv(task_info.get("runtime", {})) or RandomVariable(
+            samples=[1e-9]
+        )
 
         for io_file in task["files"]:
             file_type = io_file["name"][36:]  # strip off uuid
@@ -182,7 +193,9 @@ def _trace_to_digraph_v14(trace: Dict, task_type_info: Dict) -> nx.DiGraph:
                     raise ValueError(
                         f"File {io_file['name']} has no 'sizeInBytes' or 'size' attribute."
                     )
-                outputs.setdefault(task["name"], {})[io_file["name"]] = size_in_bytes / 1e6
+                outputs.setdefault(task["name"], {})[io_file["name"]] = (
+                    size_in_bytes / 1e6
+                )
             elif io_file["link"] == "input":
                 input_files.setdefault(task["name"], set()).add(io_file["name"])
 

@@ -1,18 +1,13 @@
-import pathlib
 from typing import List, Optional, Dict
-from abc import ABC, abstractmethod
 import numpy as np
-from pydantic import BaseModel, PrivateAttr, Field
+from pydantic import Field
 
-from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network, TaskGraphNode, NetworkNode, TaskGraphEdge
-from saga.schedulers.cpop import upward_rank
-import heapq
+from saga import Schedule, Scheduler, TaskGraph, Network, TaskGraphNode
 
 
-
-
-
-def compute_inspiring_efficiency(task_graph: TaskGraph, network: Network, time_window: float) -> Dict[str, float]:
+def compute_inspiring_efficiency(
+    task_graph: TaskGraph, network: Network, time_window: float
+) -> Dict[str, float]:
     """Compute the inspiring efficiency of tasks in a task graph.
     A task's inspiring efficiency is the number of tasks expected to finish in a given time window.
 
@@ -21,18 +16,18 @@ def compute_inspiring_efficiency(task_graph: TaskGraph, network: Network, time_w
         network (Network): The network to compute the inspiring efficiency for.
         time_window (float): The time window to compute the inspiring efficiency for.
 
-    Returns: 
+    Returns:
        efficiency_ranks: A dict of task_name to inspiring efficiency, where a task's inspiring efficiency is the number of tasks expected to finish in the given time window.
     """
     average_network_speed = np.mean([node.speed for node in network.nodes])
-    
-    #the paper suggests using the average execution time of tasks of a certain type, but
-    #because we don't have task types, we will just manually calculate execution costs of 
-    #of children tasks. This will be more computationally expensive, but can be easily optimized by task types.
+
+    # the paper suggests using the average execution time of tasks of a certain type, but
+    # because we don't have task types, we will just manually calculate execution costs of
+    # of children tasks. This will be more computationally expensive, but can be easily optimized by task types.
     def compute_task_inspiring_ability(task) -> float:
         """Compute the inspiring ability of a task in a task graph.
         A task's inspiring ability is the total amount of tasks dependent on it that can be expected to finish in a given time window.
-        
+
         Args:
             task (TaskGraphNode): The task to compute the inspiring ability for.
         Returns:
@@ -59,20 +54,20 @@ def compute_inspiring_efficiency(task_graph: TaskGraph, network: Network, time_w
                     next_gen.add(child.name)
             if current_gen:
                 continue
-            else:   
+            else:
                 # visited.update(current_gen)
                 current_gen = next_gen
                 next_gen = set()
         return count
-    efficiency_ranking = []
+
     # for task in task_graph.tasks:
     #     ability = compute_task_inspiring_ability(task)
     #     # counter += 1
     #     # heapq.heappush(efficiency_ranking, (-ability, counter, task.name))
-    efficiency_ranks = {task.name: compute_task_inspiring_ability(task) for task in task_graph.tasks}
+    efficiency_ranks = {
+        task.name: compute_task_inspiring_ability(task) for task in task_graph.tasks
+    }
     return efficiency_ranks
-
-        
 
 
 def compute_inspiring_ability(task_graph: TaskGraph) -> dict[str, float]:
@@ -84,17 +79,17 @@ def compute_inspiring_ability(task_graph: TaskGraph) -> dict[str, float]:
 
     Returns:
         ability_ranks: A dict of task_name to inspiring ability, where a task's inspiring ability is the total amount of tasks dependent on it.
-        """
-    
+    """
+
     topological_order = reversed(task_graph.topological_sort())
-    reachable = {task: set() for task in task_graph.tasks}
-    ability_ranking = []
-    counter = 0
+    reachable: Dict[TaskGraphNode, set] = {task: set() for task in task_graph.tasks}
     for task in topological_order:
         for child in get_children(task_graph, task.name):
             reachable[task].add(child)
             reachable[task].update(reachable[child])
-    ability_ranks: Dict[str, float] = {task.name: (len(reachable[task])+1) for task in task_graph.tasks}
+    ability_ranks: Dict[str, float] = {
+        task.name: (len(reachable[task]) + 1) for task in task_graph.tasks
+    }
     return ability_ranks
 
 
@@ -108,9 +103,11 @@ def get_children(task_graph: TaskGraph, task_name: str) -> List[TaskGraphNode]:
     Returns:
         List[TaskGraphNode]: The child nodes of the task.
     """
-    return [task_graph.get_task(edge.target)for edge in task_graph.out_edges(task_name) if edge.target not in {"__super_source__", "__super_sink__"}]
-
-
+    return [
+        task_graph.get_task(edge.target)
+        for edge in task_graph.out_edges(task_name)
+        if edge.target not in {"__super_source__", "__super_sink__"}
+    ]
 
 
 class InspiritScheduler(Scheduler):
@@ -143,6 +140,7 @@ class InspiritScheduler(Scheduler):
         # Imported here (not at module scope) to avoid a circular import: the
         # online policies module imports the inspiring-rank helpers from here.
         from saga.schedulers.online import Environment, InspiritPolicy
+
         env = Environment(
             network=network,
             task_graph=task_graph,

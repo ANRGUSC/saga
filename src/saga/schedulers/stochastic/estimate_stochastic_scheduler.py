@@ -9,7 +9,7 @@ from saga import (
     TaskGraphNode,
     TaskGraphEdge,
     Scheduler,
-    Schedule
+    Schedule,
 )
 from saga.stochastic import (
     StochasticNetwork,
@@ -19,13 +19,14 @@ from saga.stochastic import (
     StochasticScheduler,
 )
 
-#using this approach, we should be able to make an all-in one online scheduler
+
+# using this approach, we should be able to make an all-in one online scheduler
 class EstimateStochasticScheduler(StochasticScheduler):
     def __init__(
         self,
         scheduler: Scheduler,
         estimate: Callable[[RandomVariable], float],
-        seed: Optional[int]= None
+        seed: Optional[int] = None,
     ) -> None:
         self.scheduler = scheduler
         self._estimate = estimate
@@ -33,10 +34,6 @@ class EstimateStochasticScheduler(StochasticScheduler):
         # Determinized graphs are constant per input (fixed estimate, frozen inputs), so
         # cache them by input identity across a run's many reschedule calls.
         self._det_cache: dict = {}
-    
-
-
-
 
     @property
     def name(self) -> str:

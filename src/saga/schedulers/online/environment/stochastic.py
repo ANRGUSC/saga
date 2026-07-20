@@ -1,4 +1,5 @@
 """Stochastic online environment: tracks an "actual" schedule under realized variance."""
+
 from __future__ import annotations
 
 from typing import Callable, Dict, Optional, Set, TYPE_CHECKING, cast
@@ -6,8 +7,14 @@ from typing import Callable, Dict, Optional, Set, TYPE_CHECKING, cast
 import numpy as np
 
 from saga import Network, Scheduler, TaskGraph
-from saga.schedulers.online.environment import Environment, StepFunction, next_completion
-from saga.schedulers.stochastic.estimate_stochastic_scheduler import EstimateStochasticScheduler
+from saga.schedulers.online.environment import (
+    Environment,
+    StepFunction,
+    next_completion,
+)
+from saga.schedulers.stochastic.estimate_stochastic_scheduler import (
+    EstimateStochasticScheduler,
+)
 from saga.stochastic import StochasticNetwork, StochasticSchedule, StochasticTaskGraph
 from saga.utils.random_variable import RandomVariable
 
@@ -57,11 +64,17 @@ class StochasticEnvironment(Environment):
             estimate=estimate,
         )
 
-        self.initial_estimate_schedule, self.network, self.task_graph = self.stochastic_scheduler.schedule(
-            network=network, task_graph=task_graph, node_constraints=node_constraints
+        self.initial_estimate_schedule, self.network, self.task_graph = (
+            self.stochastic_scheduler.schedule(
+                network=network,
+                task_graph=task_graph,
+                node_constraints=node_constraints,
+            )
         )
         self.estimate_schedule: StochasticSchedule = self.initial_estimate_schedule
-        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
+        self.schedule = self.estimate_schedule.determinize(
+            self.actual_network, self.actual_task_graph
+        )
 
     def reset(self) -> None:
         super().reset()
@@ -69,17 +82,23 @@ class StochasticEnvironment(Environment):
             np.random.seed(self.seed)
         self.actual_task_graph = self._stochastic_task_graph.sample()
         self.actual_network = self._stochastic_network.sample()
-        self.initial_estimate_schedule, self.network, self.task_graph = self.stochastic_scheduler.schedule(
-            network=self._stochastic_network,
-            task_graph=self._stochastic_task_graph,
-            node_constraints=self.node_constraints,
+        self.initial_estimate_schedule, self.network, self.task_graph = (
+            self.stochastic_scheduler.schedule(
+                network=self._stochastic_network,
+                task_graph=self._stochastic_task_graph,
+                node_constraints=self.node_constraints,
+            )
         )
         self.estimate_schedule = self.initial_estimate_schedule
-        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
+        self.schedule = self.estimate_schedule.determinize(
+            self.actual_network, self.actual_task_graph
+        )
 
     def _update_task_state(self) -> None:
         """Recompute all four task-state sets from the current schedule and task graph."""
-        self.schedule = self.estimate_schedule.determinize(self.actual_network, self.actual_task_graph)
+        self.schedule = self.estimate_schedule.determinize(
+            self.actual_network, self.actual_task_graph
+        )
         self.finished_tasks = super().get_finished_tasks(self.schedule)
         self.running_tasks = super().get_running_tasks(self.schedule)
 
@@ -91,7 +110,9 @@ class StochasticEnvironment(Environment):
             for task in tasks:
                 if task.name in committed_names:
                     continue
-                predecessors = {dep.source for dep in self.task_graph.in_edges(task.name)}
+                predecessors = {
+                    dep.source for dep in self.task_graph.in_edges(task.name)
+                }
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
                     self.unready_tasks.discard(task)

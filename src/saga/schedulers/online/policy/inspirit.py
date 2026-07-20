@@ -1,4 +1,5 @@
 """InspiritPolicy: maintain a steady pool of ready tasks by dispatching priority tasks."""
+
 from __future__ import annotations
 
 import heapq
@@ -9,7 +10,10 @@ import numpy as np
 from saga import Schedule
 from saga.schedulers.online.policy import OnlinePolicy
 from saga.schedulers.online.policy._partial import build_partial_schedule
-from saga.schedulers.online.environment import FrontierEnvironment, StochasticEnvironment
+from saga.schedulers.online.environment import (
+    FrontierEnvironment,
+    StochasticEnvironment,
+)
 from saga.schedulers.parametric.components import GreedyInsert, GreedyInsertCompareFuncs
 from saga.schedulers.throughput.inspirit import (
     compute_inspiring_ability,
@@ -144,10 +148,20 @@ class InspiritPolicy(OnlinePolicy):
             environment.task_graph, environment.network, time_window=time_window
         )
         self.ability_ranks = compute_inspiring_ability(environment.task_graph)
-        self.delta_ready = self._delta_ready_override if self._delta_ready_override is not None else workers
-        self.dec_step = self._dec_step_override if self._dec_step_override is not None else workers
-        self.s_inc = self._s_inc_override if self._s_inc_override is not None else workers
-        self.s_dec = self._s_dec_override if self._s_dec_override is not None else workers
+        self.delta_ready = (
+            self._delta_ready_override
+            if self._delta_ready_override is not None
+            else workers
+        )
+        self.dec_step = (
+            self._dec_step_override if self._dec_step_override is not None else workers
+        )
+        self.s_inc = (
+            self._s_inc_override if self._s_inc_override is not None else workers
+        )
+        self.s_dec = (
+            self._s_dec_override if self._s_dec_override is not None else workers
+        )
         self.c = max(1, workers // 2)
 
     # ------------------------------------------------------------------
@@ -157,7 +171,9 @@ class InspiritPolicy(OnlinePolicy):
     def _rebuild_frontiers(self, environment: "Environment") -> None:
         """Rebuild efficiency and ability heaps from the current ready_tasks."""
         if self.efficiency_ranks is None or self.ability_ranks is None:
-            raise RuntimeError("Inspirit ranks must be initialized before rebuilding frontiers.")
+            raise RuntimeError(
+                "Inspirit ranks must be initialized before rebuilding frontiers."
+            )
         ready_names = {t.name for t in environment.ready_tasks}
         self.efficiency_frontier = [
             (-self.efficiency_ranks[name], name) for name in ready_names
@@ -185,7 +201,9 @@ class InspiritPolicy(OnlinePolicy):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _calculate_k(cur_nready: int, prev_nready: int, cur_time: float, prev_time: float) -> float:
+    def _calculate_k(
+        cur_nready: int, prev_nready: int, cur_time: float, prev_time: float
+    ) -> float:
         dt = cur_time - prev_time
         if dt <= 0:
             return 0.0
@@ -199,7 +217,9 @@ class InspiritPolicy(OnlinePolicy):
     # Insertion helper
     # ------------------------------------------------------------------
 
-    def _insert_task(self, task_name: str, schedule: Schedule, environment: "Environment") -> None:
+    def _insert_task(
+        self, task_name: str, schedule: Schedule, environment: "Environment"
+    ) -> None:
         self._insertion_strategy.call(
             environment.network,
             environment.task_graph,
@@ -255,8 +275,10 @@ class InspiritPolicy(OnlinePolicy):
             if self.cur_state == self.INC:
                 if cur_nready - env.prev_nready > self.s_inc:
                     self.cur_k = self._calculate_k(
-                        cur_nready, self._last_k_nready,
-                        env.current_time, self._last_k_time,
+                        cur_nready,
+                        self._last_k_nready,
+                        env.current_time,
+                        self._last_k_time,
                     )
                     self._last_k_time = env.current_time
                     self._last_k_nready = cur_nready
@@ -271,7 +293,10 @@ class InspiritPolicy(OnlinePolicy):
                 if cur_nready > self.peak - self.s_dec * self.s_dec_count:
                     task_name = self.pop_highest_ability()
                     dispatch_type = "ability"
-                elif cur_nready <= self.peak - self.s_dec * (self.s_dec_count + 1) + self.c:
+                elif (
+                    cur_nready
+                    <= self.peak - self.s_dec * (self.s_dec_count + 1) + self.c
+                ):
                     task_name = self.pop_highest_efficiency()
                     dispatch_type = "efficiency"
                     if cur_nready <= self.peak - self.s_dec * (self.s_dec_count + 1):
@@ -285,7 +310,9 @@ class InspiritPolicy(OnlinePolicy):
             # it from the frontier so the fill policy won't re-pick it), then always
             # let the fill policy fill the remaining available slots.
             if not isinstance(env, FrontierEnvironment):
-                raise TypeError("InspiritPolicy with a fill_policy requires a FrontierEnvironment.")
+                raise TypeError(
+                    "InspiritPolicy with a fill_policy requires a FrontierEnvironment."
+                )
             if task_name is not None:
                 env.frontier_set.discard(task_name)
                 env.frontier = [(p, n) for p, n in env.frontier if n != task_name]
@@ -311,7 +338,9 @@ class InspiritPolicy(OnlinePolicy):
                 node_constraints=env.node_constraints,
             )[0]
             env.estimate_schedule = new_estimate
-            realized = new_estimate.determinize(env.actual_network, env.actual_task_graph)
+            realized = new_estimate.determinize(
+                env.actual_network, env.actual_task_graph
+            )
             env.schedule = realized
             return realized
         if env.scheduler is None:

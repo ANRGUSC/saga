@@ -1,4 +1,5 @@
 """Frontier-based online environment (FIFO, LIFO, FrontierHEFT, ...)."""
+
 from __future__ import annotations
 
 import heapq
@@ -47,7 +48,9 @@ class FrontierEnvironment(Environment):
         )
         # Returns a sort key for the frontier heap; usually a float, but subclasses
         # (e.g. FrontierHeftEnvironment) may return a tuple for lexicographic ordering.
-        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda _: self.current_time
+        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda _: (
+            self.current_time
+        )
 
     def reset(
         self,
@@ -80,7 +83,11 @@ class FrontierEnvironment(Environment):
             for task in self.task_graph.tasks:
                 if self.task_graph.in_degree(task) == 0:
                     self._bootstrap_insert.call(
-                        self.network, self.task_graph, self.schedule, task.name, min_start_time=min_start_time
+                        self.network,
+                        self.task_graph,
+                        self.schedule,
+                        task.name,
+                        min_start_time=min_start_time,
                     )
         self._update_task_state()
         self._update_network_state()

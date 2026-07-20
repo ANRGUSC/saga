@@ -1,4 +1,5 @@
 """ReschedulePolicy: re-plan remaining tasks around committed ones every step."""
+
 from __future__ import annotations
 
 import logging
@@ -45,7 +46,9 @@ class ReschedulePolicy(OnlinePolicy):
             environment.schedule = new_schedule
         else:
             if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,
@@ -57,6 +60,7 @@ class ReschedulePolicy(OnlinePolicy):
 
 class ConditionalReschedulePolicy(OnlinePolicy):
     """Reschedules all remaining tasks around committed (finished + running) tasks at specific points."""
+
     def evaluate_reschedule(
         self, scheduled_task: ScheduledTask, environment: "StochasticEnvironment"
     ) -> bool:
@@ -67,13 +71,18 @@ class ConditionalReschedulePolicy(OnlinePolicy):
             Var[comp_time] = E[cost^2] * E[1/speed^2] - E[comp_time]^2
         """
         est = environment._estimate
-        stochastic_task = environment._stochastic_task_graph.get_task(scheduled_task.name)
-        stochastic_processor = environment._stochastic_network.get_node(scheduled_task.node)
+        stochastic_task = environment._stochastic_task_graph.get_task(
+            scheduled_task.name
+        )
+        stochastic_processor = environment._stochastic_network.get_node(
+            scheduled_task.node
+        )
 
         inv_speed = 1 / stochastic_processor.speed
         expected_exec = est(stochastic_task.cost) * est(inv_speed)
         var = (
-            est(stochastic_task.cost * stochastic_task.cost) * est(inv_speed * inv_speed)
+            est(stochastic_task.cost * stochastic_task.cost)
+            * est(inv_speed * inv_speed)
             - expected_exec**2
         )
         # var can dip slightly negative from Monte Carlo estimation noise near zero;
@@ -83,10 +92,11 @@ class ConditionalReschedulePolicy(OnlinePolicy):
         exec_time = scheduled_task.end - scheduled_task.start
         return abs(exec_time - expected_exec) > 1.5 * sd
 
-
     def update(self, environment: "Environment") -> Optional[Schedule]:
         if not isinstance(environment, StochasticEnvironment):
-            raise ValueError("ConditionalReschedulePolicy requires a StochasticEnvironment.")
+            raise ValueError(
+                "ConditionalReschedulePolicy requires a StochasticEnvironment."
+            )
         if not environment.finished_tasks:
             return environment.schedule
 
@@ -98,7 +108,9 @@ class ConditionalReschedulePolicy(OnlinePolicy):
                 type(environment.scheduler).__name__,
             )
         last_finished = max(environment.finished_tasks, key=lambda t: t.end)
-        if not self.evaluate_reschedule(scheduled_task=last_finished, environment=environment):
+        if not self.evaluate_reschedule(
+            scheduled_task=last_finished, environment=environment
+        ):
             return environment.schedule
 
         partial = build_partial_schedule(environment)
@@ -117,7 +129,9 @@ class ConditionalReschedulePolicy(OnlinePolicy):
             environment.schedule = new_schedule
         else:
             if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,
@@ -160,7 +174,9 @@ class RandomReschedulePolicy10(OnlinePolicy):
             environment.schedule = new_schedule
         else:
             if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,
@@ -203,7 +219,9 @@ class RandomReschedulePolicy25(OnlinePolicy):
             environment.schedule = new_schedule
         else:
             if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,
@@ -246,7 +264,9 @@ class RandomReschedulePolicy50(OnlinePolicy):
             environment.schedule = new_schedule
         else:
             if environment.scheduler is None:
-                raise ValueError("ReschedulePolicy requires environment.scheduler to be set.")
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
             new_schedule = environment.scheduler.schedule(
                 environment.network,
                 environment.task_graph,

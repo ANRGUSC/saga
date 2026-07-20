@@ -178,7 +178,10 @@ class CpopScheduler(Scheduler):
 
             for node in nodes:
                 start_time = comp_schedule.get_earliest_start_time(
-                    task=task, node=node, append_only=False, current_moment=min_start_time
+                    task=task,
+                    node=node,
+                    append_only=False,
+                    current_moment=min_start_time,
                 )
                 end_time = start_time + (task.cost / node.speed)
                 if end_time < min_finish_time:

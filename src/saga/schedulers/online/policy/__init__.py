@@ -5,6 +5,7 @@ observed, do Y". It is consulted once per simulation step and either returns a
 revised :class:`~saga.Schedule` or ``None`` to leave the schedule unchanged.
 Concrete policies live in sibling modules and are re-exported here.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

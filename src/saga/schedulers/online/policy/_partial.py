@@ -1,4 +1,5 @@
 """Shared helper: build a partial schedule from an environment's committed tasks."""
+
 from __future__ import annotations
 
 from copy import deepcopy

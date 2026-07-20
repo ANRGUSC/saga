@@ -4,7 +4,13 @@ import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
 
-from saga import ConstraintViolation, NetworkNode, Scheduler, ScheduledTask, TaskGraphNode
+from saga import (
+    ConstraintViolation,
+    NetworkNode,
+    Scheduler,
+    ScheduledTask,
+    TaskGraphNode,
+)
 from saga.schedulers.parametric import IntialPriority, InsertTask, ParametricScheduler
 from saga.schedulers.heft import heft_rank_sort
 from saga.schedulers.cpop import cpop_ranks
@@ -22,10 +28,12 @@ class UpwardRanking(IntialPriority):
 
 
 class CPoPRanking(IntialPriority):
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: #? what is the reason we are moving away from __call__
+    def call(
+        self, network: Network, task_graph: TaskGraph
+    ) -> List[str]:  # ? what is the reason we are moving away from __call__
         ranks = cpop_ranks(network, task_graph)
         start_task = max(
-            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0], 
+            [task.name for task in task_graph.tasks if task_graph.in_degree(task) == 0],
             key=lambda t: ranks[t],
         )
         pq = [(-ranks[start_task], start_task)]
@@ -60,7 +68,9 @@ class GreedyInsertCompareFuncs(Enum):
     Throughput = "Throughput"
     Makespan = "Makespan"
 
-    def compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Optional[Schedule]) -> float:
+    def compare(
+        self, new: ScheduledTask, cur: ScheduledTask, schedule: Optional[Schedule]
+    ) -> float:
         """Compare the placement of a task on two nodes.
 
         Args:
@@ -87,7 +97,6 @@ class GreedyInsertCompareFuncs(Enum):
             return schedule.makespan_if_added(new) - schedule.makespan_if_added(cur)
         else:
             raise ValueError(f"Unknown comparison function: {self.value}")
-        
 
 
 # Insert Task functions
@@ -100,10 +109,13 @@ class GreedyInsert(InsertTask):
         description="The comparison function to use for greedy insertion.",
     )
     critical_path: bool = Field(
-        default=False, description="Whether to only schedule tasks on the critical path."
+        default=False,
+        description="Whether to only schedule tasks on the critical path.",
     )
 
-    def _compare(self, new: ScheduledTask, cur: ScheduledTask, schedule: Schedule) -> float:
+    def _compare(
+        self, new: ScheduledTask, cur: ScheduledTask, schedule: Schedule
+    ) -> float:
         return self.compare.compare(new, cur, schedule)
 
     def call(
@@ -266,7 +278,8 @@ class ParametricSufferageScheduler(ParametricScheduler):
         ..., description="The base parametric scheduler."
     )
     top_n: int = Field(
-        default=2, description="The number of top tasks to consider for sufferage calculation."
+        default=2,
+        description="The number of top tasks to consider for sufferage calculation.",
     )
 
     def __init__(self, scheduler: ParametricScheduler, top_n: int = 2) -> None:
@@ -335,7 +348,9 @@ class ParametricSufferageScheduler(ParametricScheduler):
                     ],
                     dry_run=True,
                 )
-                sufferage = self.insert_task._compare(second_best_task, best_task, schedule)
+                sufferage = self.insert_task._compare(
+                    second_best_task, best_task, schedule
+                )
                 if sufferage > max_sufferage:
                     max_sufferage_task, max_sufferage = best_task, sufferage
 

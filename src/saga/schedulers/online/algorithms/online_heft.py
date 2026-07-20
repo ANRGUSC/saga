@@ -1,14 +1,9 @@
-import logging
-import pathlib
-from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, cast
-import numpy as np
+from typing import Callable, Optional, cast
 
-import networkx as nx
 
 from saga import Network, Schedule, TaskGraph, Scheduler
 from saga.schedulers.online.environment import Environment, StochasticEnvironment
-from saga.stochastic import StochasticNetwork, StochasticScheduler, StochasticSchedule, StochasticScheduledTask, StochasticTaskGraph
+from saga.stochastic import StochasticNetwork, StochasticTaskGraph
 from saga.schedulers.online.policy import ReschedulePolicy
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -16,7 +11,7 @@ from saga.schedulers.parametric.components import (
     GreedyInsertCompareFuncs,
     UpwardRanking,
 )
-from saga.utils.draw import draw_gantt, draw_network, draw_task_graph
+
 
 class OnlineHEFTEnvironment(StochasticEnvironment):
     def __init__(
@@ -43,6 +38,7 @@ class OnlineHEFTEnvironment(StochasticEnvironment):
             seed=seed,
         )
 
+
 class OnlineHEFT(Scheduler):
     def schedule(
         self,
@@ -56,4 +52,3 @@ class OnlineHEFT(Scheduler):
             cast(StochasticTaskGraph, task_graph),
         )
         return env.run()
-    

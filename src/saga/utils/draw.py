@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union, Callable, TypeV
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib import cm
 import matplotlib.colors
 from matplotlib.patches import Rectangle
 from matplotlib import rc_context

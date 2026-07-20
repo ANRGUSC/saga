@@ -1,9 +1,9 @@
 from abc import abstractmethod
 from typing import Any, Dict, Generic, Iterable, List, Optional, Set, TypeVar
 
-#? = Question
+# ? = Question
 #! = Observation
-#* = Change, commented code will be what was there previoudsly to confirm changes reflect stricter structure
+# * = Change, commented code will be what was there previoudsly to confirm changes reflect stricter structure
 
 from pydantic import BaseModel, Field
 
@@ -21,7 +21,7 @@ from saga import (
 
 class IntialPriority(BaseModel):
     @abstractmethod
-    def call(self, network: Network, task_graph: TaskGraph) -> List[str]: 
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         """Return the initial priority of the tasks.
 
         Args:
@@ -42,7 +42,7 @@ class InsertTask(BaseModel):
         task_graph: TaskGraph,
         schedule: Schedule,
         task: str | TaskGraphNode,
-        min_start_time: float = 0.0, 
+        min_start_time: float = 0.0,
         nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
         dry_run: bool = False,
     ) -> ScheduledTask:
@@ -63,11 +63,11 @@ class InsertTask(BaseModel):
         pass
 
 
-TInsert = TypeVar("TInsert", bound=InsertTask) 
+TInsert = TypeVar("TInsert", bound=InsertTask)
 
 
 class ParametricScheduler(Scheduler, BaseModel, Generic[TInsert]):
-    initial_priority: IntialPriority = Field(       
+    initial_priority: IntialPriority = Field(
         ..., description="The initial priority strategy."
     )
     insert_task: TInsert = Field(..., description="The task insertion strategy.")

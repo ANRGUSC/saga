@@ -6,6 +6,7 @@ The pluggable decision logic (:class:`OnlinePolicy` and its implementations) liv
 sibling ``policy`` package; this package never imports it at runtime, keeping the
 dependency one-directional (policy -> environment).
 """
+
 from __future__ import annotations
 
 import logging
@@ -54,7 +55,8 @@ def next_event(environment: "Environment") -> Optional[float]:
     next_finish = environment.get_next_task_finish()
     next_start_task = environment.get_next_task_start()
     candidates = [
-        t for t in (
+        t
+        for t in (
             next_finish.end if next_finish is not None else None,
             next_start_task.start if next_start_task is not None else None,
         )
@@ -69,6 +71,7 @@ def time_step(dt: float) -> StepFunction:
     The simulation ends when no task has an end time strictly after the current
     time (i.e. the schedule has been fully executed).
     """
+
     def step(environment: "Environment") -> Optional[float]:
         has_future_events = any(
             task.end > environment.current_time
@@ -78,6 +81,7 @@ def time_step(dt: float) -> StepFunction:
         if not has_future_events:
             return None
         return environment.current_time + dt
+
     return step
 
 
@@ -96,6 +100,7 @@ class StepRecord:
         unready_tasks:  Names of tasks still blocked by unfinished predecessors.
         makespan:       Current schedule makespan at this step.
     """
+
     step: int
     time: float
     finished_tasks: FrozenSet[str]
@@ -208,7 +213,9 @@ class Environment:
         if self.policy is not None:
             self.policy.reset()
         if self.scheduler is None:
-            raise ValueError("Environment.reset() requires a scheduler to produce the initial schedule.")
+            raise ValueError(
+                "Environment.reset() requires a scheduler to produce the initial schedule."
+            )
         # Only forward node_constraints when set, so plain schedulers (whose schedule()
         # does not take the argument) still work in the unconstrained case.
         kwargs: Dict[str, Any] = (
@@ -243,15 +250,17 @@ class Environment:
                 self._update_task_state()
                 self._update_network_state()
 
-        self.history.append(StepRecord(
-            step=self._step,
-            time=self.current_time,
-            finished_tasks=frozenset(t.name for t in self.finished_tasks),
-            running_tasks=frozenset(t.name for t in self.running_tasks),
-            ready_tasks=frozenset(t.name for t in self.ready_tasks),
-            unready_tasks=frozenset(t.name for t in self.unready_tasks),
-            makespan=self.schedule.makespan,
-        ))
+        self.history.append(
+            StepRecord(
+                step=self._step,
+                time=self.current_time,
+                finished_tasks=frozenset(t.name for t in self.finished_tasks),
+                running_tasks=frozenset(t.name for t in self.running_tasks),
+                ready_tasks=frozenset(t.name for t in self.ready_tasks),
+                unready_tasks=frozenset(t.name for t in self.unready_tasks),
+                makespan=self.schedule.makespan,
+            )
+        )
         self._step += 1
 
         if self.on_step is not None:
@@ -274,7 +283,9 @@ class Environment:
     # Schedule state queries
     # ------------------------------------------------------------------
 
-    def get_next_task_finish(self, schedule: Optional[Schedule] = None) -> Optional[ScheduledTask]:
+    def get_next_task_finish(
+        self, schedule: Optional[Schedule] = None
+    ) -> Optional[ScheduledTask]:
         """Return the task with the smallest end time strictly after current_time."""
         schedule = schedule or self.schedule
         candidates = [
@@ -285,7 +296,9 @@ class Environment:
         ]
         return min(candidates, key=lambda t: t.end, default=None)
 
-    def get_next_task_start(self, schedule: Optional[Schedule] = None) -> Optional[ScheduledTask]:
+    def get_next_task_start(
+        self, schedule: Optional[Schedule] = None
+    ) -> Optional[ScheduledTask]:
         """Return the task with the smallest start time strictly after current_time."""
         schedule = schedule or self.schedule
         candidates = [
@@ -296,7 +309,9 @@ class Environment:
         ]
         return min(candidates, key=lambda t: t.start, default=None)
 
-    def get_running_tasks(self, schedule: Optional[Schedule] = None) -> Set[ScheduledTask]:
+    def get_running_tasks(
+        self, schedule: Optional[Schedule] = None
+    ) -> Set[ScheduledTask]:
         """Return tasks that have started but not yet finished at current_time."""
         schedule = schedule or self.schedule
         return {
@@ -306,7 +321,9 @@ class Environment:
             if task.start <= self.current_time < task.end
         }
 
-    def get_finished_tasks(self, schedule: Optional[Schedule] = None) -> Set[ScheduledTask]:
+    def get_finished_tasks(
+        self, schedule: Optional[Schedule] = None
+    ) -> Set[ScheduledTask]:
         """Return tasks whose end time is at or before current_time."""
         schedule = schedule or self.schedule
         return {
@@ -334,7 +351,9 @@ class Environment:
             for task in tasks:
                 if task.name in committed_names:
                     continue
-                predecessors = {dep.source for dep in self.task_graph.in_edges(task.name)}
+                predecessors = {
+                    dep.source for dep in self.task_graph.in_edges(task.name)
+                }
                 if predecessors.issubset(finished_names):
                     self.ready_tasks.add(task)
                     self.unready_tasks.discard(task)
@@ -342,8 +361,12 @@ class Environment:
     def _update_network_state(self) -> None:
         """Recompute available and occupied node sets from the current running tasks."""
         occupied_node_names = {task.node for task in self.running_tasks}
-        self.occupied_nodes = {node for node in self.network.nodes if node.name in occupied_node_names}
-        self.available_nodes = {node for node in self.network.nodes if node.name not in occupied_node_names}
+        self.occupied_nodes = {
+            node for node in self.network.nodes if node.name in occupied_node_names
+        }
+        self.available_nodes = {
+            node for node in self.network.nodes if node.name not in occupied_node_names
+        }
 
 
 # Concrete environment variants. Imported at the bottom (after Environment is

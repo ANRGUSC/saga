@@ -11,6 +11,7 @@ Noise is modeled, not trace-fitted: each mean is wrapped in a lognormal with a t
 coefficient of variation, which keeps values positive and gives the right-skew real task
 runtimes have (a task occasionally runs much slower, never in negative time).
 """
+
 from functools import partial
 from itertools import product
 from typing import Callable, List
@@ -27,35 +28,35 @@ from saga.utils.random_variable import RandomVariable, DEFAULT_NUM_SAMPLES
 # compute against communication, so only the ratios between operators matter.
 _PEAK_RATES = {
     # Cheap compute, measured at 68,000 msg/sec (ANN, BLF, RGF, ACC, DAC, KAL).
-    "Annotate": 68000.0,        # ANN, measured
-    "Annotation": 68000.0,      # ANN, measured (TRAIN's annotate)
-    "RangeFilter": 68000.0,     # RGF, measured
-    "BloomFilter": 68000.0,     # BLF, measured
-    "KalmanFilter": 68000.0,    # KAL, measured
-    "DistinctCount": 68000.0,   # DAC, measured
-    "Join": 68000.0,            # accumulator-style join, ACC tier, estimate
+    "Annotate": 68000.0,  # ANN, measured
+    "Annotation": 68000.0,  # ANN, measured (TRAIN's annotate)
+    "RangeFilter": 68000.0,  # RGF, measured
+    "BloomFilter": 68000.0,  # BLF, measured
+    "KalmanFilter": 68000.0,  # KAL, measured
+    "DistinctCount": 68000.0,  # DAC, measured
+    "Join": 68000.0,  # accumulator-style join, ACC tier, estimate
     # Parse and moderate compute, paper's "most tasks 3,000+" tier, estimates.
-    "SenMLParse": 3000.0,       # SML, faster than XML(310) per paper, estimate
-    "CsvToSenML": 3000.0,       # C2S, estimate
-    "Interpolation": 3000.0,    # INP, estimate
-    "Average": 3000.0,          # AVG, higher CPU per paper but no rate given, estimate
-    "SlidingLinearReg": 3000.0, # SLR, estimate
-    "DecisionTree": 3000.0,     # DTC classify (WEKA), estimate
-    "MultiVarLinearReg": 3000.0,# MLR (WEKA), estimate
-    "ErrorEstimate": 10000.0,   # simple residual, estimate
+    "SenMLParse": 3000.0,  # SML, faster than XML(310) per paper, estimate
+    "CsvToSenML": 3000.0,  # C2S, estimate
+    "Interpolation": 3000.0,  # INP, estimate
+    "Average": 3000.0,  # AVG, higher CPU per paper but no rate given, estimate
+    "SlidingLinearReg": 3000.0,  # SLR, estimate
+    "DecisionTree": 3000.0,  # DTC classify (WEKA), estimate
+    "MultiVarLinearReg": 3000.0,  # MLR (WEKA), estimate
+    "ErrorEstimate": 10000.0,  # simple residual, estimate
     # Expensive compute, measured.
-    "GroupViz": 25.0,           # ACC+PLT+ZIP meta-task, bottlenecked by PLT=25, measured
+    "GroupViz": 25.0,  # ACC+PLT+ZIP meta-task, bottlenecked by PLT=25, measured
     "DecisionTreeTrain": 50.0,  # DTT (WEKA training), measured
     "MultiVarLinearRegTrain": 70.0,  # MLT (WEKA training), measured
     # I/O bound. TableRead is the measured 1 msg/min full-table scan (ATR); the rest are
     # Azure/broker I/O estimated slower than compute but far faster than the scan.
-    "TableRead": 1.0 / 60.0,    # ATR = 1 msg/min, measured (TRAIN's dominant cost)
+    "TableRead": 1.0 / 60.0,  # ATR = 1 msg/min, measured (TRAIN's dominant cost)
     "AzureTableInsert": 100.0,  # ATI, estimate
-    "BlobUpload": 100.0,        # ABU, estimate
-    "BlobWrite": 100.0,         # blob write, estimate
-    "BlobRead": 100.0,          # ABD, estimate
-    "MQTTPublish": 1000.0,      # MQP, estimate
-    "MQTTSubscribe": 1000.0,    # MQS, estimate
+    "BlobUpload": 100.0,  # ABU, estimate
+    "BlobWrite": 100.0,  # blob write, estimate
+    "BlobRead": 100.0,  # ABD, estimate
+    "MQTTPublish": 1000.0,  # MQP, estimate
+    "MQTTSubscribe": 1000.0,  # MQS, estimate
     # Pure source and sink stubs contribute negligible compute.
     "Source": 1e9,
     "TimerSource": 1e9,
@@ -158,9 +159,18 @@ def get_fog_networks(
         # order is PYTHONHASHSEED-dependent, which would otherwise assign the same seeded
         # draws to different node names across runs.
         nodes = (
-            [(name, lognormal_rv(edge_node_cpu, cv, num_samples)) for name in sorted(edge_nodes)]
-            + [(name, lognormal_rv(fog_node_cpu, cv, num_samples)) for name in sorted(fog_nodes)]
-            + [(name, lognormal_rv(cloud_node_cpu, cv, num_samples)) for name in sorted(cloud_nodes)]
+            [
+                (name, lognormal_rv(edge_node_cpu, cv, num_samples))
+                for name in sorted(edge_nodes)
+            ]
+            + [
+                (name, lognormal_rv(fog_node_cpu, cv, num_samples))
+                for name in sorted(fog_nodes)
+            ]
+            + [
+                (name, lognormal_rv(cloud_node_cpu, cv, num_samples))
+                for name in sorted(cloud_nodes)
+            ]
         )
         all_node_names = edge_nodes | fog_nodes | cloud_nodes
 
@@ -195,7 +205,9 @@ def get_fog_networks(
             # Scale by 125 so units are KiloBytes per second. Only intra-node self-loops
             # (handled above) are free; every inter-node tier is a finite, noised link.
             speed = bw * 125
-            weight = _const(speed) if bw >= 1e9 else lognormal_rv(speed, cv, num_samples)
+            weight = (
+                _const(speed) if bw >= 1e9 else lognormal_rv(speed, cv, num_samples)
+            )
             edges.append((src, dst, weight))
 
         networks.append(StochasticNetwork.create(nodes=nodes, edges=edges))
@@ -268,7 +280,9 @@ def get_etl_task_graphs(
             ("MQTTPublish", "Sink", size(base)),  # single sink for logging
         ]
 
-        task_graphs.append(StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(
+            StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies)
+        )
 
     return task_graphs
 
@@ -336,7 +350,9 @@ def get_stats_task_graphs(
             ("BlobUpload", "Sink", size(base)),  # single upload ack
         ]
 
-        task_graphs.append(StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(
+            StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies)
+        )
 
     return task_graphs
 
@@ -399,7 +415,9 @@ def get_train_task_graphs(
             ("MQTTPublish", "Sink", size(base)),
         ]
 
-        task_graphs.append(StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(
+            StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies)
+        )
 
     return task_graphs
 
@@ -441,7 +459,10 @@ def get_predict_task_graphs(
             return lognormal_rv(mean, cv, num_samples)
 
         tasks = [
-            ("VirtualSource", _const(1e-9)),  # unify the two real sources into one entry
+            (
+                "VirtualSource",
+                _const(1e-9),
+            ),  # unify the two real sources into one entry
             ("Source", cost("Source")),
             ("MQTTSubscribe", cost("MQTTSubscribe")),
             ("BlobRead", cost("BlobRead")),
@@ -463,7 +484,11 @@ def get_predict_task_graphs(
             ("BlobRead", "MultiVarLinearReg", size(base)),  # updated model
             ("SenMLParse", "DecisionTree", size(base)),
             ("SenMLParse", "MultiVarLinearReg", size(base)),
-            ("SenMLParse", "Average", size(count_window * base)),  # moving-average window
+            (
+                "SenMLParse",
+                "Average",
+                size(count_window * base),
+            ),  # moving-average window
             ("MultiVarLinearReg", "ErrorEstimate", size(base)),
             ("Average", "ErrorEstimate", size(base)),  # N:1, one moving average out
             ("ErrorEstimate", "MQTTPublish", size(base)),
@@ -471,6 +496,8 @@ def get_predict_task_graphs(
             ("MQTTPublish", "Sink", size(base)),
         ]
 
-        task_graphs.append(StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies))
+        task_graphs.append(
+            StochasticTaskGraph.create(tasks=tasks, dependencies=dependencies)
+        )
 
     return task_graphs

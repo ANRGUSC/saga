@@ -47,7 +47,9 @@ class FastestNodeScheduler(Scheduler):
                 t.name for _, tasks in comp_schedule.items() for t in tasks
             }
         else:
-            comp_schedule = Schedule(task_graph, network, node_constraints=node_constraints)
+            comp_schedule = Schedule(
+                task_graph, network, node_constraints=node_constraints
+            )
             scheduled_tasks = set()
 
         for task in task_graph.topological_sort():

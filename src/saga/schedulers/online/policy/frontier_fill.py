@@ -1,4 +1,5 @@
 """FrontierFillPolicy: pop frontier tasks to fill available nodes each step."""
+
 from __future__ import annotations
 
 import heapq
@@ -20,10 +21,16 @@ class FrontierFillPolicy(OnlinePolicy):
         self._insertion_strategy = (
             insertion_strategy
             if insertion_strategy is not None
-            else GreedyInsert(append_only=False, compare=GreedyInsertCompareFuncs.EST, critical_path=False)
+            else GreedyInsert(
+                append_only=False,
+                compare=GreedyInsertCompareFuncs.EST,
+                critical_path=False,
+            )
         )
 
-    def _insert_task(self, task_name: str, schedule: Schedule, env: "FrontierEnvironment") -> None:
+    def _insert_task(
+        self, task_name: str, schedule: Schedule, env: "FrontierEnvironment"
+    ) -> None:
         self._insertion_strategy.call(
             env.network,
             env.task_graph,
@@ -38,7 +45,9 @@ class FrontierFillPolicy(OnlinePolicy):
         env = environment
         if not env.frontier:
             return None
-        ready_node_count = len(env.available_nodes) if env.ready_node_only else len(env.frontier)
+        ready_node_count = (
+            len(env.available_nodes) if env.ready_node_only else len(env.frontier)
+        )
         for _ in range(ready_node_count):
             if not env.frontier:
                 break

@@ -19,7 +19,7 @@ class FIFOEnvironment(FrontierEnvironment):
             network=network,
             task_graph=task_graph,
             policy=FrontierFillPolicy(),
-            **kwargs
+            **kwargs,
         )
         self.ready_condition: str = "p_complete"
         self.ready_node_only: bool = True

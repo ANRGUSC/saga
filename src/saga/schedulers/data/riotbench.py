@@ -11,17 +11,23 @@ This inverts the WfCommons layering (there the deterministic trace loader is the
 the stochastic layer fits distributions on top), because for RIoTBench the random-variable
 form is the fuller specification and the scalar is the degenerate collapse.
 """
+
 from functools import partial
 from typing import Callable, List
 
 from saga import Network, TaskGraph
 from saga.schedulers.stochastic.data import riotbench as _stochastic
-from saga.schedulers.stochastic.data.riotbench import gaussian  # re-exported for callers
+from saga.schedulers.stochastic.data.riotbench import (
+    gaussian,
+)  # re-exported for callers
 
 
 def get_fog_networks(num: int, **kwargs) -> List[Network]:
     """Tiered edge/fog/cloud networks; see the stochastic loader for parameters."""
-    return [net.sample() for net in _stochastic.get_fog_networks(num, num_samples=1, **kwargs)]
+    return [
+        net.sample()
+        for net in _stochastic.get_fog_networks(num, num_samples=1, **kwargs)
+    ]
 
 
 def get_etl_task_graphs(

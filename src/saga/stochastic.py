@@ -245,7 +245,9 @@ class StochasticNetwork(BaseModel):
             raise ValueError("Target CCR must be positive.")
 
         def is_scalable(edge: StochasticNetworkEdge) -> bool:
-            return edge.source != edge.target and edge.speed.mean() < free_speed_threshold
+            return (
+                edge.source != edge.target and edge.speed.mean() < free_speed_threshold
+            )
 
         avg_node_speed = sum(node.speed.mean() for node in self.nodes) / len(self.nodes)
         avg_task_cost = sum(task.cost.mean() for task in task_graph.tasks) / len(
@@ -453,9 +455,7 @@ class StochasticTaskGraph(BaseModel):
                     )
                 )
 
-        return cls(
-            tasks=frozenset(task_set), dependencies=frozenset(dependency_set)
-        )
+        return cls(tasks=frozenset(task_set), dependencies=frozenset(dependency_set))
 
     @cached_property
     def graph(self) -> nx.DiGraph:
@@ -473,7 +473,9 @@ class StochasticTaskGraph(BaseModel):
 
     @cached_property
     def _in_edges_by_task(self) -> Dict[str, List["StochasticTaskGraphEdge"]]:
-        result: Dict[str, List[StochasticTaskGraphEdge]] = {t.name: [] for t in self.tasks}
+        result: Dict[str, List[StochasticTaskGraphEdge]] = {
+            t.name: [] for t in self.tasks
+        }
         # Sorted so edge order (and any tie-breaking on it) is PYTHONHASHSEED-independent.
         for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
             result.setdefault(dep.target, []).append(dep)
@@ -481,7 +483,9 @@ class StochasticTaskGraph(BaseModel):
 
     @cached_property
     def _out_edges_by_task(self) -> Dict[str, List["StochasticTaskGraphEdge"]]:
-        result: Dict[str, List[StochasticTaskGraphEdge]] = {t.name: [] for t in self.tasks}
+        result: Dict[str, List[StochasticTaskGraphEdge]] = {
+            t.name: [] for t in self.tasks
+        }
         for dep in sorted(self.dependencies, key=lambda d: (d.source, d.target)):
             result.setdefault(dep.source, []).append(dep)
         return result
@@ -647,13 +651,14 @@ class StochasticSchedule(BaseModel):
     def sample(self) -> Schedule:
         """Sample the stochastic schedule to get a deterministic schedule."""
         return self.determinize(
-            network=self.network.sample(),
-            task_graph=self.task_graph.sample()
+            network=self.network.sample(), task_graph=self.task_graph.sample()
         )
-    
+
     def determinize(self, network: Network, task_graph: TaskGraph) -> Schedule:
         schedule = Schedule(
-            task_graph=task_graph, network=network, node_constraints=self.node_constraints
+            task_graph=task_graph,
+            network=network,
+            node_constraints=self.node_constraints,
         )
         # The middle int is a monotonic tiebreaker so equal ranks never fall through
         # to comparing StochasticScheduledTask objects (which are not orderable).
@@ -695,7 +700,9 @@ class StochasticSchedule(BaseModel):
                 ):
                     succ_task = task_by_name.get(out_edge.target)
                     if succ_task is None:
-                        raise ValueError(f"Could not find successor task {out_edge.target!r}")
+                        raise ValueError(
+                            f"Could not find successor task {out_edge.target!r}"
+                        )
                     pq.put((succ_task.rank, tiebreak, succ_task))
                     tiebreak += 1
         return schedule
@@ -769,5 +776,3 @@ class StochasticScheduler(ABC):
     def name(self) -> str:
         """Get the name of the scheduler."""
         return self.__class__.__name__
-    
-    

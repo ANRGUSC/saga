@@ -6,6 +6,7 @@ Layout:
 - ``policy``: the OnlinePolicy interface and its implementations.
 - ``algorithms``: ready-made schedulers (FIFO, FrontierHEFT, OnlineHEFT, ...).
 """
+
 from saga.schedulers.online.environment import (
     Environment,
     FrontierEnvironment,

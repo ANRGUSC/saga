@@ -20,7 +20,8 @@ operates on that fixed CP. The metadata grouping / site tag feature is omitted
 (the paper notes that without it, the cluster degenerates to a single tag
 group, which is the form we use here).
 """
-import pathlib 
+
+import pathlib
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 
@@ -33,15 +34,22 @@ thisdir = pathlib.Path(__file__).resolve().parent
 # Cost model (eqs. 1 and 2 from the paper)
 # ---------------------------------------------------------------------------
 
-def _compute_time(task_graph: TaskGraph, network: Network,
-                  task_name: str, node_name: str) -> float:
+
+def _compute_time(
+    task_graph: TaskGraph, network: Network, task_name: str, node_name: str
+) -> float:
     """Average time to compute a task on a node (eq. 1)."""
     return task_graph.get_task(task_name).cost / network.get_node(node_name).speed
 
 
-def _transfer_time(task_graph: TaskGraph, network: Network,
-                   src_task: str, dst_task: str,
-                   src_node: str, dst_node: str) -> float:
+def _transfer_time(
+    task_graph: TaskGraph,
+    network: Network,
+    src_task: str,
+    dst_task: str,
+    src_node: str,
+    dst_node: str,
+) -> float:
     """Average time to transfer a tuple between two nodes (eq. 2).
 
     Returns 0 if both tasks are placed on the same node (no inter-node transfer).
@@ -61,6 +69,7 @@ def _transfer_time(task_graph: TaskGraph, network: Network,
 # Critical path identification (longest path under homogeneous assumption)
 # ---------------------------------------------------------------------------
 
+
 def _average_compute(task_graph: TaskGraph, network: Network, task_name: str) -> float:
     """Average compute time of a task across all nodes (homogeneous proxy)."""
     speeds = [n.speed for n in network.nodes]
@@ -68,13 +77,14 @@ def _average_compute(task_graph: TaskGraph, network: Network, task_name: str) ->
     return task_graph.get_task(task_name).cost / avg_speed
 
 
-def _average_transfer(task_graph: TaskGraph, network: Network,
-                      src_task: str, dst_task: str) -> float:
+def _average_transfer(
+    task_graph: TaskGraph, network: Network, src_task: str, dst_task: str
+) -> float:
     """Average transfer time across all distinct-node pairs (homogeneous proxy)."""
     bws = []
     nodes = list(network.nodes)
     for i, u in enumerate(nodes):
-        for v in nodes[i + 1:]:
+        for v in nodes[i + 1 :]:
             bws.append(network.get_edge(u.name, v.name).speed)
     if not bws:
         return 0.0
@@ -121,9 +131,10 @@ def _critical_path(task_graph: TaskGraph, network: Network) -> List[str]:
 # Critical-path mapping via dynamic programming (eq. 4 / Algorithm 2)
 # ---------------------------------------------------------------------------
 
-def _map_critical_path(critical_path: List[str],
-                       network: Network,
-                       task_graph: TaskGraph) -> Dict[str, str]:
+
+def _map_critical_path(
+    critical_path: List[str], network: Network, task_graph: TaskGraph
+) -> Dict[str, str]:
     """Map critical-path tasks to nodes minimizing the max stage time.
 
     Implements the 2D DP from eq. 4. State Pmap[j][i] = minimum achievable
@@ -194,10 +205,13 @@ def _map_critical_path(critical_path: List[str],
 # Non-CP greedy layer-oriented mapping
 # ---------------------------------------------------------------------------
 
-def _map_non_critical(non_cp_tasks: List[str],
-                      cp_assignment: Dict[str, str],
-                      network: Network,
-                      task_graph: TaskGraph) -> Dict[str, str]:
+
+def _map_non_critical(
+    non_cp_tasks: List[str],
+    cp_assignment: Dict[str, str],
+    network: Network,
+    task_graph: TaskGraph,
+) -> Dict[str, str]:
     """Place non-CP tasks layer by layer, heaviest first, on best node.
 
     "Best" = node minimizing (compute_time + total transfer from already-placed
@@ -208,8 +222,10 @@ def _map_non_critical(non_cp_tasks: List[str],
     # Sort non-CP tasks within their topological layer by descending cost.
     def task_weight(t: str) -> float:
         c = _average_compute(task_graph, network, t)
-        x = sum(_average_transfer(task_graph, network, e.source, t)
-                for e in task_graph.in_edges(t))
+        x = sum(
+            _average_transfer(task_graph, network, e.source, t)
+            for e in task_graph.in_edges(t)
+        )
         return c + x
 
     # Process in topological order so predecessors are already placed when
@@ -231,15 +247,16 @@ def _map_non_critical(non_cp_tasks: List[str],
                 pred = edge.source
                 if pred in assignment:
                     transfer += _transfer_time(
-                        task_graph, network, pred, t,
-                        assignment[pred], nd.name
+                        task_graph, network, pred, t, assignment[pred], nd.name
                     )
             cost = comp + transfer
             if cost < best_cost:
                 best_cost = cost
                 best_node = nd.name
         if best_node is None:
-            raise ValueError(f"No candidate node found for task {t!r}; network has no nodes.")
+            raise ValueError(
+                f"No candidate node found for task {t!r}; network has no nodes."
+            )
         assignment[t] = best_node
 
     return assignment
@@ -248,6 +265,7 @@ def _map_non_critical(non_cp_tasks: List[str],
 # ---------------------------------------------------------------------------
 # Scheduler class
 # ---------------------------------------------------------------------------
+
 
 class MTScheduler(Scheduler):
     """Maximum-Throughput Scheduler for heterogeneous DAG scheduling.

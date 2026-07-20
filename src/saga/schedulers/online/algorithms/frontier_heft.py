@@ -21,7 +21,7 @@ class FrontierHeftEnvironment(FrontierEnvironment):
                     critical_path=False,
                 ),
             ),
-            **kwargs
+            **kwargs,
         )
         self.ready_condition: str = "p_committed"
         self.ready_node_only: bool = False
@@ -32,12 +32,15 @@ class FrontierHeftEnvironment(FrontierEnvironment):
         )
         self.ranks: Dict[str, Tuple[float, int]] = self.compute_upward_ranks()
         # Returns a (-(urank), -topo) tuple for lexicographic ordering in the frontier heap.
-        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda x: self.ranks[x.name]
+        self.priority_condition: Callable[[TaskGraphNode], Any] = lambda x: self.ranks[
+            x.name
+        ]
 
     def compute_upward_ranks(self):
         urank = upward_rank(self.network, self.task_graph)
         topological_sort = {
-            node.name: i for i, node in enumerate(reversed(self.task_graph.topological_sort()))
+            node.name: i
+            for i, node in enumerate(reversed(self.task_graph.topological_sort()))
         }
         return {node: (-(urank[node]), (-topological_sort[node])) for node in urank}
 
