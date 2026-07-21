@@ -99,7 +99,7 @@ class ConditionalReschedulePolicy(OnlinePolicy):
                 "ConditionalReschedulePolicy requires a StochasticEnvironment."
             )
         if not environment.finished_tasks:
-            return environment.schedule
+            return None
 
         if not isinstance(environment.scheduler, ParametricScheduler):
             logger.warning(
@@ -112,7 +112,7 @@ class ConditionalReschedulePolicy(OnlinePolicy):
         if not self.evaluate_reschedule(
             scheduled_task=last_finished, environment=environment
         ):
-            return environment.schedule
+            return None
         environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
@@ -158,7 +158,7 @@ class RandomReschedulePolicy10(OnlinePolicy):
                 type(environment.scheduler).__name__,
             )
         if not self.evaluate_reschedule():
-            return environment.schedule
+            return None
         environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
@@ -204,7 +204,7 @@ class RandomReschedulePolicy25(OnlinePolicy):
                 type(environment.scheduler).__name__,
             )
         if not self.evaluate_reschedule():
-            return environment.schedule
+            return None
         environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
@@ -250,7 +250,7 @@ class RandomReschedulePolicy50(OnlinePolicy):
                 type(environment.scheduler).__name__,
             )
         if not self.evaluate_reschedule():
-            return environment.schedule
+            return None
         environment.reschedule_count += 1
 
         partial = build_partial_schedule(environment)
