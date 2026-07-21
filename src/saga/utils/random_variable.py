@@ -347,25 +347,44 @@ class RandomVariable(BaseModel):
             return RandomVariable(samples=(self.samples_arr >= other).tolist())
         return RandomVariable(samples=(self.samples_arr >= other.samples_arr).tolist())
 
+    @cached_property
+    def _expectation(self) -> float:
+        return float(np.mean(self.samples_arr))
+
+    @cached_property
+    def _variance(self) -> float:
+        """The variance of the samples.
+
+        All-equal samples have zero variance, reported as such even when they are
+        infinite (``np.var`` gives ``NaN`` there, from ``inf - inf``). Any other
+        sample set is left to ``np.var``, so mixed or invalid inputs still surface
+        as ``NaN`` rather than being masked.
+        """
+        arr = self.samples_arr
+        if len(arr) > 0 and bool(np.all(arr == arr[0])):
+            return 0.0
+        with np.errstate(invalid="ignore"):
+            return float(np.var(arr))
+
     def expectation(self) -> float:
         """The expectation of the random variable."""
-        return float(np.mean(self.samples_arr))
+        return self._expectation
 
     def mean(self) -> float:
         """The mean of the random variable."""
-        return self.expectation()
+        return self._expectation
 
     def variance(self) -> float:
         """The variance of the random variable."""
-        return float(np.var(self.samples_arr))
+        return self._variance
 
     def var(self) -> float:
         """The variance of the random variable."""
-        return self.variance()
+        return self._variance
 
     def std(self) -> float:
         """The standard deviation of the random variable."""
-        return np.sqrt(self.variance())
+        return float(np.sqrt(self._variance))
 
 
 class UniformRandomVariable(RandomVariable):

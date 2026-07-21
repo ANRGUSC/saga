@@ -4,12 +4,25 @@ import traceback
 
 from saga import Network, Scheduler, TaskGraph
 from saga.schedulers import (
-    BruteForceScheduler, CpopScheduler, DuplexScheduler, ETFScheduler,
-    FastestNodeScheduler, FCPScheduler, HeftScheduler, MaxMinScheduler,
-    METScheduler, MinMinScheduler, SMTScheduler, WBAScheduler, HybridScheduler,
-    BILScheduler, FLBScheduler, GDLScheduler
+    BruteForceScheduler,
+    CpopScheduler,
+    DuplexScheduler,
+    ETFScheduler,
+    FastestNodeScheduler,
+    FCPScheduler,
+    HeftScheduler,
+    MaxMinScheduler,
+    METScheduler,
+    MinMinScheduler,
+    SMTScheduler,
+    WBAScheduler,
+    HybridScheduler,
+    BILScheduler,
+    FLBScheduler,
+    GDLScheduler,
 )
 from saga.schedulers.parametric.components import schedulers as parametric_schedulers
+from saga.schedulers.throughput import MaxTPScheduler, MTScheduler, MultiObjScheduler
 from saga.utils.random_graphs import (
     get_branching_dag,
     get_chain_dag,
@@ -25,9 +38,8 @@ import numpy as np
 random.seed(0)
 np.random.seed(0)
 
-def run_test(scheduler: Scheduler,
-             network: Network,
-             task_graph: TaskGraph) -> bool:
+
+def run_test(scheduler: Scheduler, network: Network, task_graph: TaskGraph) -> bool:
     """Runs the test and validates the schedule."""
     try:
         scheduler.schedule(network, task_graph)
@@ -35,6 +47,7 @@ def run_test(scheduler: Scheduler,
     except Exception as exp:
         print(f"Error: {exp}\nStacktrace: {traceback.format_exc()}")
         return False
+
 
 # Parametrize the schedulers
 schedulers = [
@@ -54,6 +67,9 @@ schedulers = [
     BILScheduler(),
     FLBScheduler(),
     GDLScheduler(),
+    MaxTPScheduler(),
+    MTScheduler(),
+    MultiObjScheduler(),
     *parametric_schedulers.values(),
 ]
 
@@ -65,10 +81,12 @@ common_task_graphs = {
     # "branching": get_branching_dag(levels=3, branching_factor=2),
 }
 
+
 @pytest.mark.parametrize("scheduler", schedulers)
 @pytest.mark.parametrize("task_graph_name, task_graph", common_task_graphs.items())
 def test_schedulers(scheduler: Scheduler, task_graph_name: str, task_graph: TaskGraph):
     """Test common schedulers on predefined task graphs."""
     network = get_network(num_nodes=4)
-    assert run_test(scheduler, deepcopy(network), deepcopy(task_graph)), f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
-
+    assert run_test(scheduler, deepcopy(network), deepcopy(task_graph)), (
+        f"Test failed for {scheduler.__class__.__name__} on {task_graph_name}"
+    )
