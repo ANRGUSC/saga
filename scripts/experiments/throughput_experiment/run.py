@@ -19,7 +19,6 @@ Usage:
     python run.py wfcommons stochastic   [n_instances] [n_seeds]
 """
 import logging
-import os
 import sys
 from multiprocessing import Pool
 
@@ -27,7 +26,7 @@ import filelock
 import pandas as pd
 from tqdm import tqdm
 
-from common import resultsdir
+from common import resultsdir, num_processors
 from instances import base_instances, scaled, workflows_for
 
 from saga.schedulers import FastestNodeScheduler
@@ -49,7 +48,6 @@ logging.basicConfig(level=logging.WARNING)
 
 CCRS = [0.2, 0.5, 1.0, 2.0, 5.0]
 SEED = 0
-MAX_WORKERS = 4  # cap the pool regardless of core count
 
 EFT = GreedyInsertCompareFuncs.EFT
 TP = GreedyInsertCompareFuncs.Throughput
@@ -203,8 +201,7 @@ def main() -> None:
     default_inst, default_seeds = (10, 10) if regime == "stochastic" else (30, 1)
     n_instances = int(sys.argv[3]) if len(sys.argv) > 3 else default_inst
     n_seeds = int(sys.argv[4]) if len(sys.argv) > 4 else default_seeds
-    workers = min(MAX_WORKERS, os.cpu_count() or 1)
-    run(branch, regime, n_instances, n_seeds, workers)
+    run(branch, regime, n_instances, n_seeds, num_processors)
 
 
 if __name__ == "__main__":
