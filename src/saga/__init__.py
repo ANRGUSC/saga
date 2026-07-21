@@ -613,15 +613,19 @@ class Schedule(BaseModel):
         ),
     )
 
-    _task_map: Dict[str, ScheduledTask] = PrivateAttr(
-        default_factory=dict
-    )  # For quick lookup of scheduled tasks by name
+    # Maps a task name to its scheduled copies. A task usually has exactly one
+    # copy; task duplication places the same task on more than one node, so this
+    # is a list rather than a single ScheduledTask.
+    _task_map: Dict[str, List[ScheduledTask]] = PrivateAttr(default_factory=dict)
     _compute_load: Dict[str, float] = PrivateAttr(
         default_factory=dict
     )  # For keeping track of compute load per node
     _comm_load: Dict[Tuple[str, str], float] = PrivateAttr(
         default_factory=dict
     )  # For keeping track of communication load per link
+    # Names placed on more than one node. While non-empty, throughput/bottleneck
+    # are undefined (a duplicated task's data source per successor is not tracked).
+    _duplicated: Set[str] = PrivateAttr(default_factory=set)
 
     def __init__(
         self,
@@ -643,7 +647,10 @@ class Schedule(BaseModel):
         # Keep the task lookup and load aggregates consistent with the mapping.
         for tasks in self.mapping.values():
             for task in tasks:
-                self._task_map[task.name] = task
+                copies = self._task_map.setdefault(task.name, [])
+                copies.append(task)
+                if len(copies) > 1:
+                    self._duplicated.add(task.name)
                 self._apply_load(task, sign=1.0)
 
     def allowed_nodes(self, task_name: str) -> Optional[Set[str]]:
@@ -689,19 +696,21 @@ class Schedule(BaseModel):
         Call with sign=+1 after inserting a task into _task_map, or sign=-1 before removing
         it. Comm cost is applied for each cross-node edge to an already-scheduled neighbor
         (predecessors via in-edges, successors via out-edges), so each edge is counted once.
+        The comm aggregates are exact only while no task is duplicated; throughput raises
+        while `_duplicated` is non-empty, so the neighbor's primary copy is used here.
         """
         self._compute_load[task.node] = self._compute_load.get(
             task.node, 0.0
         ) + sign * (task.end - task.start)
         for task_edge in self.task_graph.in_edges(task.name):
             if task_edge.source in self._task_map and task_edge.source != task.name:
-                src_node = self._task_map[task_edge.source].node
+                src_node = self._task_map[task_edge.source][0].node
                 if src_node != task.node:
                     key, cost = self._link_cost(task_edge.size, src_node, task.node)
                     self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
         for task_edge in self.task_graph.out_edges(task.name):
             if task_edge.target in self._task_map and task_edge.target != task.name:
-                dst_node = self._task_map[task_edge.target].node
+                dst_node = self._task_map[task_edge.target][0].node
                 if dst_node != task.node:
                     key, cost = self._link_cost(task_edge.size, task.node, dst_node)
                     self._comm_load[key] = self._comm_load.get(key, 0.0) + sign * cost
@@ -714,11 +723,18 @@ class Schedule(BaseModel):
             float: The throughput of the schedule.
 
         Raises:
-            ValueError: If the schedule is empty, or if the bottleneck is not
-                positive because every scheduled task takes zero time.
+            ValueError: If the schedule is empty, if any task is duplicated, or if
+                the bottleneck is not positive because every scheduled task takes
+                zero time.
         """
         if not any(self.mapping.values()):
             raise ValueError("Schedule is empty, so throughput is undefined.")
+        if self._duplicated:
+            raise ValueError(
+                "Throughput is undefined for schedules with duplicated tasks "
+                f"({sorted(self._duplicated)}): a duplicated task's data source "
+                "per successor is not tracked."
+            )
         compute_bottleneck = max(self._compute_load.values(), default=0.0)
         comm_bottleneck = max(self._comm_load.values(), default=0.0)
         bottleneck = max(comm_bottleneck, compute_bottleneck)
@@ -738,6 +754,11 @@ class Schedule(BaseModel):
         Cross-node transfers to already-scheduled neighbors (predecessors via in-edges,
         successors via out-edges) are added, matching how throughput counts each edge once.
         """
+        if self._duplicated:
+            raise ValueError(
+                "Bottleneck is undefined for schedules with duplicated tasks "
+                f"({sorted(self._duplicated)})."
+            )
         duration = task.end - task.start
         compute_bottleneck = max(
             max(self._compute_load.values(), default=0.0),
@@ -746,13 +767,13 @@ class Schedule(BaseModel):
         deltas: Dict[Tuple[str, str], float] = {}
         for task_edge in self.task_graph.in_edges(task.name):
             if task_edge.source in self._task_map:
-                src_node = self._task_map[task_edge.source].node
+                src_node = self._task_map[task_edge.source][0].node
                 if src_node != task.node:
                     key, cost = self._link_cost(task_edge.size, src_node, task.node)
                     deltas[key] = deltas.get(key, 0.0) + cost
         for task_edge in self.task_graph.out_edges(task.name):
             if task_edge.target in self._task_map:
-                dst_node = self._task_map[task_edge.target].node
+                dst_node = self._task_map[task_edge.target][0].node
                 if dst_node != task.node:
                     key, cost = self._link_cost(task_edge.size, task.node, dst_node)
                     deltas[key] = deltas.get(key, 0.0) + cost
@@ -821,9 +842,15 @@ class Schedule(BaseModel):
                 raise ValueError(
                     f"Parent task {dependency.source} is not scheduled yet."
                 )
-            parent_task = self._task_map[dependency.source]
-            network_edge = self.network.get_edge(parent_task.node, node.name)
-            arrival_time = parent_task.end + (dependency.size / network_edge.speed)
+            # Read from whichever parent copy arrives earliest. When the parent is
+            # duplicated, a copy on this node arrives with zero communication cost;
+            # this is what makes duplication reduce a successor's start time.
+            arrival_time = min(
+                parent_copy.end
+                + dependency.size
+                / self.network.get_edge(parent_copy.node, node.name).speed
+                for parent_copy in self._task_map[dependency.source]
+            )
             min_start_time = max(min_start_time, arrival_time)
 
         if append_only:
@@ -863,10 +890,11 @@ class Schedule(BaseModel):
                 f"Node {task.node} not in schedule. Nodes are {set(self.mapping.keys())}."
             )
 
-        if task.name in self._task_map:
+        # A task may be placed on several nodes (duplication), but not twice on the
+        # same node.
+        if any(copy.node == task.node for copy in self._task_map.get(task.name, [])):
             raise ValueError(
-                f"Task {task.name} is already scheduled on node "
-                f"{self._task_map[task.name].node}."
+                f"Task {task.name} is already scheduled on node {task.node}."
             )
 
         allowed = self.allowed_nodes(task.name)
@@ -890,11 +918,14 @@ class Schedule(BaseModel):
                 f"Task {task} overlaps with next task {self.mapping[task.node][idx + 1]}."
             )
 
-        self._task_map[task.name] = task
+        copies = self._task_map.setdefault(task.name, [])
+        copies.append(task)
+        if len(copies) > 1:
+            self._duplicated.add(task.name)
         self._apply_load(task, sign=1.0)  # keep the throughput aggregates in sync
 
     def remove_task(self, task_name: str | TaskGraphNode) -> None:
-        """Remove a task from the schedule.
+        """Remove a task, and all of its duplicate copies, from the schedule.
 
         Args:
             task_name (str | TaskGraphNode): The task or the name of the task to remove.
@@ -904,12 +935,13 @@ class Schedule(BaseModel):
         )
         if task_name not in self._task_map:
             raise ValueError(f"Task {task_name} not in schedule.")
-        scheduled_task = self._task_map[task_name]
-        self._apply_load(
-            scheduled_task, sign=-1.0
-        )  # keep the throughput aggregates in sync
-        self.mapping[scheduled_task.node].remove(scheduled_task)
+        for scheduled_task in self._task_map[task_name]:
+            self._apply_load(
+                scheduled_task, sign=-1.0
+            )  # keep the throughput aggregates in sync
+            self.mapping[scheduled_task.node].remove(scheduled_task)
         del self._task_map[task_name]
+        self._duplicated.discard(task_name)
 
     def is_scheduled(self, task_name: str) -> bool:
         """Check if a task is scheduled.
@@ -922,19 +954,37 @@ class Schedule(BaseModel):
         return task_name in self._task_map
 
     def get_scheduled_task(self, task_name: str) -> ScheduledTask:
-        """Get the scheduled task by name.
+        """Get the primary scheduled copy of a task by name.
+
+        For a duplicated task this is the first-placed copy; use
+        get_scheduled_tasks to get all copies.
 
         Args:
             task_name (str): The name of the task.
         Returns:
-            ScheduledTask: The scheduled task.
+            ScheduledTask: The primary scheduled copy.
 
         Raises:
             ValueError: If the task is not scheduled.
         """
         if task_name not in self._task_map:
             raise ValueError(f"Task {task_name} not in schedule.")
-        return self._task_map[task_name]
+        return self._task_map[task_name][0]
+
+    def get_scheduled_tasks(self, task_name: str) -> List[ScheduledTask]:
+        """Get all scheduled copies of a task by name (one unless duplicated).
+
+        Args:
+            task_name (str): The name of the task.
+        Returns:
+            List[ScheduledTask]: The scheduled copies.
+
+        Raises:
+            ValueError: If the task is not scheduled.
+        """
+        if task_name not in self._task_map:
+            raise ValueError(f"Task {task_name} not in schedule.")
+        return list(self._task_map[task_name])
 
 
 class Scheduler(ABC, BaseModel):
