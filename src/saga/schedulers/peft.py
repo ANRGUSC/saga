@@ -6,6 +6,19 @@ from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network, Network
 def OCT_table(task_graph: TaskGraph, network: Network) -> Dict[str, Dict[str, float]]:
     """Computes the Optimistic Cost Table (OCT) for each task and processor.
 
+    OCT(t, p) is the max over t's successors of the min over processors p' of
+    (OCT(successor, p') + successor compute time on p' + communication from p to p').
+
+    Note on communication cost: the PEFT paper uses the edge's *average*
+    communication cost inside the OCT, because its examples assume uniform
+    inter-processor links (where average and per-link cost are equal). SAGA models
+    heterogeneous per-link speeds, and the OCT is indexed by (task, processor), so
+    both endpoints of every transfer are known here. This implementation therefore
+    uses the actual link cost between p and p' rather than the average. It reduces
+    to the paper on uniform-communication networks and is the faithful extension to
+    fully-heterogeneous ones (it does not collapse real link heterogeneity into a
+    single average, which would blunt PEFT's lookahead).
+
     Args:
         task_graph (TaskGraph): The task graph.
         network (Network): The network graph.
