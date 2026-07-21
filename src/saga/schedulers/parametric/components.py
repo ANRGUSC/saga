@@ -282,14 +282,12 @@ class ParametricSufferageScheduler(ParametricScheduler):
         description="The number of top tasks to consider for sufferage calculation.",
     )
 
-    def __init__(
-        self, scheduler: ParametricScheduler, top_n: int = 2, **kwargs
-    ) -> None:  # type: ignore[no-untyped-def]
+    def __init__(self, scheduler: ParametricScheduler, top_n: int = 2) -> None:
         super().__init__(
             initial_priority=scheduler.initial_priority,
             insert_task=scheduler.insert_task,
-            scheduler=scheduler,  # type: ignore[call-arg]
-            top_n=top_n,  # type: ignore[call-arg]
+            scheduler=scheduler,
+            top_n=top_n,
         )
 
     def schedule(
