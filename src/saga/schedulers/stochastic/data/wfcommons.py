@@ -57,7 +57,9 @@ def get_networks(
         ]
     )
 
-    all_num_nodes = list(map(int, get_num_nodes(num)))
+    # Clamp to >= 2: some real Chameleon traces are single-machine, but a 1-node network
+    # has no inter-node links, which breaks CCR-based scaling downstream.
+    all_num_nodes = [max(2, int(v)) for v in get_num_nodes(num)]
     networks: List[nx.Graph] = []
     for num_nodes in all_num_nodes:
         network = nx.Graph()
