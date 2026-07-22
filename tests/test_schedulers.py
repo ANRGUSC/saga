@@ -11,6 +11,7 @@ from saga.schedulers import (
     FastestNodeScheduler,
     FCPScheduler,
     HeftScheduler,
+    PEFTScheduler,
     MaxMinScheduler,
     METScheduler,
     MinMinScheduler,
@@ -52,6 +53,7 @@ def run_test(scheduler: Scheduler, network: Network, task_graph: TaskGraph) -> b
 # Parametrize the schedulers
 schedulers = [
     HeftScheduler(),
+    PEFTScheduler(),
     CpopScheduler(),
     FastestNodeScheduler(),
     BruteForceScheduler(),
