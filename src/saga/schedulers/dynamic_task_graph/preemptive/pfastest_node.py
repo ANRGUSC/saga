@@ -1,12 +1,15 @@
 from typing import Dict, Hashable, List, Tuple
 import networkx as nx
-from ....scheduler import Scheduler, Task
+from ....scheduler import Scheduler, Task, DWScheduler
 
 
-class ResidualFastestNodeScheduler(Scheduler):
+class PFastestNodeScheduler(DWScheduler):
     """Schedules all tasks on the node with the highest processing speed"""
 
-    def schedule(self, network: nx.Graph, task_graphs: List[Tuple[nx.DiGraph, float]]) -> Dict[Hashable, List[Task]]:
+    def schedule(self, 
+                 network: nx.Graph, 
+                 task_graphs: List[Tuple[nx.DiGraph, float]]
+                 ) -> Dict[Hashable, List[Task]]:
         """Schedules all tasks on the node with the highest processing speed
 
         Args:
@@ -25,9 +28,19 @@ class ResidualFastestNodeScheduler(Scheduler):
         # add tasks to fastest node in order (topological sort)
         free_time = 0
  
-        for task_graph_tupple in task_graphs:
-            task_graph = task_graph_tupple[0]
-            task_graph_arrival_time = task_graph_tupple[1]
+        for i in range(len(task_graphs)):
+            task_graph = nx.compose_all([task_graphs[j][0] for j in range(i + 1)])
+            task_graph_arrival_time = task_graphs[i][1]
+
+            if i > 0:
+                for task_name in task_graph.nodes:
+                    matching_task = next((task for tasks in schedule.values() for task in tasks if task.name == task_name), None)
+                    if matching_task:
+                        if matching_task.start > task_graphs[i][1]:
+                            schedule[matching_task.node].remove(matching_task)
+                            scheduled_tasks.pop(task_name, None)
+
+            
 
             for task_name in nx.topological_sort(task_graph):
                 task_size = task_graph.nodes[task_name]["weight"]

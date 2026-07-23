@@ -9,10 +9,10 @@ from networkx import DiGraph, Graph
 
 from saga.scheduler import Task
 
-from ....scheduler import Scheduler, Task
+from ....scheduler import Scheduler, Task, DWScheduler
 
 
-class ResidualFLBScheduler(Scheduler):
+class PFLBScheduler(DWScheduler):
     """The FLB (Fast Load Balancing) scheduler.
 
     Source: https://doi.org/10.1109/ICPP.1999.797442

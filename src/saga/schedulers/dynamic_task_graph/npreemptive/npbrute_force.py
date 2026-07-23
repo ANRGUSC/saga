@@ -4,10 +4,10 @@ import copy
 
 import networkx as nx
 
-from ....scheduler import Scheduler, Task, ResidualScheduler
+from ....scheduler import Scheduler, Task, DWScheduler
 
 
-class ResidualBruteForceScheduler(ResidualScheduler):
+class ResidualBruteForceScheduler(DWScheduler):
     """Brute force scheduler"""
     def schedule(self,
                  network: nx.Graph,

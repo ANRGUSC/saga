@@ -3,10 +3,10 @@ from typing import Dict, Hashable, List, Tuple
 
 import networkx as nx
 
-from ....scheduler import Scheduler, Task, ResidualScheduler
+from ....scheduler import Scheduler, Task, DWScheduler
 
 
-class ResidualBILScheduler(ResidualScheduler): # pylint: disable=too-few-public-methods
+class ResidualBILScheduler(DWScheduler): # pylint: disable=too-few-public-methods
     """Best Imaginary Level Scheduler
 
     Source: https://doi.org/10.1007/BFb0024750

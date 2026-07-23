@@ -3,8 +3,8 @@ from typing import Dict, Hashable, List, Tuple
 import networkx as nx
 
 from ....scheduler import Scheduler, Task
-from .rmaxmin import ResidualMaxMinScheduler
-from .rminmin import ResidualMinMinScheduler
+from .npmaxmin import NPMaxMinScheduler
+from .npminmin import NPMinMinScheduler
 
 
 class ResidualDuplexScheduler(Scheduler): # pylint: disable=too-few-public-methods
@@ -19,8 +19,8 @@ class ResidualDuplexScheduler(Scheduler): # pylint: disable=too-few-public-metho
         Returns:
             A dictionary of the schedule
         """
-        minmin_schedule = ResidualMinMinScheduler().schedule(network, task_graphs)
-        maxmin_schedule = ResidualMaxMinScheduler().schedule(network, task_graphs)
+        minmin_schedule = NPMinMinScheduler().schedule(network, task_graphs)
+        maxmin_schedule = NPMaxMinScheduler().schedule(network, task_graphs)
 
 
         minmin_makespan = max([0 if not tasks else tasks[-1].end for tasks in minmin_schedule.values()])

@@ -1,60 +1,54 @@
 import logging
 import pathlib
 from typing import Dict, Hashable, List, Tuple, Optional
+import heapq
 
 import networkx as nx
 import numpy as np
+from saga.utils.draw import draw_gantt
 
-from ....scheduler import Scheduler, Task, ResidualScheduler
+from ....scheduler import Task, DWScheduler
 from ....utils.tools import get_insert_loc
 from ...cpop import upward_rank
+from ...cpop import cpop_ranks
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
 
 def heft_rank_sort(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
-    """Sort tasks based on their rank (as defined in the HEFT paper).
-
-    Args:
-        network (nx.Graph): The network graph.
-        task_graph (nx.DiGraph): The task graph.
-
-    Returns:
-        List[Hashable]: The sorted list of tasks.
-    """
     rank = upward_rank(network, task_graph)
     topological_sort = {node: i for i, node in enumerate(reversed(list(nx.topological_sort(task_graph))))}
     rank = {node: (rank[node] + topological_sort[node]) for node in rank}
     return sorted(list(rank.keys()), key=rank.get, reverse=True)
 
+def cpop_ranking(network: nx.Graph, task_graph: nx.DiGraph) -> List[Hashable]:
+    ranks = cpop_ranks(network, task_graph)
+    start_tasks = [task for task in task_graph if task_graph.in_degree(task) == 0]
+    start_tasks_sorted = sorted(start_tasks, key=lambda t: ranks[t], reverse=True)
+    pq = [(-ranks[task], task) for task in start_tasks_sorted]
+    heapq.heapify(pq)
+    queue = []
+    while pq:
+        _, task_name = heapq.heappop(pq)
+        queue.append(task_name)
+        ready_tasks = [
+            succ for succ in task_graph.successors(task_name)
+            if all(pred in queue for pred in task_graph.predecessors(succ))
+        ]
+        for ready_task in ready_tasks:
+            heapq.heappush(pq, (-ranks[ready_task], ready_task))
+    
+    return queue
 
-class ResidualHeftScheduler(Scheduler):
-    """Schedules tasks using the HEFT algorithm.
-
-    Source: https://dx.doi.org/10.1109/71.993206
-    """
+class PCpopScheduler(DWScheduler):
 
     @staticmethod
     def get_runtimes(
         network: nx.Graph, task_graph: nx.DiGraph
     ) -> Tuple[
         Dict[Hashable, Dict[Hashable, float]],
-        Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],
-    ]:
-        """Get the expected runtimes of all tasks on all nodes.
-
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-
-        Returns:
-            Tuple[Dict[Hashable, Dict[Hashable, float]],
-                  Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]]:
-                A tuple of dictionaries mapping nodes to a dictionary of tasks and their runtimes
-                and edges to a dictionary of tasks and their communication times. The first dictionary
-                maps nodes to a dictionary of tasks and their runtimes. The second dictionary maps edges
-                to a dictionary of task dependencies and their communication times.
-        """
+        Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]],]:
+        
         runtimes = {}
         for node in network.nodes:
             runtimes[node] = {}
@@ -101,45 +95,25 @@ class ResidualHeftScheduler(Scheduler):
         current_schedule: Optional[Dict[str, List[Task]]] = None,
         task_graph_arrival_time: Optional[float] = 0
         ) -> Dict[Hashable, List[Task]]:
-        """Schedule the tasks on the network.
 
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-            runtimes (Dict[Hashable, Dict[Hashable, float]]): A dictionary mapping nodes to a
-                dictionary of tasks and their runtimes.
-            commtimes (Dict[Tuple[Hashable, Hashable], Dict[Tuple[Hashable, Hashable], float]]): A
-                dictionary mapping edges to a dictionary of task dependencies and their communication times.
-            schedule_order (List[Hashable]): The order in which to schedule the tasks.
-
-        Returns:
-            Dict[Hashable, List[Task]]: The schedule.
-
-        Raises:
-            ValueError: If the instance is invalid.
-        """
 
         comp_schedule: Dict[Hashable, List[Task]] = current_schedule or {node: [] for node in network.nodes}
         task_schedule: Dict[Hashable, Task] = {}
 
-        task_name: Hashable
-        logging.debug("Schedule order: %s", schedule_order)
-        for task_name in schedule_order:
-            if any(task.name == task_name for task_list in comp_schedule.values() for task in task_list):
-                for task_list in comp_schedule.values():
-                    for task in task_list:
-                        if task.name == task_name:
-                            task_schedule[task_name] = task
-                            print(f'task {task.name} already scheduled')
-                            break
-                continue
+        # for every task that is in the comp_schedule, add it to the task_schedule
+        for task_list in comp_schedule.values():
+            for task in task_list:
+                task_schedule[task.name] = task
 
+        task_name: Hashable
+        # logging.debug("Schedule order: %s", schedule_order)
+        for task_name in schedule_order:            
             min_finish_time = np.inf
             best_node = None
             for node in network.nodes:  # Find the best node to run the task 
                 max_arrival_time: float = max(
                     [
-                        task_graph_arrival_time,
+                        task_graph.nodes[task_name]["arrival_time"],
                         *[
                             task_schedule[parent].end
                             + (
@@ -182,30 +156,34 @@ class ResidualHeftScheduler(Scheduler):
     def schedule(
         self, network: nx.Graph, task_graphs: List[Tuple[nx.DiGraph, float]]
     ) -> Dict[str, List[Task]]:
-        """Schedule the tasks on the network.
-
-        Args:
-            network (nx.Graph): The network graph.
-            task_graph (nx.DiGraph): The task graph.
-
-        Returns:
-            Dict[str, List[Task]]: The schedule.
-
-        Raises:
-            ValueError: If the instance is invalid.
-        """
-
-        comp_schedule: Dict[Hashable, List[Task]] = None
-        # {node: [] for node in network.nodes}
-
+        
         for task_graph_tupple in task_graphs:
-            task_graph = task_graph_tupple[0]
-            task_graph_arrival_time = task_graph_tupple[1]
-            runtimes, commtimes = ResidualHeftScheduler.get_runtimes(network, task_graph)
-            schedule_order = heft_rank_sort(network, task_graph)
-            print(schedule_order)
+            for node in task_graph_tupple[0].nodes:
+                task_graph_tupple[0].nodes[node]["arrival_time"] = task_graph_tupple[1]
+        
+        comp_schedule: Dict[Hashable, List[Task]] = None
+        for i in range(len(task_graphs)):
+            composed_graph = nx.compose_all([task_graphs[j][0] for j in range(i + 1)])
+            runtimes, commtimes = self.get_runtimes(network, composed_graph)
+            schedule_order = cpop_ranking(network, composed_graph)
+
+            tasks_to_remove = []
+            if comp_schedule is not None:
+                for task_name in schedule_order:
+                    matching_task = next((task for tasks in comp_schedule.values() for task in tasks if task.name == task_name), None)
+                    if matching_task:
+                        if matching_task.start < task_graphs[i][1]:
+                            tasks_to_remove.append(task_name)
+                        else:
+                            comp_schedule[matching_task.node].remove(matching_task)
+            
+            for task_name in tasks_to_remove:
+                schedule_order.remove(task_name)
+                
+
             comp_schedule = self._schedule(
-                network, task_graph, runtimes, commtimes, schedule_order, comp_schedule, task_graph_arrival_time
+                network, composed_graph, runtimes, commtimes, schedule_order, comp_schedule, task_graphs[i][1]
             )
+            
 
         return comp_schedule
