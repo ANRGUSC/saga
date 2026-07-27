@@ -38,6 +38,8 @@ from saga.schedulers.online.policy import (
     RandomReschedulePolicy10,
     RandomReschedulePolicy25,
     RandomReschedulePolicy50,
+    RandomReschedulePolicy5,
+    RandomReschedulePolicy1,
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -78,8 +80,12 @@ _POLICIES = {
     "random10": RandomReschedulePolicy10,
     "random25": RandomReschedulePolicy25,
     "random50": RandomReschedulePolicy50,
+    "random5": RandomReschedulePolicy5,
+    "random1": RandomReschedulePolicy1,
 }
-_STOCHASTIC_POLICIES = ["reschedule", "conditional", "random10", "random25", "random50"]
+_STOCHASTIC_POLICIES = [
+    "reschedule", "conditional", "random10", "random25", "random50", "random5", "random1",
+]
 _STANDALONE_SCHEDULERS = {"FastestNode": FastestNodeScheduler, "MaxTP": MaxTPScheduler}
 
 

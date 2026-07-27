@@ -279,3 +279,94 @@ class RandomReschedulePolicy50(OnlinePolicy):
                 min_start_time=environment.current_time,
             )
         return new_schedule
+
+class RandomReschedulePolicy5(OnlinePolicy):
+    """Reschedules with fixed 1-in-20 (5%) probability on each step, independent of state."""
+
+    def evaluate_reschedule(self) -> bool:
+        return np.random.randint(1, 21) == 1
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule():
+            return environment.schedule
+        environment.reschedule_count += 1
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule
+
+
+class RandomReschedulePolicy1(OnlinePolicy):
+    """Reschedules with fixed 1-in-100 (1%) probability on each step, independent of state."""
+
+    def evaluate_reschedule(self) -> bool:
+        return np.random.randint(1, 101) == 1
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule():
+            return environment.schedule
+        environment.reschedule_count += 1
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule

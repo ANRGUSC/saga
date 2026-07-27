@@ -2,8 +2,8 @@
 
 Reads results/<branch>_<regime>.csv (from run.py), normalizes throughput and makespan
 per instance against the best config on that instance, then writes:
-  - output/<branch>_<regime>/<workflow>_throughput.png : median throughput ratio, schedulers x CCR.
-  - output/<branch>_<regime>/<workflow>_makespan.png   : median makespan ratio, schedulers x CCR.
+  - output/<branch>_<regime>/<workflow>_throughput.png : mean throughput ratio, schedulers x CCR.
+  - output/<branch>_<regime>/<workflow>_makespan.png   : mean makespan ratio, schedulers x CCR.
 
 In both cases 1.0 is the best config on that instance, but the direction flips: throughput
 is better when higher, so ThroughputRatio = Throughput / max(Throughput) <= 1 (lower is
@@ -31,7 +31,9 @@ _POLICY_RANK = {
     "random50": 2,
     "random25": 3,
     "random10": 4,
-    "static": 5,
+    "random5": 5,
+    "random1": 6,
+    "static": 7,
 }
 _STANDALONE_RANK = {"FastestNode": 0, "MaxTP": 1}
 
@@ -79,7 +81,7 @@ def heatmaps(df: pd.DataFrame, branch: str, regime: str) -> None:
             ax = gradient_heatmap(
                 cell, x="CCR", y="Scheduler", color=ratio_col,
                 title=f"{branch} / {regime}: {workflow} ({metric})",
-                x_label="CCR", y_label="scheduler", color_label=f"{metric} ratio (median)",
+                x_label="CCR", y_label="scheduler", color_label=f"{metric} ratio (mean)",
                 yorder=scheduler_order,
                 cmap=cmap,
                 cell_font_size=14, font_size=14, figsize=(9, 7),
