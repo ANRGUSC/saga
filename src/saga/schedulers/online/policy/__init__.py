@@ -59,6 +59,9 @@ from saga.schedulers.online.policy.reschedule import (  # noqa: E402
     RandomReschedulePolicy10,
     RandomReschedulePolicy5,
     RandomReschedulePolicy1,
+    CheckpointRescheduleQuarterly,
+    CheckpointRescheduleMid,
+    CheckpointReschedule10,
 )
 from saga.schedulers.online.policy.inspirit import InspiritPolicy  # noqa: E402
 from saga.schedulers.online.policy.frontier_fill import FrontierFillPolicy  # noqa: E402
@@ -72,6 +75,9 @@ __all__ = [
     "RandomReschedulePolicy10",
     "RandomReschedulePolicy5",
     "RandomReschedulePolicy1",
+    "CheckpointRescheduleQuarterly",
+    "CheckpointRescheduleMid",
+    "CheckpointReschedule10",
     "InspiritPolicy",
     "FrontierFillPolicy",
 ]

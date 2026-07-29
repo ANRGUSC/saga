@@ -1,9 +1,12 @@
-"""Backfill the new random5/random1 reschedule policies into the existing stochastic
+"""Backfill the new checkpoint reschedule policies into the existing stochastic
 results CSVs, without recomputing the schedulers already in results/<branch>_stochastic.csv
 (see run.py for the full scheduler grid).
 
 Stochastic-only: reschedule policies collapse to static in the deterministic regime (see
 run.py's config_names), so there is nothing to add to the deterministic CSVs.
+
+checkpoint_10 is skipped for the riotbench branch: those dataflows usually have fewer than
+10 tasks, so its 10%-interval checkpoints collapse into rescheduling on every step.
 
 Usage:
     python run_new_policies.py riotbench
@@ -23,19 +26,27 @@ from run import BASES, build_config, evaluate, CCRS, SEED
 
 logging.basicConfig(level=logging.WARNING)
 
-NEW_POLICIES = ["random5", "random1"]
+NEW_POLICIES = ["checkpoint_quarterly", "checkpoint_mid", "checkpoint_10"]
 
 
-def new_config_names():
-    return [f"{b}_{p}" for b in BASES for p in NEW_POLICIES]
+def new_config_names(branch: str = None):
+    """New config names to backfill for a branch.
+
+    checkpoint_10 is skipped for riotbench: those dataflows usually have fewer than 10
+    tasks, so its 10%-interval checkpoints collapse into rescheduling on every step.
+    """
+    policies = NEW_POLICIES
+    if branch == "riotbench":
+        policies = [p for p in policies if p != "checkpoint_10"]
+    return [f"{b}_{p}" for b in BASES for p in policies]
 
 
 def _eval_instance(job):
     """Worker: run all seeds x new configs for one instance; return a list of result rows."""
-    workflow, ccr, instance, n_seeds = job
+    branch, workflow, ccr, instance, n_seeds = job
     rows = []
     for seed in range(n_seeds):
-        for name in new_config_names():
+        for name in new_config_names(branch):
             scheduler, policy = build_config(name)
             try:
                 result = evaluate("stochastic", scheduler, policy, instance, seed)
@@ -58,7 +69,7 @@ def run(branch: str, n_instances: int, n_seeds: int, workers: int) -> None:
 
     # Resume: skip any (Workflow, CCR, Instance) that already has every seed x new-config
     # row, so a crash or a second invocation of this backfill doesn't duplicate rows.
-    new_names = new_config_names()
+    new_names = new_config_names(branch)
     expected_per_instance = n_seeds * len(new_names)
     finished_keys: set = set()
     if out.exists():
@@ -76,7 +87,7 @@ def run(branch: str, n_instances: int, n_seeds: int, workers: int) -> None:
             for instance in (scaled(b, ccr) for b in base):
                 if (workflow, ccr, instance.name) in finished_keys:
                     continue
-                jobs.append((workflow, ccr, instance, n_seeds))
+                jobs.append((branch, workflow, ccr, instance, n_seeds))
 
     if not jobs:
         print(f"nothing to do; {out} already has the new policies")

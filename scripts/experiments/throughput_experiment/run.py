@@ -6,9 +6,9 @@ throughput, one row per (workflow, ccr, instance, seed, scheduler).
 Schedulers: the four bases (HEFT, CPoP, HEFT-Tp, CPoP-Tp) under each policy, plus
 FastestNode and MaxTP. HEFT/CPoP are the classic EFT configs; the -Tp variants swap the
 placement comparator for the throughput bottleneck. Policies are static in both regimes,
-plus reschedule/conditional/random10/random25/random50 in the stochastic regime (offline
-it equals static). FastestNode and MaxTP are standalone heuristics run with no policy
-layered on top.
+plus reschedule/conditional/random10/random25/random50/random5/random1/checkpoint_quarterly/
+checkpoint_mid/checkpoint_10 in the stochastic regime (offline it equals static).
+FastestNode and MaxTP are standalone heuristics run with no policy layered on top.
 
 Evaluation is parallelized across instances with a small process pool (capped at 4).
 
@@ -40,6 +40,9 @@ from saga.schedulers.online.policy import (
     RandomReschedulePolicy50,
     RandomReschedulePolicy5,
     RandomReschedulePolicy1,
+    CheckpointRescheduleQuarterly,
+    CheckpointRescheduleMid,
+    CheckpointReschedule10,
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
@@ -82,16 +85,27 @@ _POLICIES = {
     "random50": RandomReschedulePolicy50,
     "random5": RandomReschedulePolicy5,
     "random1": RandomReschedulePolicy1,
+    "checkpoint_quarterly": CheckpointRescheduleQuarterly,
+    "checkpoint_mid": CheckpointRescheduleMid,
+    "checkpoint_10": CheckpointReschedule10,
 }
 _STOCHASTIC_POLICIES = [
     "reschedule", "conditional", "random10", "random25", "random50", "random5", "random1",
+    "checkpoint_quarterly", "checkpoint_mid", "checkpoint_10",
 ]
 _STANDALONE_SCHEDULERS = {"FastestNode": FastestNodeScheduler, "MaxTP": MaxTPScheduler}
 
 
-def config_names(regime: str):
-    """Config names in the scheduler grid for a regime (reschedule family only when stochastic)."""
-    policies = ["static"] + (_STOCHASTIC_POLICIES if regime == "stochastic" else [])
+def config_names(regime: str, branch: str = None):
+    """Config names in the scheduler grid for a regime (reschedule family only when stochastic).
+
+    checkpoint_10 is skipped for riotbench: those dataflows usually have fewer than 10
+    tasks, so its 10%-interval checkpoints collapse into rescheduling on every step.
+    """
+    stochastic_policies = _STOCHASTIC_POLICIES
+    if branch == "riotbench":
+        stochastic_policies = [p for p in stochastic_policies if p != "checkpoint_10"]
+    policies = ["static"] + (stochastic_policies if regime == "stochastic" else [])
     return [f"{b}_{p}" for b in BASES for p in policies] + list(_STANDALONE_SCHEDULERS)
 
 
@@ -134,11 +148,11 @@ def evaluate(regime, scheduler, policy, instance, seed) -> dict:
 
 def _eval_instance(job):
     """Worker: run all seeds x configs for one instance; return a list of result rows."""
-    regime, workflow, ccr, instance, n_seeds = job
+    regime, branch, workflow, ccr, instance, n_seeds = job
     seeds = range(n_seeds) if regime == "stochastic" else [0]
     rows = []
     for seed in seeds:
-        for name in config_names(regime):
+        for name in config_names(regime, branch):
             scheduler, policy = build_config(name)
             try:
                 result = evaluate(regime, scheduler, policy, instance, seed)
@@ -163,7 +177,7 @@ def run(branch: str, regime: str, n_instances: int, n_seeds: int, workers: int) 
     # Resume: skip any (Workflow, CCR, Instance) that already has its full row
     # count in the CSV so analyze.py can be run mid-run and a crash doesn't wipe
     # progress. One completed job contributes n_seeds x len(config_names) rows.
-    expected_per_instance = n_seeds * len(config_names(regime))
+    expected_per_instance = n_seeds * len(config_names(regime, branch))
     finished_keys: set = set()
     if out.exists():
         prev = pd.read_csv(out)
@@ -178,7 +192,7 @@ def run(branch: str, regime: str, n_instances: int, n_seeds: int, workers: int) 
             for instance in (scaled(b, ccr) for b in base):
                 if (workflow, ccr, instance.name) in finished_keys:
                     continue
-                jobs.append((regime, workflow, ccr, instance, n_seeds))
+                jobs.append((regime, branch, workflow, ccr, instance, n_seeds))
 
     if not jobs:
         print(f"nothing to do; {out} already complete")

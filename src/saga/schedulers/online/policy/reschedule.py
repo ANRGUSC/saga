@@ -370,3 +370,163 @@ class RandomReschedulePolicy1(OnlinePolicy):
                 min_start_time=environment.current_time,
             )
         return new_schedule
+
+    
+class CheckpointRescheduleQuarterly(OnlinePolicy):
+    """Reschedules at checkpoint intervals 0% (initial schedule), 25%, 50%, 75%"""
+    def __init__(self):
+        super().__init__()
+        self.intervals = [0.25,0.50,0.75] 
+    
+    def evaluate_reschedule(self, environment: "Environment") -> bool:
+        if not self.intervals:
+            return False
+        if len(environment.finished_tasks)/len(environment.task_graph.tasks) >= self.intervals[0]:
+            self.intervals.pop(0)
+            return True
+        return False
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule(environment):
+            return environment.schedule
+        environment.reschedule_count += 1
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule
+
+class CheckpointRescheduleMid(OnlinePolicy):
+    """Reschedules at checkpoint intervals 0% (initial schedule), 25%, 50%, 75%"""
+    def __init__(self):
+        super().__init__()
+        self.intervals = [0.50] 
+    
+    def evaluate_reschedule(self, environment: "Environment") -> bool:
+        if not self.intervals:
+            return False
+        if len(environment.finished_tasks)/len(environment.task_graph.tasks) >= self.intervals[0]:
+            self.intervals.pop(0)
+            return True
+        return False
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule(environment):
+            return environment.schedule
+        environment.reschedule_count += 1
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule
+
+class CheckpointReschedule10(OnlinePolicy):
+    """Reschedules at checkpoint intervals 0% (initial schedule), 25%, 50%, 75%"""
+    def __init__(self):
+        super().__init__()
+        self.intervals = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9] 
+    
+    def evaluate_reschedule(self, environment: "Environment") -> bool:
+        if not self.intervals:
+            return False
+        if len(environment.finished_tasks)/len(environment.task_graph.tasks) >= self.intervals[0]:
+            self.intervals.pop(0)
+            return True
+        return False
+
+    def update(self, environment: "Environment") -> Optional[Schedule]:
+        if not isinstance(environment.scheduler, ParametricScheduler):
+            logger.warning(
+                "ReschedulePolicy: env.scheduler is not a ParametricScheduler "
+                "(%s). Rescheduling requires schedule and min_start_time support; "
+                "this may raise at runtime.",
+                type(environment.scheduler).__name__,
+            )
+        if not self.evaluate_reschedule(environment):
+            return environment.schedule
+        environment.reschedule_count += 1
+
+        partial = build_partial_schedule(environment)
+        if isinstance(environment, StochasticEnvironment):
+            new_estimate = environment.stochastic_scheduler.schedule(
+                environment._stochastic_network,
+                environment._stochastic_task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+                node_constraints=environment.node_constraints,
+            )
+            environment.estimate_schedule = new_estimate
+            new_schedule = new_estimate.determinize(
+                environment.actual_network, environment.actual_task_graph
+            )
+            environment.schedule = new_schedule
+        else:
+            if environment.scheduler is None:
+                raise ValueError(
+                    "ReschedulePolicy requires environment.scheduler to be set."
+                )
+            new_schedule = environment.scheduler.schedule(
+                environment.network,
+                environment.task_graph,
+                schedule=partial,
+                min_start_time=environment.current_time,
+            )
+        return new_schedule
