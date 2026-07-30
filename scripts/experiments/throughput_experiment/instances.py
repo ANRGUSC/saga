@@ -10,6 +10,7 @@ only once and then rescaled across the CCR sweep.
   constraints the fast cloud node swallows every task and placement is trivial.
 - WfCommons branch: scientific workflows on a scaled network, no constraints.
 """
+import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Set
 
@@ -95,6 +96,7 @@ def riotbench_base(
 ) -> List[Instance]:
     """Build `n` RIoTBench instances (unscaled) for one dataflow and regime."""
     np.random.seed(seed)
+    random.seed(seed)
     net_kwargs = dict(num_edges_nodes=num_edge, num_fog_nodes=num_fog, num_cloud_nodes=num_cloud)
     if regime == "stochastic":
         networks = sto_riot.get_fog_networks(n, cv=cv, **net_kwargs)
@@ -136,6 +138,10 @@ def wfcommons_base(
 ) -> List[Instance]:
     """Build `n` WfCommons instances (unscaled) for one workflow and regime."""
     np.random.seed(seed)
+    # get_workflows() (both regimes) draws num_tasks via the stdlib `random` module,
+    # not numpy's -- without this, workflow structure is unseeded and non-reproducible
+    # across process invocations even with a fixed `seed`.
+    random.seed(seed)
     if regime == "stochastic":
         task_graphs = [StochasticTaskGraph.from_nx(g) for g in sto_wf(n, workflow, size_cap=MAX_TASKS)]
         networks = [StochasticNetwork.from_nx(g) for g in sto_net(n, cloud)]
