@@ -26,7 +26,7 @@ from run import BASES, build_config, evaluate, CCRS, SEED
 
 logging.basicConfig(level=logging.WARNING)
 
-NEW_POLICIES = ["checkpoint_quarterly", "checkpoint_mid", "checkpoint_10"]
+NEW_POLICIES = ["random5", "random1", "checkpoint_quarterly", "checkpoint_mid", "checkpoint_10"]
 
 
 def new_config_names(branch: str = None):
