@@ -1,6 +1,9 @@
-"""Backfill the new checkpoint reschedule policies into the existing stochastic
-results CSVs, without recomputing the schedulers already in results/<branch>_stochastic.csv
-(see run.py for the full scheduler grid).
+"""Backfill the MaxTP parametric base (LargestTaskFirst + throughput-bottleneck placement,
+see components.LargestTaskFirst) across all online reschedule policies into the existing
+stochastic results CSVs, without touching the HEFT/CPoP rows already there.
+
+HEFT and CPoP already have full results (static + every online policy, via run.py and the
+older version of this script), so MaxTP is the only base this script targets now.
 
 Stochastic-only: reschedule policies collapse to static in the deterministic regime (see
 run.py's config_names), so there is nothing to add to the deterministic CSVs.
@@ -22,23 +25,24 @@ from tqdm import tqdm
 
 from common import resultsdir, num_processors
 from instances import base_instances, scaled, workflows_for
-from run import BASES, build_config, evaluate, CCRS, SEED
+from run import build_config, evaluate, CCRS, SEED, _STOCHASTIC_POLICIES
 
 logging.basicConfig(level=logging.WARNING)
 
-NEW_POLICIES = ["random5", "random1", "checkpoint_quarterly", "checkpoint_mid", "checkpoint_10"]
+MAXTP_BASE = "MaxTP"
+ONLINE_POLICIES = _STOCHASTIC_POLICIES
 
 
 def new_config_names(branch: str = None):
-    """New config names to backfill for a branch.
+    """MaxTP config names to backfill for a branch (all online policies, MaxTP base only).
 
     checkpoint_10 is skipped for riotbench: those dataflows usually have fewer than 10
     tasks, so its 10%-interval checkpoints collapse into rescheduling on every step.
     """
-    policies = NEW_POLICIES
+    policies = ONLINE_POLICIES
     if branch == "riotbench":
         policies = [p for p in policies if p != "checkpoint_10"]
-    return [f"{b}_{p}" for b in BASES for p in policies]
+    return [f"{MAXTP_BASE}_{p}" for p in policies]
 
 
 def _eval_instance(job):

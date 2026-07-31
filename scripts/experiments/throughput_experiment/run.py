@@ -46,7 +46,7 @@ from saga.schedulers.online.policy import (
 )
 from saga.schedulers.parametric import ParametricScheduler
 from saga.schedulers.parametric.components import (
-    UpwardRanking, CPoPRanking, GreedyInsert, GreedyInsertCompareFuncs,
+    UpwardRanking, CPoPRanking, LargestTaskFirst, GreedyInsert, GreedyInsertCompareFuncs,
 )
 
 logging.basicConfig(level=logging.WARNING)
@@ -70,11 +70,15 @@ def _base(priority_cls, critical_path, compare):
 
 
 # base name -> factory (fresh scheduler per use; the -Tp variants only swap the comparator)
+# MaxTP: LargestTaskFirst + throughput-bottleneck placement, functionally equivalent to
+# MaxTPScheduler (see saga.schedulers.throughput.maxtp), but expressed as a parametric base
+# so it can be combined with online reschedule policies like HEFT/CPoP.
 BASES = {
     "HEFT": lambda: _base(UpwardRanking, False, EFT),
     "CPoP": lambda: _base(CPoPRanking, True, EFT),
     "HEFT-Tp": lambda: _base(UpwardRanking, False, TP),
     "CPoP-Tp": lambda: _base(CPoPRanking, True, TP),
+    "MaxTP": lambda: _base(LargestTaskFirst, False, TP),
 }
 _POLICIES = {
     "static": lambda: None,
