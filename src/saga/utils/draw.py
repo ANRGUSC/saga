@@ -519,6 +519,8 @@ def gradient_heatmap(
     linewidth: int = 1,
     cmap_lower: float = 0.0,
     cmap_upper: float = 1.0,
+    color_center: Optional[float] = None,
+    clip_cell_text: bool = True,
     use_latex: bool = False,
 ) -> Axes:
     """Create a heatmap with a custom gradient for each cell.
@@ -544,6 +546,13 @@ def gradient_heatmap(
         linewidth (int, optional): linewidth for cell borders. Defaults to 1.
         cmap_lower (float, optional): lower bound for colormap. Defaults to 0.0.
         cmap_upper (float, optional): upper bound for colormap. Defaults to 1.0.
+        color_center (Optional[float], optional): value placed at the midpoint of the
+            colormap, so a diverging cmap diverges about a meaningful value (e.g. 1.0
+            for a ratio) rather than about the middle of the data range. Defaults to
+            None, which normalizes linearly between the data bounds.
+        clip_cell_text (bool, optional): whether a cell label above upper_threshold is
+            rendered as ">threshold". False shows the true value while the colour still
+            saturates. Defaults to True.
         use_latex (bool, optional): use LaTeX for text rendering. Defaults to False.
 
     Returns:
@@ -602,6 +611,17 @@ def gradient_heatmap(
         global_min = cast(float, data[color].min())
         global_max = cast(float, min(data[color].max(), upper_threshold))
 
+        if color_center is None:
+            color_norm = matplotlib.colors.Normalize(vmin=global_min, vmax=global_max)
+        else:
+            # TwoSlopeNorm requires vmin < vcenter < vmax, which need not hold when the
+            # centre sits outside the observed range (e.g. every ratio is above 1.0).
+            color_norm = matplotlib.colors.TwoSlopeNorm(
+                vcenter=color_center,
+                vmin=min(global_min, color_center - 1e-9),
+                vmax=max(global_max, color_center + 1e-9),
+            )
+
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)
             if ax is None:
@@ -642,8 +662,7 @@ def gradient_heatmap(
                         cmap=listed_cmap,
                         aspect="auto",
                         extent=(float(j), float(j + 1), float(i), float(i + 1)),
-                        vmin=global_min,
-                        vmax=global_max,
+                        norm=color_norm,
                     )
                     rect = Rectangle(
                         (j, i),
@@ -662,7 +681,7 @@ def gradient_heatmap(
                         value = ""
                     elif value > 1000:
                         value = f"$>{1000}$" if use_latex else ">1000"
-                    elif value > upper_threshold:
+                    elif clip_cell_text and value > upper_threshold:
                         value = (
                             f"$>{upper_threshold}$"
                             if use_latex
