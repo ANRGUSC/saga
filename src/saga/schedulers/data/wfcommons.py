@@ -286,7 +286,7 @@ def get_best_fit(data: Iterable) -> Callable[[int], List[float]]:
 
 
 def get_networks(
-    num: int, cloud_name: str, network_speed: float = 100
+    num: int, cloud_name: str, network_speed: float = 100, num_nodes: int | None = None
 ) -> List[Network]:
     """Generate random networks based on real cloud configurations.
 
@@ -299,7 +299,7 @@ def get_networks(
         num (int): The number of networks to generate.
         cloud_name (str): The name of the cloud.
         network_speed (float, optional): The speed of the network in MegaBytes per second. Defaults to 100.
-
+        num_nodes (int | None): The number of nodes in the network. Defaults to None.
     Returns:
         List[Network]: The list of networks.
     """
@@ -315,7 +315,11 @@ def get_networks(
         ]
     )
 
-    all_num_nodes = list(map(int, get_num_nodes(num)))
+    if num_nodes is None: 
+        all_num_nodes = list(map(int, get_num_nodes(num)))
+    else: 
+        all_num_nodes = [num_nodes for _ in range(num)]
+
     networks: List[Network] = []
     for num_nodes in all_num_nodes:
         node_speeds = get_node_speed(num_nodes)
@@ -402,6 +406,13 @@ def _trace_to_digraph_v15(trace: Dict) -> nx.DiGraph:
     # Get specification and execution data
     spec_tasks = trace.get("workflow", {}).get("specification", {}).get("tasks", [])
     exec_tasks = trace.get("workflow", {}).get("execution", {}).get("tasks", [])
+    # get file data from v1.5
+    # file sizes are stored in: workflow -> specification -> files -> sizeInBytes
+    spec_files = trace.get("workflow", {}).get("specification", {}).get("files", [])
+    file_sizes = {
+        file_info["id"]: float(file_info.get("sizeInBytes", 0.0))
+        for file_info in spec_files if file_info.get("id")
+    }
 
     # Build mapping from task id to execution runtime
     exec_runtime: Dict[str, float] = {}
@@ -414,18 +425,27 @@ def _trace_to_digraph_v15(trace: Dict) -> nx.DiGraph:
     # Build mapping from task name to output files (using inputFiles/outputFiles)
     task_name_to_id: Dict[str, str] = {}  # task name -> task id
     task_id_exists: Set[str] = set()  # set of all task IDs
+    task_inputs: Dict[str, Set[str]] = {} # track each task's input files
+    task_outputs: Dict[str, Set[str]] = {} # track each task's output files
 
     for task in spec_tasks:
         task_id = task.get("id")
         task_name = task.get("name")
 
-        if task_id:
-            task_id_exists.add(task_id)
+        if not task_id:
+            continue
+        
+        task_id_exists.add(task_id)
+        if task_name:
             task_name_to_id[task_name] = task_id
 
-            # Get runtime from execution data
-            runtime = exec_runtime.get(task_id, 1e-9)
-            workflow.add_node(task_id, weight=runtime)
+        # in v1.5, each task lists the file IDs it produces and takes through
+        # inputFiles and outputFiles stored in: workflow -> specification -> tasks
+        task_inputs[task_id] = set(task.get("inputFiles", []))
+        task_outputs[task_id] = set(task.get("outputFiles", []))
+        # get runtime from execution data
+        runtime = exec_runtime.get(task_id, 1e-9)
+        workflow.add_node(task_id, weight=runtime)
 
     # Add edges based on parent relationships
     for task in spec_tasks:
@@ -444,9 +464,15 @@ def _trace_to_digraph_v15(trace: Dict) -> nx.DiGraph:
                 parent_id = task_name_to_id.get(parent_ref)
 
             if parent_id and parent_id in task_id_exists:
-                # For v1.5, we don't have file size information
-                # Use a default weight of 1.0 for the edge
-                workflow.add_edge(parent_id, task_id, weight=1.0)
+                # find files produced by the parent and taken by the child
+                shared_files = task_outputs.get(parent_id, set()) & task_inputs.get(task_id, set())
+                # comm cost = total size of transferred files
+                edge_size_bytes = sum(file_sizes.get(file_id, 0.0) for file_id in shared_files)
+                # convert file sizes from bytes to megabytes to match network speed of megabytes per second (for get_networks() function)
+                edge_size_mb = edge_size_bytes / 1_000_000
+                
+                # uses actual file size as the edge weight instead of using constant weight of 1.0
+                workflow.add_edge(parent_id, task_id, weight=max(edge_size_mb, 1e-9))
 
     return workflow
 
@@ -558,9 +584,10 @@ def get_wfcommons_instance(
     recipe_name: str,
     ccr: float,
     estimate_method: Callable[[RandomVariable, bool], float] = lambda x, is_speed: (
-        x.mean()
+        x.mean() if hasattr(x, "mean") else x
     ),
     max_size_multiplier: int = 2,
+    num_nodes: int | None = None
 ) -> Tuple[Network, TaskGraph]:
     """Generate a network and workflow instance from wfcommons.
 
@@ -570,6 +597,7 @@ def get_wfcommons_instance(
         estimate_method (Callable[[RandomVariable, bool], float], optional): The method to estimate
             the weight from a random variable. Defaults to mean().
         max_size_multiplier (int, optional): Maximum size multiplier for tasks. Defaults to 2.
+        num_nodes (int | None): The number of nodes in the network. Defaults to None.
     Returns:
         Tuple[Network, TaskGraph]: The network and workflow instance.
     """
@@ -581,20 +609,22 @@ def get_wfcommons_instance(
     weight_rv: RandomVariable
     for node in workflow.nodes:
         weight_rv = workflow.nodes[node]["weight"]
-        workflow.nodes[node]["weight_rv"] = weight_rv
+        # converts numeric weights to RandomVariable
+        workflow.nodes[node]["weight_rv"] = (weight_rv if isinstance(weight_rv, RandomVariable) else RandomVariable(samples=[weight_rv]))
         workflow.nodes[node]["weight_estimate"] = max(
-            1e-9, estimate_method(weight_rv, True)
+            1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv
         )
-        workflow.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample())
+        workflow.nodes[node]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
         workflow.nodes[node]["weight"] = workflow.nodes[node]["weight_estimate"]
 
     for u, v in workflow.edges:
         weight_rv = workflow.edges[u, v]["weight"]
-        workflow.edges[u, v]["weight_rv"] = weight_rv
+        # converts numeric weights to RandomVariable
+        workflow.edges[u, v]["weight_rv"] = (weight_rv if isinstance(weight_rv, RandomVariable) else RandomVariable(samples=[weight_rv]))
         workflow.edges[u, v]["weight_estimate"] = max(
-            1e-9, estimate_method(weight_rv, True)
+            1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv
         )
-        workflow.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample())
+        workflow.edges[u, v]["weight_actual"] = max(1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv)
         workflow.edges[u, v]["weight"] = workflow.edges[u, v]["weight_estimate"]
 
     # add src and dst task
@@ -614,28 +644,28 @@ def get_wfcommons_instance(
     )
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.in_degree(node):
+            # uses 1e-9 (small) communication costs instead of 1e9 
             workflow.add_edge(
                 "SRC",
                 node,
-                weight=1e9,
-                weight_estimate=1e9,
-                weight_actual=1e9,
-                weight_rv=RandomVariable(samples=[1e9]),
+                weight=1e-9,
+                weight_estimate=1e-9,
+                weight_actual=1e-9,
+                weight_rv=RandomVariable(samples=[1e-9]),
             )
     for node in workflow.nodes:
         if node not in ["SRC", "DST"] and not workflow.out_degree(node):
+            # uses 1e-9 (small) communication costs instead of 1e9 
             workflow.add_edge(
                 node,
                 "DST",
-                weight=1e9,
-                weight_estimate=1e9,
-                weight_actual=1e9,
-                weight_rv=RandomVariable(samples=[1e9]),
+                weight=1e-9,
+                weight_estimate=1e-9,
+                weight_actual=1e-9,
+                weight_rv=RandomVariable(samples=[1e-9]),
             )
 
-    network: nx.Graph = get_networks(num=1, cloud_name="chameleon", network_speed=1.0)[
-        0
-    ].graph
+    network: nx.Graph = get_networks(num=1, cloud_name="chameleon", network_speed=1.0, num_nodes=num_nodes)[0].graph
 
     for node in network.nodes:
         weight_rv = network.nodes[node]["weight"]
@@ -652,29 +682,31 @@ def get_wfcommons_instance(
         )
         network.nodes[node]["weight"] = network.nodes[node]["weight_estimate"]
 
-    # adjust network edges to match CCR
+    # adjust network edges to match CCR (ignores src/dst)
+    real_tasks = [task for task in workflow.nodes if task not in {"SRC", "DST"}]
+    real_edges = [(u, v) for u, v in workflow.edges if u not in {"SRC", "DST"} and v not in {"SRC", "DST"}]
+
     avg_task_cost = np.mean(
-        [workflow.nodes[node]["weight_actual"] for node in workflow.nodes]
+        [workflow.nodes[node]["weight_actual"] for node in real_tasks]
     )
     avg_dep_cost = np.mean(
-        [workflow.edges[u, v]["weight_actual"] for u, v in workflow.edges]
+        [workflow.edges[u, v]["weight_actual"] for u, v in real_edges]
     )
     avg_node_speed = np.mean(
         [network.nodes[node]["weight_actual"] for node in network.nodes]
     )
-    avg_comm_speed = float(ccr * avg_dep_cost / (avg_task_cost / avg_node_speed))
+    avg_compu_time = avg_task_cost / avg_node_speed
+    link_speed = avg_dep_cost / (ccr * avg_compu_time)
+
     for u, v in network.edges:
-        weight_rv = RandomVariable(samples=[avg_comm_speed] * 100)
+        edge_speed = 1e9 if u == v else link_speed
+        weight_rv = RandomVariable(samples=[edge_speed] * 100)
         network.edges[u, v]["weight_rv"] = weight_rv
         network.edges[u, v]["weight_estimate"] = max(
-            1e-9,
-            estimate_method(weight_rv, True)
-            if isinstance(weight_rv, RandomVariable)
-            else weight_rv,
+            1e-9, estimate_method(weight_rv, True) if isinstance(weight_rv, RandomVariable) else weight_rv
         )
         network.edges[u, v]["weight_actual"] = max(
-            1e-9,
-            weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv,
+            1e-9, weight_rv.sample() if isinstance(weight_rv, RandomVariable) else weight_rv
         )
         network.edges[u, v]["weight"] = network.edges[u, v]["weight_estimate"]
 
