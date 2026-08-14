@@ -35,12 +35,6 @@ def comm_time(edge: TaskGraphEdge, parent_task: ScheduledTask, child_task: Sched
     link_speed = network.get_edge(parent_task.node, child_task.node).speed
     return edge.size / link_speed
 
-def get_task_instances(task_name: str, schedule: Schedule) -> list[ScheduledTask]:
-    """Returns all scheduled instances of a task, including duplicates."""
-    instances = schedule._task_map.get(task_name)
-    if not instances: raise ValueError(f"No scheduled instances for task {task_name}")
-    return list(instances)
-
 def get_data_arrival_time(parent_copy: ScheduledTask, child_copy: ScheduledTask, edge: TaskGraphEdge, schedule: Schedule) -> float:
     """Returns the time when a parent's output becomes available to a specific child's processor."""
     comm_delay = comm_time(edge, parent_copy, child_copy, schedule.network)
@@ -48,7 +42,7 @@ def get_data_arrival_time(parent_copy: ScheduledTask, child_copy: ScheduledTask,
 
 def get_earliest_parent_copy(parent_name: str, child_copy: ScheduledTask, edge: TaskGraphEdge, schedule: Schedule) -> ScheduledTask:
     """Returns the parent task that provides data to the child earliest."""
-    parent_copies = get_task_instances(parent_name, schedule)
+    parent_copies = schedule.get_scheduled_tasks(parent_name)
     return min(parent_copies, key=lambda parent_copy: (
         get_data_arrival_time(parent_copy, child_copy, edge, schedule),
         parent_copy.end,
@@ -60,7 +54,7 @@ def get_earliest_parent_child_pairs(edge: TaskGraphEdge, schedule: Schedule) -> 
     """Returns the scheduled parent-child instance pairs that effectively communicate across a dependency edge."""
     parent_name = edge.source
     child_name = edge.target
-    child_copies = get_task_instances(child_name, schedule)
+    child_copies = schedule.get_scheduled_tasks(child_name)
     pairs: list[tuple[ScheduledTask, ScheduledTask]] = []
 
     for child_copy in child_copies:
@@ -95,7 +89,7 @@ def get_effective_children_for_parent_copy(parent_copy: ScheduledTask, schedule:
         child_name = outgoing_edge.target
         if is_super_node(child_name):
             continue
-        child_copies = get_task_instances(child_name, schedule)
+        child_copies = schedule.get_scheduled_tasks(child_name)
         for child_copy in child_copies:
             earliest_parent_copy = get_earliest_parent_copy(parent_copy.name, child_copy, outgoing_edge, schedule)
             if earliest_parent_copy is not parent_copy:
@@ -195,7 +189,7 @@ def communication_ratio_score(task_name: str, task_graph: TaskGraph, network: Ne
         return 0.0
     
     instance_scores: list[float] = []
-    task_instances = get_task_instances(task_name, schedule)
+    task_instances = schedule.get_scheduled_tasks(task_name)
     for task_copy in task_instances:
 
         outgoing_comm_time = 0.0
@@ -263,7 +257,7 @@ def join_bottleneck_score(task_name: str, task_graph: TaskGraph, network: Networ
         if is_super_node(child_name) or task_graph.in_degree(child_name) < 2:
             continue
         
-        task_instances = get_task_instances(child_name, schedule)
+        task_instances = schedule.get_scheduled_tasks(child_name)
         for child_copy in task_instances:
             earliest_parent = get_earliest_parent_copy(task_name, child_copy, outgoing_edge, schedule)
             task_arrival = get_data_arrival_time(earliest_parent, child_copy, outgoing_edge, schedule)
@@ -308,7 +302,7 @@ def processor_dup_benefits(task_name: str, task_graph: TaskGraph, schedule: Sche
     """
     network = schedule.network
     task = task_graph.get_task(task_name)
-    task_instances = get_task_instances(task_name, schedule)
+    task_instances = schedule.get_scheduled_tasks(task_name)
     all_processors = {task_copy.node for task_copy in task_instances}
     # group children by the processor containing their child
     children_by_processor: dict[str, list[tuple[TaskGraphEdge, ScheduledTask]]] = {}
@@ -317,7 +311,7 @@ def processor_dup_benefits(task_name: str, task_graph: TaskGraph, schedule: Sche
         child_name = edge.target
         if is_super_node(child_name): 
             continue
-        child_task_instances = get_task_instances(child_name, schedule)
+        child_task_instances = schedule.get_scheduled_tasks(child_name)
         for child_copy in child_task_instances:
             children_by_processor.setdefault(child_copy.node, []).append((edge, child_copy))
         
