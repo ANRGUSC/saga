@@ -631,37 +631,6 @@ def compare_wfcommons_heuristic_bruteforce():
     group_cols = [ "scheduler_name", "recipe", "workflow_instance", "ccr", "num_processors", "n" ]
     comparison = build_heuristic_bruteforce_comparison( heuristic_df=heuristic_df, bf_df=bf_df, group_cols=group_cols )
 
-    # used to observe brute-force rank of heuristic choice by ccr 
-    # as CCR is increasing, choosing a candidate becomes harder so the % drops
-    ccr_rank_summary = (
-        comparison.groupby( [ "recipe", "scheduler_name", "ccr", "n", "bf_rank_group" ] )
-        .size()
-        .reset_index(name="count")
-    )
-
-    ccr_rank_summary["rate"] = (
-        ccr_rank_summary["count"] / ccr_rank_summary.groupby( [ "recipe", "scheduler_name", "ccr", "n", ] )["count"].transform("sum")
-        * 100
-    )
-    ccr_rank_summary = (
-        ccr_rank_summary.pivot_table(
-            index=[ "recipe", "scheduler_name", "ccr", "n" ],
-            columns="bf_rank_group",
-            values="rate",
-            fill_value=0
-        )
-        .reset_index()
-    )
-    for col in ["Rank 1", "Rank 2", "Rank 3", "Rank 4+"]:
-        if col not in ccr_rank_summary.columns:
-            ccr_rank_summary[col] = 0.0
-
-    ccr_rank_summary = ccr_rank_summary[
-        [ "recipe", "scheduler_name", "ccr", "n", "Rank 1", "Rank 2", "Rank 3", "Rank 4+" ]
-    ]
-    print( "\n===== BF RANK OF HEURISTIC CHOICE BY CCR =====" )
-    print( ccr_rank_summary.round(2).to_string(index=False) )
-
 
     # plot 1: Heuristic ranking quality
     rank_metrics = (
