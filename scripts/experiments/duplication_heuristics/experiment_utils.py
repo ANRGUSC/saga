@@ -16,28 +16,6 @@ from copy import deepcopy
 ALLOWED_DUPLICATES: set[str] = set()
 
 # HELPER METHODS
-def to_ccr(task_graph: TaskGraph, network: Network, ccr: float) -> Network:
-    """
-    Scale the network link speeds to produce the requested CCR.
-
-    Higher CCR values make communication more expensive relative to computation.
-    """
-    network = deepcopy(network)
-    mean_task_weight = np.mean([ task.cost for task in task_graph.tasks ])
-    mean_dependency_weight = np.mean([ dependency.size for dependency in task_graph.dependencies ])
-    mean_node_speed = np.mean([ node.speed for node in network.nodes ])
-    mean_computation_time = mean_task_weight / mean_node_speed
-    link_speed = ( mean_dependency_weight / (ccr * mean_computation_time) )
-
-    for edge in network.edges:
-        if edge.source == edge.target:
-            # Same-processor communication is effectively instantaneous.
-            edge.speed = 1e9
-        else:
-            edge.speed = link_speed
-
-    return network
-
 def get_random_instance(ccr: float, levels: int, branching_factor: int, num_nodes: int, dag_type: str = "branching") -> tuple[Network, TaskGraph]:
     """
     Generate a random workflow and processor network with the requested CCR.
@@ -58,7 +36,7 @@ def get_random_instance(ccr: float, levels: int, branching_factor: int, num_node
             f"Unknown dag_type: {dag_type}"
         )
 
-    network = to_ccr(task_graph, network, ccr)
+    network = network.scale_to_ccr(task_graph, ccr)
     return network, task_graph
 
 def select_should_duplicate(task_name: str, task_graph: TaskGraph, network) -> bool:
@@ -231,7 +209,7 @@ def compute_duplicated_task_stats(task_name: str, task_graph: TaskGraph, schedul
     if schedule is None:
         return stats
 
-    task_instances = schedule._task_map.get(task_name, [])
+    task_instances = schedule.get_scheduled_tasks(task_name)
 
     if not task_instances:
         stats.update({
