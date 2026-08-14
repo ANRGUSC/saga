@@ -5,7 +5,6 @@ from typing import Any, Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
-from saga.utils.duplication import should_duplicate
 
 
 @lru_cache(maxsize=None)
@@ -69,9 +68,13 @@ def downward_rank(network: Network, task_graph: TaskGraph) -> Dict[str, float]:
                             for network_edge in network.edges
                         ]
                     )
-                    + (
-                        task.cost
-                        / np.mean([neighbor.speed for neighbor in network.nodes])
+                    # doesn't add current task's computation cost in order to not count it twice (already counted in upward_rank())
+                    + np.mean(
+                        [
+                            task_graph.get_task(task_graph_dependency.source).cost
+                            / neighbor.speed
+                            for neighbor in network.nodes
+                        ]
                     )
                     for task_graph_dependency in task_graph.in_edges(task.name)
                 ]
@@ -115,6 +118,7 @@ class CpopScheduler(Scheduler):
     # maps each task to their target processors
     # example: {"A": ["P1", "P2"]}
     duplication_targets: dict[str, list[str]] = {}
+
     def schedule(
         self,
         network: Network,
@@ -183,7 +187,7 @@ class CpopScheduler(Scheduler):
 
             is_critical = np.isclose(-task_rank, cp_rank)
             nodes = frozenset([cp_node]) if is_critical else network.nodes
-            
+
             # rank candidate processors by EFT
             best_nodes: PriorityQueue[Any] = PriorityQueue()
             for node in nodes:
@@ -194,8 +198,8 @@ class CpopScheduler(Scheduler):
                 best_nodes.put((end_time, node))
 
             scheduled_nodes = set()
-            
-            if not best_nodes.empty(): 
+
+            if not best_nodes.empty():
                 min_finish_time, best_node = best_nodes.get()
                 new_exec_time = task.cost / best_node.speed
                 new_task = ScheduledTask(
@@ -208,12 +212,12 @@ class CpopScheduler(Scheduler):
                 comp_schedule.add_task(new_task)
                 task_map.setdefault(task.name, []).append(new_task)
                 scheduled_nodes.add(best_node.name)
-            
+
             target_nodes = set(self.duplication_targets.get(task.name, []))
             # duplicate only non-critical tasks on the selected processors
             if not is_critical and target_nodes:
                 target_candidates: PriorityQueue[Any] = PriorityQueue()
-                for node in network.nodes: 
+                for node in network.nodes:
                     if node.name not in target_nodes or node.name in scheduled_nodes:
                         continue
                     start_time = comp_schedule.get_earliest_start_time(
@@ -225,7 +229,9 @@ class CpopScheduler(Scheduler):
                 duplicates_added = 0
 
                 # add dups in order of EFT until the limit is reached
-                while not target_candidates.empty() and duplicates_added < max_duplicates:
+                while (
+                    not target_candidates.empty() and duplicates_added < max_duplicates
+                ):
                     min_finish_time, best_node = target_candidates.get()
                     new_exec_time = task.cost / best_node.speed
                     new_task = ScheduledTask(
