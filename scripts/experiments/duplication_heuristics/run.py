@@ -173,8 +173,9 @@ def random_graph_experiments():
 
     rand_graphs_df = pd.DataFrame(rand_graphs_data)
     rand_graphs_df.to_csv(savedir / "rand_graphs_data.csv", index=False)
-    brute_force_df = pd.DataFrame(brute_force_data)
-    brute_force_df.to_csv(savedir / "rand_graphs_brute_force_data.csv", index=False)
+    if RUN_BRUTE_FORCE:
+        brute_force_df = pd.DataFrame(brute_force_data)
+        brute_force_df.to_csv(savedir / "rand_graphs_brute_force_data.csv", index=False)
 
 def wfcommons_experiments():
     """Run heuristic and brute-force experiments on WfCommons workflows."""
@@ -236,6 +237,9 @@ def wfcommons_experiments():
 
                             for result in brute_force_results:
                                 task_name = result["task_name"]
+                                task_score = result["task_score"]
+                                n = result["n"]
+                                duplicated_tasks = result["duplicated_tasks"]
                                 task_stats = compute_duplicated_task_stats(task_name, task_graph, result["candidate_schedule"])
                                 wfcommons_brute_force_data.append({
                                     "scheduler_name": scheduler_name,
@@ -243,16 +247,16 @@ def wfcommons_experiments():
                                     "workflow_instance": workflow_instance,
                                     "ccr": ccr,
                                     "num_processors": num_processor,
-                                    "n": result["n"],
+                                    "n": n,
                                     "task_name": task_name,
-                                    "task_score": result["task_score"],
+                                    "task_score": task_score,
                                     "heuristic_rank": result["heuristic_rank"], # rank assigned by the heuristic
                                     "heuristic_top_task": result["heuristic_top_task"], # highest-scoring heuristic rank
                                     "brute_force_rank": result["brute_force_rank"], # rank based on resulting makespan
                                     "selected_by_brute_force": result["selected_by_brute_force"], # true if this task produced the best makespan
                                     "best_task_this_iteration": result["best_task_this_iteration"], # task selected by brute-force
                                     "heuristic_top_matches_brute_force": result["heuristic_top_matches_brute_force"], # true if heuristics top task matches brute-force winner
-                                    "duplicated_tasks": ",".join(result["duplicated_tasks"]), 
+                                    "duplicated_tasks": ",".join(duplicated_tasks), 
                                     "estimated_benefit": result["estimated_benefit"], # estimated benefit of duplicating this task
                                     "num_target_processors": result["num_target_processors"],
                                     "baseline_makespan": baseline_makespan,
@@ -281,10 +285,11 @@ def wfcommons_experiments():
                             for result in scoring_results:
                                 n = result["n"]
                                 duplicated_tasks = result["duplicated_tasks"]
-                                duplicated_record = result["duplicated_record"]
                                 dup_factor = result["dup_factor"]
                                 schedule = result["schedule"]
-                                duplicated_task = duplicated_tasks[-1]
+                                duplicated_task = result["task_name"]
+                                task_score = result["task_score"]
+                                estimated_benefit = result["estimated_benefit"]
                                 task_stats = compute_duplicated_task_stats(duplicated_task, task_graph)
                                 wfcommons_data.append({
                                     "scheduler_name": scheduler_name,
@@ -295,9 +300,9 @@ def wfcommons_experiments():
                                     "mode": mode,
                                     "n": n,
                                     "task_name": duplicated_task,
-                                    "task_score": duplicated_record["score"],
+                                    "task_score": task_score,
                                     "duplicated_tasks": ",".join(duplicated_tasks),
-                                    "estimated_benefit": duplicated_record["estimated_benefit"],
+                                    "estimated_benefit": estimated_benefit,
                                     "dup_factor": dup_factor,
                                     "makespan": schedule.makespan,
                                     "baseline_makespan": baseline_makespan,
@@ -312,12 +317,13 @@ def wfcommons_experiments():
 
     wfcommons_df = pd.DataFrame(wfcommons_data)
     wfcommons_brute_force_df = pd.DataFrame(wfcommons_brute_force_data)
-    wfcommons_df.to_csv(savedir / "wfcommons_data.csv", index=False)
-    wfcommons_brute_force_df.to_csv(savedir / "wfcommons_brute_force_data.csv", index=False)
+    if RUN_BRUTE_FORCE:
+        wfcommons_df.to_csv(savedir / "wfcommons_data.csv", index=False)
+        wfcommons_brute_force_df.to_csv(savedir / "wfcommons_brute_force_data.csv", index=False)
 
 def main():
-    #random_graph_experiments()
-    wfcommons_experiments()
+    random_graph_experiments()
+    #wfcommons_experiments()
 
 if __name__ == "__main__":
     main()
