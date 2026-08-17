@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml/badge.svg)](https://github.com/ANRGUSC/saga/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/anrg-saga.svg)](https://badge.fury.io/py/anrg-saga)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
 SAGA: **S**cheduling **A**lgorithms **Ga**thered.
 
@@ -20,12 +20,12 @@ The algorithms are all implemented in Python using a common interface.  Scripts 
 
 ### Python Version
 
-All components of this repository have been tested with **Python 3.11**. To ensure compatibility and ease of environment management, we recommend using **[uv](https://docs.astral.sh/uv/)**, a fast Python package and project manager.
+This repository requires **Python 3.12 or newer** and is tested against 3.12 and 3.13. To ensure compatibility and ease of environment management, we recommend using **[uv](https://docs.astral.sh/uv/)**, a fast Python package and project manager.
 
-To create a new virtual environment with Python 3.11 (uv will download Python 3.11 for you if it isn't already installed):
+To create a new virtual environment with Python 3.12 (uv will download Python 3.12 for you if it isn't already installed):
 
 ```bash
-uv venv --python 3.11
+uv venv --python 3.12
 source .venv/bin/activate
 ```
 
@@ -42,8 +42,10 @@ Clone the repository and install the requirements:
 ```bash
 git clone https://github.com/ANRGUSC/saga.git
 cd saga
-uv pip install -e .
+uv sync
 ```
+
+`uv sync` creates a `.venv` with the project and its development dependencies. Prefix commands with `uv run` to use it without activating it, for example `uv run pytest ./tests`. The rest of this README uses that form.
 
 ### Running the Tests
 
@@ -54,25 +56,25 @@ Unit tests generate random task graphs and networks to verify scheduler correctn
 You can run the tests using `pytest`:
 
 ```bash
-pytest ./tests
+uv run pytest ./tests
 ```
 
 You may want to skip some of the tests that are too slow.
-You can do this ddirectly:
+You can do this directly:
 ```bash
-pytest ./tests -k "not (branching and (BruteForceScheduler or SMTScheduler))"
+uv run pytest ./tests -k "not (branching and (BruteForceScheduler or SMTScheduler))"
 ```
 
 or by setting a timeout for the tests:
 
 ```bash
-pytest ./tests --timeout=60
+uv run pytest ./tests --timeout=60
 ```
 
 To run a specific test or scheduler-task combination, use the `-k` option. For example, to run the `HeftScheduler` tests on the `diamond` task graph:
 
 ```bash
-pytest ./tests -k "HeftScheduler and diamond"
+uv run pytest ./tests -k "HeftScheduler and diamond"
 ```
 
 ### Linting and Type Checking
@@ -81,20 +83,20 @@ The CI pipeline also runs a linter and type checker. You can run these locally:
 
 ```bash
 # Lint with ruff
-ruff check src/saga
+uv run ruff check src/saga
 
 # Check formatting with ruff
-ruff format --check src/saga
+uv run ruff format --check src/saga
 
 # Type check with mypy
-mypy src/saga --ignore-missing-imports
+uv run mypy src/saga --ignore-missing-imports
 ```
 
 To auto-fix lint issues or reformat code:
 
 ```bash
-ruff check src/saga --fix
-ruff format src/saga
+uv run ruff check src/saga --fix
+uv run ruff format src/saga
 ```
 
 ### Running the Algorithms
@@ -116,7 +118,7 @@ The repository contains several example scripts illustrating different algorithm
 You can find them under [scripts/examples](./scripts/examples). To run an example, use:
 
 ```bash
-python scripts/examples/<example_name>/main.py
+uv run python scripts/examples/<example_name>/main.py
 ```
 
 The table of contents in `scripts/examples/Readme.md` lists examples ranging from basic usage to dynamic networks and scheduler comparisons.

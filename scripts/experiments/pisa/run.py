@@ -1,9 +1,12 @@
 """PISA experiments: finding adversarial scheduling instances using simulated annealing."""
+import argparse
+import json
 import logging
 import pathlib
 import random
+import shutil
 from itertools import product
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Sequence, Set, Tuple
 
 from saga.pisa import (
     SCHEDULERS,
@@ -46,6 +49,7 @@ def run_experiments(
     output_path: Optional[pathlib.Path] = None,
     node_range: Tuple[int, int] = (3, 5),
     task_range: Tuple[int, int] = (3, 5),
+    keep_runs: bool = False,
 ) -> None:
     """Run PISA experiments for finding adversarial scheduling instances.
 
@@ -60,6 +64,11 @@ def run_experiments(
         output_path: Directory for results (default: {thisdir}/results).
         node_range: Range for random network node count.
         task_range: Range for random task graph task count.
+        keep_runs: Keep the per-try working directories under `.runs` after the
+            best try of each pair has been copied into the results directory.
+            Every iteration of every try is serialized to disk, so keeping them
+            costs roughly `num_tries` times as much space as the results
+            themselves (about 15GB for a full run with the default settings).
     """
     output_path = output_path or thisdir / "results"
     output_path.mkdir(parents=True, exist_ok=True)
@@ -162,34 +171,143 @@ def run_experiments(
         # Save best result to main results directory
         if best_sa is not None:
             # Copy best run to main results location
-            import shutil
             best_run_dir = output_path / ".runs" / best_sa.name
             final_dir = output_path / run_name
             if final_dir.exists():
                 shutil.rmtree(final_dir)
             shutil.copytree(best_run_dir, final_dir)
+
+            # A run locates its iterations at {data_dir}/{name}, so the copy would
+            # still point back at the working directory under .runs. Rewrite those
+            # two fields so the saved result stands on its own.
+            run_data = json.loads((final_dir / "run.json").read_text())
+            run_data["name"] = run_name
+            run_data["data_dir"] = str(output_path)
+            (final_dir / "run.json").write_text(json.dumps(run_data, indent=2))
+
             logging.info("Saved best result for %s (energy: %.4f)", run_name, best_energy)
+
+        # Discard this pair's working directories now that the best try is saved
+        if not keep_runs:
+            for try_num in range(num_tries):
+                try_dir = output_path / ".runs" / f"{run_name}_try{try_num}"
+                if try_dir.exists():
+                    shutil.rmtree(try_dir)
+
+
+def get_parser() -> argparse.ArgumentParser:
+    """Build the command-line parser."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Run PISA experiments. The default reproduces the paper: every "
+            "ordered pair of schedulers, 10 tries each. That takes about an "
+            "hour on a fast machine and several hours on a small one, so use "
+            "--quick for a demo."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  uv run python run.py --quick\n"
+            "  uv run python run.py --schedulers HEFT CPoP OLB --num-tries 3\n"
+            "  uv run python run.py\n"
+        ),
+    )
+    parser.add_argument(
+        "--quick",
+        action="store_true",
+        help=(
+            "Demo-sized run: 4 schedulers, 2 tries, 300 iterations. Finishes "
+            "in about a minute. Overridden by the options below if given."
+        ),
+    )
+    parser.add_argument(
+        "--schedulers",
+        nargs="+",
+        metavar="NAME",
+        choices=sorted(SCHEDULERS.keys()),
+        help=(
+            "Restrict the experiment to pairs drawn from these schedulers. "
+            "Choices: " + ", ".join(sorted(SCHEDULERS.keys()))
+        ),
+    )
+    parser.add_argument(
+        "--num-tries",
+        type=int,
+        metavar="N",
+        help="Random restarts per scheduler pair (default: 10).",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        metavar="N",
+        help="Maximum simulated annealing iterations per try (default: 1000).",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Re-run pairs that already have results instead of skipping them.",
+    )
+    parser.add_argument(
+        "--keep-runs",
+        action="store_true",
+        help=(
+            "Keep every try's working directory under results/.runs. This is "
+            "roughly num-tries times the size of the results (~15GB for a full "
+            "run), so it is discarded by default."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        type=pathlib.Path,
+        default=thisdir / "results",
+        metavar="DIR",
+        help="Directory for results (default: ./results).",
+    )
+    return parser
+
+
+QUICK_SCHEDULERS: Sequence[str] = ("HEFT", "CPoP", "OLB", "MinMin")
 
 
 def main():
     """Run PISA experiments."""
-    results_dir = thisdir / "results"
+    args = get_parser().parse_args()
 
-    # Get all scheduler names from the registry
     scheduler_names: List[SchedulerName] = list(SCHEDULERS.keys())  # type: ignore
+    num_tries = 10
+    max_iterations = 1000
+
+    if args.quick:
+        scheduler_names = list(QUICK_SCHEDULERS)  # type: ignore
+        num_tries = 2
+        max_iterations = 300
+
+    # Explicit options win over the --quick preset
+    if args.schedulers:
+        scheduler_names = list(args.schedulers)
+    if args.num_tries is not None:
+        num_tries = args.num_tries
+    if args.max_iterations is not None:
+        max_iterations = args.max_iterations
+
+    scheduler_pairs: List[Tuple[SchedulerName, SchedulerName]] = [
+        (s1, s2) for s1, s2 in product(scheduler_names, scheduler_names) if s1 != s2
+    ]
+    logging.info(
+        "Running %d scheduler pairs, %d tries each, up to %d iterations per try.",
+        len(scheduler_pairs), num_tries, max_iterations,
+    )
 
     run_experiments(
-        scheduler_pairs=[
-            (s1, s2) for s1, s2 in product(scheduler_names, scheduler_names)
-            if s1 != s2
-        ],
-        max_iterations=1000,
-        num_tries=10,
+        scheduler_pairs=scheduler_pairs,
+        max_iterations=max_iterations,
+        num_tries=num_tries,
         max_temp=10.0,
         min_temp=0.1,
         cooling_rate=0.99,
-        skip_existing=True,
-        output_path=results_dir,
+        skip_existing=not args.overwrite,
+        output_path=args.output,
+        keep_runs=args.keep_runs,
     )
 
 

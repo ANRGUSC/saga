@@ -599,8 +599,10 @@ def gradient_heatmap(
             categories = sorted(data[y].drop_duplicates(), key=yorder)
             data[y] = pd.Categorical(data[y], categories=categories, ordered=True)
 
-        global_min = cast(float, data[color].min())
         global_max = cast(float, min(data[color].max(), upper_threshold))
+        # clamp the lower bound too: if every value is above upper_threshold,
+        # an unclamped minimum would exceed global_max and matplotlib would raise
+        global_min = cast(float, min(data[color].min(), global_max))
 
         if ax is None:
             _, ax = plt.subplots(figsize=figsize)

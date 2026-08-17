@@ -1,5 +1,5 @@
 """
-big_example_environment/main.py
+online_example_environment_big/main.py
 
 Sweeps Inspirit threshold and delta_ready parameters across wfcommons recipes,
 recording per-step state to a CSV for offline analysis. HEFT makespan/throughput

@@ -1,13 +1,15 @@
 # Benchmarking Experiments
 
 ## Normal Benchmarking
-To run benchmarking experiments performed in the paper [Comparing Task Graph Scheduling Algorithms: An Adversarial Approach](https://arxiv.org/abs/2403.07120), run the following commands:
+To run benchmarking experiments performed in the paper [Comparing Task Graph Scheduling Algorithms: An Adversarial Approach](https://arxiv.org/abs/2403.07120), run the following commands from this directory:
 ```bash
-python prepare.py # Prepares the datasets
-python run.py # Runs the experiments
-python analyze.py # Analyzes the results, producing plots
+uv run python prepare.py # Prepares the datasets
+uv run python run.py # Runs the experiments
+uv run python analyze.py # Analyzes the results, producing plots
 ```
 This will prepare the datasets, run the experiments, and generate the plots in the `./data`, `./results`, and `./output` directories, respectively.
+
+The whole pipeline takes a couple of minutes on a fast machine and under ten on a small one. `run.py` uses all but three of the available cores and records each result as it finishes, so it can be interrupted and resumed.
 
 <!-- 
 ## Parametric Scheduler Benchmarking
