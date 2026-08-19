@@ -84,3 +84,18 @@ def test_synthetic_super_nodes_are_absorbed(net):
         dependencies=[("s1", "sink", 10.0), ("s2", "sink", 10.0)])
     r = simulate_placement(net, tg, {"s1": "a", "s2": "b", "sink": "c"})
     assert set(r.tasks) == {"s1", "s2", "sink"}
+
+
+def test_contention_flag_prices_the_default_assumption(net):
+    # Two flows over the SAME link. With sharing each runs at half rate;
+    # with contention disabled both run at full rate, which is what SAGA's
+    # core model assumes.
+    tg = TaskGraph.create(
+        tasks=[("p1", 1.0), ("p2", 1.0), ("s1", 1.0), ("s2", 1.0)],
+        dependencies=[("p1", "s1", 100.0), ("p2", "s2", 100.0)])
+    place = {"p1": "a", "p2": "a", "s1": "c", "s2": "c"}
+    shared = simulate_placement(net, tg, place)
+    ideal = simulate_placement(net, tg, place, contention=False)
+    assert [f.duration for f in shared.transfers] == pytest.approx([2.0, 2.0], abs=1e-6)
+    assert [f.duration for f in ideal.transfers] == pytest.approx([1.0, 1.0], abs=1e-6)
+    assert shared.makespan > ideal.makespan

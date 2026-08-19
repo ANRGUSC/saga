@@ -52,7 +52,11 @@ from saga import Network, ScheduledTask, Schedule, TaskGraph
 
 __all__ = ["NetworkTransfer", "SimulationResult", "simulate_placement"]
 
+# Time comparisons use an absolute epsilon; byte counts need a relative one,
+# since a flow may carry 1e8 bytes and float error leaves a fraction of a byte
+# outstanding — enough to keep a flow "active" forever and stall the clock.
 _EPS = 1e-9
+_BYTE_REL = 1e-12
 _SUPER_NODES = ("__super_source__", "__super_sink__")
 
 
@@ -134,13 +138,20 @@ class _Flow:
                           ("ingress", dst_node))
 
 
-def _fair_share_rates(flows: List[_Flow], capacity) -> Dict[int, float]:
-    """Equal split per resource; each flow runs at its tightest resource."""
+def _fair_share_rates(flows: List[_Flow], capacity, contention: bool = True) -> Dict[int, float]:
+    """Equal split per resource; each flow runs at its tightest resource.
+
+    With contention disabled every flow gets each resource's full capacity —
+    SAGA's default assumption — which makes the cost of that assumption a
+    one-line comparison.
+    """
     counts: Dict[tuple, int] = {}
-    for f in flows:
-        for r in f.resources:
-            counts[r] = counts.get(r, 0) + 1
-    return {id(f): min(capacity(r) / counts[r] for r in f.resources) for f in flows}
+    if contention:
+        for f in flows:
+            for r in f.resources:
+                counts[r] = counts.get(r, 0) + 1
+    return {id(f): min(capacity(r) / counts.get(r, 1) for r in f.resources)
+            for f in flows}
 
 
 def simulate_placement(
@@ -153,6 +164,7 @@ def simulate_placement(
     task_duration=None,
     nic_speed: Optional[Dict[str, float]] = None,
     exclusive: bool = False,
+    contention: bool = True,
 ) -> SimulationResult:
     """Time ``placement`` under contention.
 
@@ -165,6 +177,9 @@ def simulate_placement(
         nic_speed: node -> NIC rate. Defaults to the fastest link the node
             has, i.e. the NIC only binds when several flows share it.
         exclusive: run one task per node at a time (SAGA's assumption).
+        contention: when False, every flow gets full capacity on each
+            resource regardless of how many share it — SAGA's default
+            network model. Compare the two to price the assumption.
 
     Returns:
         SimulationResult with a compute schedule and a network schedule.
@@ -266,12 +281,15 @@ def simulate_placement(
             break
 
         # --- advance to the next event -------------------------------------
-        rates = _fair_share_rates(flows, capacity) if flows else {}
+        rates = _fair_share_rates(flows, capacity, contention) if flows else {}
         t_task = min((e for e, _, _, _ in running), default=float("inf"))
         t_flow = float("inf")
         for f in flows:
             r = rates[id(f)]
             t_flow = min(t_flow, now + (f.remaining / r if r > 0 else float("inf")))
+        # Never let a flow that is finished for all practical purposes hold the
+        # clock: if the next flow event is not strictly in the future, retire it
+        # on this pass instead of stepping by zero.
         step_to = min(t_task, t_flow)
         if step_to == float("inf"):
             raise RuntimeError("no progress possible (zero-capacity resource?)")
@@ -284,7 +302,7 @@ def simulate_placement(
         # --- retire finished flows ------------------------------------------
         still: List[_Flow] = []
         for f in flows:
-            if f.remaining <= _EPS:
+            if f.remaining <= max(_EPS, f.size * _BYTE_REL):
                 transfers.append(NetworkTransfer(
                     src_task=f.src_task, dst_task=f.dst_task,
                     src_node=f.src_node, dst_node=f.dst_node,
