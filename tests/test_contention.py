@@ -99,3 +99,97 @@ def test_contention_flag_prices_the_default_assumption(net):
     assert [f.duration for f in shared.transfers] == pytest.approx([2.0, 2.0], abs=1e-6)
     assert [f.duration for f in ideal.transfers] == pytest.approx([1.0, 1.0], abs=1e-6)
     assert shared.makespan > ideal.makespan
+
+
+def test_rate_segments_track_competitors_joining_and_leaving(net):
+    # p1 sends a large payload alone, p2 joins later with a small one. p1
+    # should show three rates: full, halved while p2 runs, full again.
+    tg = TaskGraph.create(
+        tasks=[("p1", 1.0), ("p2", 3.0), ("s1", 1.0), ("s2", 1.0)],
+        dependencies=[("p1", "s1", 400.0), ("p2", "s2", 100.0)])
+    r = simulate_placement(net, tg, {"p1": "a", "p2": "b", "s1": "c", "s2": "c"})
+    big = next(f for f in r.transfers if f.src_task == "p1")
+    rates = [seg.rate for seg in big.segments]
+    assert len(rates) >= 3, rates
+    assert rates[0] > rates[1] < rates[-1]          # full, shared, full again
+    # Segments tile the flow's lifetime and carry exactly its bytes.
+    assert big.segments[0].start == pytest.approx(big.start)
+    assert big.segments[-1].end == pytest.approx(big.end)
+    moved = sum(s.rate * (s.end - s.start) for s in big.segments)
+    assert moved == pytest.approx(big.size, rel=1e-6)
+
+
+def test_push_slots_serialize_fanout():
+    """slots=1: a fan-out sender pushes one flow at a time, so the first
+    consumer's input arrives at 1/3 of the fair-share completion time."""
+    nodes = ["n0", "n1", "n2", "n3"]
+    net = Network.create(
+        nodes=[(n, 1.0) for n in nodes],
+        edges=[(u, v, 10.0) for i, u in enumerate(nodes)
+               for v in nodes[i + 1:]] + [(n, n, 1e9) for n in nodes])
+    tg = TaskGraph.create(
+        tasks=[("a", 1.0), ("b", 1.0), ("c", 1.0), ("d", 1.0)],
+        dependencies=[("a", "b", 100.0), ("a", "c", 100.0), ("a", "d", 100.0)])
+    place = {"a": "n0", "b": "n1", "c": "n2", "d": "n3"}
+    dur = lambda t, n: 1.0
+
+    fair = simulate_placement(net, tg, place, task_duration=dur,
+                              nic_speed={n: 10.0 for n in place.values()})
+    serial = simulate_placement(net, tg, place, task_duration=dur,
+                                nic_speed={n: 10.0 for n in place.values()},
+                                push_slots=1)
+    # fair share: all three finish together at 1 + 30s; serial: 11, 21, 31
+    fair_ends = sorted(f.end for f in fair.transfers)
+    serial_ends = sorted(f.end for f in serial.transfers)
+    assert fair_ends[0] == pytest.approx(31.0, abs=0.1)
+    assert serial_ends == pytest.approx([11.0, 21.0, 31.0], abs=0.1)
+    # admission time is the recorded start, so queued flows start late
+    assert sorted(f.start for f in serial.transfers) == pytest.approx(
+        [1.0, 11.0, 21.0], abs=0.1)
+    # work conservation: same total finish either way
+    assert fair.makespan == pytest.approx(serial.makespan, abs=0.2)
+
+
+def test_task_latency_charges_dispatch():
+    """A zero-duration vertex with dispatch latency delays its consumers."""
+    net = Network.create(
+        nodes=[("n0", 1.0), ("n1", 1.0)],
+        edges=[("n0", "n1", 10.0), ("n0", "n0", 1e9), ("n1", "n1", 1e9)])
+    tg = TaskGraph.create(
+        tasks=[("a", 1.0), ("v", 1.0), ("b", 1.0)],
+        dependencies=[("a", "v", 10.0), ("v", "b", 10.0)])
+    place = {"a": "n0", "v": "n0", "b": "n1"}
+    dur = lambda t, n: 0.0 if t == "v" else 1.0
+
+    base = simulate_placement(net, tg, place, task_duration=dur)
+    lat = simulate_placement(
+        net, tg, place, task_duration=dur,
+        task_latency=lambda t, n: 2.0 if t == "v" else 0.0)
+    assert lat.makespan == pytest.approx(base.makespan + 2.0, abs=0.05)
+    # the vertex itself starts exactly its latency after a finishes
+    assert lat.tasks["v"].start == pytest.approx(
+        base.tasks["v"].start + 2.0, abs=0.05)
+
+
+def test_egress_class_shares_one_shaped_class():
+    """tc/HTB semantics: same-tier flows from one node share one class."""
+    nodes = ["n0", "n1", "n2"]
+    net = Network.create(
+        nodes=[(n, 1.0) for n in nodes],
+        edges=[(u, v, 10.0) for i, u in enumerate(nodes)
+               for v in nodes[i + 1:]] + [(n, n, 1e9) for n in nodes])
+    tg = TaskGraph.create(
+        tasks=[("a", 1.0), ("b", 1.0), ("c", 1.0)],
+        dependencies=[("a", "b", 100.0), ("a", "c", 100.0)])
+    place = {"a": "n0", "b": "n1", "c": "n2"}
+    dur = lambda t, n: 1.0
+
+    per_link = simulate_placement(net, tg, place, task_duration=dur,
+                                  nic_speed={n: 100.0 for n in nodes})
+    classed = simulate_placement(net, tg, place, task_duration=dur,
+                                 nic_speed={n: 100.0 for n in nodes},
+                                 egress_class=lambda u, v: (10.0, 10.0))
+    # flows: per-link both at 10 (arrive t=11); shared class 5 each (t=21);
+    # consumers then run for 1s.
+    assert per_link.makespan == pytest.approx(12.0, abs=0.1)
+    assert classed.makespan == pytest.approx(22.0, abs=0.1)

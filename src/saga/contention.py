@@ -50,7 +50,8 @@ from pydantic import BaseModel
 
 from saga import Network, ScheduledTask, Schedule, TaskGraph
 
-__all__ = ["NetworkTransfer", "SimulationResult", "simulate_placement"]
+__all__ = ["NetworkTransfer", "RateSegment", "SimulationResult",
+           "simulate_placement"]
 
 # Time comparisons use an absolute epsilon; byte counts need a relative one,
 # since a flow may carry 1e8 bytes and float error leaves a fraction of a byte
@@ -58,6 +59,14 @@ __all__ = ["NetworkTransfer", "SimulationResult", "simulate_placement"]
 _EPS = 1e-9
 _BYTE_REL = 1e-12
 _SUPER_NODES = ("__super_source__", "__super_sink__")
+
+
+class RateSegment(BaseModel):
+    """An interval over which a flow held a constant rate."""
+
+    start: float
+    end: float
+    rate: float
 
 
 class NetworkTransfer(BaseModel):
@@ -70,6 +79,11 @@ class NetworkTransfer(BaseModel):
     size: float
     start: float
     end: float
+    # Rate is piecewise-constant: it changes whenever a competitor joins or
+    # leaves a resource this flow crosses. Keeping the pieces (rather than
+    # just the mean) is what lets a plot show a band narrowing as a new flow
+    # starts and widening again when one finishes.
+    segments: List[RateSegment] = []
 
     @property
     def duration(self) -> float:
@@ -122,9 +136,10 @@ class SimulationResult(BaseModel):
 
 class _Flow:
     __slots__ = ("src_task", "dst_task", "src_node", "dst_node", "size",
-                 "remaining", "start", "resources")
+                 "remaining", "start", "resources", "segments")
 
-    def __init__(self, src_task, dst_task, src_node, dst_node, size, start):
+    def __init__(self, src_task, dst_task, src_node, dst_node, size, start,
+                 resources=None):
         self.src_task = src_task
         self.dst_task = dst_task
         self.src_node = src_node
@@ -132,10 +147,12 @@ class _Flow:
         self.size = size
         self.remaining = size
         self.start = start
+        self.segments: List[RateSegment] = []
         # A flow contends at the sender's NIC, the link, and the receiver's NIC.
-        self.resources = (("egress", src_node),
-                          ("link", src_node, dst_node),
-                          ("ingress", dst_node))
+        self.resources = resources if resources is not None else (
+            ("egress", src_node),
+            ("link", src_node, dst_node),
+            ("ingress", dst_node))
 
 
 def _fair_share_rates(flows: List[_Flow], capacity, contention: bool = True) -> Dict[int, float]:
@@ -165,6 +182,9 @@ def simulate_placement(
     nic_speed: Optional[Dict[str, float]] = None,
     exclusive: bool = False,
     contention: bool = True,
+    push_slots: Optional[int] = None,
+    task_latency=None,
+    egress_class=None,
 ) -> SimulationResult:
     """Time ``placement`` under contention.
 
@@ -180,6 +200,23 @@ def simulate_placement(
         contention: when False, every flow gets full capacity on each
             resource regardless of how many share it — SAGA's default
             network model. Compare the two to price the assumption.
+        push_slots: per-node cap on concurrent outgoing transfers. Flows
+            beyond the cap queue FIFO at the sender and are admitted as
+            slots free. Models transports with an admission limit (the
+            Wayline data-agent pushes at most 4 at a time per node).
+            None = unbounded (pure fair share).
+        task_latency: callable (task, node) -> seconds of dispatch latency
+            between a task's inputs being ready and its start. Use for
+            work the duration model does not cover — e.g. a data vertex
+            has duration 0 but pays the controller's reconcile cadence.
+            None = no latency.
+        egress_class: callable (src_node, dst_node) -> (key, capacity).
+            Models class-based egress shaping (tc/HTB): all of a node's
+            flows whose (node, key) match share ONE class of that capacity,
+            instead of each getting its own link's bandwidth. With one HTB
+            class per rate tier (the common tc pattern), pass
+            ``lambda u, v: (rate[u][v], rate[u][v])`` so same-tier flows
+            from a node share the tier's rate. None = per-link egress only.
 
     Returns:
         SimulationResult with a compute schedule and a network schedule.
@@ -220,16 +257,51 @@ def simulate_placement(
             for n in node_speed
         }
 
+    class_capacity: Dict[tuple, float] = {}
+
+    def flow_resources(src: str, dst: str):
+        if egress_class is None:
+            return None                      # _Flow builds the default triple
+        key, cap = egress_class(src, dst)
+        res = ("egress-class", src, key)
+        class_capacity[res] = cap
+        return (("egress", src), res,
+                ("link", src, dst), ("ingress", dst))
+
     def capacity(resource) -> float:
         kind = resource[0]
         if kind == "link":
             return link_speed[(resource[1], resource[2])]
+        if kind == "egress-class":
+            return class_capacity[resource]
         return nic_speed[resource[1]]
 
     cpu_need = dict(task_cpu or {})
     cpu_cap = dict(node_cpu or {})
 
     deps: Dict[str, List] = {t.name: list(task_graph.in_edges(t.name)) for t in task_graph.tasks}
+    pending: List[_Flow] = []            # created, awaiting a push slot
+
+    def admit(now: float) -> None:
+        """FIFO-admit pending flows wherever the sender has a free slot."""
+        if push_slots is None:
+            for f in pending:
+                f.start = max(f.start, now)
+            flows.extend(pending)
+            pending.clear()
+            return
+        active: Dict[str, int] = {}
+        for f in flows:
+            active[f.src_node] = active.get(f.src_node, 0) + 1
+        left: List[_Flow] = []
+        for f in pending:
+            if active.get(f.src_node, 0) < push_slots:
+                f.start = max(f.start, now)
+                flows.append(f)
+                active[f.src_node] = active.get(f.src_node, 0) + 1
+            else:
+                left.append(f)
+        pending[:] = left
     unscheduled = set(placement)
     done: Dict[str, float] = {}                 # task -> end time
     arrived: Dict[Tuple[str, str], float] = {}  # (dep, consumer) -> arrival time
@@ -240,7 +312,7 @@ def simulate_placement(
 
     now = 0.0
     guard = 0
-    while unscheduled or running or flows:
+    while unscheduled or running or flows or pending:
         guard += 1
         if guard > 100_000:
             raise RuntimeError("simulation did not converge")
@@ -259,7 +331,11 @@ def simulate_placement(
                         blocked = True
                         break
                     ready = max(ready, arrived[key])
-                if blocked or ready > now + _EPS:
+                if blocked:
+                    continue
+                if task_latency is not None:
+                    ready += task_latency(name, node)
+                if ready > now + _EPS:
                     continue
                 if exclusive:
                     fits = not any(n == node for _, _, n, _ in running)
@@ -275,7 +351,24 @@ def simulate_placement(
                 unscheduled.discard(name)
                 progressed = True
 
-        if not (running or flows):
+        if not (running or flows or pending):
+            # A task may still be waiting out its dispatch latency: step the
+            # clock to the earliest such start instead of declaring deadlock.
+            t_lat = float("inf")
+            if task_latency is not None:
+                for name in sorted(unscheduled):
+                    rd, ok = 0.0, True
+                    for e in deps[name]:
+                        k = (e.source, name)
+                        if k not in arrived:
+                            ok = False
+                            break
+                        rd = max(rd, arrived[k])
+                    if ok:
+                        t_lat = min(t_lat, rd + task_latency(name, placement[name]))
+            if t_lat < float("inf"):
+                now = max(now, t_lat)
+                continue
             if unscheduled:
                 raise RuntimeError(f"deadlock with tasks pending: {sorted(unscheduled)}")
             break
@@ -283,6 +376,19 @@ def simulate_placement(
         # --- advance to the next event -------------------------------------
         rates = _fair_share_rates(flows, capacity, contention) if flows else {}
         t_task = min((e for e, _, _, _ in running), default=float("inf"))
+        if task_latency is not None:
+            for name in sorted(unscheduled):
+                rd, ok = 0.0, True
+                for e in deps[name]:
+                    k = (e.source, name)
+                    if k not in arrived:
+                        ok = False
+                        break
+                    rd = max(rd, arrived[k])
+                if ok:
+                    t = rd + task_latency(name, placement[name])
+                    if t > now + _EPS:
+                        t_task = min(t_task, t)
         t_flow = float("inf")
         for f in flows:
             r = rates[id(f)]
@@ -296,7 +402,13 @@ def simulate_placement(
 
         dt = step_to - now
         for f in flows:
-            f.remaining = max(0.0, f.remaining - rates[id(f)] * dt)
+            r = rates[id(f)]
+            f.remaining = max(0.0, f.remaining - r * dt)
+            if dt > 0:
+                if f.segments and abs(f.segments[-1].rate - r) < 1e-12:
+                    f.segments[-1].end = step_to      # same rate: extend
+                else:
+                    f.segments.append(RateSegment(start=now, end=step_to, rate=r))
         now = step_to
 
         # --- retire finished flows ------------------------------------------
@@ -306,11 +418,13 @@ def simulate_placement(
                 transfers.append(NetworkTransfer(
                     src_task=f.src_task, dst_task=f.dst_task,
                     src_node=f.src_node, dst_node=f.dst_node,
-                    size=f.size, start=f.start, end=now))
+                    size=f.size, start=f.start, end=now,
+                    segments=f.segments))
                 arrived[(f.src_task, f.dst_task)] = now
             else:
                 still.append(f)
         flows = still
+        admit(now)
 
         # --- retire finished tasks, release their outgoing edges ------------
         finished = [r for r in running if r[0] <= now + _EPS]
@@ -324,8 +438,10 @@ def simulate_placement(
                 elif e.size <= 0:
                     arrived[(name, consumer)] = end        # nothing to move
                 else:
-                    flows.append(_Flow(name, consumer, node, placement[consumer],
-                                       e.size, end))
+                    pending.append(_Flow(
+                        name, consumer, node, placement[consumer], e.size,
+                        end, resources=flow_resources(node, placement[consumer])))
+        admit(now)
 
     for name in synthetic:
         result_tasks.pop(name, None)
