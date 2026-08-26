@@ -1,9 +1,9 @@
 import pathlib
 from typing import List, Optional
-import numpy as np
 
 from saga import Schedule, Scheduler, ScheduledTask, TaskGraph, Network
 from saga.schedulers.cpop import upward_rank
+from saga.utils.duplication import should_duplicate
 
 thisdir = pathlib.Path(__file__).resolve().parent
 
@@ -31,7 +31,15 @@ class HeftScheduler(Scheduler):
     """Schedules tasks using the HEFT algorithm.
 
     Source: https://dx.doi.org/10.1109/71.993206
+
+    With ``duplication_factor > 1``, a communication-heavy task (one whose average
+    outgoing communication cost exceeds its average computation cost) is placed on
+    up to that many nodes, so its successors can read a local copy instead of paying
+    the transfer cost. This can reduce makespan on communication-bound instances at
+    the cost of extra compute.
     """
+
+    duplication_factor: int = 1
 
     def schedule(
         self,
@@ -61,8 +69,10 @@ class HeftScheduler(Scheduler):
         for task_name in schedule_order:
             if schedule.is_scheduled(task_name):
                 continue
-            min_finish_time = np.inf
-            best_node = next(iter(network.nodes))  # arbitrary initialization
+            task_cost = task_graph.get_task(task_name).cost
+            # Finish time of this task on each node. Copies are independent (a copy's
+            # start depends only on the task's parents), so compute this once for all.
+            placements = []
             for node in network.nodes:
                 start_time = schedule.get_earliest_start_time(
                     task=task_name,
@@ -70,23 +80,31 @@ class HeftScheduler(Scheduler):
                     append_only=False,
                     current_moment=min_start_time,
                 )
-                runtime = (
-                    task_graph.get_task(task_name).cost / network.get_node(node).speed
+                finish_time = start_time + task_cost / network.get_node(node).speed
+                placements.append((finish_time, node))
+            placements.sort(key=lambda p: p[0])
+
+            num_copies = 1
+            if self.duplication_factor > 1 and should_duplicate(
+                task_name, task_graph, network
+            ):
+                num_copies = max(
+                    1,
+                    min(
+                        self.duplication_factor,
+                        len(task_graph.out_edges(task_name)),
+                        len(placements),
+                    ),
                 )
-                finish_time = start_time + runtime
-                if finish_time < min_finish_time:
-                    min_finish_time = finish_time
-                    best_node = node
-            new_task = ScheduledTask(
-                node=best_node.name,
-                name=task_name,
-                start=min_finish_time
-                - (
-                    task_graph.get_task(task_name).cost
-                    / network.get_node(best_node).speed
-                ),
-                end=min_finish_time,
-            )
-            schedule.add_task(new_task)
+
+            for finish_time, node in placements[:num_copies]:
+                schedule.add_task(
+                    ScheduledTask(
+                        node=node.name,
+                        name=task_name,
+                        start=finish_time - task_cost / network.get_node(node).speed,
+                        end=finish_time,
+                    )
+                )
 
         return schedule

@@ -4,6 +4,7 @@ from typing import Dict, Optional
 import numpy as np
 
 from saga import Scheduler, ScheduledTask, Schedule, Network, TaskGraph
+from saga.utils.duplication import should_duplicate
 
 
 @lru_cache(maxsize=None)
@@ -103,7 +104,13 @@ class CpopScheduler(Scheduler):
     """Implements the CPoP algorithm for task scheduling.
 
     Source: https://dx.doi.org/10.1109/71.993206
+
+    With ``duplication_factor > 1``, a communication-heavy non-critical task is
+    placed on up to that many nodes so its successors can read a local copy
+    instead of paying the transfer cost. Critical-path tasks are never duplicated.
     """
+
+    duplication_factor: int = 1
 
     def schedule(
         self,
@@ -169,13 +176,10 @@ class CpopScheduler(Scheduler):
         while pq:
             task_rank, task = heapq.heappop(pq)
 
-            min_finish_time = np.inf
-            best_node = cp_node  # arbitrary initialization
+            is_critical = np.isclose(-task_rank, cp_rank)
+            nodes = frozenset([cp_node]) if is_critical else network.nodes
 
-            nodes = network.nodes
-            if np.isclose(-task_rank, cp_rank):
-                nodes = frozenset([cp_node])
-
+            placements = []
             for node in nodes:
                 start_time = comp_schedule.get_earliest_start_time(
                     task=task,
@@ -184,19 +188,34 @@ class CpopScheduler(Scheduler):
                     current_moment=min_start_time,
                 )
                 end_time = start_time + (task.cost / node.speed)
-                if end_time < min_finish_time:
-                    min_finish_time = end_time
-                    best_node = node
+                placements.append((end_time, node))
+            placements.sort(key=lambda p: p[0])
 
-            new_exec_time = task.cost / best_node.speed
-            new_task = ScheduledTask(
-                node=best_node.name,
-                name=task.name,
-                start=min_finish_time - new_exec_time,
-                end=min_finish_time,
-            )
-            comp_schedule.add_task(new_task)
-            task_map[task.name] = new_task
+            num_copies = 1
+            if (
+                self.duplication_factor > 1
+                and not is_critical
+                and should_duplicate(task.name, task_graph, network)
+            ):
+                num_copies = max(
+                    1,
+                    min(
+                        self.duplication_factor,
+                        len(task_graph.out_edges(task.name)),
+                        len(placements),
+                    ),
+                )
+
+            for end_time, node in placements[:num_copies]:
+                new_task = ScheduledTask(
+                    node=node.name,
+                    name=task.name,
+                    start=end_time - (task.cost / node.speed),
+                    end=end_time,
+                )
+                comp_schedule.add_task(new_task)
+            # The primary (earliest-finishing) copy represents the task for readiness.
+            task_map[task.name] = comp_schedule.get_scheduled_task(task.name)
 
             ready_tasks = [
                 task_graph.get_task(dep.target)
