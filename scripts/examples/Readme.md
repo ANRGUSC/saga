@@ -23,5 +23,6 @@ These are not part of the guided walkthrough, but are useful references:
 - [Online Environment](./online_example_environment) — driving the `Environment` simulation loop with the Inspirit policy.
 - [Online Environment (large)](./online_example_environment_big) — a parameter sweep of the above across wfcommons recipes, writing `outputs/output_data.csv`. This one takes a long time to run; `parse.py` summarizes the committed CSV without re-running it.
 - [FrontierHEFT vs FIFO](./frontier_heft_vs_fifo) — comparing two online schedulers on a Montage workflow.
+- [Classic Structured DAGs](./classic_dags) — Gaussian elimination and FFT task graphs from the HEFT/CPoP paper, comparing several schedulers on each.
 </content>
 </invoke>
