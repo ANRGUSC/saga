@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Set
 import random
+import copy
 
 from saga import (
     ConstraintViolation,
@@ -8,11 +9,13 @@ from saga import (
     Scheduler,
     ScheduledTask,
     TaskGraph,
+    TaskGraphNode,
+    TaskGraphEdge
 )
 
 
 class TopographicRandomNodeScheduler(Scheduler):
-    """Randomly schedules each task on a node it is allowed to run on, assigning the tasks in topographic order.
+    """Randomly schedules each task on a node it is allowed to run on, assigning the tasks in a random topographic order.
     """
 
     def schedule(
@@ -48,7 +51,7 @@ class TopographicRandomNodeScheduler(Scheduler):
             )
             scheduled_tasks = set()
 
-        for task in task_graph.topological_sort():
+        for task in random_topographic_sort(task_graph):
             if task.name in scheduled_tasks:
                 continue
 
@@ -80,3 +83,57 @@ class TopographicRandomNodeScheduler(Scheduler):
             scheduled_tasks.add(task.name)
 
         return comp_schedule
+    
+def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
+    assignment_list = list()
+    assigned_list = list()
+    tasks = set(task_graph.tasks)
+    dependencies = set(task_graph.dependencies)
+    frontier = set()
+    for task in copy.deepcopy(tasks):
+        skip_task = False
+        for edge in dependencies:
+            if edge.target == task.name:
+                skip_task = True
+                break
+        if skip_task:
+            skip_task = False
+            continue
+        else:
+            assignment_list.append(task)
+            tasks.remove(task)
+    assignment_list = random.shuffle(assignment_list)
+    for task in assignment_list:
+        assigned_list.append(task)
+        for edge in dependencies:
+            if edge.source == task.name:
+                frontier.add(task_graph.get_task(edge.target))
+    assignment_list.clear()
+    while tasks:
+        for task in frontier:
+            skip_task = False
+            for edge in dependencies:
+                if edge.target == task.name and task_graph.get_task(edge.source) in tasks:
+                    frontier.remove(task)
+                    skip_task = True
+                    break
+            if skip_task:
+                skip_task = False
+                continue
+            else:
+                assignment_list.append(task)
+                frontier.remove(task)
+                tasks.remove(task)
+        assignment_list = random.shuffle(assignment_list)
+        for task in assignment_list:
+            assigned_list.append(task)
+            for edge in dependencies:
+                if edge.source == task.name:
+                    frontier.add(task_graph.get_task(edge.target))
+    return assigned_list
+            
+
+        
+
+
+    
