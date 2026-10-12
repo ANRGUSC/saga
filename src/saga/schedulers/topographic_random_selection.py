@@ -9,8 +9,7 @@ from saga import (
     Scheduler,
     ScheduledTask,
     TaskGraph,
-    TaskGraphNode,
-    TaskGraphEdge
+    TaskGraphNode
 )
 
 
@@ -110,7 +109,7 @@ def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
                 frontier.add(task_graph.get_task(edge.target))
     assignment_list.clear()
     while tasks:
-        for task in frontier:
+        for task in copy.deepcopy(frontier):
             skip_task = False
             for edge in dependencies:
                 if edge.target == task.name and task_graph.get_task(edge.source) in tasks:
