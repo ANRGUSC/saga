@@ -102,7 +102,7 @@ def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
         else:
             assignment_list.append(task)
             tasks.remove(task)
-    assignment_list = random.shuffle(assignment_list)
+    random.shuffle(assignment_list)
     for task in assignment_list:
         assigned_list.append(task)
         for edge in dependencies:
@@ -124,7 +124,7 @@ def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
                 assignment_list.append(task)
                 frontier.remove(task)
                 tasks.remove(task)
-        assignment_list = random.shuffle(assignment_list)
+        random.shuffle(assignment_list)
         for task in assignment_list:
             assigned_list.append(task)
             for edge in dependencies:
