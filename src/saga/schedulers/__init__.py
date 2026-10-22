@@ -49,5 +49,5 @@ __all__ = [
     "SMTScheduler",
     "SufferageScheduler",
     "WBAScheduler",
-    "TopographicRandomNodeScheduler"
+    "TopographicRandomNodeScheduler",
 ]
