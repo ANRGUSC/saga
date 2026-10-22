@@ -10,13 +10,12 @@ from saga import (
     ScheduledTask,
     TaskGraph,
     TaskGraphNode,
-    TaskGraphEdge
+    TaskGraphEdge,
 )
 
 
 class TopographicRandomNodeScheduler(Scheduler):
-    """Randomly schedules each task on a node it is allowed to run on, assigning the tasks in a random topographic order.
-    """
+    """Randomly schedules each task on a node it is allowed to run on, assigning the tasks in a random topographic order."""
 
     def schedule(
         self,
@@ -66,7 +65,7 @@ class TopographicRandomNodeScheduler(Scheduler):
                     f"Task {task.name} has no allowed node in the network "
                     f"(constraint: {sorted(allowed) if allowed else allowed})."
                 )
-            
+
             chosen = random.choice(candidates)
 
             start_time = comp_schedule.get_earliest_start_time(
@@ -83,58 +82,76 @@ class TopographicRandomNodeScheduler(Scheduler):
             scheduled_tasks.add(task.name)
 
         return comp_schedule
-    
+
+
 def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
     assignment_list: list[TaskGraphNode] = list()
-    assigned_list: list[TaskGraphNode]= list()
+    assigned_list: list[TaskGraphNode] = list()
     tasks: set[TaskGraphNode] = set(task_graph.tasks)
     dependencies: set[TaskGraphEdge] = set(task_graph.dependencies)
-    frontier: set[TaskGraphNode] = set()                                #create initial sets and lists
-    for task in copy.deepcopy(tasks):                                   #do initial sweep through main 'tasks' set for tasks w/out dependencies
+    frontier: set[TaskGraphNode] = set()  # create initial sets and lists
+    for task in copy.deepcopy(
+        tasks
+    ):  # do initial sweep through main 'tasks' set for tasks w/out dependencies
         skip_task = False
         for edge in dependencies:
-            if edge.target == task.name:                                #iterate thru set of edges. if one has the task as a target, it's not one with no dependencies, skip it
+            if (
+                edge.target == task.name
+            ):  # iterate thru set of edges. if one has the task as a target, it's not one with no dependencies, skip it
                 skip_task = True
                 break
         if skip_task:
             skip_task = False
             continue
         else:
-            assignment_list.append(task)                                #if it has no dependencies, add to assignment_list for assignment
-            tasks.remove(task)                                          #and remove it from the main set, as it is being assigned
-    random.shuffle(assignment_list)                                     #randomization step
+            assignment_list.append(
+                task
+            )  # if it has no dependencies, add to assignment_list for assignment
+            tasks.remove(
+                task
+            )  # and remove it from the main set, as it is being assigned
+    random.shuffle(assignment_list)  # randomization step
     for task in assignment_list:
-        assigned_list.append(task)                                      #append randomized assignment_list to list that will be returned
+        assigned_list.append(
+            task
+        )  # append randomized assignment_list to list that will be returned
         for edge in dependencies:
-            if edge.source == task.name:                                
-                frontier.add(task_graph.get_task(edge.target))          #add children of an assigned task to the frontier set
-    assignment_list.clear()                                             #reset assignment_list for next slate of tasks
-    while tasks:                                                        #then while the main set is not empty:
+            if edge.source == task.name:
+                frontier.add(
+                    task_graph.get_task(edge.target)
+                )  # add children of an assigned task to the frontier set
+    assignment_list.clear()  # reset assignment_list for next slate of tasks
+    while tasks:  # then while the main set is not empty:
         for task in copy.deepcopy(frontier):
             skip_task = False
             for edge in dependencies:
-                if edge.target == task.name and task_graph.get_task(edge.source) in tasks:          #loop thru tasks in fontier and ask "are *any* of its parents in the main set"
-                    frontier.remove(task)                                                           #if yes, it has unassigned parents. remove it from the frontier set and move on to next task
+                if (
+                    edge.target == task.name
+                    and task_graph.get_task(edge.source) in tasks
+                ):  # loop thru tasks in fontier and ask "are *any* of its parents in the main set"
+                    frontier.remove(
+                        task
+                    )  # if yes, it has unassigned parents. remove it from the frontier set and move on to next task
                     skip_task = True
                     break
             if skip_task:
                 skip_task = False
                 continue
             else:
-                assignment_list.append(task)                                                      #otherwise, add the task to the holding list for assignment
-                frontier.remove(task)                                                             #and remove from frontier/main set
+                assignment_list.append(
+                    task
+                )  # otherwise, add the task to the holding list for assignment
+                frontier.remove(task)  # and remove from frontier/main set
                 tasks.remove(task)
-        random.shuffle(assignment_list)                                                           #randomize list once all tasks removed from frontier
-        for task in assignment_list:                                                              #as before,
-            assigned_list.append(task)                                                            #append tasks from assignment_list to assigned_list
-            for edge in dependencies:                                                             #add any appened tasks' children to frontier
+        random.shuffle(
+            assignment_list
+        )  # randomize list once all tasks removed from frontier
+        for task in assignment_list:  # as before,
+            assigned_list.append(
+                task
+            )  # append tasks from assignment_list to assigned_list
+            for edge in dependencies:  # add any appened tasks' children to frontier
                 if edge.source == task.name:
                     frontier.add(task_graph.get_task(edge.target))
-        assignment_list.clear()                                                                 #reset assignment_list for next loop
-    return assigned_list                                                                        #once main set is empty, all tasks assigned. return assigned_list
-            
-
-        
-
-
-    
+        assignment_list.clear()  # reset assignment_list for next loop
+    return assigned_list  # once main set is empty, all tasks assigned. return assigned_list
