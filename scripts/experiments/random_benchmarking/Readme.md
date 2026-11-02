@@ -1,0 +1,26 @@
+# Benchmarking Experiments
+
+## Normal Benchmarking
+To run benchmarking experiments performed in the paper [Comparing Task Graph Scheduling Algorithms: An Adversarial Approach](https://arxiv.org/abs/2403.07120), run the following commands from this directory:
+```bash
+uv run python prepare.py # Prepares the datasets
+uv run python run.py # Runs the experiments
+uv run python analyze.py # Analyzes the results, producing plots
+```
+This will prepare the datasets, run the experiments, and generate the plots in the `./data`, `./results`, and `./output` directories, respectively.
+
+The whole pipeline takes a couple of minutes on a fast machine and under ten on a small one. `run.py` uses all but three of the available cores and records each result as it finishes, so it can be interrupted and resumed.
+
+<!-- 
+## Parametric Scheduler Benchmarking
+To run benchmarking experiments like those from the paper [Parameterized Task Graph Scheduling Algorithm for Comparing Algorithmic Components](https://arxiv.org/abs/2403.07112), run the following command:
+```bash
+python exp_parametric.py run --datadir ./data/parametric/ --out ./results/parametric/batch0.csv --trim 10 --batch 0 --batches 1
+python post_parametric_agg.py 
+python post_parametric.py
+```
+
+The above commands runs a single batch of experiments, trimming each of the datasets to just 10 instances.
+Because so many evaluations need to be performed for full benchmarks, the command supports batching.
+Together with the slurm script ``exp_parametric.sl``, the experiments can be run on a cluster so that different batches can be run in parallel. -->
+

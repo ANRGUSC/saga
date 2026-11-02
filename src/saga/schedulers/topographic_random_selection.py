@@ -85,6 +85,15 @@ class TopographicRandomNodeScheduler(Scheduler):
         return comp_schedule
     
 def random_topographic_sort(task_graph: TaskGraph) -> list[TaskGraphNode]:
+    """
+    Function for creating a random valid topological sort, given a task graph as an argument.
+
+    Args:
+        task_graph: the task graph to assess, as a TaskGraph object.
+
+    Returns:
+        assigned_list: a list of TaskGraphNodes, sorted in a randomized but valid topographic order. 
+    """
     assignment_list: list[TaskGraphNode] = list()
     assigned_list: list[TaskGraphNode]= list()
     tasks: set[TaskGraphNode] = set(task_graph.tasks)
