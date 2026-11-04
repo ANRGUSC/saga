@@ -21,8 +21,6 @@ from saga.schedulers import (
     BILScheduler,
     FLBScheduler,
     GDLScheduler,
-    TopographicRandomNodeScheduler
-
 )
 from saga.schedulers.parametric.components import schedulers as parametric_schedulers
 from saga.schedulers.throughput import MaxTPScheduler, MTScheduler, MultiObjScheduler
@@ -74,7 +72,6 @@ schedulers = [
     MaxTPScheduler(),
     MTScheduler(),
     MultiObjScheduler(),
-    TopographicRandomNodeScheduler(),
     *parametric_schedulers.values(),
 ]
 

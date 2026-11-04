@@ -1,8 +1,9 @@
 import logging
 import pathlib
 import random
+import zlib
 from multiprocessing import Pool
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import filelock
 import pandas as pd
@@ -10,28 +11,39 @@ from common import (
     datadir,
     exclude_datasets,
     num_processors,
+    num_samples,
     resultsdir,
     saga_schedulers,
+    SchedulerFactory,
 )
 from tqdm import tqdm
 
-from saga import Scheduler
 from saga.schedulers.data import Dataset
 
 # Global variables for worker processes
 _worker_resultsdir: pathlib.Path
-_worker_schedulers: Dict[str, Scheduler]
+_worker_schedulers: Dict[str, SchedulerFactory]
 
 
-def _init_worker(results_dir: pathlib.Path, schedulers: Dict[str, Scheduler]):
+def _init_worker(
+    results_dir: pathlib.Path, schedulers: Dict[str, SchedulerFactory]
+):
     """Initialize worker process with shared state."""
     global _worker_resultsdir, _worker_schedulers
     _worker_resultsdir = results_dir
     _worker_schedulers = schedulers
 
 
+def _sample_seed(dataset_name: str, instance_name: str, sample: int) -> int:
+    """Stable seed for one sample of one instance, independent of PYTHONHASHSEED."""
+    return zlib.crc32(f"{dataset_name}/{instance_name}/{sample}".encode())
+
+
 def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
     """Evaluate a single instance with all schedulers.
+
+    Randomized schedulers are run ``num_samples[name]`` times with distinct, reproducible
+    seeds; each sample is recorded as its own row with its sample index and seed.
 
     Args:
         args: Tuple of (dataset_name, instance_name)
@@ -45,61 +57,48 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
     savepath = _worker_resultsdir.joinpath(f"{dataset_name}.csv")
     lock_path = savepath.with_suffix(".csv.lock")
 
-    results = []
-    for scheduler_name, scheduler in _worker_schedulers.items():
-        # Check if already finished (with lock to avoid race condition)
-        with filelock.FileLock(lock_path):
-            if savepath.exists():
-                finished_df = pd.read_csv(savepath)
-                finished = set(
-                    zip(
-                        finished_df["Dataset"],
-                        finished_df["Instance"],
-                        finished_df["Scheduler"],
-                    )
+    # Read the finished set once per instance (with lock to avoid a race with writers).
+    finished: Set[Tuple[str, str, str, int]] = set()
+    with filelock.FileLock(lock_path):
+        if savepath.exists():
+            finished_df = pd.read_csv(savepath)
+            finished = set(
+                zip(
+                    finished_df["Dataset"],
+                    finished_df["Instance"],
+                    finished_df["Scheduler"],
+                    finished_df["Sample"],
                 )
-                if (dataset_name, instance_name, scheduler_name) in finished:
-                    logging.info(
-                        "  %s/%s/%s already finished. Skipping.",
-                        dataset_name,
-                        instance_name,
-                        scheduler_name,
-                    )
-                    continue
-        if scheduler_name == "RHEFT" or scheduler_name == "RandomSort":
-            for x in range(100):
-                schedule = scheduler.schedule(
-                network=instance.network, task_graph=instance.task_graph
             )
-                makespan = schedule.makespan
-                result = {
-                "Dataset": dataset_name,
-                "Instance": instance_name,
-                "Scheduler": scheduler_name,
-                "Makespan": makespan,
-                }
-                results.append(result)
 
-                with filelock.FileLock(lock_path):
-                    result_df = pd.DataFrame([result])
-                    if savepath.exists():
-                        result_df.to_csv(savepath, mode="a", header=False, index=False)
-                    else:
-                        result_df.to_csv(savepath, index=False)
-        else:        
+    results = []
+    for scheduler_name, factory in _worker_schedulers.items():
+        for sample in range(num_samples.get(scheduler_name, 1)):
+            if (dataset_name, instance_name, scheduler_name, sample) in finished:
+                logging.info(
+                    "  %s/%s/%s/%d already finished. Skipping.",
+                    dataset_name,
+                    instance_name,
+                    scheduler_name,
+                    sample,
+                )
+                continue
+            seed = _sample_seed(dataset_name, instance_name, sample)
+            scheduler = factory(seed)
             schedule = scheduler.schedule(
                 network=instance.network, task_graph=instance.task_graph
             )
-            makespan = schedule.makespan
             result = {
                 "Dataset": dataset_name,
                 "Instance": instance_name,
                 "Scheduler": scheduler_name,
-                "Makespan": makespan,
+                "Sample": sample,
+                "Seed": seed,
+                "Makespan": schedule.makespan,
             }
             results.append(result)
 
-        # Write result immediately with lock
+            # Write result immediately with lock
             with filelock.FileLock(lock_path):
                 result_df = pd.DataFrame([result])
                 if savepath.exists():
@@ -107,9 +106,14 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
                 else:
                     result_df.to_csv(savepath, index=False)
 
-        logging.info(
-            "  %s/%s/%s: %.4f", dataset_name, instance_name, scheduler_name, makespan
-        )
+            logging.info(
+                "  %s/%s/%s/%d: %.4f",
+                dataset_name,
+                instance_name,
+                scheduler_name,
+                sample,
+                schedule.makespan,
+            )
 
     return results
 
@@ -117,7 +121,7 @@ def _evaluate_instance(args: Tuple[str, str]) -> List[Dict]:
 def evaluate_dataset(
     resultsdir: pathlib.Path,
     dataset_name: str,
-    schedulers: Optional[Dict[str, Scheduler]] = None,
+    schedulers: Optional[Dict[str, SchedulerFactory]] = None,
     overwrite: bool = False,
     num_workers: int = num_processors,
     shuffle: bool = True,
@@ -128,7 +132,8 @@ def evaluate_dataset(
     Args:
         resultsdir: The directory to save the results.
         dataset_name: The name of the dataset.
-        schedulers: The schedulers to evaluate. Defaults to None (all schedulers).
+        schedulers: Scheduler factories (seed -> Scheduler) to evaluate. Defaults to
+            None (all schedulers in common.py).
         overwrite: Whether to overwrite existing results. Defaults to False.
         num_workers: Number of worker processes.
         shuffle: Whether to shuffle instances to distribute work evenly.

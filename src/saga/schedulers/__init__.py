@@ -22,8 +22,6 @@ from .olb import OLBScheduler
 from .smt import SMTScheduler
 from .sufferage import SufferageScheduler
 from .wba import WBAScheduler
-from .topographic_random_selection import TopographicRandomNodeScheduler
-from .random_heft import RandomHeftScheduler
 
 __all__ = [
     "BILScheduler",
@@ -50,6 +48,4 @@ __all__ = [
     "SMTScheduler",
     "SufferageScheduler",
     "WBAScheduler",
-    "TopographicRandomNodeScheduler",
-    "RandomHeftScheduler"
 ]
