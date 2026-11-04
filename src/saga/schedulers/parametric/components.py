@@ -254,7 +254,9 @@ class RandomInsert(InsertTask):
 
         # Seeded per (task, seed) so each task's choice is independent but reproducible.
         rng = (
-            random.Random(f"{self.seed}:{task.name}") if self.seed is not None else random
+            random.Random(f"{self.seed}:{task.name}")
+            if self.seed is not None
+            else random
         )
         node = rng.choice(considered_nodes)
         start_time = schedule.get_earliest_start_time(
