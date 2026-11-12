@@ -68,14 +68,15 @@ class Parameter_Annealing(Scheduler):
 
 
 ##Helper functions
-def sort_to_tasks(sort, scheduled_tasks, schedule, network, min_start_time):
+def sort_to_tasks(sort, scheduled_tasks, task_graph: TaskGraph, schedule, network, min_start_time):
     """Helper function that assigns a valid topological sort to the tasks of a task graph. Utilizes
     a greedy fastest node first method."""
     for task in sort:
-        if task.name in scheduled_tasks:
+        task_node = task_graph.get_task(task)
+        if task_node.name in scheduled_tasks:
             continue
 
-        allowed = schedule.allowed_nodes(task.name)
+        allowed = schedule.allowed_nodes(task_node.name)
         candidates = [
             node
             for node in network.nodes
@@ -83,23 +84,23 @@ def sort_to_tasks(sort, scheduled_tasks, schedule, network, min_start_time):
         ]
         if not candidates:
             raise ConstraintViolation(
-                f"Task {task.name} has no allowed node in the network "
+                f"Task {task_node.name} has no allowed node in the network "
                 f"(constraint: {sorted(allowed) if allowed else allowed})."
             )
         chosen = max(candidates, key=lambda node: node.speed)
 
         start_time = schedule.get_earliest_start_time(
-            task, chosen, append_only=True, current_moment=min_start_time
+            task_node, chosen, append_only=True, current_moment=min_start_time
         )
         schedule.add_task(
             ScheduledTask(
                 node=chosen.name,
-                name=task.name,
+                name=task_node.name,
                 start=start_time,
-                end=start_time + (task.cost / chosen.speed),
+                end=start_time + (task_node.cost / chosen.speed),
             )
         )
-        scheduled_tasks.add(task.name)
+        scheduled_tasks.add(task_node.name)
     return schedule
 
 def get_perterbed_sort(sort: list[str], task_graph: TaskGraph) -> list[str]:
