@@ -61,6 +61,42 @@ class ArbitraryTopological(InitialPriority):
         return [task.name for task in task_graph.topological_sort()]
 
 
+class LargestTaskFirst(InitialPriority):
+    """Topological order that greedily prefers the largest ready task.
+
+    At each step, selects the highest-cost task among those whose
+    dependencies are already queued, breaking ties by task name. This
+    mirrors MaxTPScheduler's task-selection order (see
+    saga.schedulers.throughput.maxtp), since that order only depends on
+    task-graph structure and cost, not on the schedule being built.
+    """
+
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+        cost = {task.name: task.cost for task in task_graph.tasks}
+        pq = [
+            (-cost[task.name], task.name)
+            for task in task_graph.tasks
+            if task_graph.in_degree(task) == 0
+        ]
+        heapq.heapify(pq)
+        queue: List[str] = []
+        queued: Set[str] = set()
+        while pq:
+            _, task_name = heapq.heappop(pq)
+            queue.append(task_name)
+            queued.add(task_name)
+            for dependency in task_graph.out_edges(task_name):
+                successor = dependency.target
+                if successor in queued:
+                    continue
+                if all(
+                    in_edge.source in queued
+                    for in_edge in task_graph.in_edges(successor)
+                ):
+                    heapq.heappush(pq, (-cost[successor], successor))
+        return queue
+
+
 class GreedyInsertCompareFuncs(Enum):
     EFT = "EFT"
     EST = "EST"
@@ -392,6 +428,7 @@ initial_priority_funcs = {
     "UpwardRanking": UpwardRanking(),
     "CPoPRanking": CPoPRanking(),
     "ArbitraryTopological": ArbitraryTopological(),
+    "LargestTaskFirst": LargestTaskFirst(),
 }
 
 schedulers: Dict[str, ParametricScheduler] = {}
