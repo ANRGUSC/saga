@@ -36,7 +36,7 @@ class Parameter_Annealing(Scheduler):
         initial_sort = random_sorter.call(network, task_graph)
         scheduled_tasks = set()
 
-        comp_schedule = sort_to_tasks(initial_sort, scheduled_tasks, comp_schedule, network, min_start_time)
+        comp_schedule = sort_to_tasks(initial_sort, scheduled_tasks, task_graph, comp_schedule, network, min_start_time)
         ## get makespan of this schedule
         best_schedule = comp_schedule
         best_makespan = comp_schedule.makespan()
@@ -49,7 +49,7 @@ class Parameter_Annealing(Scheduler):
             new_schedule = Schedule(
                 task_graph, network, node_constraints=node_constraints
             )
-            new_schedule = sort_to_tasks(new_sort, set(), new_schedule, network, min_start_time)
+            new_schedule = sort_to_tasks(new_sort, set(), task_graph, new_schedule, network, min_start_time)
             new_makespan = new_schedule.makespan()
         ## compare, accept/reject, cool
             delta_makespan = new_makespan - best_makespan
@@ -68,7 +68,7 @@ class Parameter_Annealing(Scheduler):
 
 
 ##Helper functions
-def sort_to_tasks(sort, scheduled_tasks, task_graph: TaskGraph, schedule, network, min_start_time):
+def sort_to_tasks(sort:list[str], scheduled_tasks:set[ScheduledTask], task_graph: TaskGraph, schedule:Schedule, network:Network, min_start_time:float)->Schedule:
     """Helper function that assigns a valid topological sort to the tasks of a task graph. Utilizes
     a greedy fastest node first method."""
     for task in sort:
