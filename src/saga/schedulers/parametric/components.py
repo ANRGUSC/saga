@@ -1,5 +1,6 @@
 from copy import deepcopy
 import heapq
+import random
 import numpy as np
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -59,6 +60,34 @@ class CPoPRanking(InitialPriority):
 class ArbitraryTopological(InitialPriority):
     def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
         return [task.name for task in task_graph.topological_sort()]
+
+
+class RandomTopological(InitialPriority):
+    """Random topological order (Kahn's algorithm with a uniformly random pick from the ready set).
+
+    Every valid topological order has positive probability. With ``seed`` set, the order is
+    deterministic for a given task graph, so experiments can sample orders reproducibly by
+    constructing one instance per seed. With ``seed`` unset, the global ``random`` module is
+    used and successive calls give different orders.
+    """
+
+    name: Literal["RandomTopological"] = "RandomTopological"
+    seed: Optional[int] = Field(default=None, description="Seed for the random order.")
+
+    def call(self, network: Network, task_graph: TaskGraph) -> List[str]:
+        rng = random.Random(self.seed) if self.seed is not None else random
+        in_degree = {task.name: task_graph.in_degree(task) for task in task_graph.tasks}
+        # Sorted so the result depends only on the seed, not on set iteration order.
+        ready = sorted(name for name, degree in in_degree.items() if degree == 0)
+        order: List[str] = []
+        while ready:
+            task_name = ready.pop(rng.randrange(len(ready)))
+            order.append(task_name)
+            for edge in sorted(task_graph.out_edges(task_name), key=lambda e: e.target):
+                in_degree[edge.target] -= 1
+                if in_degree[edge.target] == 0:
+                    ready.append(edge.target)
+        return order
 
 
 class GreedyInsertCompareFuncs(Enum):
@@ -181,6 +210,70 @@ class GreedyInsert(InsertTask):
         if not dry_run:
             schedule.add_task(best_task)
         return best_task
+
+
+class RandomInsert(InsertTask):
+    """Place the task on a uniformly random allowed node.
+
+    Combined with :class:`RandomTopological` this gives a fully random list scheduler, a lower
+    baseline for how much the placement policy contributes on top of the task order.
+    """
+
+    append_only: bool = Field(
+        default=True, description="Whether to only append the task to the schedule."
+    )
+    seed: Optional[int] = Field(default=None, description="Seed for the node choice.")
+
+    def call(
+        self,
+        network: Network,
+        task_graph: TaskGraph,
+        schedule: Schedule,
+        task: str | TaskGraphNode,
+        min_start_time: float = 0.0,
+        nodes: Iterable[str] | Iterable[NetworkNode] | None = None,
+        dry_run: bool = False,
+    ) -> ScheduledTask:
+        task = task_graph.get_task(task)
+        if nodes is None:
+            nodes = network.nodes
+        considered_nodes = [
+            node if isinstance(node, NetworkNode) else network.get_node(node)
+            for node in nodes
+        ]
+        considered_nodes.sort(key=lambda node: node.name)
+
+        allowed = schedule.allowed_nodes(task.name)
+        if allowed is not None:
+            considered_nodes = [n for n in considered_nodes if n.name in allowed]
+        if not considered_nodes:
+            raise ConstraintViolation(
+                f"Task {task.name} has no allowed node among the candidates "
+                f"(constraint: {sorted(allowed) if allowed else allowed})."
+            )
+
+        # Seeded per (task, seed) so each task's choice is independent but reproducible.
+        rng = (
+            random.Random(f"{self.seed}:{task.name}")
+            if self.seed is not None
+            else random
+        )
+        node = rng.choice(considered_nodes)
+        start_time = schedule.get_earliest_start_time(
+            task=task,
+            node=node,
+            append_only=self.append_only,
+            current_moment=min_start_time,
+        )
+        new_task = ScheduledTask(
+            node=node.name,
+            name=task.name,
+            start=start_time,
+            end=start_time + task.cost / node.speed,
+        )
+        if not dry_run:
+            schedule.add_task(new_task)
+        return new_task
 
 
 class ParametricKDepthScheduler(Scheduler, BaseModel):
