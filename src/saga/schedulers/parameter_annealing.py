@@ -42,9 +42,9 @@ class Parameter_Annealing(Scheduler):
         best_makespan = comp_schedule.makespan()
         ## perterb the topographic sort
         temp = START_TEMP
-        previous_sort = get_perterbed_sort(initial_sort)
+        previous_sort = get_perterbed_sort(initial_sort, task_graph)
         while temp > 0:
-            new_sort = get_perterbed_sort(previous_sort)
+            new_sort = get_perterbed_sort(previous_sort, task_graph)
         ## produce new schedule, get makespan
             new_schedule = Schedule(
                 task_graph, network, node_constraints=node_constraints
@@ -52,7 +52,7 @@ class Parameter_Annealing(Scheduler):
             new_schedule = sort_to_tasks(new_sort, set(), task_graph, new_schedule, network, min_start_time)
             new_makespan = new_schedule.makespan()
         ## compare, accept/reject, cool
-            delta_makespan = new_makespan - best_makespan
+            delta_makespan = best_makespan - new_makespan
             if delta_makespan > 0:
                 best_makespan = new_makespan
                 best_schedule = new_schedule
