@@ -21,6 +21,7 @@ from saga.schedulers import (
     BILScheduler,
     FLBScheduler,
     GDLScheduler,
+    Parameter_Annealing,
 )
 from saga.schedulers.parametric.components import schedulers as parametric_schedulers
 from saga.schedulers.throughput import MaxTPScheduler, MTScheduler, MultiObjScheduler
@@ -72,6 +73,7 @@ schedulers = [
     MaxTPScheduler(),
     MTScheduler(),
     MultiObjScheduler(),
+    Parameter_Annealing(),
     *parametric_schedulers.values(),
 ]
 
