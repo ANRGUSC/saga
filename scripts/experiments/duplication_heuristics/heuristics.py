@@ -176,69 +176,36 @@ def compute_task_slack(schedule: Schedule) -> dict[str, float]:
             task_level_slacks[task_copy.name] = min(task_level_slacks[task_copy.name], instance_slack)
     
     return task_level_slacks
-    
+
+def get_child_earliest_start_with_dup(
+        child_copy: ScheduledTask, child_runtime: float, data_ready: float, 
+        dup_start: float, dup_end: float, schedule: Schedule
+    ) -> float:
+    """Estimates a child's earliest start while accounting for a hypothetical duplicate."""
+
+    occupied_intervals = [
+        (scheduled_task.start, scheduled_task.end) for scheduled_task in schedule.mapping[child_copy.node]
+        if scheduled_task is not child_copy
+    ]
+
+    occupied_intervals.append((dup_start, dup_end))
+    occupied_intervals.sort()
+    earliest_start = data_ready
+
+    for start, end in occupied_intervals:
+        # this interval finishes before the child could start
+        if end <= earliest_start: 
+            continue
+
+        # the child fits completely before this occupied interval
+        if earliest_start + child_runtime <= start:
+            return earliest_start
+
+        # else, move past this occupied interval
+        earliest_start = max(earliest_start, end)
+    return earliest_start
 
 # HEURISTICS
-def communication_ratio_score(task_name: str, task_graph: TaskGraph, network: Network, schedule: Schedule) -> float:
-    """
-    Scores a task based on its incoming and outgoing communication costs.
-    
-    Higher scores are given to tasks who are dominant senders (more outgoing than incoming).
-    """
-    if not task_can_be_scored(task_name, task_graph): 
-        return 0.0
-    
-    instance_scores: list[float] = []
-    task_instances = schedule.get_scheduled_tasks(task_name)
-    for task_copy in task_instances:
-
-        outgoing_comm_time = 0.0
-        effective_children_for_parent_copy = get_effective_children_for_parent_copy(task_copy, schedule)
-        for edge, child_copy, _ in effective_children_for_parent_copy:
-            outgoing_comm_time += comm_time(edge, task_copy, child_copy, network)
-        
-        incoming_comm_time = 0.0
-        effective_inputs_for_child = get_effective_inputs_for_child(task_copy, schedule)
-        for edge, parent_copy, _ in effective_inputs_for_child:
-            incoming_comm_time += comm_time(edge, parent_copy, task_copy, network)
-
-        total_comm = outgoing_comm_time + incoming_comm_time
-        if total_comm <= 0.0:
-            instance_scores.append(0.0)
-            continue
-        
-        # direction_ratio: is this task more of a receiver or sender?
-        direction_ratio = max(0.0, (outgoing_comm_time - incoming_comm_time) / total_comm)
-        magnitude = outgoing_comm_time / (outgoing_comm_time + 1.0)
-        # if both conditions are true, the score is high (dominant sender AND its outgoing transfers are large)
-        instance_scores.append(direction_ratio * magnitude)
-    return (sum(instance_scores) / len(instance_scores) if instance_scores else 0.0)
-
-def cross_proc_branching_score(task_name: str, task_graph: TaskGraph, schedule: Schedule) -> float:
-    """
-    Score how much a task branches to children scheduled on different processors.
-
-    Higher scores are given to tasks with more children scheduled on different processors, 
-    relative to the max in the workflow.
-    """
-    if not task_can_be_scored(task_name, task_graph):
-        return 0.0
-    total_relationships, cross_proc_relationships = 0, 0
-    for edge in task_graph.out_edges(task_name):
-        if is_super_node(edge.target):
-            continue
-        
-        parent_child_pairs = get_earliest_parent_child_pairs(edge, schedule)
-        for parent_copy, child_copy in parent_child_pairs:
-            total_relationships += 1
-            if parent_copy.node != child_copy.node:
-                cross_proc_relationships += 1
-    
-    if total_relationships == 0: 
-        return 0.0
-    
-    return cross_proc_relationships / total_relationships 
-
 def join_bottleneck_score(task_name: str, task_graph: TaskGraph, network: Network, schedule: Schedule) -> float:
     """
     Scores whether a task is a bottleneck parent for a downstream join task.
@@ -297,7 +264,7 @@ def processor_dup_benefits(task_name: str, task_graph: TaskGraph, schedule: Sche
     """
     Estimates the benefit of duplicating a task onto processors containing its children.
     
-    Returns target processors (child processors) and their estimated data-arrival benefit, 
+    Returns target processors (child processors) and their estimated child EFT benefit, 
     sorted from highest to lowest benefit.
     """
     network = schedule.network
@@ -311,11 +278,11 @@ def processor_dup_benefits(task_name: str, task_graph: TaskGraph, schedule: Sche
         child_name = edge.target
         if is_super_node(child_name): 
             continue
+        
         child_task_instances = schedule.get_scheduled_tasks(child_name)
         for child_copy in child_task_instances:
             children_by_processor.setdefault(child_copy.node, []).append((edge, child_copy))
         
-    
     benefit_per_proc: dict[str, float] = {}
     for target_proc_name, child_entries in children_by_processor.items():
         # do not recommend another duplicate on a processor that already contains this task
@@ -325,19 +292,36 @@ def processor_dup_benefits(task_name: str, task_graph: TaskGraph, schedule: Sche
         target_proc = network.get_node(target_proc_name)
         dup_start = schedule.get_earliest_start_time(task, target_proc, False)
         dup_runtime = task.cost / target_proc.speed
-        dup_data_ready = dup_start + dup_runtime
+        dup_end = dup_start + dup_runtime
         total_benefit = 0.0
 
         for edge, child_copy in child_entries:
-            curr_parent_copy = get_earliest_parent_copy(task_name, child_copy, edge, schedule)
-            curr_data_arrival = get_data_arrival_time(curr_parent_copy, child_copy, edge, schedule)
+            other_parents_ready = 0.0
+
+            # find when all of the child's other parent inputs are ready
+            for parent_edge in task_graph.in_edges(child_copy.name):
+                if parent_edge.source == task_name:
+                    continue
+
+                parent_copy = get_earliest_parent_copy(parent_edge.source, child_copy, parent_edge, schedule)
+                data_arrival = get_data_arrival_time(parent_copy, child_copy, parent_edge, schedule)
+                other_parents_ready = max(other_parents_ready, data_arrival)
+
+            # the child must wait for bottleneck parent
+            data_ready = max(dup_end, other_parents_ready)
+            child_task = task_graph.get_task(child_copy.name)
+            child_runtime = child_task.cost / target_proc.speed
+            new_child_start = get_child_earliest_start_with_dup(
+                child_copy, child_runtime, data_ready, dup_start, dup_end, schedule
+            )
+            new_child_eft = new_child_start + child_runtime
+            current_child_eft = child_copy.end
             # if positive, duplication helps. vice versa
-            child_benefit = curr_data_arrival - dup_data_ready
+            child_benefit = current_child_eft - new_child_eft
             if child_benefit > 0.0:
                 total_benefit += child_benefit
         
-        if total_benefit > 0.0:
-            benefit_per_proc[target_proc_name] = total_benefit
+        benefit_per_proc[target_proc_name] = total_benefit
     # returns target processors and their estimated data-arrival benefit sorted by highest to lowest benefit 
     return sorted(benefit_per_proc.items(), key=lambda item: item[1], reverse=True) # return example: [("P2", 10.0), ..]
 
@@ -354,21 +338,30 @@ def compute_schedule_features(task_graph: TaskGraph, schedule: Schedule) -> dict
         if not is_super_node(task.name) and task_can_be_scored(task.name, task_graph)
     ]
 
-    slacks = compute_task_slack(schedule)
-    makespan = schedule.makespan
     raw = {}
+    # first find which tasks have positive dup benefits
     for task_name in candidate_tasks:
         target_processors = processor_dup_benefits(task_name, task_graph, schedule)
-
+        estimated_benefit = sum(benefit for _, benefit in target_processors)
         raw[task_name] = {
-            "slack": slack_score(task_name, slacks, makespan),
-            "estimated_benefit": sum(benefit for _, benefit in target_processors),
-            "num_target_processors": len(target_processors)
+            "slack": 0.0,
+            "estimated_benefit": estimated_benefit,
+            "num_target_processors": len(target_processors),
+            "target_processors": target_processors
         }
+
+    eligible_tasks = [task_name for task_name in candidate_tasks if raw[task_name]["target_processors"]]
+    # only compute slack if at least 1 task is actually eligible
+    if eligible_tasks:
+        slacks = compute_task_slack(schedule)
+        makespan = schedule.makespan
+
+        for task_name in eligible_tasks:
+            raw[task_name]["slack"] = slack_score(task_name, slacks, makespan)
 
     max_values = {
         "estimated_benefit": max((values["estimated_benefit"] for values in raw.values()), default=0.0),
-        "num_target_processors": max((values["num_target_processors"] for values in raw.values()), default=0.0)
+        "num_target_processors": max((values["num_target_processors"] for values in raw.values()), default=0.0),
     }
 
     return {"raw": raw, "max": max_values}
@@ -384,13 +377,11 @@ def task_score(task_name: str, task_graph: TaskGraph, network: Network, schedule
     urgency = raw["slack"]
     estimated_benefit = normalize(raw["estimated_benefit"], max_vals["estimated_benefit"])
 
-    graph_aware_score = (
-        communication_ratio_score(task_name, task_graph, network, schedule) 
-        + cross_proc_branching_score(task_name, task_graph, schedule) 
-        + join_bottleneck_score(task_name, task_graph, network, schedule)
-    ) / 3
-
-    schedule_aware_score = (urgency + estimated_benefit) / 2
     # this is the current weighted scoring. more trials will be done to find out ideal weight
-    final_score = (0.35 * graph_aware_score) + (0.65 * schedule_aware_score)
+    final_score = (
+        0.30 * join_bottleneck_score(task_name, task_graph, network, schedule)
+        + 0.30 * urgency
+        + 0.40 * estimated_benefit
+    )
+
     return max(0.0, min(1.0, final_score))
