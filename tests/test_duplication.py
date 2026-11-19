@@ -109,9 +109,12 @@ def test_heft_default_does_not_duplicate():
 def test_heft_duplication_reduces_makespan_on_comm_heavy_fork():
     network, task_graph = _comm_heavy_fork()
     base = HeftScheduler(duplication_factor=1).schedule(network, task_graph)
-    dup = HeftScheduler(duplication_factor=3).schedule(network, task_graph)
+    dup = HeftScheduler(duplication_factor=3, duplication_targets={
+        "S": ["A", "B", "C"]
+    }).schedule(network, task_graph)
     assert dup.makespan < base.makespan
-    assert len(dup.get_scheduled_tasks("S")) > 1  # source was duplicated
+    assert len(dup.get_scheduled_tasks("S")) == 3 # source was duplicated
+    assert {copy.node for copy in dup.get_scheduled_tasks("S")} == {"A", "B", "C"} 
 
 
 def test_cpop_duplicates_non_critical_comm_heavy_task():
@@ -139,13 +142,20 @@ def test_cpop_duplicates_non_critical_comm_heavy_task():
             ("c2", "SINK", 0.1),
         ],
     )
-    schedule = CpopScheduler(duplication_factor=2).schedule(network, task_graph)
+    schedule = CpopScheduler(duplication_factor=2, duplication_targets={
+        "A": ["A", "B", "C"]
+    }).schedule(network, task_graph)
     assert len(schedule.get_scheduled_tasks("A")) == 2
+    assert len({copy.node for copy in schedule.get_scheduled_tasks("A")}) == 2 # non-critical task A got duplicated on target processors 
 
 
 @pytest.mark.parametrize(
     "scheduler",
-    [HeftScheduler(duplication_factor=3), CpopScheduler(duplication_factor=3)],
+    [HeftScheduler(duplication_factor=3, duplication_targets={
+        "S": ["A", "B", "C"]
+    }), CpopScheduler(duplication_factor=3, duplication_targets={
+        "S": ["A", "B", "C"]
+    })] 
 )
 def test_duplicated_schedule_places_every_task(scheduler):
     network, task_graph = _comm_heavy_fork()

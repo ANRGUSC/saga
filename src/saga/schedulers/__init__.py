@@ -11,6 +11,7 @@ from .gdl import GDLScheduler
 from .hbmct import HbmctScheduler
 from .heft import HeftScheduler
 from .hybrid import HybridScheduler
+from .peft import PEFTScheduler
 from .maxmin import MaxMinScheduler
 from .mct import MCTScheduler
 from .met import METScheduler
@@ -36,6 +37,7 @@ __all__ = [
     "HbmctScheduler",
     "HeftScheduler",
     "HybridScheduler",
+    "PEFTScheduler",
     "MaxMinScheduler",
     "MCTScheduler",
     "METScheduler",
