@@ -1,0 +1,2 @@
+outputs/*
+!outputs/output_data.csv
