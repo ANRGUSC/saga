@@ -22,7 +22,7 @@ from .olb import OLBScheduler
 from .smt import SMTScheduler
 from .sufferage import SufferageScheduler
 from .wba import WBAScheduler
-
+from .parameter_annealing import Parameter_Annealing
 __all__ = [
     "BILScheduler",
     "BruteForceScheduler",
@@ -48,4 +48,5 @@ __all__ = [
     "SMTScheduler",
     "SufferageScheduler",
     "WBAScheduler",
+    "Parameter_Annealing",
 ]
