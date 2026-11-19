@@ -2,6 +2,7 @@ from typing import Dict, Optional
 
 import random
 import math
+import numpy as np
 from saga import Network, Schedule, Scheduler, ScheduledTask, TaskGraph, ConstraintViolation
 from saga.schedulers.parametric.components import (
     RandomTopological,
@@ -69,8 +70,7 @@ class Parameter_Annealing(Scheduler):
 
 ##Helper functions
 def sort_to_tasks(sort:list[str], scheduled_tasks:set[ScheduledTask], task_graph: TaskGraph, schedule:Schedule, network:Network, min_start_time:float)->Schedule:
-    """Helper function that assigns a valid topological sort to the tasks of a task graph. Utilizes
-    a greedy fastest node first method."""
+    """Helper function that assigns a valid topological sort to the tasks of a task graph. Utilizes the same greedy method as HEFT."""
     for task in sort:
         task_node = task_graph.get_task(task)
         if task_node.name in scheduled_tasks:
@@ -87,20 +87,31 @@ def sort_to_tasks(sort:list[str], scheduled_tasks:set[ScheduledTask], task_graph
                 f"Task {task_node.name} has no allowed node in the network "
                 f"(constraint: {sorted(allowed) if allowed else allowed})."
             )
-        chosen = max(candidates, key=lambda node: node.speed)
-
-        start_time = schedule.get_earliest_start_time(
-            task_node, chosen, append_only=True, current_moment=min_start_time
-        )
-        schedule.add_task(
-            ScheduledTask(
-                node=chosen.name,
-                name=task_node.name,
-                start=start_time,
-                end=start_time + (task_node.cost / chosen.speed),
+        if schedule.is_scheduled(task):
+            continue
+        min_finish_time = np.inf
+        best_node = next(iter(network.nodes))
+        for node in candidates:
+            start_time = schedule.get_earliest_start_time(
+                task=task, 
+                node=node, 
+                append_only=False, 
+                current_moment=min_start_time
             )
+            runtime = task_graph.get_task(task).cost / network.get_node(node).speed
+            finish_time = start_time + runtime
+
+            if finish_time < min_finish_time:
+                min_finish_time = finish_time
+                best_node = node
+
+        new_task = ScheduledTask(
+            node=best_node,
+            name=task,
+            start=min_finish_time - (task_graph.get_task(task).cost / network.get_node(best_node).speed),
+            end=min_finish_time
         )
-        scheduled_tasks.add(task_node.name)
+        schedule.add_task(new_task)
     return schedule
 
 def get_perterbed_sort(sort: list[str], task_graph: TaskGraph) -> list[str]:
